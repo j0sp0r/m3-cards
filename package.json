@@ -7,6 +7,7 @@
     "dev": "vite build --watch --mode development",
     "build": "vite build",
     "lint": "tsc --noEmit",
+    "docs": "node scripts/build-readme.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:contrast": "esbuild src/shared/contrast.ts --format=esm --outfile=.contrast.mjs --log-level=error && node test/contrast.test.mjs $PWD/.contrast.mjs; rm -f .contrast.mjs"
