@@ -54,7 +54,7 @@ Beide Fehler ließen die Seite besser aussehen, als sie war.
 - Ein Handy oder ein per DevTools emuliertes Touch-Gerät für alle Drag-Interaktionen
   (Wave-Slider, Wischen) — Maus-Events allein decken `touch-action`-Konflikte nicht ab.
 
-## Cross-Cutting-Checkliste (für jede der 39 Karten)
+## Cross-Cutting-Checkliste (für jede der 40 Karten)
 
 Diese Punkte gelten kartenübergreifend, weil sie über gemeinsame `shared/*`-Module
 implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichzeitig.
@@ -697,6 +697,27 @@ einer entscheidet, was ein Raum **zeigt**, der andere, was ein Tippen
 | Kaputte Kindkarte | Eine Karte mit ungültigem `type` eintragen | HA's eigene Fehlerkarte erscheint an ihrer Stelle; die übrigen Karten rendern weiter |
 | Leere Gruppe | `cards: []` | Karte rendert leer statt zu werfen |
 
+## M3 Search Card
+
+Die Karte ruft Dialoge des Frontends über dessen eigene Tastenkürzel auf.
+Alles Interessante steckt darin, ob dieser Weg noch trägt — Testen also bitte
+in der aktuellen HA-Version und mindestens einmal auf einem echten Telefon.
+
+| Test | Schritte | Erwartung |
+|---|---|---|
+| Minimalkonfiguration | Nur `type: custom:m3-search-card` | Pille mit Lupe, Platzhaltertext und Assist-Knopf; ein Tipp öffnet die Entitätssuche |
+| Befehlsmodus | `mode: command` als Administrator | Die Befehls-Schnellsuche öffnet sich, nicht die Entitätssuche |
+| Ohne Admin-Rechte | `mode: command` mit einem Nicht-Admin-Konto | Ein Tipp öffnet die Entitätssuche statt gar nichts zu tun; der Editor weist darauf hin |
+| Tastenkürzel aus | Profil → Tastenkürzel abschalten, Dashboard neu laden | Leiste ist blass, `aria-disabled="true"`, Tooltip erklärt es; kein Tipp öffnet etwas |
+| Assist fehlt | Instanz ohne `conversation` | Kein Assist-Knopf — statt eines Knopfes, der nichts tut |
+| Assist | Assist-Knopf antippen | Der Sprachdialog öffnet sich, nicht die Suche |
+| Schmaler Bildschirm | Auf dem Telefon, wo die Kopfzeile keinen Such-Knopf zeichnet | Die Karte ist der einzige Weg zur Suche und funktioniert |
+| Tastatur | Mit Tab auf die Leiste, dann Enter, dann Leertaste | Beide öffnen den Dialog; der Fokusring ist sichtbar; der Assist-Knopf ist ein eigenes Tab-Ziel |
+| Tap-Aktion | `tap_action: {action: navigate, ...}` setzen | Es wird navigiert; die Suche öffnet **nicht** zusätzlich |
+| Markierter Text | Text auf der Seite markieren, dann die Leiste antippen | Der Dialog öffnet trotzdem — die Auswahl wird vorher aufgehoben, sonst blockiert das Frontend jedes Kürzel |
+| Druck-Feedback | Finger auf der Leiste halten | Die Ecken ziehen sich zusammen und federn zurück; mit `animation: off` und bei reduzierter Bewegung passiert nichts |
+| Kontrast | In hellem und dunklem Theme, mit und ohne `accent_color` | Platzhalter und Icons bleiben lesbar |
+
 ## M3 Nav Card
 
 Die Karte ist Navigations-Chrome statt Datenkachel: sie positioniert sich gegen
@@ -788,7 +809,7 @@ kleiner konfigurierte Kachel angehoben und nicht abgeschnitten wird.
 1. Alle Cross-Cutting-Punkte (C1–C15) auf mindestens 3 unterschiedlichen Karten
    durchgehen (eine einfache, eine mit Editor-Unterinhalten wie Battery/Power-List,
    eine mit Animation wie Progress/Light).
-2. Jede der 39 Karten mindestens einmal mit einer Minimal-Config und einmal mit
+2. Jede der 40 Karten mindestens einmal mit einer Minimal-Config und einmal mit
    einer voll ausgereizten Config (alle Farben/Optionen gesetzt) rendern.
 3. `CHANGELOG.md` gegen die tatsächlich getesteten Änderungen abgleichen.
 4. Die Kartenzahl an allen fünf Stellen abgleichen, an denen sie steht: beide

@@ -85,6 +85,43 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   temperature** section, with the style and preset fields below it; they are
   hidden while it is off, since they have nothing left to describe.
 
+- **A new card: M3 Search Card** (`custom:m3-search-card`). A Material 3 search
+  bar that sits on the dashboard itself and opens Home Assistant's own quick
+  bar — the entity search by default, the command palette with
+  `mode: command` — plus an optional trailing Assist button. It reads no
+  entity and needs no configuration at all: `type: custom:m3-search-card` is a
+  working card.
+
+  The gap it fills is that Home Assistant's only search entry point is in the
+  header, and the header's search button is not rendered at all on a narrow
+  screen. On a phone or a wall tablet there is no way to reach the entity
+  search from a dashboard except by keyboard, which those devices do not have.
+  The header's Assist button goes the same way, which is why this card can
+  carry one.
+
+  It opens the dialog by replaying Home Assistant's own keyboard shortcut
+  rather than by firing `show-dialog`, and that is not a shortcut of its own
+  taking: `ha-quick-bar` is code-split out of the frontend's main bundle, and
+  the only thing that pulls it in is the frontend's own caller, which hands the
+  dialog manager an `import()` callback alongside the tag. A card loaded as its
+  own Lovelace resource cannot name that module path, so a bare `show-dialog`
+  lands on a custom element that was never defined and fails with "Unknown
+  dialog type loaded". Replaying the key hands the lazy import back to the
+  handler that owns it, and leaves the card depending on a shortcut that is
+  user-visible and listed in Home Assistant's own `Shift+?` dialog rather than
+  on an internal module path.
+
+  Everything that can take those shortcuts away is checked rather than assumed,
+  because a control that silently does nothing is worse than one that is not
+  drawn: the per-user "keyboard shortcuts" profile switch (the bar dims and
+  says so), the `conversation` integration Assist needs (no integration, no
+  Assist button), and the fact that the command palette is registered for
+  admins only (a non-admin gets the entity search, which is at least a search).
+
+  ```yaml
+  type: custom:m3-search-card
+  ```
+
 ### Changed
 
 - **The presence card's `hold_action` now runs through the shared action
@@ -164,6 +201,45 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   Schalter oben im Abschnitt **Farbtemperatur**, Stil- und Voreinstellungs-
   Felder darunter; sie verschwinden, solange er aus ist, weil sie dann nichts
   mehr beschreiben.
+
+- **Eine neue Karte: M3 Search Card** (`custom:m3-search-card`). Eine
+  Material-3-Suchleiste, die auf dem Dashboard selbst sitzt und Home Assistants
+  eigene Schnellsuche öffnet — standardmäßig die Entitätssuche, mit
+  `mode: command` die Befehlssuche — dazu optional ein Assist-Knopf am rechten
+  Rand. Sie liest keine Entität und braucht überhaupt keine Konfiguration:
+  `type: custom:m3-search-card` ist bereits eine funktionierende Karte.
+
+  Die Lücke, die sie füllt: Home Assistants einziger Einstieg in die Suche
+  sitzt in der Kopfzeile, und der Such-Knopf dort wird auf schmalen
+  Bildschirmen gar nicht gezeichnet. Auf einem Telefon oder einem Wandtablet
+  führt vom Dashboard aus also kein Weg zur Entitätssuche außer über eine
+  Tastatur, die diese Geräte nicht haben. Dem Assist-Knopf der Kopfzeile geht
+  es genauso — deshalb kann diese Karte einen mitbringen.
+
+  Sie öffnet den Dialog, indem sie Home Assistants eigenes Tastenkürzel
+  nachspielt, statt `show-dialog` zu feuern, und das ist keine selbstgewählte
+  Abkürzung: `ha-quick-bar` liegt in einem eigenen Chunk außerhalb des
+  Hauptbundles, und hereingeholt wird es einzig vom Aufrufer des Frontends
+  selbst, der dem Dialog-Manager neben dem Tag auch einen `import()`-Callback
+  mitgibt. Eine als eigene Lovelace-Ressource geladene Karte kann diesen
+  Modulpfad nicht benennen; ein bloßes `show-dialog` landet deshalb auf einem
+  nie definierten Custom Element und scheitert mit „Unknown dialog type
+  loaded". Das Nachspielen der Taste gibt den Nachlade-Import an den Handler
+  zurück, dem er gehört, und lässt die Karte an einem Tastenkürzel hängen, das
+  sichtbar und in HAs eigenem `Shift+?`-Dialog aufgeführt ist, statt an einem
+  internen Modulpfad.
+
+  Alles, was diese Kürzel wegnehmen kann, wird geprüft statt angenommen, denn
+  ein Bedienelement, das stillschweigend nichts tut, ist schlimmer als eines,
+  das gar nicht da ist: der Profil-Schalter „Tastenkürzel" (die Leiste wird
+  blass und sagt es), die von Assist benötigte Integration `conversation`
+  (ohne sie kein Assist-Knopf) und der Umstand, dass die Befehlssuche nur für
+  Administratoren registriert ist (ohne Admin-Rechte kommt die Entitätssuche —
+  immerhin eine Suche).
+
+  ```yaml
+  type: custom:m3-search-card
+  ```
 
 ### Geändert
 

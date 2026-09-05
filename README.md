@@ -7,7 +7,7 @@
 Material 3–inspired, native Lovelace cards for Home Assistant — built with
 TypeScript + [Lit](https://lit.dev), **without** any dependency on
 `button-card`, `card-mod`, `mod-card`, or `stack-in-card`. A single bundle
-(`m3-cards.js`) registers **39 cards**, all sharing one design language.
+(`m3-cards.js`) registers **40 cards**, all sharing one design language.
 
 New here? Start with the category that matches what you want to show — every
 card links to its full documentation further down.
@@ -66,6 +66,7 @@ card links to its full documentation further down.
 | [Status](#m3-status-card) | `m3-status-card` | Big numbers, text and yes/no states, with a rule list behind them |
 | [Heading](#m3-heading-card) | `m3-heading-card` | Section headings between the cards: simple, with status, a divider, or collapsible |
 | [Nav](#m3-nav-card) | `m3-nav-card` | A navigation bar for the dashboard, in five variants, with a pull-up drawer |
+| [Search](#m3-search-card) | `m3-search-card` | A Material 3 search bar that opens Home Assistant's own search and Assist |
 | [Group](#m3-group-card) | `m3-group-card` | Several cards on one shared surface, so they read as a single block |
 | [Room](#m3-room-card) | `m3-room-card` | One card per area: every device type it finds, climate readings and presence |
 | [Humidifier](#m3-humidifier-card) | `m3-humidifier-card` | Target humidity, mode, fan speed and extras — and it need not be a humidifier entity |
@@ -3898,6 +3899,103 @@ cards:
 | `corners` | object | – | Optional per-corner override, same as every other card |
 | `glass_background` | boolean | `true` | Frosted glass background |
 | `card_background` | string | – | Override background color |
+
+</details>
+
+## M3 Search Card
+
+A Material 3 search bar on the dashboard itself. It looks like the M3 search
+bar in its resting state — a 56px pill, a leading search icon, placeholder
+text, an optional trailing Assist button — and a tap opens Home Assistant's
+own quick bar, the same dialog the `E` key opens.
+
+It exists because Home Assistant's own search entry point is in the header,
+and the header's search button is **not rendered at all on a narrow screen**.
+On a phone or a wall tablet there is no way to reach the entity search from a
+dashboard except by keyboard, which those devices do not have. The same is
+true of the header's Assist button, which is why this card can carry one.
+
+Nothing is configured to make it work: the card reads no entity and needs no
+setup.
+
+<details>
+<summary>Configuration, examples & options</summary>
+
+```yaml
+type: custom:m3-search-card
+```
+
+A bar that opens the command palette instead, with its own text and no Assist
+button:
+
+```yaml
+type: custom:m3-search-card
+mode: command
+placeholder: Run a command
+icon: mdi:console
+show_assist: false
+accent_color: primary
+radius: 28
+```
+
+Or one that ignores the search entirely and navigates somewhere — `tap_action`
+replaces the built-in behaviour rather than running alongside it:
+
+```yaml
+type: custom:m3-search-card
+placeholder: Everything in the house
+icon: mdi:home-search
+tap_action:
+  action: navigate
+  navigation_path: /lovelace/all
+```
+
+### How it opens the dialog
+
+`ha-quick-bar` is code-split out of the frontend's main bundle, and the only
+thing that pulls it in is Home Assistant's own caller, which passes the dialog
+manager an `import()` callback alongside the dialog tag. A card loaded as its
+own Lovelace resource cannot name that module path, so firing a bare
+`show-dialog` event lands on a custom element that was never defined and fails
+with *"Unknown dialog type loaded"*.
+
+So the card asks for the dialog the way a keyboard does: it dispatches the
+`keydown` Home Assistant already listens for, and the frontend's own handler
+does the lazy import and opens what it built. That makes the card depend on
+the shortcut — user-visible, listed in Home Assistant's own `Shift+?` dialog —
+instead of on an internal module path.
+
+Three things can take those shortcuts away, and the card checks all three
+rather than drawing a control that silently does nothing:
+
+- **Keyboard shortcuts** can be switched off per user under *Profile →
+  Keyboard shortcuts*. The bar dims and says so.
+- **The command palette (`C`) is registered for admins only.** On a non-admin
+  account `mode: command` opens the entity search instead, which is at least a
+  search; the editor says so too.
+- **Assist needs the `conversation` integration.** It is part of
+  `default_config`, so it is normally there — where it is not, the trailing
+  button is left out.
+
+### Configuration options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `placeholder` | string | `Search Home Assistant`, or `Run a command` in command mode | The resting text in the bar |
+| `label` | string | – | Alias for `placeholder`, for consistency with the cards that call their one piece of text a label. `placeholder` wins if both are set |
+| `icon` | string | `mdi:magnify` | Leading icon |
+| `mode` | `entity` \| `command` | `entity` | Which quick bar a tap opens. `command` needs an admin account |
+| `show_assist` | boolean | `true` | Trailing Assist button. Drawn only when Assist is actually reachable |
+| `assist_icon` | string | `mdi:microphone` | Icon on the Assist button |
+| `tap_action` | Action | – | Standard Home Assistant action config. Once set it **replaces** opening the search |
+| `accent_color` | string | – (neutral, as M3's own search bar is) | Colors the leading icon and the Assist button's well |
+| `text_color` | string | – | Override text color |
+| `secondary_text_color` | string | – | Override the placeholder color |
+| `card_background` | string | – | Override background color |
+| `radius` | number (px) | `28` | Card corner radius — 28 is half of the 56px bar, i.e. a full pill |
+| `corners` | object | – | Optional per-corner override, same as every other card |
+| `glass_background` | boolean | `true` | Frosted glass background |
+| `animation` | `auto` \| `on` \| `off` | `auto` | The press feedback (a corner-radius morph); `auto` respects `prefers-reduced-motion` |
 
 </details>
 

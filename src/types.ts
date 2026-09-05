@@ -1,6 +1,7 @@
 import type { NotifyConfigBase } from "./shared/notify-editor";
 import type { EntityFilterConfig } from "./shared/entity-filter";
 import type { LightGroupHandling } from "./shared/ha-registry";
+import type { QuickBarMode } from "./shared/quick-bar";
 
 export interface HomeAssistant {
   states: Record<string, HassEntity>;
@@ -24,7 +25,19 @@ export interface HomeAssistant {
     };
     /** IANA zone the Home Assistant instance runs in, e.g. "Europe/Berlin". */
     time_zone?: string;
+    /** Integrations currently loaded, e.g. "conversation". Optional because an
+     *  older frontend does not put the list on `hass`. */
+    components?: string[];
   };
+  /** The logged-in user. Optional for the same reason as the registries above:
+   *  a card must work without it rather than assume it is there. */
+  user?: {
+    is_admin?: boolean;
+    name?: string;
+  };
+  /** The profile's "keyboard shortcuts" switch. Home Assistant's own shortcut
+   *  handlers return immediately when it is off — see shared/quick-bar.ts. */
+  enableShortcuts?: boolean;
   callService: (
     domain: string,
     service: string,
@@ -2347,5 +2360,35 @@ export interface M3GroupCardConfig {
   radius?: number;
   corners?: CornerRadiusConfig;
   card_background?: string;
+  card_version?: string;
+}
+
+// ---- Search Card ------------------------------------------------------------
+
+export interface M3SearchCardConfig {
+  type: string;
+  /** The resting text in the bar. Defaults to a localized string that follows
+   *  `mode` — "Search Home Assistant" or "Run a command". */
+  placeholder?: string;
+  /** Alias for `placeholder`, for consistency with the cards that call their
+   *  single piece of text a `label`. `placeholder` wins if both are set. */
+  label?: string;
+  icon?: string;
+  /** Which of Home Assistant's two quick bars a tap opens. `command` needs an
+   *  admin account; see shared/quick-bar.ts for what happens without one. */
+  mode?: QuickBarMode;
+  show_assist?: boolean;
+  assist_icon?: string;
+  /** Replaces the built-in "open the search dialog" behaviour entirely, and
+   *  runs through the same handler every other card's tap_action does. */
+  tap_action?: HaActionConfig;
+  accent_color?: string;
+  text_color?: string;
+  secondary_text_color?: string;
+  card_background?: string;
+  animation?: "auto" | "on" | "off";
+  glass_background?: boolean;
+  radius?: number;
+  corners?: CornerRadiusConfig;
   card_version?: string;
 }

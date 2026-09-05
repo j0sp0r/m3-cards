@@ -1973,6 +1973,30 @@ const translations = {
     editor_chip_buttons_justify_center: "Mitte",
     editor_chip_buttons_justify_end: "Rechts",
     editor_chip_buttons_justify_space_between: "Gleichmäßig verteilt",
+    search_placeholder: "Home Assistant durchsuchen",
+    search_placeholder_command: "Befehl ausführen",
+    search_assist_label: "Assist öffnen",
+    search_shortcuts_off: "Tastenkürzel sind im Profil deaktiviert — die Suche lässt sich so nicht öffnen.",
+    editor_search_placeholder: "Text in der Leiste",
+    editor_search_placeholder_hint:
+      "Leer lassen für den Standardtext, der zum gewählten Modus passt.",
+    editor_search_mode: "Was ein Tipp öffnet",
+    editor_search_mode_entity: "Entitäten durchsuchen (Taste E)",
+    editor_search_mode_command: "Befehle durchsuchen (Taste C)",
+    editor_search_mode_hint:
+      "Die Karte löst dasselbe Tastenkürzel aus, das Home Assistant selbst belegt — anders lässt sich der Dialog von außen nicht laden.",
+    editor_search_admin_warning:
+      "Die Befehlssuche registriert Home Assistant nur für Administratoren. Ohne Admin-Rechte öffnet ein Tipp stattdessen die Entitätssuche.",
+    editor_search_shortcuts_warning:
+      "In diesem Profil sind Tastenkürzel abgeschaltet (Profil → Tastenkürzel). Solange das so ist, kann die Karte keinen Suchdialog öffnen.",
+    editor_search_tap_action_hint:
+      "Eine gesetzte Tap-Aktion ersetzt das Öffnen der Suche vollständig.",
+    editor_search_assist: "Assist-Knopf",
+    editor_search_show_assist: "Assist-Knopf anzeigen",
+    editor_search_assist_icon: "Assist-Icon",
+    editor_search_assist_hint:
+      "Wird nur gezeichnet, wenn die Integration „conversation\" geladen und Tastenkürzel aktiv sind.",
+    editor_search_accent_color: "Akzentfarbe (Icon und Assist-Knopf)",
   },
   en: {
     off: "Off",
@@ -3944,6 +3968,28 @@ const translations = {
     editor_chip_buttons_justify_center: "Center",
     editor_chip_buttons_justify_end: "End",
     editor_chip_buttons_justify_space_between: "Space between",
+    search_placeholder: "Search Home Assistant",
+    search_placeholder_command: "Run a command",
+    search_assist_label: "Open Assist",
+    search_shortcuts_off: "Keyboard shortcuts are switched off in your profile, so the search cannot be opened.",
+    editor_search_placeholder: "Text in the bar",
+    editor_search_placeholder_hint: "Leave empty for the default text that matches the chosen mode.",
+    editor_search_mode: "What a tap opens",
+    editor_search_mode_entity: "Search entities (the E key)",
+    editor_search_mode_command: "Search commands (the C key)",
+    editor_search_mode_hint:
+      "The card replays the same keyboard shortcut Home Assistant binds itself — the dialog cannot be loaded from outside the frontend any other way.",
+    editor_search_admin_warning:
+      "Home Assistant registers the command search for admins only. Without admin rights a tap opens the entity search instead.",
+    editor_search_shortcuts_warning:
+      "Keyboard shortcuts are off in this profile (Profile → Keyboard shortcuts). While they are, the card cannot open a search dialog.",
+    editor_search_tap_action_hint: "A tap action, once set, replaces opening the search entirely.",
+    editor_search_assist: "Assist button",
+    editor_search_show_assist: "Show the Assist button",
+    editor_search_assist_icon: "Assist icon",
+    editor_search_assist_hint:
+      "Only drawn when the `conversation` integration is loaded and keyboard shortcuts are on.",
+    editor_search_accent_color: "Accent color (icon and Assist button)",
   },
 } as const;
 
