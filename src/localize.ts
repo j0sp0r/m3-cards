@@ -58,6 +58,8 @@ const translations = {
     nas_uptime_hours: "{n} Std.",
     nas_uptime_days: "{n} Tagen",
     nas_empty: "Keine Glances-Entitäten gefunden. Ist die Glances-Integration eingerichtet?",
+    nas_empty_synology:
+      "Keine Synology-DSM-Entitäten gefunden. Ist die Synology-DSM-Integration eingerichtet?",
     nas_show_more: "weitere Laufwerke anzeigen",
     nas_hide_more: "weitere Laufwerke ausblenden",
     nas_cpu: "CPU",
@@ -129,6 +131,12 @@ const translations = {
     editor_nas_exclude_mounts: "Mount-Punkte ausblenden",
     editor_nas_exclude_mounts_helper:
       "Mount-Pfad genau so eintragen, wie Glances ihn meldet, z. B. /rootfs/boot.",
+    editor_nas_exclude_volumes_helper:
+      "Synology kennt keine Mount-Pfade: hier die DSM-Volume-ID eintragen, z. B. volume_1. Dieselbe ID gilt für mount_names und disks.",
+    editor_nas_source: "Datenquelle",
+    editor_nas_source_glances: "Glances",
+    editor_nas_source_systemmonitor: "System Monitor",
+    editor_nas_source_synology: "Synology DSM",
     editor_nas_thresholds: "Schwellwerte",
     editor_nas_thresholds_helper:
       "Ab dem Warnwert wird die Zeile orange, ab dem kritischen Wert rot. Gleiches gilt für die Laufwerkstemperatur.",
@@ -2093,6 +2101,7 @@ const translations = {
     nas_uptime_hours: "{n} h",
     nas_uptime_days: "{n} days",
     nas_empty: "No Glances entities found. Is the Glances integration set up?",
+    nas_empty_synology: "No Synology DSM entities found. Is the Synology DSM integration set up?",
     nas_show_more: "show more drives",
     nas_hide_more: "hide more drives",
     nas_cpu: "CPU",
@@ -2164,6 +2173,12 @@ const translations = {
     editor_nas_exclude_mounts: "Hide mount points",
     editor_nas_exclude_mounts_helper:
       "Enter the mount path exactly as Glances reports it, e.g. /rootfs/boot.",
+    editor_nas_exclude_volumes_helper:
+      "Synology has no mount paths: enter the DSM volume id instead, e.g. volume_1. The same id keys mount_names and disks.",
+    editor_nas_source: "Data source",
+    editor_nas_source_glances: "Glances",
+    editor_nas_source_systemmonitor: "System Monitor",
+    editor_nas_source_synology: "Synology DSM",
     editor_nas_thresholds: "Thresholds",
     editor_nas_thresholds_helper:
       "From the warning value the row turns amber, from the critical value red. The same applies to drive temperature.",

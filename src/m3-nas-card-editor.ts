@@ -1,6 +1,6 @@
 import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import type { HomeAssistant, LovelaceCardEditor, M3NasCardConfig } from "./types";
+import type { HomeAssistant, HostSource, LovelaceCardEditor, M3NasCardConfig } from "./types";
 import {
   DEFAULT_NAS_RADIUS,
   DEFAULT_NAS_MAX_VISIBLE,
@@ -12,7 +12,12 @@ import {
   DEFAULT_NAS_OFFLINE_MINUTES,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
-import { labelFromUniqueId, prettyMount } from "./m3-nas-card";
+import {
+  defaultHostSource,
+  discoverHostEntities,
+  prettyLabel,
+  type HostRegistryEntry,
+} from "./shared/nas-discovery";
 import { fireEvent, colorRow, opacityRow, editorStyles, type SchemaEntry } from "./shared/editor-helpers";
 import { radiusLabelMap } from "./shared/radius-editor";
 import {
@@ -56,10 +61,15 @@ export class M3NasCardEditor extends LitElement implements LovelaceCardEditor {
   /** entity_id → the name the card shows, baked into the notification. */
   @state() private _prettyNames: Record<string, string> = {};
   private _registryLoaded = false;
+  private _loadedSource?: HostSource;
 
   public setConfig(config: M3NasCardConfig): void {
     this._config = config;
     this._appearance = initAppearanceState(config, DEFAULT_NAS_RADIUS);
+    // Switching the source in the dropdown has to re-resolve the volume list,
+    // otherwise the notification automation would keep the old source's
+    // entities.
+    if (this._loadedSource !== this._source) this._registryLoaded = false;
     this._loadRegistry();
   }
 
@@ -73,35 +83,24 @@ export class M3NasCardEditor extends LitElement implements LovelaceCardEditor {
   private async _loadRegistry(): Promise<void> {
     if (!this.hass || this._registryLoaded) return;
     this._registryLoaded = true;
+    const source = this._source;
+    this._loadedSource = source;
     try {
-      const reg = await this.hass.callWS<
-        Array<{
-          entity_id: string;
-          platform: string;
-          translation_key?: string;
-          unique_id: string;
-          config_entry_id?: string;
-          disabled_by?: string | null;
-        }>
-      >({ type: "config/entity_registry/list" });
+      const reg = await this.hass.callWS<HostRegistryEntry[]>({ type: "config/entity_registry/list" });
+      const { byMetric, sync } = discoverHostEntities(reg, source, this._config?.config_entry_id);
       const names: Record<string, string> = {};
-      const sync = reg.filter((e) => e.platform === "syncthing" && !e.disabled_by);
-      for (const e of sync) {
+      for (const id of sync) {
         // Syncthing's friendly_name is the whole connection string plus the
         // device id plus the folder twice — the label attribute is the part a
         // person recognises.
-        names[e.entity_id] = this.hass!.states[e.entity_id]?.attributes.label || e.entity_id;
+        names[id] = this.hass!.states[id]?.attributes.label || id;
       }
-      const disks = reg.filter(
-        (e) => e.platform === "glances" && !e.disabled_by && e.translation_key === "disk_usage",
-      );
+      const disks = byMetric.disk_usage ?? [];
       for (const e of disks) {
-        const mount = e.config_entry_id ? labelFromUniqueId(e.unique_id, e.config_entry_id) : undefined;
-        names[e.entity_id] =
-          (mount && this._config?.mount_names?.[mount]) || (mount ? prettyMount(mount) : e.entity_id);
+        names[e.entityId] = this._config?.mount_names?.[e.label] ?? prettyLabel(source, e.label);
       }
-      this._syncEntities = sync.map((e) => e.entity_id);
-      this._diskEntities = disks.map((e) => e.entity_id);
+      this._syncEntities = sync;
+      this._diskEntities = disks.map((e) => e.entityId);
       this._prettyNames = names;
     } catch {
       this._syncEntities = [];
@@ -271,12 +270,30 @@ export class M3NasCardEditor extends LitElement implements LovelaceCardEditor {
     return this.hass?.locale?.language ?? this.hass?.language ?? "en";
   }
 
+  /** One editor serves both card types, so the default follows the card type. */
+  private get _source(): HostSource {
+    return this._config?.source ?? defaultHostSource(this._config?.type);
+  }
+
   private _t(key: TranslationKey): string {
     return localize(key, this._language);
   }
 
   private _sourceSchema(): SchemaEntry[] {
     return [
+      {
+        name: "source",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "glances", label: this._t("editor_nas_source_glances") },
+              { value: "systemmonitor", label: this._t("editor_nas_source_systemmonitor") },
+              { value: "synology_dsm", label: this._t("editor_nas_source_synology") },
+            ],
+          },
+        },
+      },
       { name: "auto_discover", selector: { boolean: {} } },
       { name: "exclude_mounts", selector: { select: { multiple: true, custom_value: true, options: [] } } },
     ];
@@ -336,6 +353,7 @@ export class M3NasCardEditor extends LitElement implements LovelaceCardEditor {
 
   private _computeLabel = (schema: SchemaEntry): string => {
     const map: Record<string, TranslationKey> = {
+      source: "editor_nas_source",
       auto_discover: "editor_nas_auto_discover",
       exclude_mounts: "editor_nas_exclude_mounts",
       disk_warn: "editor_nas_disk_warn",
@@ -397,6 +415,10 @@ export class M3NasCardEditor extends LitElement implements LovelaceCardEditor {
   private _valueChanged(ev: CustomEvent): void {
     if (!this._config) return;
     this._config = { ...this._config, ...ev.detail.value };
+    if (this._loadedSource !== this._source) {
+      this._registryLoaded = false;
+      this._loadRegistry();
+    }
     fireEvent(this, "config-changed", { config: this._config });
   }
 
@@ -445,6 +467,7 @@ export class M3NasCardEditor extends LitElement implements LovelaceCardEditor {
     if (!this.hass || !this._config) return nothing;
 
     const sourceData = {
+      source: this._source,
       auto_discover: this._config.auto_discover ?? true,
       exclude_mounts: this._config.exclude_mounts ?? [],
     };
@@ -491,7 +514,13 @@ export class M3NasCardEditor extends LitElement implements LovelaceCardEditor {
               @value-changed=${this._valueChanged}
             ></ha-form>
             <div class="hint">${this._t("editor_nas_auto_discover_helper")}</div>
-            <div class="hint">${this._t("editor_nas_exclude_mounts_helper")}</div>
+            <div class="hint">
+              ${this._t(
+                this._source === "synology_dsm"
+                  ? "editor_nas_exclude_volumes_helper"
+                  : "editor_nas_exclude_mounts_helper",
+              )}
+            </div>
           </div>
         </ha-expansion-panel>
 

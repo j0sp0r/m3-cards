@@ -44,63 +44,22 @@ import { fireEvent } from "./shared/editor-helpers";
 import { localize, type TranslationKey } from "./localize";
 import { discoveryChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
+import {
+  discoverHostEntities,
+  prettyLabel,
+  resolveDiskSize,
+  volumeHealth,
+  type HostEntity,
+  type HostMetric,
+  type HostRegistryEntry,
+  type VolumeHealth,
+} from "./shared/nas-discovery";
 
 console.info(
   `%c M3-NAS-CARD %c v${CARD_VERSION} `,
   "color: #222; background: #85b7eb; font-weight: 700; border-radius: 4px 0 0 4px;",
   "color: #85b7eb; background: #222; font-weight: 700; border-radius: 0 4px 4px 0;",
 );
-
-// Glances entities are matched by their registry `translation_key`, never by
-// their display name: HA localises those, so a German instance would report
-// "Datenträgernutzung" and an English one "Disk usage" for the same sensor.
-type GlanceKey =
-  | "disk_usage"
-  | "disk_used"
-  | "disk_size"
-  | "disk_free"
-  | "temperature"
-  | "memory_usage"
-  | "cpu_usage"
-  | "processor_load"
-  | "network_rx"
-  | "network_tx"
-  | "uptime";
-
-// Both integrations expose the same concepts under different registry keys,
-// so each source maps its own vocabulary onto the internal one. System Monitor
-// leaves last_boot without a translation_key, hence the unique_id fallback.
-const SOURCE_KEYS: Record<HostSource, Record<string, GlanceKey>> = {
-  glances: {
-    disk_usage: "disk_usage",
-    disk_used: "disk_used",
-    disk_size: "disk_size",
-    disk_free: "disk_free",
-    temperature: "temperature",
-    memory_usage: "memory_usage",
-    cpu_usage: "cpu_usage",
-    network_rx: "network_rx",
-    network_tx: "network_tx",
-    uptime: "uptime",
-  },
-  systemmonitor: {
-    disk_use_percent: "disk_usage",
-    disk_use: "disk_used",
-    disk_free: "disk_free",
-    processor_temperature: "temperature",
-    memory_use_percent: "memory_usage",
-    processor_use: "cpu_usage",
-    throughput_network_in: "network_rx",
-    throughput_network_out: "network_tx",
-    last_boot: "uptime",
-  },
-};
-
-interface GlanceEntity {
-  entityId: string;
-  /** Mount point for disks, sensor name for temperatures, iface for network. */
-  label: string;
-}
 
 // Drive temperature sensors as exposed by NVMe/SATA controllers; anything
 // else (bigcore0_thermal, soc_thermal, ...) is board instrumentation.
@@ -124,24 +83,10 @@ interface DiskRow {
   /** Free space, when the source has no total-size sensor to read instead. */
   freeValue?: number;
   percentEntity: string;
+  /** Synology only: the volume's own health, independent of how full it is. */
+  health?: VolumeHealth;
 }
 
-/**
- * Glances unique_ids are `<config_entry_id>-<label>-<sensor_key>`. The label
- * can itself contain dashes (`/rootfs/srv/dev-disk-by-uuid-43ab...`) but the
- * sensor key never does, so cutting at the last dash is unambiguous.
- */
-export function labelFromUniqueId(uniqueId: string, configEntryId: string): string | undefined {
-  const prefix = `${configEntryId}-`;
-  if (!uniqueId.startsWith(prefix)) return undefined;
-  const rest = uniqueId.slice(prefix.length);
-  const cut = rest.lastIndexOf("-");
-  return cut <= 0 ? undefined : rest.slice(0, cut);
-}
-
-// The mount as Glances sees it is prefixed with the container's view of the
-// host (`/rootfs`), and OMV volumes are named after their UUID. Neither means
-// anything to a person reading a dashboard.
 // Folder sizes span three orders of magnitude here (an empty ssl folder next
 // to 1.4 TB of media), so the unit follows the value.
 function formatBytes(bytes: number): string {
@@ -152,25 +97,6 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1e3).toFixed(0)} kB`;
 }
 
-/**
- * System Monitor unique_ids are `<key>` for the primary target and
- * `<key>_<target>` for the others (disk_use_media, throughput_network_in_end0).
- * Stripping the key is what lets "used" and "free" of the same volume find
- * each other — keeping the raw unique_id gives every sensor its own label and
- * the volume never assembles.
- */
-function systemMonitorLabel(uniqueId: string, signal: string): string {
-  if (!uniqueId.startsWith(signal)) return uniqueId;
-  return uniqueId.slice(signal.length).replace(/^_/, "") || "/";
-}
-
-export function prettyMount(mount: string): string {
-  const stripped = mount.replace(/^\/rootfs/, "") || "/";
-  const uuid = stripped.match(/dev-disk-by-uuid-([0-9a-f]{8})/i);
-  if (uuid) return `Volume ${uuid[1]}`;
-  return stripped;
-}
-
 @customElement("m3-nas-card")
 export class M3NasCard extends TemplatedCard(LitElement) implements LovelaceCard {
   @property({ attribute: false }) public hass?: HomeAssistant;
@@ -178,7 +104,7 @@ export class M3NasCard extends TemplatedCard(LitElement) implements LovelaceCard
   @state() protected _config?: M3NasCardConfig;
   @state() private _expanded = false;
   /** translation_key → entities, built once from the entity registry. */
-  @state() private _byKey: Partial<Record<GlanceKey, GlanceEntity[]>> = {};
+  @state() private _byKey: Partial<Record<HostMetric, HostEntity[]>> = {};
   /** Syncthing folder sensors, discovered alongside the Glances ones. */
   @state() private _syncEntities: string[] = [];
   private _registryLoaded = false;
@@ -223,38 +149,9 @@ export class M3NasCard extends TemplatedCard(LitElement) implements LovelaceCard
     if (!this.hass || this._registryLoaded) return;
     this._registryLoaded = true;
     try {
-      const reg = await this.hass.callWS<
-        Array<{
-          entity_id: string;
-          platform: string;
-          translation_key?: string;
-          unique_id: string;
-          config_entry_id?: string;
-          disabled_by?: string | null;
-        }>
-      >({ type: "config/entity_registry/list" });
-
-      const wanted = this._config?.config_entry_id;
-      const source = this._source;
-      const map = SOURCE_KEYS[source];
-      const out: Partial<Record<GlanceKey, GlanceEntity[]>> = {};
-      const sync: string[] = [];
-      for (const e of reg) {
-        if (e.platform === "syncthing" && !e.disabled_by) sync.push(e.entity_id);
-        if (e.platform !== source || e.disabled_by) continue;
-        if (wanted && e.config_entry_id !== wanted) continue;
-        // System Monitor's last_boot carries no translation_key, so the
-        // unique_id doubles as the signal.
-        const signal = e.translation_key ?? e.unique_id;
-        const key = map[signal];
-        if (!key) continue;
-        const label =
-          source === "glances"
-            ? (e.config_entry_id ? labelFromUniqueId(e.unique_id, e.config_entry_id) : undefined)
-            : systemMonitorLabel(e.unique_id, signal);
-        (out[key] ||= []).push({ entityId: e.entity_id, label: label ?? e.entity_id });
-      }
-      this._byKey = out;
+      const reg = await this.hass.callWS<HostRegistryEntry[]>({ type: "config/entity_registry/list" });
+      const { byMetric, sync } = discoverHostEntities(reg, this._source, this._config?.config_entry_id);
+      this._byKey = byMetric;
       this._syncEntities = sync;
     } catch {
       this._byKey = {}; // no registry access — the card renders its empty state
@@ -298,6 +195,16 @@ export class M3NasCard extends TemplatedCard(LitElement) implements LovelaceCard
     return probes.every((p) => this._num(p.entityId) === undefined);
   }
 
+  /**
+   * The row identifier as the config addresses it. Glances and System Monitor
+   * report a mount point; Synology has none and reports a DSM volume id
+   * (`volume_1`) instead, so that is what `mount_names`, `exclude_mounts` and
+   * `disks[].mount` key on there.
+   */
+  private _prettyLabel(label: string): string {
+    return prettyLabel(this._source, label);
+  }
+
   private _diskRows(): DiskRow[] {
     const cfg = this._config;
     if (!cfg) return [];
@@ -310,7 +217,7 @@ export class M3NasCard extends TemplatedCard(LitElement) implements LovelaceCard
       if (percent === undefined) continue;
       byMount.set(e.label, {
         mount: e.label,
-        name: cfg.mount_names?.[e.label] ?? prettyMount(e.label),
+        name: cfg.mount_names?.[e.label] ?? this._prettyLabel(e.label),
         percent,
         percentEntity: e.entityId,
       });
@@ -328,7 +235,7 @@ export class M3NasCard extends TemplatedCard(LitElement) implements LovelaceCard
         if (used === undefined || freeVal === undefined || used + freeVal <= 0) continue;
         byMount.set(e.label, {
           mount: e.label,
-          name: cfg.mount_names?.[e.label] ?? prettyMount(e.label),
+          name: cfg.mount_names?.[e.label] ?? this._prettyLabel(e.label),
           percent: (used / (used + freeVal)) * 100,
           percentEntity: e.entityId,
           usedEntity: e.entityId,
@@ -343,6 +250,14 @@ export class M3NasCard extends TemplatedCard(LitElement) implements LovelaceCard
     for (const e of this._byKey.disk_size ?? []) {
       const row = byMount.get(e.label);
       if (row) row.sizeEntity = e.entityId;
+    }
+    // Synology reports a per-volume state next to the percentage. A crashed or
+    // degraded volume is worth the warning colour whatever its fill level says,
+    // so it rides the row's existing colour rather than adding anything to the
+    // layout. Sources without such a sensor leave every row's health undefined.
+    for (const e of this._byKey.volume_status ?? []) {
+      const row = byMount.get(e.label);
+      if (row) row.health = volumeHealth(this.hass?.states[e.entityId]?.state);
     }
 
     // An explicit `disks` list wins over discovery for both order and naming;
@@ -417,6 +332,18 @@ export class M3NasCard extends TemplatedCard(LitElement) implements LovelaceCard
     if (percent >= crit) return c?.critical_color ? resolveThemeColor(c.critical_color) : NAS_COLOR_CRITICAL;
     if (percent >= warn) return c?.warn_color ? resolveThemeColor(c.warn_color) : NAS_COLOR_WARN;
     return c?.ok_color ? resolveThemeColor(c.ok_color) : NAS_COLOR_OK;
+  }
+
+  /** A volume's own bad health outranks its fill level; both use the same slot. */
+  private _diskRowColor(row: DiskRow): string {
+    const c = this._config;
+    if (row.health === "critical") {
+      return c?.critical_color ? resolveThemeColor(c.critical_color) : NAS_COLOR_CRITICAL;
+    }
+    if (row.health === "warn") {
+      return c?.warn_color ? resolveThemeColor(c.warn_color) : NAS_COLOR_WARN;
+    }
+    return this._diskColor(row.percent);
   }
 
   private _tempColor(temp: number): string {
@@ -545,7 +472,9 @@ export class M3NasCard extends TemplatedCard(LitElement) implements LovelaceCard
           })}
 
           ${nothingFound
-            ? html`<div class="empty-state">${this._t("nas_empty")}</div>`
+            ? html`<div class="empty-state">
+                ${this._t(this._source === "synology_dsm" ? "nas_empty_synology" : "nas_empty")}
+              </div>`
             : nothing}
 
           ${visible.length
@@ -591,9 +520,9 @@ export class M3NasCard extends TemplatedCard(LitElement) implements LovelaceCard
   }
 
   private _renderDisk(row: DiskRow) {
-    const color = this._diskColor(row.percent);
+    const color = this._diskRowColor(row);
     const used = this._num(row.usedEntity);
-    const size = this._num(row.sizeEntity) ?? (used !== undefined ? used + (row.freeValue ?? NaN) : undefined);
+    const size = resolveDiskSize(this._num(row.sizeEntity), used, row.freeValue);
     const unit = this._unit(row.sizeEntity) || this._unit(row.usedEntity);
     const detail =
       used !== undefined && size !== undefined
@@ -941,7 +870,7 @@ windowWithCards.customCards.push({
   type: "m3-nas-card",
   name: "M3 NAS Card",
   description:
-    "Speicherbelegung, CPU, RAM und Temperatur eines NAS über die Glances-Integration.",
+    "Speicherbelegung, CPU, RAM und Temperatur eines NAS über die Glances- oder die Synology-DSM-Integration.",
   // false: setConfig() pulls the whole entity registry over the websocket to
   // find the Glances entities. HA's card-picker preview would pay that
   // round-trip too, just to draw a thumbnail. See m3-battery-card.ts.

@@ -999,13 +999,15 @@ export type UpdateGroup =
 
 /** One volume row on the NAS card. */
 export interface NasDiskConfig {
-  /** Mount point as Glances reports it, e.g. "/rootfs/srv/dev-disk-by-uuid-...". */
+  /** Mount point as Glances reports it, e.g. "/rootfs/srv/dev-disk-by-uuid-...".
+   *  With `source: synology_dsm` there is no mount point — this is the DSM
+   *  volume id instead, e.g. "volume_1". */
   mount: string;
   name?: string;
   icon?: string;
 }
 
-export type HostSource = "glances" | "systemmonitor";
+export type HostSource = "glances" | "systemmonitor" | "synology_dsm";
 
 export interface M3NasCardConfig extends NotifyConfigBase {
   type: string;
@@ -1017,8 +1019,10 @@ export interface M3NasCardConfig extends NotifyConfigBase {
   config_entry_id?: string;
   /** Explicit volume list; overrides discovery order and naming. */
   disks?: NasDiskConfig[];
+  /** Mount points to hide; DSM volume ids with `source: synology_dsm`. */
   exclude_mounts?: string[];
-  /** Mount point → display name, applied on top of discovery. */
+  /** Mount point → display name, applied on top of discovery. Keyed by the DSM
+   *  volume id with `source: synology_dsm`. */
   mount_names?: Record<string, string>;
   disk_warn?: number;
   disk_critical?: number;

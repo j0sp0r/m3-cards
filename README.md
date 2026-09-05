@@ -78,7 +78,7 @@ card links to its full documentation further down.
 | --- | --- | --- |
 | [Battery](#m3-battery-card) | `m3-battery-card` | Battery levels across all `device_class: battery` sensors |
 | [Updates](#m3-updates-card) | `m3-updates-card` | Every available update (core, OS, add-ons, HACS, firmware) |
-| [NAS](#m3-nas-card--m3-system-card) | `m3-nas-card` | NAS volumes, CPU, RAM, network via Glances + Syncthing |
+| [NAS](#m3-nas-card--m3-system-card) | `m3-nas-card` | NAS volumes, CPU, RAM, network via Glances or Synology DSM + Syncthing |
 | [System](#m3-nas-card--m3-system-card) | `m3-system-card` | The same, fed by the System Monitor integration |
 
 ### 🐠 Special
@@ -2099,9 +2099,9 @@ Rather than sitting on a frozen banner, the card then shows "Disconnected —
 
 Two tiles sharing one implementation: per-volume usage, with CPU, RAM,
 temperature and network as compact status tiles below, and optionally the
-state of your Syncthing folders. The NAS Card reads the **Glances**
-integration, the System Card the **System Monitor** integration — otherwise
-they are identical.
+state of your Syncthing folders. The NAS Card reads the **Glances** or the
+**Synology DSM** integration, the System Card the **System Monitor**
+integration — otherwise they are identical.
 
 <img src="docs/images/nas-card.png" alt="M3 NAS Card" width="440">
 
@@ -2118,6 +2118,11 @@ Glances otherwise reports paths like `/rootfs/srv/dev-disk-by-uuid-…`.</sub>
 type: custom:m3-nas-card
 name: NAS
 
+# or, for a Synology NAS:
+type: custom:m3-nas-card
+name: NAS
+source: synology_dsm
+
 # or, for your own HA instance:
 type: custom:m3-system-card
 name: Home Assistant
@@ -2126,6 +2131,12 @@ name: Home Assistant
 ### Setting up the data source
 
 The System Card only needs the built-in **System Monitor** integration.
+
+For a **Synology** NAS, `source: synology_dsm` reads Home Assistant's built-in
+**Synology DSM** integration — nothing has to be installed on the NAS itself.
+Add it under *Settings → Devices & services* (it is usually discovered over
+SSDP), and the card lights up from the entities it creates. See
+[Synology](#synology) below for what maps onto what.
 
 The NAS Card needs **Glances** with its REST API running on the NAS; then add
 the Glances integration in HA with the host and port `61208`. In a container a
@@ -2163,12 +2174,68 @@ Mount paths are shortened for display (`/rootfs` stripped, UUID volumes become
 "Volume a1b2c3d4"). `mount_names` overrides this per path, `exclude_mounts`
 hides individual ones.
 
+### Synology
+
+With `source: synology_dsm` the card reads the same sections from the Synology
+DSM integration. The matching works exactly as above — by `translation_key`,
+not by display name:
+
+| Synology `translation_key` | Card section |
+|---|---|
+| `volume_percentage_used` | Volume row, the percentage and the bar |
+| `volume_size_used` | Volume row, the "used / total" line |
+| `volume_size_total` | Volume row, the "used / total" line |
+| `volume_status` | Volume row colour when the volume is unhealthy |
+| `cpu_total_load` | CPU tile |
+| `memory_real_usage` | RAM tile |
+| `disk_temp` (per drive) | Temperature tile |
+| `temperature` (chassis) | Temperature tile, when no drive sensor exists |
+| `network_down` / `network_up` | Network tile |
+| *uptime* (no `translation_key`) | Uptime in the subtitle |
+
+**Volumes are named, not mounted.** Glances reports a mount path; Synology has
+none and reports a DSM volume id instead. `exclude_mounts`, `mount_names` and
+`disks[].mount` therefore take that id — `volume_1`, `volume_2` — and the card
+shows it as "Volume 1" unless `mount_names` says otherwise:
+
+```yaml
+type: custom:m3-nas-card
+source: synology_dsm
+mount_names:
+  volume_1: Media
+exclude_mounts:
+  - volume_2
+```
+
+Everything else behaves as it does for the other sources: `auto_discover`,
+`config_entry_id` (for more than one NAS), `max_visible`, the `show_*` toggles,
+the thresholds and the notifications all work unchanged.
+
+Some sensors Synology needs are **disabled by default** in Home Assistant.
+`volume_size_total` is one of them — without it the volume row shows the
+percentage but no "used / total" line — and so is the uptime sensor. Enable
+them under *Settings → Devices & services → Synology DSM → entities* if you
+want those. A section the NAS does not report simply does not render; nothing
+falls back to a zero.
+
+A volume whose `volume_status` is `crashed`, `degraded` or `attention` takes
+the critical/warning colour on its own row whatever its fill level says. The
+per-drive SMART sensors and the security-status binary sensor are **not** shown:
+DSM does not expose which drives make up which volume, so there is no row to
+attach them to without adding a section the card does not have.
+
 ### Temperature
 
 Glances reports drive and SoC sensors in one list, and the SoC always runs
 hotter. The card therefore prefers drive sensors whenever any exist —
 otherwise it would read 49 °C while the disks sit at 32 °C.
 `temperature_labels` pins the selection explicitly.
+
+The same preference covers Synology: `disk_temp` is labelled with the drive
+(`sda`), the chassis `temperature` sensor is not, so the drives win and the
+chassis reading is only used when a model exposes no per-drive sensor. The
+per-volume `volume_disk_temp_avg` / `_max` sensors are deliberately ignored —
+they average the very drives already being read.
 
 ### Synchronisation
 
@@ -2196,11 +2263,11 @@ written into the automation during setup.
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `source` | `glances` \| `systemmonitor` | per card type | Data source |
+| `source` | `glances` \| `systemmonitor` \| `synology_dsm` | per card type | Data source |
 | `config_entry_id` | string | – | Restrict to one instance when several exist |
-| `exclude_mounts` | list\<string\> | – | Mount points to hide |
-| `mount_names` | object | – | Mount path → display name |
-| `disks` | list | – | Explicit volume order and naming |
+| `exclude_mounts` | list\<string\> | – | Mount points to hide; DSM volume ids (`volume_1`) with `synology_dsm` |
+| `mount_names` | object | – | Mount path → display name; keyed by DSM volume id with `synology_dsm` |
+| `disks` | list | – | Explicit volume order and naming; `mount:` is the DSM volume id with `synology_dsm` |
 | `disk_warn` / `disk_critical` | number | `80` / `90` | Percent thresholds for the row colour |
 | `temp_warn` / `temp_critical` | number | `55` / `65` | Temperature thresholds in °C |
 | `temperature_labels` | list\<string\> | – | Temperature sensors to consider |

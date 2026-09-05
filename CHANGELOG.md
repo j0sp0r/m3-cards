@@ -127,6 +127,38 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
     remaining_entity: sensor.washer_completion_time
   buttons:
     - { entity: button.washer_start, name: Start, icon: mdi:play, color: green }
+
+- **`source: synology_dsm` for the NAS card.** Discovery filtered the entity
+  registry for `glances` or `systemmonitor` and nothing else, so for the many
+  people whose NAS is a Synology — running Home Assistant's built-in
+  **Synology DSM** integration and no Glances container at all — the card found
+  no entities and rendered its empty state. Synology is now a third source, and
+  it is only that: the same discovery shape, the same sections, the same
+  `disk_warn` / `disk_critical` / `temp_warn` / `temp_critical` handling, the
+  same rendering. Nothing about the card's design changed, and the Glances and
+  System Monitor mappings are untouched.
+
+  Entities are matched by `translation_key` exactly as before —
+  `volume_percentage_used`, `volume_size_used`, `volume_size_total` and
+  `volume_status` for the volume rows, `cpu_total_load`, `memory_real_usage`,
+  `disk_temp`, `network_down` / `network_up` for the tiles. DSM's uptime sensor
+  carries no `translation_key`, so it is found through its `unique_id` the way
+  System Monitor's `last_boot` already was.
+
+  **A Synology volume has a name, not a mount point.** Glances reports a path;
+  DSM reports a volume id, so `exclude_mounts`, `mount_names` and
+  `disks[].mount` take `volume_1` / `volume_2` there, and the card shows
+  "Volume 1" unless `mount_names` says otherwise. Sections the NAS does not
+  report — there is no free-space sensor, and `volume_size_total` ships
+  disabled — simply do not render rather than showing a zero. A volume whose
+  `volume_status` reads `crashed`, `degraded` or `attention` takes the
+  critical/warning colour on its own row whatever its fill level says.
+
+  ```yaml
+  type: custom:m3-nas-card
+  source: synology_dsm
+  mount_names:
+    volume_1: Media
   ```
 
 ### Changed
@@ -145,6 +177,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   `src/shared/entity-actions.ts` unchanged, with tests, and their original
   owners call them rather than keeping a second copy that could drift. No
   behaviour change on either card.
+
+- **The NAS card's notification setup resolves its volumes through the card's
+  own discovery.** The editor looked for Glances volume sensors specifically,
+  so on an **m3-system-card** the "volume full" trigger found nothing to watch
+  and the automation was built without it. It now uses whichever source the
+  card uses, which also means the Glances volume list finally honours
+  `config_entry_id` on a dashboard with more than one NAS.
 
 ### Hinzugefügt
 
@@ -261,6 +300,39 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
     remaining_entity: sensor.washer_completion_time
   buttons:
     - { entity: button.washer_start, name: Start, icon: mdi:play, color: green }
+
+- **`source: synology_dsm` für die NAS-Karte.** Die Erkennung filterte die
+  Entity-Registry auf `glances` oder `systemmonitor` und sonst nichts. Wer ein
+  Synology-NAS betreibt — also die mitgelieferte **Synology-DSM**-Integration
+  nutzt und gar keinen Glances-Container hat —, bekam deshalb keine Entitäten
+  und damit den Leerzustand der Karte zu sehen. Synology ist jetzt eine dritte
+  Quelle, und nur das: dieselbe Erkennungsstruktur, dieselben Abschnitte,
+  dasselbe Verhalten von `disk_warn` / `disk_critical` / `temp_warn` /
+  `temp_critical`, dieselbe Darstellung. Am Design der Karte ändert sich
+  nichts, und die Zuordnungen für Glances und System Monitor bleiben unberührt.
+
+  Erkannt wird weiterhin über den `translation_key` —
+  `volume_percentage_used`, `volume_size_used`, `volume_size_total` und
+  `volume_status` für die Volume-Zeilen, `cpu_total_load`, `memory_real_usage`,
+  `disk_temp`, `network_down` / `network_up` für die Kacheln. Der Uptime-Sensor
+  von DSM hat keinen `translation_key` und wird deshalb über die `unique_id`
+  gefunden, so wie `last_boot` beim System Monitor schon vorher.
+
+  **Ein Synology-Volume hat einen Namen, keinen Mount-Punkt.** Glances meldet
+  einen Pfad, DSM eine Volume-ID — `exclude_mounts`, `mount_names` und
+  `disks[].mount` erwarten dort also `volume_1` / `volume_2`, und die Karte
+  zeigt „Volume 1“, sofern `mount_names` nichts anderes sagt. Abschnitte, die
+  das NAS nicht meldet — einen Sensor für freien Platz gibt es nicht, und
+  `volume_size_total` ist standardmäßig deaktiviert —, werden schlicht nicht
+  gezeichnet statt eine Null zu zeigen. Ein Volume mit `volume_status`
+  `crashed`, `degraded` oder `attention` bekommt unabhängig von seiner Belegung
+  die kritische bzw. warnende Farbe in seiner Zeile.
+
+  ```yaml
+  type: custom:m3-nas-card
+  source: synology_dsm
+  mount_names:
+    volume_1: Medien
   ```
 
 ### Geändert
@@ -281,6 +353,14 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   `src/shared/entity-actions.ts` gewandert, mit Tests, und ihre bisherigen
   Besitzer rufen sie auf, statt eine zweite Kopie zu behalten, die
   auseinanderlaufen kann. Für beide Karten ändert sich nichts am Verhalten.
+
+- **Die Benachrichtigungs-Einrichtung der NAS-Karte ermittelt ihre Volumes über
+  dieselbe Erkennung wie die Karte.** Der Editor suchte gezielt nach
+  Glances-Volume-Sensoren; bei einer **m3-system-card** fand der Auslöser
+  „Platte voll“ deshalb nichts zu überwachen und die Automatisierung entstand
+  ohne ihn. Jetzt gilt die Quelle der Karte — womit die Glances-Volume-Liste
+  auch endlich `config_entry_id` berücksichtigt, wenn mehrere NAS eingebunden
+  sind.
 
 ## [2.3.2]
 
