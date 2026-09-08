@@ -347,7 +347,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   bottom-anchored bar whose alignment (`chip_buttons_justify`: left/center/
   right) becomes configurable — the switch is handled purely with a CSS
   container query, so it needs no JS height measuring and adapts instantly
-  as the card is resized in the dashboard editor.
+  as the card is resized in the dashboard editor. `chip_buttons_layout`
+  decides what happens when there are more chips than fit: `wrap` (the
+  default) breaks the row onto a second line, `scroll` keeps it on one line
+  and scrolls it horizontally with the same edge fade the Chip Buttons Card
+  uses.
 
 - **The appliance card gets its own popup**, via `popup`. The card is a summary
   — a state, a progress bar, a few buttons. The full set of controls (every

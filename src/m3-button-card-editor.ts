@@ -96,6 +96,18 @@ export class M3ButtonCardEditor
   private _chipButtonsLayoutSchema(): SchemaEntry[] {
     return [
       {
+        name: "chip_buttons_layout",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "wrap", label: this._t("editor_chip_buttons_layout_wrap") },
+              { value: "scroll", label: this._t("editor_chip_buttons_layout_scroll") },
+            ],
+          },
+        },
+      },
+      {
         name: "chip_buttons_justify",
         selector: {
           select: {
@@ -201,6 +213,7 @@ export class M3ButtonCardEditor
     const labelMap: Record<string, TranslationKey> = {
       ...chipButtonLabelMap,
       chip_buttons_justify: "editor_chip_buttons_justify",
+      chip_buttons_layout: "editor_chip_buttons_layout",
       entity: "editor_entity",
       name: "editor_name",
       icon: "editor_icon",
@@ -429,7 +442,10 @@ export class M3ButtonCardEditor
             })}
             <ha-form
               .hass=${this.hass}
-              .data=${{ chip_buttons_justify: this._config.chip_buttons_justify ?? "end" }}
+              .data=${{
+                chip_buttons_layout: this._config.chip_buttons_layout ?? "wrap",
+                chip_buttons_justify: this._config.chip_buttons_justify ?? "end",
+              }}
               .schema=${this._chipButtonsLayoutSchema()}
               .computeLabel=${this._computeLabel}
               @value-changed=${this._valueChanged}
