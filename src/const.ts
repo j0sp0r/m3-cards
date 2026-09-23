@@ -15,6 +15,105 @@ export const CARD_VERSION = "2.4.0";
 export const DEFAULT_CLIMATE_RADIUS = RADIUS.cardHero;
 export const DEFAULT_MINI_RADIUS = RADIUS.card;
 
+// ---- Climate action glow (heating/cooling equipment indicator) ------------
+// A squared-off (not superellipse) edge glow around both climate cards,
+// signalling that the thermostat is actively heating or cooling right now —
+// inspired by reference/ecosee's equipment glow, but drawn as three stacked
+// `box-shadow` layers on the existing rounded-rect card shape instead of an
+// SVG silhouette, so it stays crisp/"eckig" in line with this suite's M3
+// language rather than ecosee's rounded squircle.
+export const ACTION_GLOW_COLOR_HEAT = PALETTE.heat;
+export const ACTION_GLOW_COLOR_COOL = PALETTE.cool;
+// Crisp inset line, soft inward bloom, faint outward halo — same 3-layer
+// falloff idea as ecosee's stacked strokes (5.5/2.2/0.9 stroke-widths at
+// 0.18/0.5/1 opacity), re-expressed as box-shadow blur/spread/opacity.
+export const ACTION_GLOW_INSET_HALO_BLUR = 14;
+export const ACTION_GLOW_INSET_HALO_OPACITY = 0.22;
+export const ACTION_GLOW_INSET_BLOOM_BLUR = 4;
+export const ACTION_GLOW_INSET_BLOOM_OPACITY = 0.55;
+export const ACTION_GLOW_INSET_LINE_OPACITY = 0.9;
+// The same frame at a fraction of the strength, for "heat/cool is selected but
+// the equipment is not running right now". Many integrations (Homematic's
+// eTRV/HEATING via hahomematic, for one) derive hvac_action from the physical
+// valve, so they report "idle" for long stretches — through a whole summer, in
+// fact — even with the mode set to heat. At full strength the frame would then
+// be a lie; hidden entirely it loses the fact that heating is armed at all.
+// Low enough to read as "standby" next to the running frame, high enough to
+// survive the glass background.
+export const ACTION_GLOW_ARMED_OPACITY = 0.3;
+export const ACTION_GLOW_OUTER_BLUR = 10;
+export const ACTION_GLOW_OUTER_OPACITY = 0.28;
+export const ACTION_GLOW_TRANSITION_MS = 600;
+
+// ---- Climate setpoint / hero temperature ---------------------------------
+// The ecosee reference builds its Home Screen out of exactly two ink levels:
+// one dominant, near-weightless current temperature, and small "ovals" that
+// carry the heat/cool colour as a thin outline over a faint same-colour wash
+// (`reference/ecosee/src/screens/home-screen.ts`, `.oval`). Nothing on that
+// screen is a solid block of colour — the equipment glow is the only saturated
+// element. These numbers are that recipe, shared by both climate cards so the
+// setpoint pill in the full card and the setpoint segment in the mini card
+// cannot drift apart.
+//
+// The wash percentages feed `tintOn()` rather than a raw
+// `color-mix(..., transparent)`: ecosee only ever paints on its own near-black
+// canvas, while these cards sit on whatever theme (and wallpaper) the user has,
+// so the mix has to be measured against the real surface.
+export const SETPOINT_WASH_PERCENT = 9;
+export const MODE_PILL_WASH_PERCENT = 8;
+// How much of the mode colour survives in the outline. ecosee draws its ovals
+// at full accent strength against a near-black canvas that can carry it; on a
+// Home Assistant surface a full-strength 1.5px ring around the setpoint read
+// as the loudest thing on the card, ahead of the figure it sits under. Pulled
+// back toward the surface so the ring states the mode without announcing it.
+export const SETPOINT_LINE_PERCENT = 34;
+export const MODE_PILL_LINE_PERCENT = 26;
+export const SETPOINT_BORDER_PX = 1;
+export const MODE_PILL_BORDER_PX = 1;
+// What the wash's ink has to reach. The setpoint oval holds a numeral drawn at
+// 22px, so the WCAG floor for large text/graphics applies; the mode pill holds
+// a 13px label, where 4.5 applies instead. Correcting both to 3 is what
+// `test/contrast-audit.js` caught on the mode button — its labels came back at
+// 3.01–3.23 in the light theme, i.e. exactly on a target that was too low.
+export const SETPOINT_INK_TARGET = 3;
+export const MODE_PILL_INK_TARGET = 4.5;
+
+// The dominant current-temperature figure. ecosee sizes it at 42cqw of a fixed
+// 460px canvas with nothing above it but a humidity line; this card also
+// carries a header, a preset pill, the setpoint row and the mode pill, so the
+// share of the width is roughly half that, clamped so it stays legible in a
+// narrow column and never turns into a billboard in a wide one.
+export const HERO_TEMP_CQW = 22;
+export const HERO_TEMP_MIN_PX = 44;
+export const HERO_TEMP_MAX_PX = 76;
+// The `expressive` style inverts the weight relationship the `ecosee`
+// reference used: a light numeral read as a weather-widget figure rather than
+// a control, so the hero temperature carries the heaviest weight on the card
+// (Roboto tops out at 700 statically; the design intent is 800, which the
+// static face clamps to 700) with tight tracking, and the unit beside it
+// drops to a light weight instead — see HERO_TEMP_UNIT_WEIGHT below.
+export const HERO_TEMP_WEIGHT = 800;
+export const HERO_TEMP_TRACKING = "-0.05em";
+export const HERO_TEMP_LINE_HEIGHT = 0.86;
+export const HERO_TEMP_UNIT_WEIGHT = 300;
+
+// The `expressive` setpoint stepper: one connected row (round on the outside,
+// tight on the inside) rather than the `tiles` style's two circular buttons
+// either side of a floating pill. Both end buttons keep one corner pair at
+// the outer radius and square the inner pair off against the value field.
+export const EXPRESSIVE_STEPPER_OUTER_RADIUS_PX = 21;
+export const EXPRESSIVE_STEPPER_INNER_RADIUS_PX = 8;
+export const EXPRESSIVE_STEPPER_HEIGHT_PX = 42;
+export const EXPRESSIVE_STEPPER_GAP_PX = 4;
+
+// The mode/preset control row's shape carries state: a tighter radius while
+// pressed or while its dropdown is open, easing back to the resting shape on
+// release — the Expressive "shape morph" idiom, applied to the button this
+// PR already has rather than to a hypothetical always-visible row of pills.
+export const EXPRESSIVE_PILL_RADIUS_RESTING_PX = 19;
+export const EXPRESSIVE_PILL_RADIUS_PRESSED_PX = 12;
+export const EXPRESSIVE_PILL_MORPH_MS = 350;
+
 // Resolves a base radius + optional per-corner overrides into a CSS
 // border-radius value ("TL TR BR BL"), enabling Material 3 Expressive-style
 // asymmetric shapes.

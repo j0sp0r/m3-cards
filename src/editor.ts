@@ -67,9 +67,29 @@ export class M3ClimateCardEditor
   }
 
   private _contentSchema(): SchemaEntry[] {
+    const expressive = (this._config?.style ?? "tiles") === "expressive";
     return [
+      {
+        name: "style",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "tiles", label: this._t("editor_climate_style_tiles") },
+              { value: "expressive", label: this._t("editor_climate_style_expressive") },
+            ],
+          },
+        },
+      },
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },
+      { name: "show_header_status", selector: { boolean: {} } },
+      ...(expressive
+        ? ([
+            { name: "show_control_labels", selector: { boolean: {} } },
+            { name: "show_action_glow", selector: { boolean: {} } },
+          ] as SchemaEntry[])
+        : []),
       { name: "show_presets", selector: { boolean: {} } },
       {
         name: "preset_style",
@@ -194,6 +214,10 @@ export class M3ClimateCardEditor
       entity: "editor_entity",
       name: "editor_name",
       icon: "editor_icon",
+      style: "editor_climate_style",
+      show_header_status: "editor_show_header_status",
+      show_control_labels: "editor_show_control_labels",
+      show_action_glow: "editor_show_action_glow",
       show_presets: "editor_show_presets",
       show_sensors: "editor_show_sensors",
       temperature_sensor: "editor_temperature_sensor",
@@ -306,8 +330,12 @@ export class M3ClimateCardEditor
     if (!this.hass || !this._config) return nothing;
 
     const contentData = {
+      style: this._config.style ?? "tiles",
       name: this._config.name,
       icon: this._config.icon,
+      show_header_status: this._config.show_header_status ?? true,
+      show_control_labels: this._config.show_control_labels ?? true,
+      show_action_glow: this._config.show_action_glow ?? true,
       show_presets: this._config.show_presets ?? true,
       preset_style: this._config.preset_style ?? "chip",
       show_sensors: this._config.show_sensors ?? true,

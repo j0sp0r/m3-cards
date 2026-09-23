@@ -229,6 +229,7 @@ YAML:
 type: custom:m3-climate-card
 entity: climate.living_room
 name: Living Room
+style: tiles # tiles | expressive
 show_presets: true
 preset_style: chip # chip | pill
 show_sensors: true
@@ -278,6 +279,62 @@ were a single setpoint — worse than showing nothing, because the plus and
 minus then moved only the cooling bound while the label claimed it was the
 target temperature (issue #22).
 
+### The `expressive` style
+
+<img src="docs/images/climate-card-expressive.png" alt="Climate Card: tiles vs expressive style (light theme)" width="640">
+<img src="docs/images/climate-card-expressive-dark.png" alt="Climate Card: tiles vs expressive style (dark theme)" width="640">
+
+`style: expressive` re-draws the same card around Material 3 Expressive:
+instead of a row of mode pills over a sensor row and a stepper, the
+**current** temperature becomes one dominant, heavy figure, the setpoint is a
+single connected control, and the mode/preset controls morph their shape by
+state.
+
+```yaml
+type: custom:m3-climate-card
+entity: climate.living_room
+style: expressive
+```
+
+What changes:
+
+- **The current temperature is the card.** One large, heavy, tightly tracked
+  figure with the humidity beside it. It stays theme ink and never takes the
+  mode colour — the card says "it is 21.4°" first and "it is set to heat"
+  second.
+- **The setpoint becomes one connected control** — round on the outside,
+  square on the inside — instead of a floating pill between two circular
+  buttons: a single segmented row where the value takes the full width
+  between the ± buttons. A band thermostat (`heat_cool`) gets two of these
+  stacked, the same way the `tiles` style stacks its two stepper rows.
+- **The mode row collapses into one mode button** that opens the shared
+  dropdown menu. With only two modes left (say `off` and `auto`, or after
+  `hidden_modes`) a tap just flips straight to the other one, since a menu for
+  a binary switch is ceremony. The preset button moves up beside it into one
+  control row, and both buttons morph their corner radius on press or while
+  their dropdown is open — shape carrying state, the Expressive move this
+  style leans on most.
+- **A heat/cool frame around the card** reports the equipment, at two
+  strengths — see below.
+
+Everything else behaves the same: the same entity, the same sensors, the same
+`mode_colors`, the same corner radius and glass background options.
+
+#### The heat/cool frame
+
+The frame has two strengths rather than one. Full while the entity's
+`hvac_action` reports `heating`/`cooling`; dimmed while heat or cool is the
+selected mode but the equipment is idle.
+
+The second level is not cosmetic. Many integrations derive `hvac_action` from
+the physical valve, so a Homematic eTRV reports `idle` for an entire summer
+even with the mode set to heat — a frame that only ever lit on `heating` was
+invisible on that hardware. Entities that expose no `hvac_action` at all keep
+the full frame from their mode alone, so they do not sit permanently dimmed on
+no evidence.
+
+Set `show_action_glow: false` to turn the frame off entirely.
+
 ### Folding a room away
 
 `collapsible: true` puts a chevron in the header and folds the card down to
@@ -304,8 +361,12 @@ chevron, since the header no longer folds anything — see "Tapping the header".
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `entity` | string | **Required** | `climate.*` entity |
+| `style` | `tiles` \| `expressive` | `tiles` | Visual language: `tiles` is the mode-pill row over a sensor row and stepper; `expressive` makes the current temperature the card's dominant figure with a single connected setpoint control, a single mode button and a heat/cool frame. See [The `expressive` style](#the-expressive-style) |
 | `name` | string | entity `friendly_name` | Displayed name |
 | `icon` | string | `mdi:radiator` (heating only) / `mdi:air-conditioner` | Header icon |
+| `show_header_status` | boolean | `true` | Show the mode line under the card name in the header |
+| `show_control_labels` | boolean | `true` | `style: expressive` only — text labels on the mode and preset buttons; `false` leaves both as icon-only circles |
+| `show_action_glow` | boolean | `true` | `style: expressive` only — the heat/cool frame around the card |
 | `show_presets` | boolean | `true` | Show preset selector (if the entity supports `preset_modes`) |
 | `preset_style` | `chip` \| `pill` | `chip` | Preset as its own wide row (`chip`) or as an extra pill in the mode row (`pill`) |
 | `show_sensors` | boolean | `true` | Show sensor chips (temperature/humidity) |

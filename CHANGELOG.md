@@ -4,6 +4,52 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format angelehnt an [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
+## [Unreleased]
+
+### Added
+
+- **An `expressive` style for the M3 Climate Card.** `style: expressive`
+  re-draws the card around Material 3 Expressive: the *current* temperature
+  becomes one dominant, heavy figure (rather than the thin one a first pass
+  at this style borrowed from the ecosee reference thermostat), the setpoint
+  becomes a single connected control — round on the outside, tight on the
+  inside — instead of two circular buttons either side of a floating pill,
+  the mode and preset buttons morph their shape on press, and a heat/cool
+  frame around the card reports the equipment. The default stays `tiles`,
+  unchanged in every detail — this is an opt-in second look, not a redesign
+  of the existing one. A thermostat holding a band (`target_temp_low` /
+  `target_temp_high`) gets two of the connected controls, stacked, the same
+  way `tiles` stacks its two stepper rows.
+
+  The frame has two strengths rather than one: full while the entity's
+  `hvac_action` reports `heating`/`cooling`, dimmed while heat or cool is the
+  selected mode but the equipment is idle. The second level is not cosmetic —
+  many integrations derive `hvac_action` from the physical valve, so a
+  Homematic eTRV reports `idle` for an entire summer with the mode set to heat,
+  and a frame that only lit on `heating` was invisible on that hardware.
+  Entities exposing no `hvac_action` at all keep the full frame from their mode
+  alone rather than sitting permanently dimmed on no evidence.
+  `show_action_glow: false` turns it off.
+
+  The mode button is the first consumer of `shared/dropdown-menu.ts`: it opens
+  the shared body-level menu when there is a real choice to make, and with two
+  modes left flips straight to the other one instead of opening a menu for a
+  binary switch. Two supporting modules keep the recipe in one place —
+  `shared/action-glow.ts` (the `hvac_action`/`hvac_mode` resolution plus the
+  frame's markup and CSS) and `shared/climate-surface.ts` (the outline-and-wash
+  setpoint recipe and the dominant figure's typography), both measured against
+  the real theme surface so neither breaks on a light theme or over a
+  wallpaper.
+
+  The wash the mode button sits on carries a 13px label rather than a numeral,
+  so its ink is corrected to 4.5:1 and not to the 3:1 floor the setpoint oval's
+  figure takes. `test/contrast-audit.js` is what surfaced the difference: with
+  both corrected to 3, the mode labels came back at 3.01-3.23 in the light
+  theme, i.e. exactly on a target that was too low for their size.
+
+  Also new, and available in both styles: `show_header_status` hides the mode
+  line under the card name.
+
 ## [2.4.0] – 2026-09-20
 
 ### Added

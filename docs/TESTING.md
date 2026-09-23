@@ -94,6 +94,15 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | `hidden_modes` | Einen Modus in `hidden_modes` eintragen, der aber in `hvac_modes` der Entität steckt | Pill für diesen Modus wird nicht gerendert |
 | `unavailable_style: "hidden"` | Entität auf `unavailable`, Style auf `hidden` | Karte verschwindet komplett (kein leeres Gerüst) |
 | Mode-Farben-Override | `mode_colors.heat` auf eigene Farbe setzen | Pill/Header-Akzent für „heat“ übernimmt die Farbe |
+| `style: "expressive"` | Stil auf `expressive` umstellen | Aktuelle Temperatur wird zur dominanten, fetten Figur, Zielwert als eine verbundene Stepper-Zeile (rund außen, eckig innen), Modus-Zeile wird zu einem Modus-Button |
+| Modus-Dropdown (expressive) | Entität mit mehr als zwei `hvac_modes`, Modus-Button antippen | Dropdown öffnet **über** der Karte (nicht abgeschnitten, nicht hinter der nächsten Karte), Auswahl ruft `climate.set_hvac_mode` |
+| Modus-Button bei zwei Modi | `hidden_modes` so setzen, dass nur zwei Modi bleiben, Button antippen | Kein Menü — Tippen schaltet direkt auf den anderen Modus um |
+| Dropdown beim Verlassen | Menü öffnen, dann View wechseln bzw. Karteneditor schließen | Menü verschwindet mit der Karte, bleibt nicht auf `document.body` zurück |
+| Modus-/Preset-Pille morpht | Modus- oder Preset-Button gedrückt halten bzw. Dropdown öffnen | Radius verengt sich sichtbar (19px → 12px), federt beim Loslassen zurück |
+| Heiz-/Kühl-Rahmen | Entität mit `hvac_action: heating` vs. `idle` bei `hvac_mode: heat` | Rahmen voll bzw. gedämpft; bei `off` kein Rahmen; `show_action_glow: false` schaltet ihn ganz ab |
+| Band-Thermostat (expressive) | Entität mit `target_temp_low`/`target_temp_high` (heat_cool), Stil `expressive` | Zwei gestapelte verbundene Stepper-Zeilen mit Beschriftung „Heizen bis“/„Kühlen ab“ |
+| `show_control_labels: false` | Flag setzen (expressive) | Modus- und Preset-Button werden zu Icon-Kreisen |
+| `show_header_status: false` | Flag setzen (beide Stile) | Modus-Zeile unter dem Kartennamen verschwindet |
 
 ## M3 Climate Card Mini
 
