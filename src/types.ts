@@ -228,6 +228,15 @@ export interface M3ButtonCardConfig {
    * rounded square alongside it.
    */
   shape_by_state?: boolean;
+  /** Chip buttons embedded in the card — see shared/chip-buttons.ts. Right-aligned
+   * next to the content at normal card height; move to a bottom bar (aligned per
+   * `chip_buttons_justify`) once the card is resized taller. */
+  chip_buttons?: ChipButtonConfig[];
+  chip_buttons_justify?: "start" | "center" | "end";
+  /** How a chip row that is wider than the card behaves: `wrap` (default) lets
+   * it break onto a second line, `scroll` keeps it on one line and scrolls it
+   * horizontally, with edge fades marking what is still hidden. */
+  chip_buttons_layout?: "wrap" | "scroll";
   radius?: number;
   corners?: CornerRadiusConfig;
   glass_background?: boolean;

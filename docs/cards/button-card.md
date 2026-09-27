@@ -9,7 +9,8 @@ section_order: 2
 ---
 
 A generic card for entities outside of `climate` (buttons, switches,
-lights, scenes, door sensors, ...) in the same design.
+lights, scenes, door sensors, ...) in the same design. Can also embed its
+own row of [chip buttons](#m3-chip-buttons-card) — see `chip_buttons` below.
 
 <img src="docs/images/button-card.png" alt="Button Card — shapes, icon fills, and the shape following the state" width="440">
 
@@ -70,6 +71,9 @@ hold_action:
 | `icon_tap_action` | Action | `more-info` | Its own tap action for just the icon/icon circle, independent of `tap_action` — same as the native tile card |
 | `icon_hold_action` | Action | `none` | Action on long-press on the icon |
 | `icon_double_tap_action` | Action | `none` | Action on double-tap on the icon |
+| `chip_buttons` | list | `[]` | An embedded row of [chip buttons](#m3-chip-buttons-card) — same fields as the Chip Buttons Card's `buttons[]` (`entity`, `name`, `icon`, `color`, `inactive_color`, `show_state`, `static_color`, `interactive`, `tap_action`, `hold_action`, `double_tap_action`) |
+| `chip_buttons_justify` | `start` \| `center` \| `end` | `end` | Alignment of the chip row — only takes effect once the card is resized taller than a normal row (see below); at normal height the chips are always right-aligned |
+| `chip_buttons_layout` | `wrap` \| `scroll` | `wrap` | What a chip row that is wider than the card does: `wrap` breaks it onto a second line, `scroll` keeps it on one line and scrolls it horizontally, fading the edge that still hides chips |
 
 Active states (`on`, `open`, `home`, `playing`, ...) color the icon and
 icon background in the configured `color` (or the matching
@@ -97,6 +101,33 @@ tap_action:
   action: perform-action
   perform_action: script.feed_10g
   target: {}
+```
+
+#### Embedded chip buttons
+
+`chip_buttons` adds a row of tappable chips to the button itself — e.g. a
+quick shortcut to the room's media player right on its light button. At
+normal card height they sit right-aligned next to the icon/text; resize the
+card taller (e.g. `rows: 2` in the sections view) and they move to a
+bottom bar whose alignment is set via `chip_buttons_justify`.
+
+More chips than fit on one line wrap onto a second one. Set
+`chip_buttons_layout: scroll` to keep them on a single line instead — the row
+then scrolls horizontally, with the same edge fade the Chip Buttons Card uses
+to show that there is more on the side you cannot see.
+
+<img src="docs/images/button-card-chip-buttons.png" alt="Button Card with an embedded chip button" width="440">
+
+```yaml
+type: custom:m3-button-card
+entity: light.living_room
+name: Licht
+chip_buttons:
+  - icon: mdi:speaker
+    name: Sonos
+    interactive: false
+chip_buttons_justify: end
+chip_buttons_layout: wrap
 ```
 
 </details>

@@ -51,6 +51,35 @@ function entityStateColorVar(domain: string, entityState: string): string {
 const INACTIVE_ENTITY_COLOR_VAR =
   "var(--state-inactive-color, var(--disabled-text-color, var(--primary-text-color)))";
 
+// The three ways a row can handle more chips than fit: stretched to share the
+// width, wrapped onto a second line, or kept on one line and scrolled.
+export function chipRowLayoutClass(config: ChipButtonsRowConfig): "stretch" | "wrap" | "scroll" {
+  return config.stretch ? "stretch" : config.wrap ? "wrap" : "scroll";
+}
+
+// The row config a card that *embeds* a chip row derives from its own options,
+// as opposed to m3-chip-buttons-card, which is configured as a row directly.
+// `chip_buttons_layout` defaults to wrapping, which is what embedded rows did
+// before the option existed.
+export function embeddedChipRowConfig(config: {
+  chip_buttons?: ChipButtonConfig[];
+  chip_buttons_layout?: "wrap" | "scroll";
+}): ChipButtonsRowConfig {
+  return {
+    buttons: config.chip_buttons ?? [],
+    wrap: config.chip_buttons_layout !== "scroll",
+  };
+}
+
+// `chip_buttons_justify` in a card's own vocabulary, as the flexbox value the
+// row is laid out with. Defaults to the right edge, where an embedded row sits
+// next to the card's content.
+export function chipRowJustify(justify: "start" | "center" | "end" | undefined): string {
+  if (justify === "start") return "flex-start";
+  if (justify === "center") return "center";
+  return "flex-end";
+}
+
 export function renderChipButtons(
   host: HTMLElement,
   hass: HomeAssistant,
@@ -58,7 +87,7 @@ export function renderChipButtons(
   state: ChipButtonsRenderState,
 ): TemplateResult {
   const buttons = config.buttons ?? [];
-  const layoutClass = config.stretch ? "stretch" : config.wrap ? "wrap" : "scroll";
+  const layoutClass = chipRowLayoutClass(config);
   return html`
     <div
       class="m3-chip-buttons ${layoutClass}"
@@ -168,6 +197,78 @@ function renderChipButton(
       <span class="label">${name}${stateText ? html`<span class="state"> ${stateText}</span>` : nothing}</span>
     </div>
   `;
+}
+
+// Which edges of a scrolling chip row still have chips hidden behind them.
+// Kept as a pure function over the row's scroll metrics so the fade behaviour
+// is testable without a layout engine.
+export function chipRowFades(metrics: {
+  scrollLeft: number;
+  scrollWidth: number;
+  clientWidth: number;
+}): { start: boolean; end: boolean } {
+  // A sub-pixel slack: a row that fits exactly still reports a stray fraction,
+  // and fading an edge that has nothing behind it reads as a rendering fault
+  // rather than an affordance.
+  const hidden = metrics.scrollWidth - metrics.clientWidth;
+  return {
+    start: metrics.scrollLeft > 1,
+    end: hidden > 1 && metrics.scrollLeft < hidden - 1,
+  };
+}
+
+// Keeps `.fade-start`/`.fade-end` on every scrolling chip row of a card in
+// sync with that row's real scroll position. It lives here rather than on
+// either card for the same reason `stopSwipe` lives in shared/swipe.ts: both
+// call sites get it and a third one can't forget it. A card drives it from
+// `updated()` and releases it in `disconnectedCallback()`.
+export class ChipRowFadeController {
+  private _observer?: ResizeObserver;
+  private _rows: HTMLElement[] = [];
+
+  private _onScroll = (event: Event): void => {
+    this._apply(event.currentTarget as HTMLElement);
+  };
+
+  /** Re-binds whenever Lit swaps the row elements out, then refreshes them. */
+  public sync(root: ParentNode): void {
+    const rows = Array.from(root.querySelectorAll<HTMLElement>(".m3-chip-buttons.scroll"));
+    const changed =
+      rows.length !== this._rows.length || rows.some((row, index) => row !== this._rows[index]);
+    if (changed) {
+      this._release();
+      this._rows = rows;
+      if (rows.length > 0) {
+        // Both matter: resizing changes whether anything overflows at all,
+        // scrolling changes which side it overflows on.
+        this._observer = new ResizeObserver((entries) => {
+          for (const entry of entries) this._apply(entry.target as HTMLElement);
+        });
+        for (const row of rows) {
+          this._observer.observe(row);
+          row.addEventListener("scroll", this._onScroll, { passive: true });
+        }
+      }
+    }
+    for (const row of this._rows) this._apply(row);
+  }
+
+  public disconnect(): void {
+    this._release();
+    this._rows = [];
+  }
+
+  private _release(): void {
+    this._observer?.disconnect();
+    this._observer = undefined;
+    for (const row of this._rows) row.removeEventListener("scroll", this._onScroll);
+  }
+
+  private _apply(row: HTMLElement): void {
+    const { start, end } = chipRowFades(row);
+    row.classList.toggle("fade-start", start);
+    row.classList.toggle("fade-end", end);
+  }
 }
 
 export const chipButtonsStyles = css`

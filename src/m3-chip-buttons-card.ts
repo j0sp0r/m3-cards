@@ -12,7 +12,7 @@ import { hassChangeMatters } from "./shared/should-update";
 import { shouldAnimate } from "./shared/animation";
 import { resolveThemeColor } from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
-import { chipButtonsStyles, renderChipButtons } from "./shared/chip-buttons";
+import { ChipRowFadeController, chipButtonsStyles, renderChipButtons } from "./shared/chip-buttons";
 import { TapHoldGesture } from "./shared/gestures";
 import { TemplatedCard } from "./shared/templated-card";
 
@@ -23,8 +23,7 @@ export class M3ChipButtonsCard extends TemplatedCard(LitElement) implements Love
   @state() private _config?: M3ChipButtonsCardConfig;
   @state() private _pressedKey?: string;
 
-  private _rowObserver?: ResizeObserver;
-  private _observedRow?: HTMLElement;
+  private _fades = new ChipRowFadeController();
   private _gestures = new TapHoldGesture();
 
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
@@ -44,40 +43,14 @@ export class M3ChipButtonsCard extends TemplatedCard(LitElement) implements Love
   public disconnectedCallback(): void {
     super.disconnectedCallback();
     this._gestures.cancel();
-    this._rowObserver?.disconnect();
-    this._rowObserver = undefined;
-    this._observedRow = undefined;
+    this._fades.disconnect();
   }
 
-  // Which sides of a scrolling row still have chips hidden behind them. The
-  // fade belongs on those sides only: a row that fits has nothing to scroll
-  // to, and fading its first chip for no reason looks like a rendering fault
-  // rather than an affordance.
+  // The edge fades on a scrolling row belong on the sides that actually hide
+  // chips — see ChipRowFadeController in shared/chip-buttons.ts.
   protected updated(changed: PropertyValues): void {
     super.updated(changed);
-    const row = this.renderRoot.querySelector<HTMLElement>(".m3-chip-buttons.scroll");
-    if (row !== this._observedRow) {
-      this._rowObserver?.disconnect();
-      this._observedRow = row ?? undefined;
-      if (row) {
-        // Both matter: resizing changes whether anything overflows at all,
-        // scrolling changes which side it overflows on.
-        this._rowObserver = new ResizeObserver(() => this._updateFades());
-        this._rowObserver.observe(row);
-        row.addEventListener("scroll", () => this._updateFades(), { passive: true });
-      }
-    }
-    this._updateFades();
-  }
-
-  private _updateFades(): void {
-    const row = this._observedRow;
-    if (!row) return;
-    // A sub-pixel slack, or a row that fits exactly reports a stray fraction
-    // and fades an edge that has nothing behind it.
-    const hidden = row.scrollWidth - row.clientWidth;
-    row.classList.toggle("fade-start", row.scrollLeft > 1);
-    row.classList.toggle("fade-end", hidden > 1 && row.scrollLeft < hidden - 1);
+    this._fades.sync(this.renderRoot);
   }
 
   protected shouldUpdate(changed: PropertyValues): boolean {

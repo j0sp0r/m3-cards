@@ -37,6 +37,14 @@ import {
   inkOn,
 } from "./shared/color-config";
 import { TemplatedCard } from "./shared/templated-card";
+import {
+  ChipRowFadeController,
+  chipButtonsStyles,
+  chipRowJustify,
+  embeddedChipRowConfig,
+  renderChipButtons,
+} from "./shared/chip-buttons";
+import { TapHoldGesture } from "./shared/gestures";
 
 const HOLD_DURATION_MS = 500;
 const DOUBLE_TAP_WINDOW_MS = 250;
@@ -62,6 +70,10 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
 
   @state() private _config?: M3ButtonCardConfig;
   @state() private _dragPercent?: number;
+  @state() private _chipPressedKey?: string;
+
+  private _chipGestures = new TapHoldGesture();
+  private _chipFades = new ChipRowFadeController();
 
   private _holdTimer?: number;
   private _holdTriggered = false;
@@ -101,10 +113,15 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
     window.clearTimeout(this._iconHoldTimer);
     this._holdTimer = undefined;
     this._iconHoldTimer = undefined;
+    this._chipGestures.cancel();
+    this._chipFades.disconnect();
   }
 
   protected shouldUpdate(changed: PropertyValues): boolean {
-    return hassChangeMatters(changed, this.hass, [this._config?.entity]);
+    return hassChangeMatters(changed, this.hass, [
+      this._config?.entity,
+      ...(this._config?.chip_buttons ?? []).map((b) => b.entity),
+    ]);
   }
 
   public setConfig(config: M3ButtonCardConfig): void {
@@ -419,6 +436,14 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
     }
   };
 
+  // The chip row sits inside the card body, so a chip press would otherwise
+  // bubble up and also fire the card's own tap/hold (or start a slider drag,
+  // or activate it via Enter). The chips' own listeners sit on the chip
+  // itself and have already run by the time the event reaches the row.
+  private _stopChipEvent = (e: Event): void => {
+    e.stopPropagation();
+  };
+
   private _onIconPointerDown = (e: PointerEvent): void => {
     e.stopPropagation();
     this._iconHoldTriggered = false;
@@ -526,6 +551,9 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
   private _capsuleRadius = BUTTON_SHAPE_OFF_RADIUS;
 
   protected updated(): void {
+    // Runs before the shape measuring below bails out: a scrolling chip row
+    // needs its edge fades whether or not the shape follows the state.
+    this._chipFades.sync(this.renderRoot);
     if (this._config?.shape_by_state !== true) return;
     // A corner radius does not affect height, so re-rendering for a new
     // measurement cannot feed itself.
@@ -663,6 +691,21 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
         : Math.round(sliderInfo.value)
       : 0;
 
+    const chipButtons = this._config.chip_buttons ?? [];
+    const hasChipButtons = chipButtons.length > 0;
+    const chipRowConfig = embeddedChipRowConfig(this._config);
+    const chipState = {
+      pressedKey: this._chipPressedKey,
+      gestures: this._chipGestures,
+      onPressChange: (key: string | undefined) => {
+        this._chipPressedKey = key;
+      },
+    };
+    // Only meaningful once the card is tall enough for the bottom chip bar
+    // (see .chip-row-bottom's @container rule) — a normal-height card always
+    // right-aligns the inline chip row regardless of this setting.
+    const chipJustify = chipRowJustify(this._config.chip_buttons_justify);
+
     return html`
       <ha-card
         class=${`${dimUnavailable ? "unavailable" : ""} ${
@@ -744,7 +787,30 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
                   </div>`
                 : nothing}
             </div>
+            ${hasChipButtons
+              ? html`<div
+                  class="chip-row chip-row-inline"
+                  @click=${this._stopChipEvent}
+                  @keydown=${this._stopChipEvent}
+                  @pointerdown=${this._stopChipEvent}
+                  @pointerup=${this._stopChipEvent}
+                >
+                  ${renderChipButtons(this, this.hass, chipRowConfig, chipState)}
+                </div>`
+              : nothing}
           </div>
+          ${hasChipButtons
+            ? html`<div
+                class="chip-row chip-row-bottom"
+                style=${`justify-content: ${chipJustify};`}
+                @click=${this._stopChipEvent}
+                @keydown=${this._stopChipEvent}
+                @pointerdown=${this._stopChipEvent}
+                @pointerup=${this._stopChipEvent}
+              >
+                ${renderChipButtons(this, this.hass, chipRowConfig, chipState)}
+              </div>`
+            : nothing}
         </div>
       </ha-card>
     `;
@@ -752,6 +818,7 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
 
   static styles = css`
     ${glassCardStyles}
+    ${chipButtonsStyles}
 
     /* Grid rather than block, and the card stretches into the grid area
        instead of taking height: 100%.
@@ -818,6 +885,10 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
     }
 
     .card-inner.no-animations .icon-container {
+      transition: none;
+    }
+
+    .card-inner.no-animations .m3-chip-button {
       transition: none;
     }
 
@@ -963,6 +1034,42 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    /* Chip buttons embedded in the card: right-aligned next to the content at
+       normal height (below), or a bottom-anchored bar once the card is
+       resized taller than one row (the @container rule below). Both variants
+       render the same chips — only their CSS visibility differs — so the
+       switch is purely declarative and needs no JS height measuring. */
+    .chip-row {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .chip-row-inline {
+      margin-left: auto;
+      flex-shrink: 0;
+      justify-content: flex-end;
+    }
+
+    .chip-row-bottom {
+      display: none;
+      margin-top: auto;
+    }
+
+    @container (min-height: 100px) {
+      .card-inner:has(.chip-row-bottom) {
+        justify-content: flex-start;
+      }
+
+      .chip-row-inline {
+        display: none;
+      }
+
+      .chip-row-bottom {
+        display: flex;
+      }
     }
 
   `;

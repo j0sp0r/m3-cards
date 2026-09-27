@@ -339,6 +339,19 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   ```yaml
   type: custom:m3-search-card
   ```
+- **M3 Button Card can now embed its own row of chip buttons** via the new
+  `chip_buttons` option, reusing the same editor and rendering as the
+  standalone Chip Buttons Card. Layout adapts to the card's height: at a
+  normal single-row height the chips sit right-aligned next to the
+  icon/text, and once the card is resized taller they move to a
+  bottom-anchored bar whose alignment (`chip_buttons_justify`: left/center/
+  right) becomes configurable — the switch is handled purely with a CSS
+  container query, so it needs no JS height measuring and adapts instantly
+  as the card is resized in the dashboard editor. `chip_buttons_layout`
+  decides what happens when there are more chips than fit: `wrap` (the
+  default) breaks the row onto a second line, `scroll` keeps it on one line
+  and scrolls it horizontally with the same edge fade the Chip Buttons Card
+  uses.
 
 - **The appliance card gets its own popup**, via `popup`. The card is a summary
   — a state, a progress bar, a few buttons. The full set of controls (every
