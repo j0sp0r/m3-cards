@@ -207,7 +207,7 @@ export class M3ButtonCardEditor
     const stateLabelMap: Record<string, TranslationKey> = {
       on: "editor_state_on",
       open: "editor_state_open",
-      locked: "editor_state_locked",
+      unlocked: "editor_state_unlocked",
       home: "editor_state_home",
       playing: "editor_state_playing",
       active: "editor_state_active",

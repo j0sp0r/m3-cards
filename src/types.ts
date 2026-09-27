@@ -2680,9 +2680,15 @@ export interface ChipButtonConfig {
   entity?: string;
   name?: string;
   icon?: string;
+  /** false hides the name; the state stays, governed by `show_state`. */
+  show_name?: boolean;
   /** Active-state color (theme token, hex, or any CSS color). */
   color?: string;
   inactive_color?: string;
+  /** Per-state color overrides (e.g. `{ unlocked: "red" }`), applied over
+   * `color`/`use_entity_color` for that exact state. See
+   * `EDITABLE_STATE_COLOR_KEYS` for the curated editor subset. */
+  state_colors?: Record<string, string>;
   show_state?: boolean;
   /** Always render as "active", regardless of the entity's own state. */
   static_color?: boolean;
@@ -2700,8 +2706,11 @@ export interface ChipButtonsRowConfig {
   /** Wrap to a new line instead of scrolling the row sideways. */
   wrap?: boolean;
   justify?: "start" | "center" | "end" | "space-between";
-  /** Chips grow to equally fill the row's width instead of sizing to content. */
-  stretch?: boolean;
+  /** Fill the row's full width instead of sizing chips to their content.
+   * `true` splits the width evenly; `"smart"` gives each chip its content
+   * width first and shares out only what is left, so a long label keeps the
+   * room it needs while short ones stay compact. */
+  stretch?: boolean | "smart";
 }
 
 export interface M3ChipButtonsCardConfig extends ChipButtonsRowConfig {

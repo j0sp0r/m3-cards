@@ -4293,8 +4293,10 @@ buttons:
     tap_action:
       action: more-info
   - entity: lock.front_door
-    name: Locked
-    color: blue
+    name: Front door
+    use_entity_color: true
+    state_colors:
+      unlocked: red
     tap_action:
       action: toggle
     hold_action:
@@ -4319,14 +4321,18 @@ radius: 28
 | `buttons[].entity` | string | – (optional) | Any entity. Can be left empty for a pure action/display chip |
 | `buttons[].name` | string | entity `friendly_name` | Displayed name |
 | `buttons[].icon` | string | entity icon, otherwise a generic icon | Icon |
-| `buttons[].color` | string | `primary` | HA color name or any CSS color for the chip in its **active** state |
-| `buttons[].inactive_color` | string | – (default theme grey) | Color for the chip in its **inactive** state |
+| `buttons[].show_name` | boolean | `true` | `false` hides the name; the state stays (see `show_state`). With both off the chip is a round icon button |
+| `buttons[].color` | string | `primary` | HA color name or any CSS color for the chip in its **active** state. No editor field for this one — set `use_entity_color` and/or `state_colors` instead, or set it via YAML |
+| `buttons[].inactive_color` | string | – (default theme grey) | Color for the chip in its **inactive** state. Same as `color`: YAML-only, no editor field |
+| `buttons[].use_entity_color` | boolean | `false` | Color the chip from the entity's own HA state color instead of `color`/`inactive_color` |
+| `buttons[].state_colors` | map | – | Per-state color overrides (e.g. `unlocked: red`), applied on top of `color`/`use_entity_color` for that exact state, whether HA counts it as active or not (e.g. `locked: green`) — the reliable way to color a state HA doesn't expose a color variable for |
 | `buttons[].show_state` | boolean | `true` | Show the entity state next to the name |
 | `buttons[].static_color` | boolean | `false` | Always render the chip as "active", regardless of the entity's actual state (e.g. for a status chip that should always stand out) |
 | `buttons[].interactive` | boolean | `true` | `false` turns the chip into a read-only display — no tap/hold handlers, not keyboard-focusable |
 | `buttons[].tap_action` | Action | depends on the domain | Tap action, same action picker as every other card. Left out, a script starts, a button or scene is pressed, a switch or light toggles, and anything else opens more-info. |
 | `buttons[].hold_action` | Action | `none` | Long-press action |
 | `buttons[].double_tap_action` | Action | `none` | Double-tap action |
+| `stretch` | `false` \| `true` \| `smart` | `false` | Fill the row's full width. `true` gives every chip the same width; `smart` sizes each chip to its content and shares out only the leftover space; when the row is too narrow, short chips keep their full width and only the long ones give up room (their label then scrolls). Round icon chips keep their size. Ignores `wrap` and `justify` |
 | `wrap` | boolean | `false` | Wrap chips onto multiple lines instead of scrolling horizontally |
 | `justify` | `start` \| `center` \| `end` \| `space-between` | `start` | Horizontal alignment of the chip row |
 | `radius` | number (px) | `28` | Card corner radius |

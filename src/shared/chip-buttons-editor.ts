@@ -1,7 +1,8 @@
 import { html, type TemplateResult } from "lit";
 import type { HomeAssistant, ChipButtonConfig } from "../types";
-import type { TranslationKey } from "../localize";
-import type { SchemaEntry } from "./editor-helpers";
+import { CHIP_STATE_COLOR_KEYS } from "../const";
+import { localize, type TranslationKey } from "../localize";
+import { colorRow, type SchemaEntry } from "./editor-helpers";
 
 // Editor building blocks for the shared chip-buttons row (see
 // shared/chip-buttons.ts). Mirrors shared/radius-editor.ts's convention: pure
@@ -19,9 +20,8 @@ export function chipButtonSchema(): SchemaEntry[] {
     { name: "entity", selector: { entity: {} } },
     { name: "name", selector: { text: {} } },
     { name: "icon", selector: { icon: {} } },
-    { name: "color", selector: { text: {} } },
-    { name: "inactive_color", selector: { text: {} } },
     { name: "use_entity_color", selector: { boolean: {} } },
+    { name: "show_name", selector: { boolean: {} } },
     { name: "show_state", selector: { boolean: {} } },
     { name: "static_color", selector: { boolean: {} } },
     { name: "interactive", selector: { boolean: {} } },
@@ -35,8 +35,7 @@ export const chipButtonLabelMap: Record<string, TranslationKey> = {
   entity: "editor_entity",
   name: "editor_name",
   icon: "editor_icon",
-  color: "editor_chip_buttons_color",
-  inactive_color: "editor_chip_buttons_inactive_color",
+  show_name: "editor_chip_buttons_show_name",
   use_entity_color: "editor_chip_buttons_use_entity_color",
   show_state: "editor_show_state",
   static_color: "editor_static_color",
@@ -59,11 +58,32 @@ function chipButtonFormData(item: ChipButtonConfig): ChipButtonConfig {
     static_color: item.static_color ?? false,
     use_entity_color: item.use_entity_color ?? false,
     interactive: item.interactive ?? true,
+    show_name: item.show_name ?? true,
   };
+}
+
+// Same curated set button-card's own state-colors panel offers (see
+// const.ts) — kept in sync there rather than re-derived here.
+const stateKeyLabelMap: Record<string, TranslationKey> = {
+  on: "editor_state_on",
+  open: "editor_state_open",
+  unlocked: "editor_state_unlocked",
+  locked: "editor_state_locked",
+  home: "editor_state_home",
+  playing: "editor_state_playing",
+  active: "editor_state_active",
+  detected: "editor_state_detected",
+  wet: "editor_state_wet",
+};
+
+function stateKeyLabel(key: string, language: string): string {
+  const translationKey = stateKeyLabelMap[key];
+  return translationKey ? localize(translationKey, language) : key.charAt(0).toUpperCase() + key.slice(1);
 }
 
 export interface ChipButtonsListEditorParams {
   hass: HomeAssistant;
+  language: string;
   items: ChipButtonConfig[];
   onChange: (items: ChipButtonConfig[]) => void;
   computeLabel: (schema: SchemaEntry) => string;
@@ -75,7 +95,7 @@ export interface ChipButtonsListEditorParams {
 }
 
 export function renderChipButtonsListEditor(params: ChipButtonsListEditorParams): TemplateResult {
-  const { hass, items, onChange, computeLabel, addLabel, removeLabel, moveUpLabel, moveDownLabel, itemLabel } =
+  const { hass, language, items, onChange, computeLabel, addLabel, removeLabel, moveUpLabel, moveDownLabel, itemLabel } =
     params;
 
   const patch = (index: number, value: Partial<ChipButtonConfig>): void => {
@@ -107,6 +127,13 @@ export function renderChipButtonsListEditor(params: ChipButtonsListEditorParams)
     onChange([...items, {}]);
   };
 
+  const stateColorChanged = (index: number, key: string, value: string): void => {
+    const state_colors = { ...(items[index].state_colors ?? {}) };
+    if (value) state_colors[key] = value;
+    else delete state_colors[key];
+    patch(index, { state_colors: Object.keys(state_colors).length ? state_colors : undefined });
+  };
+
   return html`
     <div class="chip-buttons-list">
       ${items.map(
@@ -122,6 +149,17 @@ export function renderChipButtonsListEditor(params: ChipButtonsListEditorParams)
                 @value-changed=${(ev: CustomEvent) =>
                   patch(index, ev.detail.value as Partial<ChipButtonConfig>)}
               ></ha-form>
+              <ha-expansion-panel outlined .header=${localize("editor_chip_buttons_state_colors", language)}>
+                <ha-icon slot="leading-icon" icon="mdi:format-color-fill"></ha-icon>
+                <div class="panel-content">
+                  <div class="hint">${localize("editor_chip_buttons_state_colors_helper", language)}</div>
+                  ${CHIP_STATE_COLOR_KEYS.map((key) =>
+                    colorRow(stateKeyLabel(key, language), item.state_colors?.[key], (v) =>
+                      stateColorChanged(index, key, v),
+                    ),
+                  )}
+                </div>
+              </ha-expansion-panel>
               <div class="chip-buttons-row-actions">
                 <ha-icon-button
                   .disabled=${index === 0}
