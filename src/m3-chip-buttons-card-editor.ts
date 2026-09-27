@@ -61,7 +61,19 @@ export class M3ChipButtonsCardEditor
 
   private _layoutSchema(): SchemaEntry[] {
     return [
-      { name: "stretch", selector: { boolean: {} } },
+      {
+        name: "stretch",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "off", label: this._t("editor_chip_buttons_stretch_off") },
+              { value: "equal", label: this._t("editor_chip_buttons_stretch_equal") },
+              { value: "smart", label: this._t("editor_chip_buttons_stretch_smart") },
+            ],
+          },
+        },
+      },
       { name: "wrap", selector: { boolean: {} } },
       {
         name: "justify",
@@ -114,7 +126,13 @@ export class M3ChipButtonsCardEditor
 
   private _valueChanged(ev: CustomEvent): void {
     if (!this._config) return;
-    this._emit({ ...this._config, ...(ev.detail.value as Record<string, unknown>) });
+    const value = { ...(ev.detail.value as Record<string, unknown>) };
+    // The dropdown speaks in names; the config keeps `true` for the even
+    // split so existing YAML reads the same as before the third option.
+    if (typeof value.stretch === "string" && value.stretch !== "smart") {
+      value.stretch = value.stretch === "equal";
+    }
+    this._emit({ ...this._config, ...value });
   }
 
   private _buttonsChanged(buttons: ChipButtonConfig[]): void {
@@ -171,7 +189,8 @@ export class M3ChipButtonsCardEditor
     if (!this.hass || !this._config) return nothing;
 
     const layoutData = {
-      stretch: this._config.stretch ?? false,
+      stretch:
+        this._config.stretch === "smart" ? "smart" : this._config.stretch ? "equal" : "off",
       wrap: this._config.wrap ?? false,
       justify: this._config.justify ?? "start",
     };
@@ -184,6 +203,7 @@ export class M3ChipButtonsCardEditor
           <div class="panel-content">
             ${renderChipButtonsListEditor({
               hass: this.hass,
+              language: this._language,
               items: this._config.buttons ?? [],
               onChange: (items) => this._buttonsChanged(items),
               computeLabel: this._computeLabel,
