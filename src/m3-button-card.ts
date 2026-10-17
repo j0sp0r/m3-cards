@@ -38,7 +38,7 @@ import {
 } from "./shared/color-config";
 import { TemplatedCard } from "./shared/templated-card";
 import {
-  ChipRowFadeController,
+  ChipRowController,
   chipButtonsStyles,
   chipRowJustify,
   embeddedChipRowConfig,
@@ -73,7 +73,7 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
   @state() private _chipPressedKey?: string;
 
   private _chipGestures = new TapHoldGesture();
-  private _chipFades = new ChipRowFadeController();
+  private _chipRow = new ChipRowController();
 
   private _holdTimer?: number;
   private _holdTriggered = false;
@@ -114,7 +114,7 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
     this._holdTimer = undefined;
     this._iconHoldTimer = undefined;
     this._chipGestures.cancel();
-    this._chipFades.disconnect();
+    this._chipRow.disconnect();
   }
 
   protected shouldUpdate(changed: PropertyValues): boolean {
@@ -551,9 +551,9 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
   private _capsuleRadius = BUTTON_SHAPE_OFF_RADIUS;
 
   protected updated(): void {
-    // Runs before the shape measuring below bails out: a scrolling chip row
-    // needs its edge fades whether or not the shape follows the state.
-    this._chipFades.sync(this.renderRoot);
+    // Runs before the shape measuring below bails out: a chip row needs its
+    // edge fades and label layout whether or not the shape follows the state.
+    this._chipRow.sync(this.renderRoot);
     if (this._config?.shape_by_state !== true) return;
     // A corner radius does not affect height, so re-rendering for a new
     // measurement cannot feed itself.

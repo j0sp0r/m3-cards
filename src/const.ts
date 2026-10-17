@@ -167,6 +167,12 @@ export const STATELESS_DOMAINS = new Set([
   "input_button",
 ]);
 
+// "locked" is deliberately absent: for a lock, "unlocked" is the state worth
+// drawing attention to (matching HA's own frontend, which treats a lock as
+// active exactly when it is *not* locked) — the reverse of every other
+// domain here, where being in this set means "something to look at".
+// Treating "locked" as active instead left an unlocked door colored as
+// plain inactive grey while the locked, nothing-to-see state got the accent.
 export const ACTIVE_STATES = new Set([
   "on",
   "open",
@@ -180,7 +186,7 @@ export const ACTIVE_STATES = new Set([
   "dry",
   "fan_only",
   "heat_cool",
-  "locked",
+  "unlocked",
   "active",
   "detected",
   "wet",
@@ -198,13 +204,18 @@ export const RADIUS_PRESETS: Record<string, number> = {
 export const EDITABLE_STATE_COLOR_KEYS = [
   "on",
   "open",
-  "locked",
+  "unlocked",
   "home",
   "playing",
   "active",
   "detected",
   "wet",
 ];
+
+// The chip editor also offers "locked": a chip applies its state_colors in
+// any state, so a locked door can be green. m3-button-card only applies them
+// while active, which is why the shared list above leaves it out.
+export const CHIP_STATE_COLOR_KEYS = [...EDITABLE_STATE_COLOR_KEYS, "locked"];
 
 // Domains that expose a controllable numeric value the optional slider can drive.
 export const SLIDER_DOMAINS = new Set([

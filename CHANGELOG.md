@@ -4,6 +4,38 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format angelehnt an [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
+## [Unreleased]
+
+### Added
+
+- **Chip labels that don't fit slide instead of being cut off.** A label wider
+  than its chip scrolls to its end and back, the way Bubble Card's scrolling
+  effect does, and only when it actually overflows. Reduced motion and
+  `animation: false` keep the ellipsis. Every card that draws chips gets it —
+  the chip-buttons card, the button card's embedded row and the vacuum card's
+  free-button row — because the fades, the smart widths and the slide now sit
+  behind one `ChipRowController` in `shared/chip-buttons.ts`.
+- **`stretch: smart` on the Chip Buttons Card.** Each chip gets its content
+  width first and only the leftover room is shared out; when the row is too
+  narrow, short chips (a temperature, a percentage) keep their full width and
+  only the long ones give up space.
+- **Per-chip `state_colors` and `show_name`.** A colour for one exact state
+  (`unlocked: red`, `locked: green`), beside `color` / `inactive_color` and
+  `use_entity_color` rather than instead of them. `show_name: false` hides the
+  name; with `show_state` off as well the chip becomes a round icon button.
+
+### Behaviour changes
+
+- **Lock chips and lock buttons swap their colouring.** An *unlocked* lock is
+  now the active, accent-coloured state and a locked one the quiet, inactive
+  one — the way Home Assistant's own frontend treats locks. Before, a locked
+  door was highlighted and an unlocked one grey. This affects every lock on
+  the Chip Buttons Card and on the M3 Button Card, which share the list of
+  active states. A button card that still sets `state_colors.locked` stops
+  showing that colour, since the colour only applies while the button is
+  active — move it to `state_colors.unlocked`, or to `inactive_color` for the
+  locked look. On a chip, `state_colors.locked` works in either state.
+
 ## [2.4.1] – 2026-10-16
 
 ### Added

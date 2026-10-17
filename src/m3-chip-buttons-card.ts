@@ -12,7 +12,11 @@ import { hassChangeMatters } from "./shared/should-update";
 import { shouldAnimate } from "./shared/animation";
 import { resolveThemeColor } from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
-import { ChipRowFadeController, chipButtonsStyles, renderChipButtons } from "./shared/chip-buttons";
+import {
+  ChipRowController,
+  chipButtonsStyles,
+  renderChipButtons,
+} from "./shared/chip-buttons";
 import { TapHoldGesture } from "./shared/gestures";
 import { TemplatedCard } from "./shared/templated-card";
 
@@ -23,7 +27,7 @@ export class M3ChipButtonsCard extends TemplatedCard(LitElement) implements Love
   @state() private _config?: M3ChipButtonsCardConfig;
   @state() private _pressedKey?: string;
 
-  private _fades = new ChipRowFadeController();
+  private _chipRow = new ChipRowController();
   private _gestures = new TapHoldGesture();
 
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
@@ -43,14 +47,14 @@ export class M3ChipButtonsCard extends TemplatedCard(LitElement) implements Love
   public disconnectedCallback(): void {
     super.disconnectedCallback();
     this._gestures.cancel();
-    this._fades.disconnect();
+    this._chipRow.disconnect();
   }
 
-  // The edge fades on a scrolling row belong on the sides that actually hide
-  // chips — see ChipRowFadeController in shared/chip-buttons.ts.
+  // Edge fades, smart widths and sliding labels — see ChipRowController in
+  // shared/chip-buttons.ts.
   protected updated(changed: PropertyValues): void {
     super.updated(changed);
-    this._fades.sync(this.renderRoot);
+    this._chipRow.sync(this.renderRoot);
   }
 
   protected shouldUpdate(changed: PropertyValues): boolean {
