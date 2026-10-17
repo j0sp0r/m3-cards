@@ -94,11 +94,26 @@ export interface ModeColorOverrides {
   heat_cool?: string;
 }
 
+/** Visual language of the full climate card.
+ *
+ *  - `tiles` (default) — the original layout: a row of mode pills above a
+ *    sensor row and a −/target/+ stepper.
+ *  - `expressive` — a Material 3 Expressive redraw: a dominant, heavy
+ *    current-temperature figure, a single connected setpoint control (round
+ *    on the outside, tight on the inside — one segmented row rather than two
+ *    circles either side of a floating pill), a morphing mode/preset control
+ *    row, and a heat/cool equipment frame. The always-visible mode row
+ *    collapses into a single mode button backed by the shared dropdown menu.
+ */
+export type ClimateCardStyle = "tiles" | "expressive";
+
 export interface M3ClimateCardConfig {
   type: string;
   entity: string;
   name?: string;
   icon?: string;
+  /** @default "tiles" */
+  style?: ClimateCardStyle;
   show_presets?: boolean;
   show_sensors?: boolean;
   temperature_sensor?: string;
@@ -120,6 +135,14 @@ export interface M3ClimateCardConfig {
   preset_style?: "chip" | "pill";
   temperature_chip_placement?: "info_row" | "header";
   hidden_modes?: string[];
+  /** Style `expressive` only: show the text labels on the mode / preset
+   *  buttons in the control row. `false` leaves both as icon-only circles. */
+  show_control_labels?: boolean;
+  /** Style `expressive` only: the heat/cool frame drawn while the equipment
+   *  runs (or, dimmed, while heat/cool is selected but idle). @default true */
+  show_action_glow?: boolean;
+  /** Show the mode line under the card name in the header. @default true */
+  show_header_status?: boolean;
   height?: number;
   radius?: number;
   corners?: CornerRadiusConfig;

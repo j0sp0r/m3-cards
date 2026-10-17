@@ -56,7 +56,9 @@ export function anchorFocus(card: HTMLElement): void {
   const active = deepActiveElement();
   if (active && active !== card.ownerDocument?.body && isInside(card, active)) return;
   // -1: focusable by script, never by Tab — the card does not join the tab order.
-  if (!card.hasAttribute("tabindex")) card.setAttribute("tabindex", "-1");
+  // Only for an element that can't take focus on its own: a button that opens
+  // a menu is anchored to itself, and -1 would take it out of the tab order.
+  if (!card.hasAttribute("tabindex") && card.tabIndex < 0) card.setAttribute("tabindex", "-1");
   card.focus({ preventScroll: true });
 }
 
