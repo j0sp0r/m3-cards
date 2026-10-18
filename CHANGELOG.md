@@ -33,6 +33,17 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   `show_humidity: true` is enough. An unavailable sensor drops the segment
   rather than printing a dash.
 
+- **A room card's sensor chips open their own history.** A chip states a
+  reading and the question it provokes is "since when", but they were plain
+  text: the temperature, the humidity and the window contact were all visible
+  and none of them could be asked. Tapping a chip now opens that entity's
+  dialog, where Home Assistant keeps the graph — for the temperature, humidity
+  and extra-sensor chips, a single power sensor, and a window or door chip with
+  exactly one contact behind it. A power chip summed from `power_entities` and
+  a window chip covering several contacts stay plain, because there is no
+  single history to show and a chip that does nothing should not look like one
+  that failed.
+
 ### Fixed
 
 - **The climate card's setpoint no longer breaks across two lines.** On a

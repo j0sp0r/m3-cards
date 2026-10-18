@@ -564,6 +564,17 @@ gefunden.
       verschwindet wieder aus der Konfiguration
 - [ ] Beide Themes mit `test/contrast-audit.js` prüfen — aktive Kacheln tragen
       Tinte auf einer Volltonfläche, inaktive auf einer neutralen Tönung
+- [ ] **Chip öffnet seinen Verlauf:** Auf den Temperatur-Chip tippen — es
+      öffnet More-Info *dieses* Sensors mit Graph; auf den Feuchte-Chip tippen
+      öffnet den Feuchtesensor, nicht den Temperatursensor
+- [ ] Fenster-Chip bei **einem** Kontakt ist tippbar und zeigt, wann zuletzt
+      offen war; bei **mehreren** Kontakten bleibt er stumm — kein
+      Press-Effekt, kein Zeigefinger, weil es keinen einzelnen Verlauf gibt
+- [ ] Strom-Chip aus `power_entities` (Summe) bleibt stumm; ein einzelnes
+      `power_entity` ist tippbar
+- [ ] Ein Tipp auf einen Chip öffnet **nur** den Dialog — die Karte klappt
+      nicht zusätzlich auf oder zu
+- [ ] Mit Tab auf einen Chip, Enter: Fokusrahmen sichtbar, gleicher Dialog
 
 ## M3 Climate Overview — Thermostat-Tap
 

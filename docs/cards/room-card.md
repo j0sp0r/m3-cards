@@ -80,6 +80,17 @@ matching `device_class` otherwise. The power chip only appears above
 `power_threshold` (5W by default): a room drawing 0.4W is a room drawing
 nothing, and a chip saying so costs a row on every card that has a plug in it.
 
+**A chip opens its own history.** A chip states a reading, and the question it
+provokes is "since when" — so tapping one opens that entity's dialog, which is
+where Home Assistant keeps the graph. It works for the temperature, humidity
+and extra-sensor chips, for a single power sensor, and for the window or door
+chip where exactly one contact is behind it.
+
+Two kinds stay plain on purpose, because there is no single history to show: a
+power chip summed from `power_entities`, and a window or door chip covering
+several contacts. Those keep their old look and answer no press, so a chip that
+does nothing never looks like one that failed.
+
 ### Choosing what appears
 
 Each category also has its own `badge` mode: `auto` counts when it holds

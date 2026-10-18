@@ -205,6 +205,10 @@ interface Chip {
   icon: string;
   text: string;
   color?: string;
+  /** The entity whose history the chip opens, where exactly one is behind it.
+   * A summed power chip has no single entity and a window chip over several
+   * sensors has no single answer, so both leave this unset and stay inert. */
+  entity?: string;
 }
 
 @customElement("m3-room-card")
@@ -912,7 +916,7 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
     const value = Number.isFinite(numeric)
       ? formatNumber(this._language, numeric, { maximumFractionDigits: 1 })
       : stateObj.state;
-    return { key: entityId, icon, text: unit ? `${value} ${unit}` : value, color };
+    return { key: entityId, entity: entityId, icon, text: unit ? `${value} ${unit}` : value, color };
   }
 
   private _chips(): Chip[] {
@@ -1016,11 +1020,18 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
     );
     if (live.length === 0) return undefined;
     const open = live.filter((id) => this.hass?.states[id]?.state === "on");
+    const single = live.length === 1 ? live[0] : undefined;
     if (open.length === 0) {
-      return { key: "doors", icon: "mdi:door-closed", text: this._t("room_doors_closed") };
+      return {
+        key: "doors",
+        entity: single,
+        icon: "mdi:door-closed",
+        text: this._t("room_doors_closed"),
+      };
     }
     return {
       key: "doors",
+      entity: single,
       icon: "mdi:door-open",
       text:
         live.length === 1
@@ -1046,15 +1057,19 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
     if (live.length === 0) return undefined;
 
     const open = live.filter((id) => this.hass?.states[id]?.state === "on");
+    // One sensor has one history to show; several have no single answer.
+    const single = live.length === 1 ? live[0] : undefined;
     if (open.length === 0) {
       return {
         key: "windows",
+        entity: single,
         icon: "mdi:window-closed-variant",
         text: this._t("room_windows_closed"),
       };
     }
     return {
       key: "windows",
+      entity: single,
       icon: "mdi:window-open-variant",
       text:
         live.length === 1
@@ -1287,12 +1302,29 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
         ${chips.map((chip) => {
           const color = chip.color ?? "var(--primary-text-color)";
           const background = tintOn(this, color, undefined, ROOM_CHIP_TINT);
+          const style = `background: ${background}; color: ${foregroundOn(color, background, 4.5, this)};`;
+          const body = html`<ha-icon icon=${chip.icon}></ha-icon><span>${chip.text}</span>`;
+          // A chip states a reading; the question it provokes is "since when".
+          // Where exactly one entity is behind it, tapping opens that entity's
+          // own dialog, which is where Home Assistant keeps the graph.
+          if (!chip.entity) return html`<div class="chip" style=${style}>${body}</div>`;
+          const open = (event: Event) => {
+            // The chips sit inside the card body; nothing above them should
+            // also react to a tap meant for one chip.
+            event.stopPropagation();
+            this._moreInfo(chip.entity);
+          };
           return html`
             <div
-              class="chip"
-              style=${`background: ${background}; color: ${foregroundOn(color, background, 4.5, this)};`}
+              class="chip tappable"
+              style=${style}
+              role="button"
+              tabindex="0"
+              aria-label=${chip.text}
+              @click=${open}
+              @keydown=${activateOnKey(open)}
             >
-              <ha-icon icon=${chip.icon}></ha-icon><span>${chip.text}</span>
+              ${body}
             </div>
           `;
         })}
@@ -1616,6 +1648,29 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
         font-weight: 600;
         font-variant-numeric: tabular-nums;
         --mdc-icon-size: 15px;
+      }
+
+      /* A chip that opens something says so by answering a press. The ones
+         with no single entity behind them — a summed power reading, a window
+         chip over several sensors — stay plain, so a press that does nothing
+         never looks like one that failed. */
+      .chip.tappable {
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition: transform 120ms ease-out;
+      }
+
+      .chip.tappable:active {
+        transform: scale(0.94);
+      }
+
+      .no-animations .chip.tappable {
+        transition: none;
+      }
+
+      .chip.tappable:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: 2px;
       }
 
       .grid {
