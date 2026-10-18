@@ -32,10 +32,11 @@ describe("isInside", () => {
   });
 });
 
-function fakeCard(parent: Node) {
+function fakeCard(parent: Node, tabIndex = -1) {
   const attrs = new Map<string, string>();
   return {
     parentNode: parent,
+    tabIndex,
     tagName: "M3-VACUUM-CARD",
     ownerDocument: { body: null },
     hasAttribute: (k: string) => attrs.has(k),
@@ -57,6 +58,18 @@ describe("anchorFocus", () => {
     expect(card.focus).toHaveBeenCalledWith({ preventScroll: true });
     // Focusable by script only — the card must not join the tab order.
     expect(card.getAttribute("tabindex")).toBe("-1");
+  });
+
+  it("keeps a natively focusable anchor in the tab order", () => {
+    // A dropdown parks focus on its own trigger button; tabindex=-1 there
+    // would make the button unreachable by Tab from then on.
+    const body = { parentNode: null } as unknown as Node;
+    const slider = { parentNode: body } as unknown as Element;
+    vi.stubGlobal("document", { activeElement: slider });
+    const button = fakeCard(body, 0);
+    anchorFocus(button as unknown as HTMLElement);
+    expect(button.focus).toHaveBeenCalledWith({ preventScroll: true });
+    expect(button.getAttribute("tabindex")).toBeUndefined();
   });
 
   it("leaves focus alone when it is already inside the card", () => {

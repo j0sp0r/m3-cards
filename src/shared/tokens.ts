@@ -30,6 +30,11 @@ export const RADIUS = {
   rowActive: 11,
   // Chip / pill radius, used by every small icon+text badge.
   chip: 15,
+  // The inner corners of a connected control — the joints between its
+  // parts. Its outer ends stay fully round (half its height); the joints are
+  // squared off to this, so the parts read as one shape rather than as
+  // separate buttons. The climate card's `expressive` setpoint is the first.
+  segmentInner: 8,
 } as const;
 
 // ---- Height scale ---------------------------------------------------------
@@ -42,11 +47,18 @@ export const HEIGHT = {
   rowCompact: 38,
   // Expand/collapse toggle button ("N weitere anzeigen").
   toggle: 44,
+  // A connected control (see RADIUS.segmentInner). Below a standard row,
+  // above a compact one: it holds a 22px setpoint numeral with a caption.
+  segmented: 42,
 } as const;
 
 // ---- Spacing ---------------------------------------------------------------
 export const SPACING = {
   rowGap: 6,
+  // The seam between the parts of a connected control. Narrower than rowGap
+  // on purpose: wide enough to show where one press target ends, narrow
+  // enough that the parts still read as one control.
+  segmentGap: 4,
 } as const;
 
 // ---- Motion -----------------------------------------------------------------
