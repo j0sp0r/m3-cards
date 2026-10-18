@@ -1990,6 +1990,27 @@ general action system every other card uses, and add a `popup` action kind.
 `tile_tap_action: thermostat` still works as the narrower, older knob for the
 default tap specifically — an explicit `tap_action` overrides it.
 
+### The humidity taps on its own
+
+A room tile shows two numbers from two sensors, so it has two tap targets. The
+humidity strip along the bottom opens **its own** entity — the history the
+percentage came from — while the name and the temperature above it keep doing
+whatever `tap_action` says. Before, the whole tile tapped as one and the
+humidity reading was the only number on the card you could not get at.
+
+The strip is the full width of the tile and everything below the temperature,
+not the 10px line of text: a target you can hit on a phone.
+
+`humidity_tap_action` (default `more-info`) takes it over, and
+`{ action: "none" }` gives the strip back to the tile, so the whole tile taps
+as one again the way it used to. A hold anywhere on the tile, humidity strip
+included, still runs `hold_action` — only the tap differs between the two
+zones.
+
+It applies where the humidity has an entity of its own. Where the number comes
+from a thermostat's `current_humidity` attribute there is no humidity entity to
+open, so the strip stays plain text and the tile owns it.
+
 `popup.mode` chooses what the `popup` action opens: **`default-grid`**
 (default) — this same card again, scoped to the tapped room's area (or its
 entities, for a manually configured room); **`default-detail`** — HA's own
@@ -2017,6 +2038,7 @@ it outright.
 | `show_header` | boolean | `true` | Card header |
 | `tile_tap_action` | `history` \| `thermostat` | `history` | Narrower legacy knob for the default tap — an explicit `tap_action` overrides it |
 | `tap_action` / `hold_action` / `double_tap_action` | action config | more-info / popup / none | Tap/hold/double-tap actions; adds a `popup` action kind |
+| `humidity_tap_action` | action config | `more-info` | What a tap on a tile's humidity strip does, on the humidity's own entity. `none` gives the strip back to the tile. Ignored where the humidity is a thermostat attribute |
 | `popup` | object (`mode`, `title`, `inherit_filters`, `sort`, `show_header`, `card`, filter fields) | – | Popup shown by the `popup` action — see above |
 | `sort` | `area` \| `temp_desc` \| `temp_asc` \| `name` | `area` | Tile order |
 | `show_scale` | boolean | `true` | Comparison scale below the tile grid |

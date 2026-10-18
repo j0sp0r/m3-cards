@@ -47,7 +47,7 @@ import {
 } from "./shared/notify-editor";
 
 const DEFAULT_NOTIFY_TIME = "09:00:00";
-const ACTION_KEYS = ["tap_action", "hold_action", "double_tap_action"] as const;
+const ACTION_KEYS = ["tap_action", "hold_action", "double_tap_action", "humidity_tap_action"] as const;
 
 // A room only enters the mould digest when both readings exist — the card
 // treats humidity as optional, so a temperature-only room can never satisfy
@@ -339,6 +339,7 @@ export class M3ClimateOverviewCardEditor extends LitElement implements LovelaceC
       { name: "tap_action", selector: this._actionSelector() },
       { name: "hold_action", selector: this._actionSelector() },
       { name: "double_tap_action", selector: this._actionSelector() },
+      { name: "humidity_tap_action", selector: this._actionSelector() },
     ];
   }
 
@@ -447,6 +448,7 @@ export class M3ClimateOverviewCardEditor extends LitElement implements LovelaceC
       tap_action: "editor_climate_overview_tap_action",
       hold_action: "editor_climate_overview_hold_action",
       double_tap_action: "editor_climate_overview_double_tap_action",
+      humidity_tap_action: "editor_climate_overview_humidity_tap_action",
       title: "editor_climate_overview_popup_title",
       inherit_filters: "editor_climate_overview_popup_inherit",
       sort: "editor_climate_overview_sort",
@@ -690,6 +692,7 @@ export class M3ClimateOverviewCardEditor extends LitElement implements LovelaceC
       tap_action: this._config.tap_action?.action ?? "more-info",
       hold_action: this._config.hold_action?.action ?? "popup",
       double_tap_action: this._config.double_tap_action?.action ?? "none",
+      humidity_tap_action: this._config.humidity_tap_action?.action ?? "more-info",
     };
 
     const popup = this._config.popup ?? {};

@@ -101,6 +101,11 @@ interface ClimateOverviewTile {
   humidity?: number;
   humidityUnavailable: boolean;
   hasHumidity: boolean;
+  /** The humidity comes from an entity of its own, not from a thermostat's
+   * `current_humidity` attribute. Only then is there anything to open: a
+   * more-info on the thermostat would show the thermostat, not the humidity
+   * history the number came from. */
+  humidityOwnEntity: boolean;
   tempColor: string;
   /** The room's thermostat, when one is configured or discoverable. */
   climateEntity?: string;
@@ -140,6 +145,7 @@ export class M3ClimateOverviewCard extends TemplatedCard(LitElement) implements 
   private _miniEntity?: string;
   @state() private _popupTile?: ClimateOverviewTile;
   @state() private _pressedKey?: string;
+  @state() private _pressedHumidityKey?: string;
   @state() private _detailCardEl?: HTMLElement & PopupCardHandle;
 
   private _lastDiscoverKey?: string;
@@ -148,6 +154,9 @@ export class M3ClimateOverviewCard extends TemplatedCard(LitElement) implements 
   private _trendInFlight = false;
   private _trendRefreshTimer?: number;
   private _gestures = new TapHoldGesture();
+  /** The humidity strip taps on its own, so it needs its own gesture state —
+   * sharing the tile's would let one zone cancel the other's press. */
+  private _humidityGestures = new TapHoldGesture();
   private _popupOpenedAt = 0;
   private _popupCardEl?: HTMLElement & PopupCardHandle;
   private _popupCardKey?: string;
@@ -451,6 +460,7 @@ export class M3ClimateOverviewCard extends TemplatedCard(LitElement) implements 
             humidity,
             humidityUnavailable: !!room.humidityEntity && humidity === undefined,
             hasHumidity: humidity !== undefined || (!!room.humidityEntity && !room.humidityAttribute),
+            humidityOwnEntity: !!room.humidityEntity && !room.humidityAttribute,
             tempColor: room.color ? resolveThemeColor(room.color) : this._tempColor(stage),
             climateEntity: this._climateFor(room.areaId, room.deviceId, room.climateEntity),
           },
@@ -599,6 +609,34 @@ export class M3ClimateOverviewCard extends TemplatedCard(LitElement) implements 
     if (kind === "hold") return { action: "popup" };
     if (kind === "double_tap") return { action: "none" };
     return { action: "more-info" };
+  }
+
+  /** What a tap on the humidity strip does. `more-info` on the humidity's own
+   * entity by default, which is the history the number came from; `none`
+   * gives the strip back to the tile, so the whole tile taps as one again. */
+  private _humidityAction(): HaActionConfig {
+    return this._config?.humidity_tap_action ?? { action: "more-info" };
+  }
+
+  /** The strip is only its own target when there is something behind it and
+   * somewhere to go — otherwise it stays plain text and the tile owns it. */
+  private _humidityTappable(tile: ClimateOverviewTile): boolean {
+    return (
+      tile.hasHumidity &&
+      tile.humidityOwnEntity &&
+      !!tile.humidityEntity &&
+      this._humidityAction().action !== "none"
+    );
+  }
+
+  private _runHumidityAction(tile: ClimateOverviewTile): void {
+    if (!this.hass) return;
+    runHaAction(this.hass, this._humidityAction(), {
+      entityId: tile.humidityEntity,
+      openPopup: () => this._openPopup(tile),
+      fireMoreInfo: (entityId) => fireEvent(this, "hass-more-info", { entityId }),
+      navigate: (path) => navigateTo(this, path),
+    });
   }
 
   private _resolveAction(kind: ActionKind): HaActionConfig {
@@ -925,6 +963,68 @@ export class M3ClimateOverviewCard extends TemplatedCard(LitElement) implements 
     `;
   }
 
+  /**
+   * The humidity strip along the bottom of a tile.
+   *
+   * Where the humidity has an entity of its own it is a second tap target
+   * rather than decoration: the tile's two numbers come from two sensors, and
+   * tapping a number should open the history *that* number came from. The
+   * strip therefore reaches the tile's edges — the tile's padding is cancelled
+   * and re-applied inside it — so the target is the full width of the tile and
+   * everything below the temperature, not the 10px line of text itself.
+   *
+   * Its gesture handlers stop propagation at the pointer events, so the tile's
+   * own gesture never starts; a hold is passed through to the tile's hold
+   * action, so the only thing that differs between the two zones is the tap.
+   */
+  private _renderHumidity(tile: ClimateOverviewTile, humidity: { color: string; opacity: string }) {
+    const text = tile.humidityUnavailable
+      ? this._t("climate_overview_unavailable")
+      : `${Math.round(tile.humidity!)} %`;
+    const body = html`
+      <ha-icon icon="mdi:water-outline"></ha-icon>
+      <span>${text}</span>
+    `;
+    const style = `color: ${humidity.color}; opacity: ${humidity.opacity};`;
+
+    if (!this._humidityTappable(tile)) {
+      return html`<div class="tile-humidity" style=${style}>${body}</div>`;
+    }
+
+    const holdAction = this._resolveAction("hold");
+    const listeners = this._humidityGestures.listeners({
+      onTap: () => this._runHumidityAction(tile),
+      onHold: holdAction.action === "none" ? undefined : () => this._runAction(tile, "hold"),
+      onPressChange: (pressed) => {
+        this._pressedHumidityKey = pressed ? tile.key : undefined;
+      },
+    });
+    // Swallowed before the tile sees them: the tile's gesture binds the same
+    // events one level up, and both firing would run two actions on one tap.
+    const own = <T extends Event>(handler: (event: T) => void) => (event: T) => {
+      event.stopPropagation();
+      handler(event);
+    };
+
+    return html`
+      <div
+        class="tile-humidity tappable ${this._pressedHumidityKey === tile.key ? "pressed" : ""}"
+        style=${style}
+        role="button"
+        tabindex="0"
+        aria-label=${`${tile.name} — ${this._t("chip_humidity")}`}
+        @pointerdown=${own(listeners["@pointerdown"])}
+        @pointermove=${own(listeners["@pointermove"])}
+        @pointerup=${own(listeners["@pointerup"])}
+        @pointercancel=${own(listeners["@pointercancel"])}
+        @contextmenu=${own(listeners["@contextmenu"])}
+        @keydown=${own(listeners["@keydown"])}
+      >
+        ${body}
+      </div>
+    `;
+  }
+
   private _renderTile(tile: ClimateOverviewTile) {
     const humidity = this._humidityDisplay(tile);
     const trendDelta = this._trendDelta(tile);
@@ -985,14 +1085,7 @@ export class M3ClimateOverviewCard extends TemplatedCard(LitElement) implements 
                   : nothing}
               `}
         </div>
-        ${tile.hasHumidity
-          ? html`
-              <div class="tile-humidity" style=${`color: ${humidity.color}; opacity: ${humidity.opacity};`}>
-                <ha-icon icon="mdi:water-outline"></ha-icon>
-                <span>${tile.humidityUnavailable ? this._t("climate_overview_unavailable") : `${Math.round(tile.humidity!)} %`}</span>
-              </div>
-            `
-          : nothing}
+        ${tile.hasHumidity ? this._renderHumidity(tile, humidity) : nothing}
       </div>
     `;
   }
@@ -1106,6 +1199,35 @@ export class M3ClimateOverviewCard extends TemplatedCard(LitElement) implements 
         gap: 3px;
         font-size: 10px;
         font-weight: 500;
+      }
+
+      /* A 10px line of text is not a tap target. The strip cancels the tile's
+         own padding and re-applies it inside itself, so it reaches the tile's
+         left, right and bottom edges: everything below the temperature taps
+         the humidity, and the rest of the tile still taps the temperature.
+         The auto top margin pins it to the bottom even on a short tile. */
+      .tile-humidity.tappable {
+        margin: auto -9px -11px;
+        padding: 7px 9px 11px;
+        border-radius: 0 0 ${CLIMATE_OVERVIEW_TILE_RADIUS}px ${CLIMATE_OVERVIEW_TILE_RADIUS}px;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition: background-color 120ms ease-out;
+      }
+
+      /* The tile answers a press by scaling; a zone inside it cannot do that
+         without dragging the tile's own corners around, so it darkens. */
+      .tile-humidity.tappable.pressed {
+        background: color-mix(in srgb, var(--tile-ink, var(--tile-color)) 14%, transparent);
+      }
+
+      .no-animations .tile-humidity.tappable {
+        transition: none;
+      }
+
+      .tile-humidity.tappable:focus-visible {
+        outline: 2px solid var(--tile-color);
+        outline-offset: -2px;
       }
 
       .tile-humidity ha-icon {

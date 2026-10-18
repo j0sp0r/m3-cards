@@ -1375,6 +1375,12 @@ export interface M3ClimateOverviewCardConfig extends NotifyConfigBase, EntityFil
   tap_action?: HaActionConfig;
   hold_action?: HaActionConfig;
   double_tap_action?: HaActionConfig;
+  /** What a tap on a tile's humidity strip does. A room tile shows two
+   * numbers from two sensors, so the humidity opens its own entity rather
+   * than the temperature's. `none` gives the strip back to the tile, which
+   * then taps as one again. Ignored where the humidity is a thermostat's
+   * `current_humidity` attribute — there is no humidity entity to open. */
+  humidity_tap_action?: HaActionConfig;
   popup?: ClimateOverviewPopupConfig;
 }
 

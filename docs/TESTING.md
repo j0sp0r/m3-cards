@@ -289,6 +289,14 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Bereichserkennung | `auto_discover: true` ohne Räume | Räume aus HA-Bereichen, Temperatur und Feuchte je Raum |
 | Raum ohne Feuchtesensor | Raum mit nur Temperatur | Feuchtewert entfällt, Zeile bleibt intakt |
 | Trend | Verlauf abwarten | Trendpfeil erscheint erst mit ausreichend Historie |
+| Feuchte öffnet ihre eigene Entität | Raum mit eigenem Feuchtesensor, auf die Prozentzeile unten tippen | more-info **des Feuchtesensors** öffnet sich, nicht das der Temperatur |
+| Temperatur bleibt oben | Auf Namen oder Temperatur derselben Kachel tippen | Es öffnet weiterhin, was `tap_action` sagt — die beiden Zonen verwechseln sich nicht |
+| Trefferfläche | Am Handy knapp über dem unteren Kachelrand und ganz links/rechts auf Höhe der Prozentzahl tippen | Zählt überall als Feuchte-Tipp; die Zone ist die volle Kachelbreite, nicht nur der Text |
+| Nur ein Dialog pro Tipp | Auf die Feuchte tippen | Genau **ein** Dialog öffnet sich; die Kachel darunter feuert nicht zusätzlich |
+| Halten geht überall | Auf der Feuchtezeile lange drücken | `hold_action` läuft (Standard: Popup) — wie auf dem Rest der Kachel |
+| Feuchte aus Thermostat-Attribut | Raum ohne eigenen Feuchtesensor, Wert kommt aus `current_humidity` | Zeile ist **nicht** tippbar, kein Press-Effekt; die ganze Kachel tippt wie bisher |
+| Abschalten | `humidity_tap_action: {action: none}` | Zone verschwindet, die ganze Kachel tippt wieder als eine |
+| Tastatur | Mit Tab auf die Feuchtezeile, Enter | Fokusrahmen sichtbar, Enter öffnet den Feuchte-Dialog |
 
 ## M3 Aquarium Card
 

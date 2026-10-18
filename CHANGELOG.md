@@ -6,6 +6,22 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Added
+
+- **A room tile's humidity opens its own history.** The climate overview card
+  draws two numbers per tile from two sensors, but the whole tile tapped as
+  one: the temperature's dialog opened from anywhere on it, and the humidity
+  reading was the only number on the card you could not get at. The humidity
+  strip along the bottom is now its own tap target and opens the entity the
+  percentage came from, while the name and the temperature above it keep doing
+  whatever `tap_action` says. The strip is the full width of the tile and
+  everything below the temperature, not the 10px line of text, so it can be hit
+  on a phone. A hold still runs `hold_action` anywhere on the tile — only the
+  tap differs between the two zones. `humidity_tap_action` takes it over, and
+  `{ action: "none" }` restores a tile that taps as one. Where the humidity is
+  a thermostat's `current_humidity` attribute there is no entity to open, so
+  the strip stays plain text.
+
 ### Fixed
 
 - **The climate card's setpoint no longer breaks across two lines.** On a
