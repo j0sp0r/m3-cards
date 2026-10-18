@@ -321,6 +321,7 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Fehlende Slots | Nur `water_temperature_entity` gesetzt | Übrige Kacheln entfallen, kein Platzhalter mit „–" |
 | Kamera | `camera_entity` gesetzt, Banner aufklappen | Bild lädt, Aufklappanimation ruckelt nicht |
 | Reinigungsintervall | Datum in Vergangenheit und Zukunft | Fälligkeit korrekt, Zustandsfarbe wechselt |
+| Schloss als Gerätekachel | Ein `lock` als Geräte-Slot eintragen, auf- und abschließen | Aufgeschlossen zählt als „an" (Akzentfarbe, Text „An"), abgeschlossen als „aus" — seit dem Schloss-Farbtausch umgekehrt zu vorher |
 
 ## M3 Updates Card
 
@@ -734,6 +735,12 @@ einer entscheidet, was ein Raum **zeigt**, der andere, was ein Tippen
 | Nur Anzeige | `interactive: false` | Kein Tipp-Feedback, kein Zeiger, keine Button-Rolle für Screenreader |
 | Zustandstext | `show_state: true` | Zustand steht neben dem Namen und aktualisiert sich live |
 | Ohne Entität | Pille nur mit `name` und `icon` | Rendert als Beschriftung, wirft nichts |
+| Smarte Breiten | `stretch: smart`, eine Pille mit langem Namen neben zwei kurzen Sensor-Pillen (z. B. „15,2 °C", „71 %"), Karte schmal ziehen | Die kurzen Pillen behalten ihre volle Breite, nur die lange gibt Platz ab. Mit reichlich Platz bekommt jede Pille ihren Inhalt plus einen gleichen Anteil am Rest. Eine runde Icon-Pille wächst und schrumpft dabei nie |
+| Laufschrift | Pille mit einem Namen, der nicht in ihre Breite passt | Der Text läuft bis zu seinem Ende und zurück — nur diese Pille, die anderen stehen still. Mit `animation: false` oder „Bewegung reduzieren" im System stattdessen Auslassungszeichen. Dasselbe in der eingebetteten Reihe der Button Card und in der Pillenreihe der Vacuum Card |
+| Farbe je Zustand | `state_colors: { unlocked: red, locked: green }` an einem Schloss | Abgeschlossen grün, aufgeschlossen rot — beide Zustände, obwohl nur einer als aktiv zählt. Ist die Entität `unavailable`, sieht die Pille trotzdem nicht verfügbar aus, ohne Zustandsfarbe |
+| Ohne Namen | `show_name: false`, einmal mit und einmal ohne `show_state` | Der Name verschwindet, der Zustand bleibt. Ohne beides wird die Pille ein runder Icon-Knopf |
+| Schloss-Farben nach dem Update | Ein bestehendes Schloss **ohne** `state_colors`, als Pille und als M3 Button Card | Aufgeschlossen ist jetzt der hervorgehobene, akzentfarbene Zustand, abgeschlossen der ruhige — vorher war es umgekehrt. Eine Button Card mit `state_colors.locked` zeigt diese Farbe nicht mehr (so im CHANGELOG beschrieben) |
+| Inaktiv mit Entitätsfarbe | Theme, das `--state-light-off-color` setzt; Pille mit `use_entity_color: true` an einer ausgeschalteten Lampe | Die Pille nimmt die Theme-Farbe statt Grau. Mit einem Theme ohne diese Variable bleibt sie grau wie bisher |
 
 ## M3 Group Card
 

@@ -1,6 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import {
+  ChipRowController,
   ChipRowFadeController,
+  chipRowSignature,
+  smartChipWidths,
   chipRowFades,
   chipRowJustify,
   chipRowLayoutClass,
@@ -18,6 +21,10 @@ describe("chipRowLayoutClass", () => {
 
   it("stretch wins over wrap — the chips share the width on one line", () => {
     expect(chipRowLayoutClass({ buttons: [], wrap: true, stretch: true })).toBe("stretch");
+  });
+
+  it("marks a smart stretch as both, so it shares the width and gets measured", () => {
+    expect(chipRowLayoutClass({ buttons: [], stretch: "smart" })).toBe("stretch smart");
   });
 });
 
@@ -204,5 +211,159 @@ describe("ChipRowFadeController", () => {
     const controller = new ChipRowFadeController();
     expect(() => controller.sync(fakeRoot([]))).not.toThrow();
     expect(() => controller.disconnect()).not.toThrow();
+  });
+});
+
+// A row as the layout controller sees it: what is written on it and how
+// many chips it holds. Scroll metrics only matter to the fades it also runs.
+class FakeChipRow extends FakeRow {
+  constructor(
+    public textContent: string,
+    public childElementCount = 1,
+    public layoutClasses: string[] = [],
+  ) {
+    super(0, 100, 100);
+  }
+
+  public override classList = {
+    toggle: (name: string, on: boolean) => {
+      if (on) this.classes.add(name);
+      else this.classes.delete(name);
+    },
+    contains: (name: string) => this.layoutClasses.includes(name),
+  };
+}
+
+describe("chipRowSignature", () => {
+  it("changes with the text on the chips", () => {
+    const a = chipRowSignature([new FakeChipRow("Door Locked")] as unknown as HTMLElement[]);
+    const b = chipRowSignature([new FakeChipRow("Door Unlocked")] as unknown as HTMLElement[]);
+    expect(a).not.toBe(b);
+  });
+
+  it("changes when a chip is added, even an icon-only one with no text", () => {
+    const a = chipRowSignature([new FakeChipRow("x", 2)] as unknown as HTMLElement[]);
+    const b = chipRowSignature([new FakeChipRow("x", 3)] as unknown as HTMLElement[]);
+    expect(a).not.toBe(b);
+  });
+
+  it("changes when the row switches to smart widths", () => {
+    const a = chipRowSignature([new FakeChipRow("x", 1, ["stretch"])] as unknown as HTMLElement[]);
+    const b = chipRowSignature([new FakeChipRow("x", 1, ["stretch", "smart"])] as unknown as HTMLElement[]);
+    expect(a).not.toBe(b);
+  });
+});
+
+describe("ChipRowController", () => {
+  it("does not measure again on a render that changed nothing on the chips", () => {
+    // The render-storm case: every hass tick re-renders every chip card, and
+    // measuring each time is a forced layout per chip.
+    installResizeObserver();
+    const layout = vi.fn();
+    const controller = new ChipRowController(layout);
+    const row = new FakeChipRow("Living room 21.4 °C");
+    const root = fakeRoot([row]);
+
+    controller.sync(root);
+    controller.sync(root);
+    controller.sync(root);
+    expect(layout).toHaveBeenCalledTimes(1);
+  });
+
+  it("measures again when a chip's text changes", () => {
+    installResizeObserver();
+    const layout = vi.fn();
+    const controller = new ChipRowController(layout);
+    const row = new FakeChipRow("Living room 21.4 °C");
+    const root = fakeRoot([row]);
+
+    controller.sync(root);
+    row.textContent = "Living room 21.5 °C";
+    controller.sync(root);
+    expect(layout).toHaveBeenCalledTimes(2);
+  });
+
+  it("measures again when the row is resized", () => {
+    const observed = installResizeObserver();
+    const layout = vi.fn();
+    const row = new FakeChipRow("x");
+    new ChipRowController(layout).sync(fakeRoot([row]));
+
+    // The fades observe the row too; the last observer is the layout one.
+    observed[observed.length - 1].observer?.();
+    expect(layout).toHaveBeenCalledTimes(2);
+  });
+
+  it("measures a row Lit swapped in, even with the same text", () => {
+    installResizeObserver();
+    const layout = vi.fn();
+    const controller = new ChipRowController(layout);
+    controller.sync(fakeRoot([new FakeChipRow("x")]));
+    controller.sync(fakeRoot([new FakeChipRow("x")]));
+    expect(layout).toHaveBeenCalledTimes(2);
+  });
+
+  it("measures again after a disconnect and reconnect", () => {
+    installResizeObserver();
+    const layout = vi.fn();
+    const controller = new ChipRowController(layout);
+    const root = fakeRoot([new FakeChipRow("x")]);
+    controller.sync(root);
+    controller.disconnect();
+    controller.sync(root);
+    expect(layout).toHaveBeenCalledTimes(2);
+  });
+
+  it("runs the fades as well, so a host needs nothing else", () => {
+    installResizeObserver();
+    const row = new FakeChipRow("x");
+    row.scrollWidth = 300;
+    new ChipRowController(vi.fn()).sync(fakeRoot([row]));
+    expect([...row.classes]).toEqual(["fade-end"]);
+  });
+
+  it("does nothing for a card with no chip row", () => {
+    installResizeObserver();
+    const layout = vi.fn();
+    const controller = new ChipRowController(layout);
+    controller.sync(fakeRoot([]));
+    expect(layout).not.toHaveBeenCalled();
+    expect(() => controller.disconnect()).not.toThrow();
+  });
+});
+
+describe("smartChipWidths", () => {
+  it("shares spare room evenly on top of each content width", () => {
+    expect(smartChipWidths([200, 80, 60], 400)).toEqual([220, 100, 80]);
+  });
+
+  it("cuts only the long chip when the row is too narrow", () => {
+    // The screenshot case: a long lock chip next to two short sensor chips.
+    expect(smartChipWidths([260, 100, 90], 360)).toEqual([170, 100, 90]);
+  });
+
+  it("caps every chip that is over the fair share, not just the widest", () => {
+    expect(smartChipWidths([300, 200, 50], 350)).toEqual([150, 150, 50]);
+  });
+
+  it("splits evenly when nothing is under the fair share", () => {
+    expect(smartChipWidths([200, 200], 300)).toEqual([150, 150]);
+  });
+
+  it("never widens a fixed chip", () => {
+    expect(smartChipWidths([100, 36, 64], 260, [false, true, false])).toEqual([130, 36, 94]);
+  });
+
+  it("never cuts a fixed chip either — it comes off the top first", () => {
+    expect(smartChipWidths([200, 36, 200], 90, [false, true, false])).toEqual([27, 36, 27]);
+  });
+
+  it("leaves fixed chips whole even when they alone overflow the row", () => {
+    expect(smartChipWidths([36, 36, 120], 60, [true, true, false])).toEqual([36, 36, 0]);
+  });
+
+  it("fills the row exactly", () => {
+    const widths = smartChipWidths([310, 95, 42, 180], 500);
+    expect(widths.reduce((a, b) => a + b, 0)).toBeCloseTo(500);
   });
 });

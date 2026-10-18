@@ -62,7 +62,7 @@ import {
 import { foldHides, readCollapsed, writeCollapsed, type CollapseTarget } from "./shared/collapse-state";
 import { foldArrowStyles, renderFoldArrow } from "./shared/fold-arrow";
 import {
-  ChipRowFadeController,
+  ChipRowController,
   chipButtonsStyles,
   renderChipButtons,
 } from "./shared/chip-buttons";
@@ -150,8 +150,9 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
     },
   });
   private _chipGestures = new TapHoldGesture();
-  /** The edge hints on the free-button row, shared with the chip-buttons card. */
-  private _fades = new ChipRowFadeController();
+  /** Edge hints, smart widths and sliding labels on the free-button row,
+   * shared with the chip-buttons card. */
+  private _chipRow = new ChipRowController();
   private _selectTimers: Record<string, number> = {};
   /** The speed to return to when "mop only" is switched back off. */
   private _lastRealSpeed?: string;
@@ -197,7 +198,7 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
-    this._fades.disconnect();
+    this._chipRow.disconnect();
     this._optimistic.clear();
     this._popupCard.reset();
     if (this._fanSettle) clearTimeout(this._fanSettle);
@@ -265,7 +266,7 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
   };
 
   protected updated(): void {
-    this._fades.sync(this.renderRoot);
+    this._chipRow.sync(this.renderRoot);
     this._maybeSyncPopupCard();
     if (this._popupCardEl && this.hass) this._popupCardEl.hass = this.hass;
     // Two dialogs live in this shadow root — the configured popup and the

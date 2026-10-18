@@ -26,6 +26,7 @@ import {
 import {
   chipButtonLabelMap,
   renderChipButtonsListEditor,
+  stateKeyLabel,
 } from "./shared/chip-buttons-editor";
 
 @customElement("m3-button-card-editor")
@@ -252,20 +253,7 @@ export class M3ButtonCardEditor
   };
 
   private _stateKeyLabel(key: string): string {
-    const stateLabelMap: Record<string, TranslationKey> = {
-      on: "editor_state_on",
-      open: "editor_state_open",
-      locked: "editor_state_locked",
-      home: "editor_state_home",
-      playing: "editor_state_playing",
-      active: "editor_state_active",
-      detected: "editor_state_detected",
-      wet: "editor_state_wet",
-    };
-    const translationKey = stateLabelMap[key];
-    return translationKey
-      ? this._t(translationKey)
-      : key.charAt(0).toUpperCase() + key.slice(1);
+    return stateKeyLabel(key, this._language);
   }
 
   private _colorChanged(value: string): void {
@@ -431,6 +419,7 @@ export class M3ButtonCardEditor
           <div class="panel-content">
             ${renderChipButtonsListEditor({
               hass: this.hass,
+              language: this._language,
               items: this._config.chip_buttons ?? [],
               onChange: (items) => this._chipButtonsChanged(items),
               computeLabel: this._computeLabel,
