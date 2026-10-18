@@ -76,7 +76,10 @@ export class M3ClimateCardMini extends TemplatedCard(LitElement) implements Love
   }
 
   protected shouldUpdate(changed: PropertyValues): boolean {
-    return hassChangeMatters(changed, this.hass, [this._config?.entity]);
+    return hassChangeMatters(changed, this.hass, [
+      this._config?.entity,
+      this._config?.humidity_sensor,
+    ]);
   }
 
   public setConfig(config: M3ClimateCardMiniConfig): void {
@@ -130,6 +133,25 @@ export class M3ClimateCardMini extends TemplatedCard(LitElement) implements Love
     const canCool = hvacModes.includes("cool") || hvacModes.includes("heat_cool");
     if (canHeat && !canCool) return "mdi:radiator";
     return "mdi:air-conditioner";
+  }
+
+  /**
+   * The humidity for the status line, or undefined when there is none to show.
+   *
+   * Opt-in on purpose: a card that silently grew a third reading would be a
+   * change to every existing dashboard that nobody asked for. Naming a sensor
+   * is itself the request, so `humidity_sensor` implies `show_humidity` —
+   * the flag on its own is for the thermostat that reports `current_humidity`.
+   */
+  private _readHumidity(attrs: Record<string, unknown>): number | undefined {
+    const cfg = this._config;
+    if (!cfg || (!cfg.humidity_sensor && cfg.show_humidity !== true)) return undefined;
+    if (cfg.humidity_sensor) {
+      const state = this.hass?.states[cfg.humidity_sensor];
+      const value = state ? parseFloat(state.state) : Number.NaN;
+      return Number.isFinite(value) ? value : undefined;
+    }
+    return typeof attrs.current_humidity === "number" ? attrs.current_humidity : undefined;
   }
 
   private _formatNumber(value: number, digits = 1): string {
@@ -407,10 +429,22 @@ export class M3ClimateCardMini extends TemplatedCard(LitElement) implements Love
     const modeLabel = unavailable
       ? this._t("unavailable")
       : (this._t(currentMode as TranslationKey) ?? currentMode);
-    const statusText =
-      !unavailable && currentTemperature !== undefined
-        ? `${this._formatNumber(currentTemperature)} ${tempUnit} · ${modeLabel}`
-        : modeLabel;
+
+    // Most thermostats carry no `current_humidity` at all — the ones here
+    // that do are the exception — so the usual source is the room's own
+    // sensor, named the same way the full card names it. Configuring one is
+    // itself the request to show it; `show_humidity` alone covers the
+    // thermostat that does report its own.
+    const currentHumidity = this._readHumidity(attrs);
+    const readings = [
+      currentTemperature !== undefined
+        ? `${this._formatNumber(currentTemperature)} ${tempUnit}`
+        : undefined,
+      currentHumidity !== undefined ? `${Math.round(currentHumidity)} %` : undefined,
+    ].filter((part): part is string => !!part);
+    // The mode goes last, so the line reads as "what it is, then what it is
+    // doing" however many readings there turn out to be.
+    const statusText = !unavailable && readings.length ? `${readings.join(" · ")} · ${modeLabel}` : modeLabel;
 
     // The attributes decide the shape of the target, not the mode: in
     // heat/cool a thermostat carries `target_temp_low` and `target_temp_high`

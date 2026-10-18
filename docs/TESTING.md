@@ -111,6 +111,11 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Kompaktes Layout | Karte auf sehr schmaler Spaltenbreite (Handy) platzieren | Kein Text-Overflow, Buttons bleiben antippbar (min. 40×40px) |
 | Band-Sollwerte eingefärbt | `heat_cool`-Thermostat, Kachel auf schmaler Spalte | Linke Zahl warm, rechte Zahl kalt. Auf der Kachel ist für eine Beschriftung kein Platz — die Farbe ist das Einzige, was die beiden auseinanderhält, also gegenprüfen, dass sie nicht vertauscht sind |
 | Band-Stepper trifft den richtigen Rand | In der Kachel + und − jeweils links und rechts antippen | Die linke Hälfte verstellt `target_temp_low`, die rechte `target_temp_high`; die Farbe der Zahl wandert nicht mit |
+| Feuchte aus, solange nicht gewünscht | Bestehende Mini-Karte ohne neue Optionen | Statuszeile unverändert `21,2 °C · Aus` — nichts kommt ungefragt dazu |
+| Feuchte über Sensor | `humidity_sensor` auf den Raumsensor setzen, **ohne** `show_humidity` | Zeile liest `21,2 °C · 59 % · Aus`; der Sensor allein genügt als Einschalter |
+| Feuchte aus dem Thermostat | Thermostat mit `current_humidity` (z.B. Tado), nur `show_humidity: true` | Wert kommt aus dem Thermostat selbst, kein Sensor nötig |
+| Sensor nicht verfügbar | `humidity_sensor` auf eine `unavailable` Entität | Segment entfällt ganz, kein „–" und kein doppelter Mittelpunkt |
+| Editor | Karteneditor öffnen, Abschnitt „Inhalt" | Schalter „Luftfeuchte anzeigen" und Feld „Feuchte-Sensor" sind da und greifen sofort |
 
 ## M3 Button Card
 

@@ -72,6 +72,11 @@ export class M3ClimateCardMiniEditor
     return [
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },
+      { name: "show_humidity", selector: { boolean: {} } },
+      {
+        name: "humidity_sensor",
+        selector: { entity: { domain: "sensor", device_class: "humidity" } },
+      },
     ];
   }
 
@@ -121,6 +126,8 @@ export class M3ClimateCardMiniEditor
       entity: "editor_entity",
       name: "editor_name",
       icon: "editor_icon",
+      show_humidity: "editor_mini_show_humidity",
+      humidity_sensor: "editor_humidity_sensor",
       glass_background: "editor_glass_background",
       radius: "editor_radius",
       radius_preset: "editor_radius_preset",
@@ -266,6 +273,8 @@ export class M3ClimateCardMiniEditor
     const contentData = {
       name: this._config.name,
       icon: this._config.icon,
+      show_humidity: this._config.show_humidity ?? false,
+      humidity_sensor: this._config.humidity_sensor,
     };
 
     const appearanceData = {

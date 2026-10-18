@@ -402,13 +402,31 @@ mode_colors:
   cool: "#6ba7dc"
 ```
 
-### Configuration options
+### The humidity is off until you ask for it
+
+The status line reads `21,2 °C · Aus`, and with a humidity it reads
+`21,2 °C · 59 % · Aus` — the readings first, the mode last, however many
+readings there turn out to be.
+
+It stays off until you turn it on, and the switch is in the card's own editor
+rather than YAML-only. A card that silently grew a third reading would be a
+change to every dashboard using it that nobody asked for.
+
+Where it comes from depends on the thermostat. Most report no
+`current_humidity` at all, so point `humidity_sensor` at the room's own sensor
+— naming one is itself the request to show it, no second switch needed. For a
+thermostat that does report its own humidity, `show_humidity: true` alone is
+enough. An unavailable sensor drops the segment rather than printing a dash.
+
+## Configuration options
 
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `entity` | string | **Required** | `climate.*` entity |
 | `name` | string | entity `friendly_name` | Displayed name |
 | `icon` | string | `mdi:radiator` (heating only) / `mdi:air-conditioner` | Icon in the icon tile |
+| `show_humidity` | boolean | `false` | Add the humidity to the status line, next to the temperature |
+| `humidity_sensor` | string | – | Where that humidity comes from. Most thermostats report none of their own, so this is usually the room's sensor. Setting it turns the reading on by itself |
 | `glass_background` | boolean | `true` | Frosted glass background (off for solid themes) |
 | `animations` | boolean | `true` | Transitions for icon tile/on-off button/stepper; `false` disables them |
 | `unavailable_style` | `dimmed` \| `normal` \| `hidden` | `dimmed` | Display when the entity is `unavailable`/`unknown` |

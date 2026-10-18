@@ -22,6 +22,17 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   a thermostat's `current_humidity` attribute there is no entity to open, so
   the strip stays plain text.
 
+- **The mini climate card can show the humidity.** Its status line read
+  `21,2 °C · Aus` and had no way to say how damp the room was; it now reads
+  `21,2 °C · 59 % · Aus`, readings first and the mode last. It stays off until
+  it is switched on, in the card's own editor rather than YAML-only — a card
+  that silently grew a third reading would be a change to every dashboard
+  using it that nobody asked for. Most thermostats report no `current_humidity`
+  of their own, so `humidity_sensor` points at the room's sensor and naming one
+  is itself the request to show it; for a thermostat that does report its own,
+  `show_humidity: true` is enough. An unavailable sensor drops the segment
+  rather than printing a dash.
+
 ### Fixed
 
 - **The climate card's setpoint no longer breaks across two lines.** On a
