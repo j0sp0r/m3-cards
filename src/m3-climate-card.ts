@@ -18,6 +18,10 @@ import {
   DEFAULT_BATTERY_THRESHOLD,
   DEFAULT_TEMP_STEP,
   CLIMATE_BAND_ROW_GAP,
+  CLIMATE_STEPPER_VALUE_MAX_PX,
+  CLIMATE_STEPPER_VALUE_MIN_PX,
+  CLIMATE_STEPPER_VALUE_CQI,
+  CLIMATE_STEPPER_UNIT_EM,
   DEFAULT_CLIMATE_RADIUS,
   resolveCornerRadius,
   THEME_COLOR_TOKENS,
@@ -246,7 +250,11 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
   }) {
     const { value, label, unit, blank, disabled, accent, stepLabels, onStep } = opts;
     const missing = blank || value === undefined;
-    const reading = missing ? "–" : `${this._formatNumber(value)} ${unit}`;
+    // Number and unit are separate elements so the unit can ride smaller —
+    // but they are one reading, which `white-space: nowrap` on .value keeps
+    // together. The space lives inside the unit's span so it is set at the
+    // unit's size and still copies out as "18,0 °C".
+    const reading = missing ? "–" : this._formatNumber(value);
     const valueStyle = accent && !missing ? `color: ${accent};` : nothing;
     return html`
       <div class="stepper-row">
@@ -266,7 +274,9 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
           @click=${() => this._fireMoreInfo(this._config?.entity)}
           @keydown=${activateOnKey(() => this._fireMoreInfo(this._config?.entity))}
         >
-          <div class="value" style=${valueStyle}>${reading}</div>
+          <div class="value" style=${valueStyle}>${reading}${missing
+            ? nothing
+            : html`<span class="unit"> ${unit}</span>`}</div>
           <div class="label">${label}</div>
         </div>
         <button
@@ -936,6 +946,10 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
       justify-content: center;
       cursor: pointer;
       padding: 0 8px;
+      /* The reading sizes itself against this box, not the viewport. Safe as
+         a container because the width comes from the flex line above
+         (flex: 1 / min-width: 0), never from the text inside. */
+      container-type: inline-size;
     }
 
     .stepper-display:focus-visible {
@@ -944,10 +958,25 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
     }
 
     .stepper-display .value {
-      font-size: 21px;
+      /* The plain size first: a browser without container-query units keeps
+         exactly what this card has always shown. */
+      font-size: ${unsafeCSS(CLIMATE_STEPPER_VALUE_MAX_PX)}px;
+      font-size: clamp(
+        ${unsafeCSS(CLIMATE_STEPPER_VALUE_MIN_PX)}px,
+        ${unsafeCSS(CLIMATE_STEPPER_VALUE_CQI)}cqi,
+        ${unsafeCSS(CLIMATE_STEPPER_VALUE_MAX_PX)}px
+      );
       font-weight: 700;
       color: var(--primary-text-color);
       line-height: 1.2;
+      /* The one rule the whole thing is for: "18,0" and "°C" are one
+         reading and never land on two lines. */
+      white-space: nowrap;
+    }
+
+    .stepper-display .unit {
+      font-size: ${unsafeCSS(CLIMATE_STEPPER_UNIT_EM)}em;
+      font-weight: 500;
     }
 
     .stepper-display .label {

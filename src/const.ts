@@ -74,6 +74,28 @@ export const DEFAULT_TEMP_STEP = 0.5;
 // for one target and not as two unrelated rows.
 export const CLIMATE_BAND_ROW_GAP = SPACING.rowGap;
 
+// The setpoint reading ("18,0 °C") is one thing to read, so it must never
+// break between the number and its unit — which is what it did on a narrow
+// card, dropping "°C" onto a second line under the number.
+//
+// Shrinking the whole card's type would be the wrong fix: the reading only
+// runs out of room on a narrow card, and the number should stay as large as
+// it is wherever it fits. So the size follows the width of the box it sits
+// in (see `container-type: inline-size` on .stepper-display): capped at the
+// size it has always had, floored at something still readable.
+//
+// The factor comes from the widest reading the card can produce — five
+// figures plus a unit, "100,0 °F", which measures about 3.3× its own font
+// size in Roboto Bold. 28 leaves a little room on top of that, so the cap
+// only applies while even that reading fits.
+export const CLIMATE_STEPPER_VALUE_MAX_PX = 21;
+export const CLIMATE_STEPPER_VALUE_MIN_PX = 14;
+export const CLIMATE_STEPPER_VALUE_CQI = 28;
+// The unit rides at a fraction of the number rather than at a size of its
+// own, so it shrinks with it and stays the quieter half of the pair — the
+// same relationship the `expressive` hero figure gives its unit.
+export const CLIMATE_STEPPER_UNIT_EM = 0.62;
+
 // Curated HA/tile-card-style color tokens. Anything not found here is used
 // verbatim as a CSS color (hex, rgb(), CSS name, var(...), ...).
 export const THEME_COLOR_TOKENS: Record<string, string> = {

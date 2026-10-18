@@ -4,6 +4,18 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format angelehnt an [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
+## [Unreleased]
+
+### Fixed
+
+- **The climate card's setpoint no longer breaks across two lines.** On a
+  narrow card "18,0 °C" put the number on one line and dropped "°C" onto the
+  next, under it — a unit reading as a second value. The number and the unit
+  are now one unbreakable reading, and instead of wrapping, the number scales
+  down with the width of the box it sits in: unchanged at its usual 21px
+  wherever it fits, smaller only where it has to be. The unit rides at a
+  fraction of the number, so the pair keeps its proportions as it shrinks.
+
 ## [2.4.1] – 2026-10-16
 
 ### Added

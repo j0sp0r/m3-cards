@@ -97,6 +97,9 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Band-Sollwerte eingefärbt | Thermostat im Modus `heat_cool` (zwei Sollwerte) | „Heizen bis“ steht in der Heizfarbe, „Kühlen ab“ in der Kühlfarbe. Beide Zahlen auf hellem **und** dunklem Theme lesbar — die Farben werden gegen die echte Fläche korrigiert, sind also nicht in beiden Themes derselbe Hex |
 | Band-Farben folgen `mode_colors` | `mode_colors.heat` und `mode_colors.cool` auf eigene Farben setzen, Modus `heat_cool` | Die beiden Sollwert-Zahlen übernehmen den Override, nicht die Palette. Es gibt keine zweite Option dafür |
 | Band ohne Wert | Sollwert fehlt oder Entität ist `unavailable` | Statt einer gefärbten Zahl steht „–“ in der normalen Textfarbe, nicht in Heiz- oder Kühlfarbe |
+| Sollwert bricht nicht um | Karte in eine schmale Spalte legen (Handy-Breite oder mehrspaltiges Grid), bis der Stepper eng wird | „18,0 °C“ bleibt **einzeilig**: die Zahl wird kleiner, die Einheit rutscht nicht unter die Zahl. Die Einheit ist dabei spürbar kleiner als die Zahl gesetzt |
+| Sollwert auf breiter Karte | Dieselbe Karte über die volle Dashboard-Breite | Die Zahl steht wieder in voller Größe (21px) — die Verkleinerung greift nur, solange der Platz fehlt |
+| Lange Lesung | Instanz auf °F stellen oder einen Sollwert ≥ 100 einstellen | Auch „100,0 °F“ bleibt einzeilig und läuft nicht über die ± Tasten |
 
 ## M3 Climate Card Mini
 
