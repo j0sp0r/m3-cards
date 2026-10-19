@@ -166,7 +166,10 @@ the point.
   entity state into a CSS custom property *name*. A crafted value could close
   the declaration and add rules of its own. URLs now go through a checked and
   escaped `url("…")`, and anything reaching a property name is reduced to
-  `[a-z0-9_]`.
+  `[a-z0-9_]`. A picture the card refuses to load is a picture it does not
+  have, so the artwork falls back to its note and an avatar to its initials
+  rather than leaving an empty box — the artwork-colour sampler goes through
+  the same check instead of sniffing the value with `startsWith("http")`.
 - **The notification editor only adopts automation ids it minted.** A stored
   `notify_automation_id` was reused on trust, so a card config pasted from
   somewhere else could point at any automation on the instance and have the

@@ -78,7 +78,7 @@ import { fireEvent } from "./shared/editor-helpers";
 import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
-import { cssUrl } from "./shared/css-safe";
+import { cssUrl, safeImageUrl } from "./shared/css-safe";
 
 console.info(
   `%c M3-MEDIA-CARD %c v${CARD_VERSION} `,
@@ -812,7 +812,14 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
     }
     if (picture === this._lastArtworkUrl) return;
     this._lastArtworkUrl = picture;
-    const url = picture.startsWith("http") ? picture : `${location.origin}${picture}`;
+    // Resolved and scheme-checked rather than sniffed with startsWith: a
+    // `data:` payload would otherwise be glued onto the origin and fetched as
+    // a 404, and "httpfoo:" would have counted as http.
+    const url = safeImageUrl(picture);
+    if (!url) {
+      this._artworkColor = undefined;
+      return;
+    }
     extractArtworkColor(url).then((color) => {
       if (this._lastArtworkUrl === picture) this._artworkColor = color;
     });
@@ -1090,7 +1097,11 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
       : artist === channel
         ? undefined
         : channel;
-    const picture = attrs.entity_picture as string | undefined;
+    // One answer for both the drawing and the fallback: a picture the card
+    // refuses to load is a picture it does not have, and the icon has to
+    // stand in. Deciding the fallback on the raw attribute instead left an
+    // empty box where the note belongs.
+    const picture = cssUrl(attrs.entity_picture as string | undefined);
     const duration = attrs.media_duration as number | undefined;
     const isPlaying = entity.state === "playing";
     const volume = (attrs.volume_level as number | undefined) ?? 0;
@@ -1130,7 +1141,7 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
         <div class="playback-top">
           <div
             class="artwork ${picture ? "" : "fallback"}"
-            style=${cssUrl(picture) ? `background-image: ${cssUrl(picture)};` : ""}
+            style=${picture ? `background-image: ${picture};` : ""}
           >
             ${!picture
               ? html`<ha-icon icon=${album ? "mdi:album" : "mdi:music-note"}></ha-icon>`

@@ -498,7 +498,9 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
   }
 
   private _renderPerson(row: PersonRow) {
-    const picture = row.entity.attributes.entity_picture as string | undefined;
+    // Checked once: a picture the card will not load is one it does not
+    // have, so the initials stand in rather than leaving an empty circle.
+    const picture = cssUrl(row.entity.attributes.entity_picture as string | undefined);
     const since = this._relativeSince(row);
     const distance =
       this._config?.show_distance && row.status === "not_home" && typeof row.entity.attributes.distance === "number"
@@ -524,7 +526,7 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
         @keydown=${activateOnKey(() => this._runAction(this._config?.tap_action ?? this._defaultTapAction(row.entityId), row.entityId))}
       >
         <div class="avatar-wrap">
-          <div class="avatar" style=${cssUrl(picture) ? `background-image: ${cssUrl(picture)};` : ""}>
+          <div class="avatar" style=${picture ? `background-image: ${picture};` : ""}>
             ${!picture ? html`<span class="initials">${this._initials(row.name)}</span>` : nothing}
           </div>
           <div class="status-dot">

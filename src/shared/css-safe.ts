@@ -8,6 +8,23 @@
 // in the HACS review.
 
 /**
+ * A picture URL fit to load, resolved against the page, or undefined when it
+ * is not one. Separate from `cssUrl` because the same check is worth making
+ * where the value is handed to an image loader rather than to CSS: a `data:`
+ * payload is pointless there and `startsWith("http")` is not a scheme test.
+ */
+export function safeImageUrl(raw: string | null | undefined, base?: string): string | undefined {
+  if (!raw) return undefined;
+  let url: URL;
+  try {
+    url = new URL(raw, base ?? window.location.href);
+  } catch {
+    return undefined;
+  }
+  return url.protocol === "http:" || url.protocol === "https:" ? url.href : undefined;
+}
+
+/**
  * A URL fit to put inside `url(...)`, already quoted, or undefined when it is
  * not fit to use at all.
  *
@@ -18,14 +35,9 @@
  * add rules of its own.
  */
 export function cssUrl(raw: string | null | undefined, base?: string): string | undefined {
-  if (!raw) return undefined;
-  let url: URL;
-  try {
-    url = new URL(raw, base ?? window.location.href);
-  } catch {
-    return undefined;
-  }
-  if (url.protocol !== "http:" && url.protocol !== "https:") return undefined;
+  const href = safeImageUrl(raw, base);
+  if (!href) return undefined;
+  const url = { href };
   // url.href is already percent-encoded for most of this; the backslash and
   // the quote are escaped rather than trusted, so the result cannot leave the
   // quoted string whatever a future URL implementation decides to leave alone.

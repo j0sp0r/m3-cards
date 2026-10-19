@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cssIdent, cssUrl } from "./css-safe";
+import { cssIdent, cssUrl, safeImageUrl } from "./css-safe";
 
 /**
  * Values from Home Assistant that end up inside a `style` attribute. An
@@ -57,5 +57,23 @@ describe("cssIdent", () => {
 
   it("survives a missing state", () => {
     expect(cssIdent(undefined)).toBe("");
+  });
+});
+
+describe("safeImageUrl", () => {
+  it("resolves a picture path against the page", () => {
+    expect(safeImageUrl("/api/image/serve/abc", BASE)).toBe(
+      "http://homeassistant.local:8123/api/image/serve/abc",
+    );
+  });
+
+  it("refuses a data: payload rather than gluing it onto the origin", () => {
+    expect(safeImageUrl("data:image/svg+xml,<svg onload=alert(1)>", BASE)).toBeUndefined();
+  });
+
+  it("is a scheme test, not a prefix test", () => {
+    // `startsWith("http")` used to pass this.
+    expect(safeImageUrl("httpfoo://example.com/a.jpg", BASE)).toBeUndefined();
+    expect(safeImageUrl("https://example.com/a.jpg", BASE)).toBe("https://example.com/a.jpg");
   });
 });
