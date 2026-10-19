@@ -104,6 +104,17 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   `use_entity_color` rather than instead of them. `show_name: false` hides the
   name; with `show_state` off as well the chip becomes a round icon button.
 
+### Changed
+
+- **A single setpoint no longer carries a caption.** The `tiles` style wrote
+  "target temperature" under the one number a thermostat has, which is the
+  card repeating itself — and on a narrow card it was the first thing to be
+  cut off, leaving a clipped word under the value. It is gone. A *band* keeps
+  its captions, because "Heat to" and "Cool above" are what name the two rows
+  apart; and the reading is still announced as the target temperature to a
+  screen reader, it is simply not drawn. `expressive` has always worked this
+  way, so the two styles now agree.
+
 ### Behaviour changes
 
 - **Lock chips and lock buttons swap their colouring.** An *unlocked* lock is

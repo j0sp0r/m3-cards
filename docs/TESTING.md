@@ -86,6 +86,9 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 |---|---|---|
 | HVAC-Modi | Jeden verfügbaren Modus-Pill antippen | `climate.set_hvac_mode` wird korrekt aufgerufen, Pill-Farbe wechselt |
 | Zieltemperatur | Plus/Minus antippen, danach direkt auf die Anzeige tippen | Stepper ändert Temperatur in `target_temp_step`-Schritten; Tippen auf die Anzeige öffnet More-Info |
+| Sollwert ohne Beschriftung | Thermostat mit **einem** Sollwert, Stil `tiles` | Unter der Zahl steht **nichts** mehr — kein „Zieltemperatur". Die Zahl sitzt mittig in ihrer Fläche |
+| Band behält seine Beschriftung | Thermostat im Modus `heat_cool`, Stil `tiles` | „Heizen bis" und „Kühlen ab" stehen weiterhin unter den beiden Zahlen — sonst wäre nicht erkennbar, welche welche ist |
+| Vorlesesoftware | Mit Tab auf die Sollwert-Anzeige | Sie wird weiterhin als „Zieltemperatur" angesagt, obwohl nichts gezeichnet ist |
 | Presets (Pill-Style) | `preset_style: "pill"`, Preset wechseln | Zusätzlicher Pill erscheint, Klick zyklet durch `preset_modes` |
 | Presets (Chip-Style) | `preset_style: "chip"` | Chip statt Pill, gleiche Funktion |
 | Sensor-Chips | `show_sensors: true`, externe `temperature_sensor`/`humidity_sensor` konfigurieren | Chips zeigen externen statt internen Wert |

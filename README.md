@@ -286,6 +286,13 @@ were a single setpoint — worse than showing nothing, because the plus and
 minus then moved only the cooling bound while the label claimed it was the
 target temperature (issue #22).
 
+**A single setpoint carries no caption.** The number sits under the thermostat
+it belongs to, so "target temperature" written beneath it was the card
+repeating itself — and on a narrow card it was the first thing to be cut off.
+A *band* keeps its captions: "Heat to" and "Cool above" are the only thing
+naming which of the two rows is which, alongside their colours. `expressive`
+has always drawn it this way; `tiles` now matches it.
+
 ### The `expressive` style
 
 <img src="docs/images/climate-card-expressive.png" alt="Climate Card: tiles vs expressive style (light theme)" width="640">

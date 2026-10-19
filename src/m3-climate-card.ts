@@ -359,7 +359,14 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
    */
   private _renderStepper(opts: {
     value?: number;
+    /** Announced to a screen reader; always set, never drawn on its own. */
     label: string;
+    /** Drawn under the reading. Only a band sets one: its two rows need
+     * telling apart. A single setpoint does not — "Zieltemperatur" under the
+     * one number a thermostat has is the card repeating itself, and at a
+     * narrow width it was the first thing to be cut off. `expressive` has
+     * always left it out here; `tiles` now matches. */
+    caption?: string;
     unit: string;
     blank: boolean;
     disabled: boolean;
@@ -367,7 +374,7 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
     stepLabels?: { minus: string; plus: string };
     onStep: (direction: 1 | -1) => void;
   }) {
-    const { value, label, unit, blank, disabled, accent, stepLabels, onStep } = opts;
+    const { value, label, caption, unit, blank, disabled, accent, stepLabels, onStep } = opts;
     const missing = blank || value === undefined;
     // Number and unit are separate elements so the unit can ride smaller —
     // but they are one reading, which `white-space: nowrap` on .value keeps
@@ -396,7 +403,7 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
           <div class="value" style=${valueStyle}>${reading}${missing
             ? nothing
             : html`<span class="unit"> ${unit}</span>`}</div>
-          <div class="label">${label}</div>
+          ${caption ? html`<div class="label">${caption}</div>` : nothing}
         </div>
         <button
           class="stepper-btn plus"
@@ -794,6 +801,7 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
         ${this._renderStepper({
           value: target.low,
           label: lowLabel,
+          caption: lowLabel,
           unit,
           blank: unavailable,
           disabled,
@@ -805,6 +813,7 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
         ${this._renderStepper({
           value: target.high,
           label: highLabel,
+          caption: highLabel,
           unit,
           blank: unavailable,
           disabled,
