@@ -44,6 +44,16 @@ entities:
 | `reminder_offset` | number | `1` | Days before pickup to start reminding (reminder mode) |
 | `reminder_time` | string | `18:00` | Only remind after this time the day before |
 | `ack_entity` | string | – | `input_boolean`/`input_datetime` storing "put out" |
+| `notify_entities` | list | all bins | Which bins the reminder watches. **One** notification is sent either way, naming every bin that is due — not one per bin |
 | `notify_service` / `notify_enabled` | – | – | Optional put-out reminder push (off by default) |
+
+
+### What the reminder actually sends
+
+One notification, once, at `reminder_time` the day before — not one per bin.
+Its text names whichever bins are due, so an evening where the paper and the
+bio bin both go out produces a single message naming both. `notify_entities`
+narrows which bins can put the card into that state; leaving it unset means
+all of them, which is what the card did before the option existed.
 
 </details>

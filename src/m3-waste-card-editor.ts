@@ -137,11 +137,42 @@ export class M3WasteCardEditor extends LitElement implements LovelaceCardEditor 
   }
 
   private _notifySchema(): SchemaEntry[] {
+    // The bin picker is offered only once there are bins to pick from;
+    // an empty multi-select above the service field is just furniture.
+    const bins = this._wasteSensorIds();
     return [
+      ...(bins.length > 1
+        ? ([
+            {
+              name: "notify_entities",
+              selector: {
+                select: {
+                  multiple: true,
+                  mode: "list" as const,
+                  options: bins.map((id) => ({
+                    value: id,
+                    label: this._nameMap(bins)[id] ?? id,
+                  })),
+                },
+              },
+            },
+          ] as SchemaEntry[])
+        : []),
       notifyServiceSchema(this.hass),
       notifyTitleSchema("notify_title"),
       notifyMessageSchema("notify_message"),
     ];
+  }
+
+  /** The bins the reminder watches: the chosen ones, or all of them when
+   * nothing is chosen. A choice naming a bin that has since been removed from
+   * the card is ignored rather than written into the automation. */
+  private _notifyIds(): string[] {
+    const all = this._wasteSensorIds();
+    const chosen = this._config?.notify_entities;
+    if (!chosen?.length) return all;
+    const kept = all.filter((id) => chosen.includes(id));
+    return kept.length ? kept : all;
   }
 
   private _wasteSensorIds(): string[] {
@@ -200,7 +231,7 @@ export class M3WasteCardEditor extends LitElement implements LovelaceCardEditor 
     this._notifyStatus = "idle";
     this._notifyDetail = "";
     try {
-      const ids = this._wasteSensorIds();
+      const ids = this._notifyIds();
       if (ids.length === 0) throw new Error(this._t("editor_waste_notify_empty"));
       const names = this._nameMap(ids);
       const offset = cfg.reminder_offset ?? 1;
@@ -254,6 +285,7 @@ export class M3WasteCardEditor extends LitElement implements LovelaceCardEditor 
 
   private _computeLabel = (schema: SchemaEntry): string => {
     const map: Record<string, TranslationKey> = {
+      notify_entities: "editor_waste_notify_entities",
       notify_service: "editor_notify_service",
       notify_title: "editor_notify_title",
       notify_message: "editor_notify_message",
@@ -439,9 +471,11 @@ export class M3WasteCardEditor extends LitElement implements LovelaceCardEditor 
           <ha-icon slot="leading-icon" icon="mdi:bell-outline"></ha-icon>
           <div class="panel-content">
             <div class="hint">${this._t("editor_waste_notify_hint")}</div>
+            <div class="hint">${this._t("editor_waste_notify_scope_hint")}</div>
             <ha-form
               .hass=${this.hass}
               .data=${{
+                notify_entities: this._config.notify_entities ?? [],
                 notify_service: this._config.notify_service ?? [],
                 notify_title: this._config.notify_title ?? "",
                 notify_message: this._config.notify_message ?? "",

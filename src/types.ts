@@ -1713,6 +1713,10 @@ export interface M3WasteCardConfig extends NotifyConfigBase {
   max_rows?: number;
   reminder_offset?: number;
   reminder_time?: string;
+  /** Which bins the reminder watches. Unset means all of them, which is what
+   * it did before the option existed. One notification is sent either way,
+   * naming whichever of these bins are due — not one per bin. */
+  notify_entities?: string[];
   ack_entity?: string;
   name?: string;
   icon?: string;

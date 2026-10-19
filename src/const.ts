@@ -1255,6 +1255,16 @@ export const DEFAULT_LEAK_ICON = "mdi:water-outline";
 // ---- Waste card -----------------------------------------------------------
 export const DEFAULT_WASTE_RADIUS = RADIUS.card;
 export const WASTE_TIMELINE_DAYS = 14;
+/** Diameter of a collection dot on the timeline. The dots are placed by
+ * percentage along the track, so the first and the last one would hang half
+ * their width over the ends; the renderer pulls them back in by this radius
+ * and the CSS has to agree with it. */
+export const WASTE_TIMELINE_DOT_PX = 15;
+/** While a reminder is escalating the hero stops wearing the bin's own colour
+ * and wears this instead. A grey Restmüll bin gave "put it out now" a grey
+ * wash, which is the one thing that message must not look like. The bin's
+ * colour stays on the hero icon, so the card still says *which* bin. */
+export const WASTE_ESCALATE_COLOR = PALETTE.heat;
 // How far ahead a calendar is read. Longer than the timeline on purpose: a bin
 // on a four-week cycle would otherwise be missing from the list entirely for
 // most of the month, where a day-count sensor always knows its next date.

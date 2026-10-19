@@ -411,6 +411,14 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Hero | Sensor mit 0, 1 und mehreren Tagen | „nächste Abfuhr in N Tagen" korrekt, heute als Sonderfall |
 | Mehrere Tonnen am selben Tag | Zwei Sensoren mit gleichem Tag | Hero zeigt „N Tonnen" mit Mehrfach-Icon |
 | Zeitleiste | Zwei Wochen Vorschau | Marker an den richtigen Tagen |
+| Zeitleiste: Punkte am Rand | Eine Tonne mit **0** Tagen und eine mit genau `timeline_days` | Beide Punkte liegen **vollständig** innerhalb der Leiste, nichts hängt links oder rechts über |
+| Zeitleiste abschaltbar | `show_timeline: false` | Leiste samt Beschriftung verschwindet, Hero und Zeilen rücken zusammen, kein Leerraum |
+| Eskalation ist rot, nicht grau | `mode: reminder`, nächste Tonne ist **Restabfall** (graue Vorgabefarbe), Frist unterschritten | Hero-Fläche und Kartenrand werden rot getönt; das Hero-Icon behält das Grau der Tonne, damit erkennbar bleibt **welche** Tonne |
+| Eskalation färbt die Zeilen nicht um | Derselbe Zustand | Die Zeilen darunter behalten ihre Tonnenfarben, nur der Hero wechselt |
+| Erinnerung: Auswahl der Tonnen | Im Editor unter „Welche Tonnen erinnern" nur Altpapier wählen, Automatisierung speichern | In der erzeugten Automatisierung steht **nur** der Papier-Sensor in `bins`; die anderen lösen nichts aus |
+| Erinnerung: ohne Auswahl gelten alle | Auswahl leer lassen, speichern | Alle konfigurierten Tonnen stehen in `bins` — Verhalten wie vor der Option |
+| Erinnerung: eine Nachricht, nicht vier | Zwei Tonnen am selben Tag fällig, Erinnerung auslösen | **Eine** Benachrichtigung, die beide Tonnen nennt |
+| Entfernte Tonne in der Auswahl | Eine Tonne aus `entities` löschen, die noch in `notify_entities` steht | Sie wird ignoriert, die Automatisierung bleibt gültig, kein Fehler beim Speichern |
 
 ## M3 Clock Card
 

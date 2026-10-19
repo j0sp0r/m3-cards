@@ -4,6 +4,28 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format angelehnt an [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
+## [Unreleased]
+
+### Added
+
+- **The waste card's reminder can name which bins it watches.** The editor
+  gave no way to tell whether the reminder covered one bin or all of them, and
+  the answer was all of them. `notify_entities` narrows it, and the panel now
+  says what actually happens: **one** notification is sent, naming every bin
+  that is due, rather than one per bin.
+
+### Fixed
+
+- **The waste card's timeline dots stay inside the timeline.** A collection
+  today sat at 0% and one at the far end at 100%, each pulled back by half its
+  own width — so both hung half over the edge of the track. They are inset by
+  their radius now.
+- **A reminder about to come due is red, not the colour of the bin.** The hero
+  wore the next bin's colour even while escalating, so "put it out now" on a
+  grey Restmüll bin was washed in grey, which is what a card looks like when
+  it is switched off. The hero icon keeps the bin's colour, so it still says
+  which bin.
+
 ## [2.5.0] – 2026-10-19
 
 ### Added

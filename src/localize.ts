@@ -1272,6 +1272,8 @@ const translations = {
     editor_waste_notify: "Benachrichtigung",
     editor_waste_notify_hint:
       "Sendet zur Erinnerungszeit eine Push-Nachricht, wenn eine Tonne innerhalb des Vorlaufs ansteht. Nur sinnvoll im Erinnerungs-Modus.",
+    editor_waste_notify_entities: "Welche Tonnen erinnern",
+    editor_waste_notify_scope_hint: "Es wird **eine** Benachrichtigung verschickt, die alle fälligen Tonnen nennt — nicht eine pro Tonne. Ohne Auswahl gelten alle.",
     editor_waste_notify_alias: "Tonne rausstellen",
     editor_waste_notify_description: "Von der M3 Waste Card erzeugt.",
     editor_waste_notify_message: "Rausstellen: {tonnen}",
@@ -3619,6 +3621,8 @@ const translations = {
     editor_waste_notify: "Notification",
     editor_waste_notify_hint:
       "Sends a push message at the reminder time when a bin is due within the lead time. Only useful in reminder mode.",
+    editor_waste_notify_entities: "Which bins remind",
+    editor_waste_notify_scope_hint: "**One** notification is sent, naming every bin that is due — not one per bin. With nothing selected, all of them count.",
     editor_waste_notify_alias: "Put out bin",
     editor_waste_notify_description: "Created by the M3 Waste Card.",
     editor_waste_notify_message: "Put out: {tonnen}",

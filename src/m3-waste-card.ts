@@ -1,4 +1,4 @@
-import { LitElement, html, css, nothing, type PropertyValues } from "lit";
+import { LitElement, html, css, nothing, type PropertyValues, unsafeCSS } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type {
   HomeAssistant,
@@ -21,6 +21,8 @@ import {
   WASTE_REMINDER_TIME,
   WASTE_TICK_MS,
   resolveCornerRadius,
+  WASTE_TIMELINE_DOT_PX,
+  WASTE_ESCALATE_COLOR,
 } from "./const";
 import { resolveThemeColor, buildCssVars, tintOn, tintInk, foregroundOn, resolveCommonColors , foregroundVars} from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
@@ -378,13 +380,17 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
       else if (next.daysTo === offset) escalate = nowMins >= this._reminderMinutes();
     }
 
+    // Urgency is not a property of the bin: a grey Restmüll bin washed the
+    // "put it out now" hero in grey, which reads as switched off. The hero
+    // icon keeps the bin's colour below, so the card still says which bin.
+    const accentColor = escalate ? WASTE_ESCALATE_COLOR : primaryColor;
     const cssVars = buildCssVars({
       "m3p-text": textColorCss,
       "m3p-secondary-text": secondaryTextColorCss,
-      "waste-accent": primaryColor,
+      "waste-accent": accentColor,
       // Fills keep the accent; these twins carry it where it is text.
       ...foregroundVars(this, {
-        "waste-accent": primaryColor,
+        "waste-accent": accentColor,
       }),
     });
     const radius = resolveCornerRadius(this._config.radius ?? DEFAULT_WASTE_RADIUS, this._config.corners);
@@ -467,7 +473,13 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
       const pct = (day / timelineDays) * 100;
       list.forEach((s, i) => {
         dots.push(
-          html`<div class="tl-dot" style=${`left: ${pct}%; background: ${s.color}; transform: translate(calc(-50% + ${i * 10}px), -50%);`}></div>`,
+          html`<div
+            class="tl-dot"
+            style=${`left: calc(${pct}% + ${(
+              WASTE_TIMELINE_DOT_PX / 2 -
+              (pct / 100) * WASTE_TIMELINE_DOT_PX
+            ).toFixed(2)}px); background: ${s.color}; transform: translate(calc(-50% + ${i * 10}px), -50%);`}
+          ></div>`,
         );
       });
     }
@@ -672,8 +684,8 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
       .tl-dot {
         position: absolute;
         top: 50%;
-        width: 15px;
-        height: 15px;
+        width: ${unsafeCSS(WASTE_TIMELINE_DOT_PX)}px;
+        height: ${unsafeCSS(WASTE_TIMELINE_DOT_PX)}px;
         border-radius: 5px;
       }
       .tl-axis {
