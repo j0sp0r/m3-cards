@@ -72,3 +72,35 @@ describe("buildWavePath", () => {
     for (const [, y] of sampleCubics(d)) expect(y).toBeCloseTo(MID_Y, 6);
   });
 });
+
+/**
+ * The second argument is a WIDTH, not an end coordinate. Every call site but
+ * one starts at 0, where the two are the same number — so the one that did
+ * not drew its segment for the length of the whole bar and ran off the edge
+ * (the media card's indeterminate progress wave). Pinned here because the
+ * signature makes the mistake easy and the symptom is only visible on screen.
+ */
+describe("buildWavePath: the second argument is a width", () => {
+  function letztesX(d: string): number {
+    const züge = d.trim().split(/(?=[MC])/);
+    const letzter = züge[züge.length - 1];
+    const zahlen = (letzter.match(/-?\d+(?:\.\d+)?/g) ?? []).map(Number);
+    return zahlen[zahlen.length - 2];
+  }
+
+  it("ends at startX + width when it starts at zero", () => {
+    expect(letztesX(buildWavePath(0, 120, 3, 20, 0, 10))).toBeCloseTo(120, 1);
+  });
+
+  it("ends at startX + width when it starts somewhere else", () => {
+    // The function was always right; the caller passed an end coordinate as
+    // the width. From 452 the travelling segment is 18 wide and must stop at
+    // 470 — it used to be asked for 470 of width and ran to 922.
+    expect(letztesX(buildWavePath(60, 120, 3, 20, 0, 10))).toBeCloseTo(180, 1);
+    expect(letztesX(buildWavePath(452, 18, 3, 20, 0, 10))).toBeCloseTo(470, 1);
+  });
+
+  it("starts where it is told to", () => {
+    expect(buildWavePath(452, 18, 3, 20, 0, 10).startsWith("M452.00,")).toBe(true);
+  });
+});

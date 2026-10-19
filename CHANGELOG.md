@@ -146,6 +146,16 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   wherever it fits, smaller only where it has to be. The unit rides at a
   fraction of the number, so the pair keeps its proportions as it shrinks.
 
+- **The media card's indeterminate progress wave fits inside its bar again.**
+  A stream with no duration draws a short wave travelling along the track.
+  `buildWavePath` takes a width, and the call passed an end coordinate, so the
+  segment was drawn from its start for the length of the whole bar and ran off
+  the right edge — it read as one long wave rather than a short moving one.
+  The track is also interrupted around it now, with the same gap a known
+  position leaves after its tip; drawn straight through, the line crossed the
+  wave on its own midline and made the animation look like it was running
+  behind the bar.
+
 ### Security
 
 Three findings from the HACS store review (thanks **@frenck**). None was

@@ -794,11 +794,13 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
     const geo = this._progressGeometry();
     if (!geo) return;
     path.setAttribute("d", geo.d);
-    const track = this.renderRoot?.querySelector(".progress-track");
+    const track = this.renderRoot?.querySelector(".progress-track:not(.lead)");
     if (track) {
       track.setAttribute("x1", String(geo.trackStart));
       track.setAttribute("x2", String(geo.trackEnd));
     }
+    const lead = this.renderRoot?.querySelector(".progress-track.lead");
+    if (lead) lead.setAttribute("x2", String(geo.leadEnd));
   }
 
   private _maybeExtractColor(): void {
@@ -1473,7 +1475,7 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
 
   // Shared by the render and the animation frame so both draw the same wave.
   private _progressGeometry():
-    | { d: string; trackStart: number; trackEnd: number; tipX: number }
+    | { d: string; trackStart: number; trackEnd: number; tipX: number; leadEnd: number }
     | undefined {
     const width = this._progressWidth;
     if (width <= 1) return undefined;
@@ -1488,9 +1490,19 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
       const from = t * (trackEnd + span) - span;
       const a = Math.max(0, from);
       const b = Math.min(trackEnd, from + span);
+      // The track is interrupted around the travelling segment, the same way
+      // a known position interrupts it after the tip. Drawn straight through,
+      // the line crosses the wave on its own midline and reads as if the
+      // animation were running behind the bar.
       return {
-        d: b > a ? buildWavePath(a, b, this._progressAmplitude, MEDIA_PROGRESS_WAVELENGTH, this._progressPhase, midY) : "",
-        trackStart: 0,
+        // buildWavePath takes a WIDTH, not an end — passing `b` drew the
+        // travelling segment from `a` for the length of the whole bar, so it
+        // ran off the right edge and read as one long wave rather than a
+        // short one moving along. The determinate call below starts at 0,
+        // where the two happen to be the same number.
+        d: b > a ? buildWavePath(a, b - a, this._progressAmplitude, MEDIA_PROGRESS_WAVELENGTH, this._progressPhase, midY) : "",
+        leadEnd: Math.max(0, a - MEDIA_PROGRESS_GAP),
+        trackStart: Math.min(trackEnd, b + MEDIA_PROGRESS_GAP),
         trackEnd,
         tipX: b,
       };
@@ -1506,6 +1518,8 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
         activeEnd > 1
           ? buildWavePath(0, activeEnd, this._progressAmplitude, MEDIA_PROGRESS_WAVELENGTH, this._progressPhase, midY)
           : "",
+      // Nothing behind the tip: that stretch is the wave itself.
+      leadEnd: 0,
       trackStart: Math.min(trackEnd, tipX + MEDIA_PROGRESS_GAP),
       trackEnd,
       tipX,
@@ -1524,6 +1538,13 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
       viewBox="0 0 ${width} ${MEDIA_PROGRESS_HEIGHT}"
       preserveAspectRatio="none"
     >
+      <line
+        class="progress-track lead"
+        x1="0"
+        y1=${midY}
+        x2=${geo?.leadEnd ?? 0}
+        y2=${midY}
+      ></line>
       <path class="progress-active" d=${geo?.d ?? ""} fill="none"></path>
       <line
         class="progress-track"
