@@ -45,6 +45,7 @@ import {
   renderChipButtons,
 } from "./shared/chip-buttons";
 import { TapHoldGesture } from "./shared/gestures";
+import { openActionUrl } from "./shared/actions";
 
 const HOLD_DURATION_MS = 500;
 const DOUBLE_TAP_WINDOW_MS = 250;
@@ -340,8 +341,9 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
         if (cfg.navigation_path) this._navigate(cfg.navigation_path);
         return;
       case "url":
-        if (cfg.url_path)
-          window.open(cfg.url_path, cfg.new_tab === false ? "_self" : "_blank");
+        // This card still runs its own copy of the action switch (see the note
+        // in shared/actions.ts); the URL guard is shared, not copied.
+        openActionUrl(cfg.url_path, cfg.new_tab !== false);
         return;
       default:
         return;

@@ -45,6 +45,7 @@ import { localize, type TranslationKey } from "./localize";
 import { formatNumber } from "./shared/formatting";
 import { discoveryChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
+import { cssUrl } from "./shared/css-safe";
 
 console.info(
   `%c M3-PRESENCE-CARD %c v${CARD_VERSION} `,
@@ -523,7 +524,7 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
         @keydown=${activateOnKey(() => this._runAction(this._config?.tap_action ?? this._defaultTapAction(row.entityId), row.entityId))}
       >
         <div class="avatar-wrap">
-          <div class="avatar" style=${picture ? `background-image: url(${picture});` : ""}>
+          <div class="avatar" style=${cssUrl(picture) ? `background-image: ${cssUrl(picture)};` : ""}>
             ${!picture ? html`<span class="initials">${this._initials(row.name)}</span>` : nothing}
           </div>
           <div class="status-dot">

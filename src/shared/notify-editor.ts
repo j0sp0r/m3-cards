@@ -308,13 +308,30 @@ export function slugifyForId(text: string): string {
   );
 }
 
-// Resolves the automation id to write to: a previously stored one wins so
-// re-running updates in place, otherwise a fresh random id is minted (the
-// caller is expected to persist it back into the card config).
+/**
+ * The id of the automation this editor writes to: a stored one wins so that
+ * re-running updates in place rather than piling up duplicates, otherwise a
+ * fresh one is minted (the caller persists it back into the card config).
+ *
+ * A stored id is only reused when it looks like one this editor minted. A
+ * card config is a document that gets pasted around — from a forum post, a
+ * blog, somebody else's dashboard — and the id travels inside it. Taken on
+ * trust, a pasted card could name any automation on the instance and the
+ * editor would overwrite it on save. Requiring the `m3_<kind>_<suffix>`
+ * shape keeps the blast radius inside automations this suite created.
+ * Raised in the HACS review.
+ *
+ * The suffix is not pinned to a length: `Math.random().toString(36)` drops
+ * trailing zeros, so ids minted before this check exist with fewer than eight
+ * characters. Rejecting those would quietly orphan a working automation and
+ * create a second one beside it on every save.
+ */
+const MINTED_ID = /^m3_[a-z0-9_]+_[a-z0-9]+$/;
+
 export function resolveAutomationId(kind: string, stored?: string): string {
-  if (stored) return stored;
-  const suffix = Math.random().toString(36).slice(2, 10);
-  return `m3_${slugifyForId(kind)}_${suffix}`;
+  const suffix = Math.random().toString(36).slice(2, 10) || "0";
+  const fresh = `m3_${slugifyForId(kind)}_${suffix}`;
+  return stored && MINTED_ID.test(stored) ? stored : fresh;
 }
 
 export interface NotifyTextOverrides {

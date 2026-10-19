@@ -79,6 +79,9 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | C16 | Jinja2-Template in einem Feld | `name: "{{ states('sensor.x') }}"` (o. ä. Textfeld) setzen, dann `sensor.x` in den Dev-Tools ändern | Feld zeigt den gerenderten Wert und aktualisiert sich beim Zustandswechsel ohne Reload; kein Abo-Aufbau bei jedem State-Tick (Netzwerk-Tab: eine `render_template`-Nachricht pro unterschiedlichem Template) |
 | C17 | Template in verschachtelter Karte | In `cards:` (bzw. Popup-Inhalt) eine `custom:mushroom-template-card` mit eigenem Template legen | Die innere Karte rendert ihr Template weiterhin selbst und folgt ihrem Sensor — der Wert friert nicht auf dem Stand beim Laden ein |
 | C18 | Karte ohne Templates | Beliebige Karte ohne `{{`/`{%` in der Config laden | Verhalten unverändert; im Netzwerk-Tab kein `render_template` für diese Karte |
+| C19 | `url`-Aktion mit fremdem Schema | `tap_action: {action: url, url_path: "javascript:alert(1)"}` an einer Button- und einer Statuskarte | Tippen tut **nichts** — kein Dialog, kein neuer Tab, kein Fehler in der Konsole. Mit `https://example.com` öffnet es normal |
+| C20 | Bild mit krummem Wert | Entität mit `entity_picture` auf `data:image/svg+xml,<svg onload=alert(1)>` setzen (Dev-Tools → Zustände), Medien- bzw. Anwesenheitskarte ansehen | Es wird **kein** Bild gezeichnet, die Karte fällt auf Icon bzw. Initialen zurück; Layout bleibt heil |
+| C21 | Benachrichtigungs-ID aus fremder Konfiguration | In einer Kartenkonfiguration `notify_automation_id` von Hand auf eine bestehende fremde Automatisierungs-ID setzen, dann im Editor die Benachrichtigung speichern | Die fremde Automatisierung bleibt **unverändert**; die Karte legt sich eine eigene `m3_…`-ID an |
 
 ## M3 Climate Card
 

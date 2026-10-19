@@ -78,6 +78,7 @@ import { fireEvent } from "./shared/editor-helpers";
 import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
+import { cssUrl } from "./shared/css-safe";
 
 console.info(
   `%c M3-MEDIA-CARD %c v${CARD_VERSION} `,
@@ -1129,7 +1130,7 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
         <div class="playback-top">
           <div
             class="artwork ${picture ? "" : "fallback"}"
-            style=${picture ? `background-image: url(${picture});` : ""}
+            style=${cssUrl(picture) ? `background-image: ${cssUrl(picture)};` : ""}
           >
             ${!picture
               ? html`<ha-icon icon=${album ? "mdi:album" : "mdi:music-note"}></ha-icon>`
@@ -1423,8 +1424,12 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
             : shown.length === 0
               ? html`<div class="browse-note">${this._t("media_browse_empty")}</div>`
               : html`
-                  ${shown.map(
-                    (item) => html`
+                  ${shown.map((item) => {
+                    // Hoisted out of the template: this list re-renders on
+                    // every hass tick, and the thumbnail only needs checking
+                    // once per item, not twice.
+                    const thumb = cssUrl(item.thumbnail);
+                    return html`
                       <button
                         class="browse-row"
                         aria-label=${this._tv(item.can_expand ? "media_browse_enter" : "media_browse_play", {
@@ -1434,9 +1439,9 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
                       >
                         <span
                           class="browse-icon"
-                          style=${item.thumbnail ? `background-image: url("${item.thumbnail}");` : ""}
+                          style=${thumb ? `background-image: ${thumb};` : ""}
                         >
-                          ${item.thumbnail ? nothing : html`<ha-icon icon=${browseIcon(item)}></ha-icon>`}
+                          ${thumb ? nothing : html`<ha-icon icon=${browseIcon(item)}></ha-icon>`}
                         </span>
                         <span class="browse-text">
                           <span class="browse-title">${item.title}</span>
@@ -1445,8 +1450,8 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
                           ? html`<ha-icon class="browse-arrow" icon="mdi:chevron-right"></ha-icon>`
                           : nothing}
                       </button>
-                    `,
-                  )}
+                    `;
+                  })}
                   ${hidden > 0
                     ? html`<div class="browse-note">${this._tv("media_browse_more", { n: hidden })}</div>`
                     : nothing}

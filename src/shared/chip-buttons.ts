@@ -1,5 +1,6 @@
 import { html, css, nothing, type TemplateResult } from "lit";
 import type { HomeAssistant, HassEntity, ChipButtonConfig, ChipButtonsRowConfig } from "../types";
+import { cssIdent } from "./css-safe";
 import { STATELESS_DOMAINS, ACTIVE_STATES, CHIP_BUTTON_HEIGHT, CHIP_BUTTON_ICON_SIZE } from "../const";
 import { RADIUS } from "./tokens";
 import { resolveThemeColor, tintOn, foregroundOn } from "./color-config";
@@ -45,7 +46,11 @@ function chipKey(button: ChipButtonConfig, index: number): string {
 // generic active color, then the theme accent, so an undefined var never
 // leaves the chip transparent.
 function entityStateColorVar(domain: string, entityState: string): string {
-  return `var(--state-${domain}-${entityState}-color, var(--state-${domain}-color, var(--state-active-color, var(--primary-color))))`;
+  // A custom property name cannot be quoted, so nothing that could end it
+  // may reach it — see shared/css-safe.ts.
+  const d = cssIdent(domain);
+  const st = cssIdent(entityState);
+  return `var(--state-${d}-${st}-color, var(--state-${d}-color, var(--state-active-color, var(--primary-color))))`;
 }
 
 const INACTIVE_ENTITY_COLOR_VAR =
@@ -138,7 +143,7 @@ function renderChipButton(
   // domain/state var is tried first and only its absence falls to grey.
   const inactiveColor = button.use_entity_color
     ? entity
-      ? `var(--state-${domain}-${entity.state}-color, ${INACTIVE_ENTITY_COLOR_VAR})`
+      ? `var(--state-${cssIdent(domain)}-${cssIdent(entity.state)}-color, ${INACTIVE_ENTITY_COLOR_VAR})`
       : INACTIVE_ENTITY_COLOR_VAR
     : button.inactive_color
       ? resolveThemeColor(button.inactive_color)

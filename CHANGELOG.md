@@ -146,6 +146,32 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   wherever it fits, smaller only where it has to be. The unit rides at a
   fraction of the number, so the pair keeps its proportions as it shrinks.
 
+### Security
+
+Three findings from the HACS store review (thanks **@frenck**). None was
+exploitable by a card's own author — they all need a value the person
+configuring the card does not control, which on a shared instance is exactly
+the point.
+
+- **A `url` action only opens http(s) now.** `window.open` was handed
+  `url_path` unchecked, and it runs a `javascript:` target in the page's own
+  context with the user's session. Cards resolve templates anywhere in their
+  config, so that value can come from an entity's state — from whoever can
+  write that entity. It is resolved against the current page and dropped
+  unless it comes out as `http:` or `https:`. The button card, which keeps its
+  own copy of the action switch, uses the same guard.
+- **Values from Home Assistant are no longer spliced raw into inline CSS.** An
+  `entity_picture` and a media thumbnail went into `background-image: url(…)`
+  unquoted (the browse list quoted but did not escape), and a chip put the raw
+  entity state into a CSS custom property *name*. A crafted value could close
+  the declaration and add rules of its own. URLs now go through a checked and
+  escaped `url("…")`, and anything reaching a property name is reduced to
+  `[a-z0-9_]`.
+- **The notification editor only adopts automation ids it minted.** A stored
+  `notify_automation_id` was reused on trust, so a card config pasted from
+  somewhere else could point at any automation on the instance and have the
+  editor overwrite it on save. It is reused only when it matches the
+  `m3_<kind>_<suffix>` shape this suite creates.
 
 ## [2.4.1] – 2026-10-16
 

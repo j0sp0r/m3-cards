@@ -11,6 +11,39 @@ import type { HaActionConfig, HomeAssistant } from "../types";
 // not worth destabilising for a refactor, but it should adopt this next time it
 // is touched.
 
+/**
+ * The URL a `url` action may open, or undefined when it may not be opened.
+ *
+ * `window.open("javascript:…")` runs its payload in the page's own context,
+ * with the user's session. That matters here because a card resolves
+ * templates anywhere in its config, so `url_path` can be built from an
+ * entity's state — and an entity another person can write to then chooses
+ * what gets executed. A link is allowed to point anywhere on the web; it is
+ * not allowed to stop being a link.
+ *
+ * So the value is resolved against the current page and kept only if it comes
+ * out as http(s). That accepts an absolute URL, a same-origin path and a
+ * protocol-relative one, and rejects `javascript:`, `data:`, `vbscript:`,
+ * `file:` and anything else a scheme can be.
+ */
+export function safeActionUrl(raw: string, base?: string): string | undefined {
+  let url: URL;
+  try {
+    url = new URL(raw, base ?? window.location.href);
+  } catch {
+    return undefined;
+  }
+  return url.protocol === "http:" || url.protocol === "https:" ? url.href : undefined;
+}
+
+/** Opens a `url` action's target, or does nothing if it is not openable. */
+export function openActionUrl(raw: string | undefined, newTab: boolean): void {
+  if (!raw) return;
+  const href = safeActionUrl(raw);
+  if (!href) return;
+  window.open(href, newTab ? "_blank" : "_self");
+}
+
 function fireMoreInfo(source: HTMLElement, entityId?: string): void {
   if (!entityId) return;
   source.dispatchEvent(
@@ -101,8 +134,7 @@ export function handleAction(
       if (cfg.navigation_path) navigate(source, cfg.navigation_path);
       return;
     case "url":
-      if (cfg.url_path)
-        window.open(cfg.url_path, cfg.new_tab === false ? "_self" : "_blank");
+      openActionUrl(cfg.url_path, cfg.new_tab !== false);
       return;
     default:
       return;
@@ -181,7 +213,7 @@ export function runHaAction(
       if (cfg.navigation_path) ctx.navigate(cfg.navigation_path);
       return;
     case "url":
-      if (cfg.url_path) window.open(cfg.url_path, cfg.new_tab === false ? "_self" : "_blank");
+      openActionUrl(cfg.url_path, cfg.new_tab !== false);
       return;
     default:
       return;

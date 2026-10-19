@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { runHaAction, type RunActionContext } from "./actions";
+import { runHaAction, safeActionUrl, type RunActionContext } from "./actions";
 import type { HomeAssistant } from "../types";
 
 function fakeHass(): { hass: HomeAssistant; callService: ReturnType<typeof vi.fn> } {
@@ -140,5 +140,42 @@ describe("runHaAction confirmation", () => {
     );
     expect(spy).not.toHaveBeenCalled();
     expect(callService).toHaveBeenCalled();
+  });
+});
+
+/**
+ * A `url` action's target is opened with window.open, which executes a
+ * `javascript:` payload in the page's own context. Cards resolve templates
+ * anywhere in their config, so the value can come from an entity's state —
+ * i.e. from whoever is able to write that entity. Raised in the HACS review.
+ */
+describe("safeActionUrl", () => {
+  const BASE = "http://homeassistant.local:8123/lovelace/0";
+
+  it("keeps an ordinary external link", () => {
+    expect(safeActionUrl("https://example.com/x?y=1", BASE)).toBe("https://example.com/x?y=1");
+  });
+
+  it("keeps a same-origin path, resolved against the page", () => {
+    expect(safeActionUrl("/lovelace/garten", BASE)).toBe(
+      "http://homeassistant.local:8123/lovelace/garten",
+    );
+  });
+
+  it("refuses javascript:, however it is written", () => {
+    for (const raw of [
+      "javascript:alert(1)",
+      "JavaScript:alert(1)",
+      "  javascript:alert(1)",
+      "java\nscript:alert(1)",
+    ]) {
+      expect(safeActionUrl(raw, BASE), raw).toBeUndefined();
+    }
+  });
+
+  it("refuses the other schemes a payload can hide in", () => {
+    expect(safeActionUrl("data:text/html,<script>alert(1)</script>", BASE)).toBeUndefined();
+    expect(safeActionUrl("vbscript:msgbox(1)", BASE)).toBeUndefined();
+    expect(safeActionUrl("file:///etc/passwd", BASE)).toBeUndefined();
   });
 });
