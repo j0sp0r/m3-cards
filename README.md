@@ -5969,6 +5969,36 @@ Left empty, the card offers the entity's own `source_list`. The editor's
 **"take the entity's own sources"** button copies that list into `apps` so it
 can then be renamed, coloured and reordered.
 
+### Launching an app on Android TV
+
+`remote.turn_on` takes an `activity`, and **it has to be a URI the app itself
+claims**. This was measured against a Google TV box rather than reasoned about,
+because three of the four formats people pass look reasonable and do nothing at
+all:
+
+| `activity` | Result |
+| --- | --- |
+| `org.smarttube.stable` (bare package) | nothing happens, silently |
+| `market://launch?id=org.smarttube.stable` | nothing happens, silently |
+| `android-app://org.smarttube.stable` | nothing happens, silently |
+| `https://www.netflix.com/title` | opens Netflix |
+
+A bare package is not a URI, so Android has nothing to resolve and the request
+is dropped without an error — which is what makes this worth writing down.
+
+The flip side is that a URI only reaches the app that registered for that
+domain. On the device this was tested on, `https://www.youtube.com` opened the
+television's **web browser**, because the official YouTube app was not
+installed, and `https://www.disneyplus.com` opened **Settings** for the same
+reason. A tile that launches the wrong thing is worse than no tile, so it is
+worth pressing each one once after configuring it.
+
+An app with no web presence — a sideloaded client, say — cannot be launched
+this way at all. The Android TV Remote integration's own options page takes a
+name and a package id per app, which then appear in `source_list`; that path
+ends at the same `send_launch_app_command`, so it does not rescue a package
+that a URI could not reach either.
+
 ## Text entry
 
 On Android TV this is the biggest everyday win. The integration types any
