@@ -8,6 +8,47 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **A remote-control card, `m3-remote-card`.** One card with per-brand profiles
+  rather than one card per brand, because these devices differ in what they
+  call each key, not in the shape of a remote control.
+
+  **The directional pad is a ring, not a 3×3 grid.** The grid spends two of its
+  nine cells on nothing, and the four that matter do not look like they belong
+  together. A ring says what the control is before it is read: one shape, four
+  ways out of the middle. The OK button sits *inside* the hole with a band of
+  background all round it — smaller than the hole, deliberately, because
+  overlapping the ring welds the two into one blob.
+
+  A press fills its sector; OK morphs from circle to squircle. That feedback is
+  not decoration: a television never reports that it received a key, so the
+  animation is the only acknowledgement there is. Holding a direction repeats
+  it, after a pause long enough that one tap cannot send two.
+
+  Profiles ship for `samsung`, `google_tv`, `lg_webos`, `appletv`, `kodi` and a
+  `generic` fallback. Each is a table of what that integration actually
+  accepts — webOS reaches its keys through `webostv.button` and Kodi through
+  `kodi.call_method`, neither of which is `remote.send_command` — and every
+  entry stays overridable through `key_overrides`.
+
+  On Android TV the card can **type**: that integration sends any command it
+  does not recognise as a keycode as text, which turns a search box on a
+  television from twenty-six d-pad presses into a phone keyboard.
+
+### Changed
+
+- **The card omits what the device cannot do, rather than drawing dead
+  buttons.** A Chromecast forced this: on the `cast` platform there is no
+  remote entity, no `send_command`, no volume feature and no source list, but
+  there is play/pause, seek and good metadata. It therefore gets a now-playing
+  bar and a transport row and no ring at all, with a line saying why — which is
+  the honest card for that device, and better than a ring whose every press is
+  swallowed. A function row with nothing usable in it disappears for the same
+  reason.
+
+## [2.5.0] – 2026-10-20
+
+### Added
+
 - **Two cards for an LTE/5G router: `m3-router-card` and
   `m3-router-diagnostics-card`.** Built against a ZTE MC801A whose values reach
   Home Assistant through a pyscript app, and usable with a Fritzbox, a Huawei

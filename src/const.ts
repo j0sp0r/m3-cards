@@ -2597,3 +2597,79 @@ export const DEFAULT_ROUTER_DIAG_ICON = "mdi:stethoscope";
 
 /** Outer card radius for both router cards — the suite's standard. */
 export const DEFAULT_ROUTER_RADIUS = RADIUS.card;
+
+// ---- m3-remote-card ---------------------------------------------------------
+// A remote control is a dense grid of round things, so almost every number
+// here is a radius. The pattern throughout: a resting radius that morphs to a
+// smaller one on press, which is the suite's press feedback everywhere else.
+
+export const REMOTE_HEADER_ICON_SIZE = 46;
+export const REMOTE_HEADER_ICON_RADIUS = 17;
+/** The power button: a squircle while on, a full circle while off. */
+export const REMOTE_POWER_SIZE = 46;
+export const REMOTE_POWER_RADIUS_ON = 16;
+export const REMOTE_POWER_RADIUS_OFF = 23;
+
+export const REMOTE_NOW_PLAYING_HEIGHT = 52;
+export const REMOTE_NOW_PLAYING_RADIUS = 18;
+export const REMOTE_NOW_PLAYING_TINT = 11;
+export const REMOTE_NOW_PLAYING_ART = 34;
+export const REMOTE_NOW_PLAYING_ART_RADIUS = 12;
+export const REMOTE_NOW_PLAYING_BUTTON = 34;
+export const REMOTE_NOW_PLAYING_BUTTON_RADIUS = 13;
+
+/** The ring. 168px is the reference every other ratio was measured against. */
+export const DEFAULT_REMOTE_DPAD_SIZE = 168;
+export const REMOTE_DPAD_MIN = 140;
+export const REMOTE_DPAD_MAX = 220;
+export const REMOTE_DPAD_GAP_DEGREES = 8;
+/** Idle fill of a sector, as a percentage of white. */
+export const REMOTE_SECTOR_TINT = 16;
+export const REMOTE_OK_RADIUS_PRESSED = 20;
+
+/** The volume rocker: outer ends round, inner joints square. */
+export const REMOTE_ROCKER_WIDTH = 52;
+export const REMOTE_ROCKER_END_HEIGHT = 52;
+export const REMOTE_ROCKER_MID_HEIGHT = 46;
+export const REMOTE_ROCKER_RADIUS_OUTER = 26;
+export const REMOTE_ROCKER_RADIUS_INNER = 10;
+export const REMOTE_ROCKER_RADIUS_MUTED = 16;
+export const REMOTE_ROCKER_GAP = 4;
+export const REMOTE_ROCKER_WIDTH_NARROW = 46;
+
+export const REMOTE_ASSISTANT_SIZE = 56;
+export const REMOTE_ASSISTANT_RADIUS = 28;
+export const REMOTE_ASSISTANT_RADIUS_ACTIVE = 18;
+export const DEFAULT_REMOTE_ASSISTANT_TIMEOUT = 2200;
+/** Google's own four, in their own order. */
+export const REMOTE_ASSISTANT_GRADIENT =
+  "linear-gradient(135deg,#4285f4,#ea4335 35%,#fbbc05 68%,#34a853)";
+
+export const REMOTE_FUNCTION_HEIGHT = 46;
+export const REMOTE_FUNCTION_RADIUS = 23;
+export const REMOTE_FUNCTION_RADIUS_PRESSED = 13;
+
+export const REMOTE_CHIP_HEIGHT = 34;
+export const REMOTE_CHIP_RADIUS = 17;
+export const REMOTE_CHIP_RADIUS_PRESSED = 11;
+export const REMOTE_CHIP_TINT = 13;
+export const REMOTE_TILE_RADIUS = 18;
+export const REMOTE_TILE_RADIUS_PRESSED = 12;
+export const REMOTE_TILE_COLUMNS = 5;
+/** The outline on whichever app is in front. */
+export const REMOTE_ACTIVE_OUTLINE = 1.5;
+export const REMOTE_ACTIVE_TINT = 22;
+
+export const REMOTE_NUMPAD_HEIGHT = 46;
+export const REMOTE_NUMPAD_RADIUS = 16;
+
+/** How long a held direction waits before repeating, and then how often. */
+export const REMOTE_REPEAT_DELAY = 400;
+export const DEFAULT_REMOTE_REPEAT_INTERVAL = 250;
+
+/** Wider than this and the card centres rather than stretches. */
+export const REMOTE_MAX_WIDTH = 440;
+/** Below this the side columns narrow and the ring shrinks. */
+export const REMOTE_NARROW_WIDTH = 340;
+
+export const DEFAULT_REMOTE_RADIUS = RADIUS.card;

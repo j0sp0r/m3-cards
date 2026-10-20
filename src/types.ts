@@ -1834,7 +1834,8 @@ export type M3CardConfig =
   | M3HeadingCardConfig
   | M3RoomCardConfig
   | M3RouterCardConfig
-  | M3RouterDiagnosticsCardConfig;
+  | M3RouterDiagnosticsCardConfig
+  | M3RemoteCardConfig;
 
 export interface SupplyItemConfig {
   /** A `counter.*` or `input_number.*` helper holding the remaining count. */
@@ -3208,5 +3209,77 @@ export interface M3RouterDiagnosticsCardConfig extends RouterEntityOverrides, No
   glass_background?: boolean;
   radius?: number;
   corners?: CornerRadiusConfig;
+  card_version?: string;
+}
+
+// ---- m3-remote-card ---------------------------------------------------------
+
+/** One app or source button. */
+export interface RemoteAppConfig {
+  name: string;
+  icon?: string;
+  color?: string;
+  /** The app's own id, matched against `app_id` to mark it active. */
+  app_id?: string;
+  /** What a tap does. Defaults to `media_player.select_source` with `name`. */
+  action?: HaActionConfig;
+}
+
+/** A freely configured button in the function row or the right column. */
+export interface RemoteButtonConfig {
+  /** A key the profile knows, e.g. `back`, or omitted when `action` is given. */
+  key?: string;
+  icon?: string;
+  label?: string;
+  action?: HaActionConfig;
+}
+
+export interface M3RemoteCardConfig {
+  type: string;
+  /** A `remote.*` or `media_player.*` entity. Everything else is found from it. */
+  entity: string;
+  /** The second entity, when commands and metadata live apart. */
+  media_entity?: string;
+  /** When power runs through something else, e.g. a smart plug. */
+  power_entity?: string;
+  /** Defaults from the integration; `generic` when it is not recognised. */
+  profile?: string;
+  name?: string;
+  icon?: string;
+
+  /** Per-key overrides, keyed by the card's own key names. */
+  key_overrides?: Record<string, { command?: string; service?: string; domain?: string; data?: Record<string, unknown> }>;
+
+  dpad_size?: number;
+  keyboard_control?: boolean;
+  /** Milliseconds between repeats while a direction is held. */
+  repeat_interval?: number;
+
+  right_column?: "auto" | "channel" | "assistant" | "custom" | "none";
+  right_buttons?: RemoteButtonConfig[];
+  show_rocker_labels?: boolean;
+  assistant_timeout?: number;
+
+  function_buttons?: RemoteButtonConfig[];
+  show_transport?: boolean;
+  show_numpad?: boolean;
+
+  apps?: RemoteAppConfig[];
+  app_style?: "chips" | "tiles";
+  show_apps?: boolean;
+  max_apps?: number;
+
+  show_now_playing?: boolean;
+  power_toggle?: boolean;
+  haptics?: boolean;
+
+  accent_color?: string;
+  text_color?: string;
+  secondary_text_color?: string;
+  card_background?: string;
+  glass_background?: boolean;
+  radius?: number;
+  corners?: CornerRadiusConfig;
+  animation?: "auto" | "on" | "off";
   card_version?: string;
 }
