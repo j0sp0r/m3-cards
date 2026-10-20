@@ -4,6 +4,67 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format angelehnt an [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
+## [Unreleased]
+
+### Added
+
+- **Two cards for an LTE/5G router: `m3-router-card` and
+  `m3-router-diagnostics-card`.** Built against a ZTE MC801A whose values reach
+  Home Assistant through a pyscript app, and usable with a Fritzbox, a Huawei
+  or a GL.iNet — every block is optional and appears only when its entities
+  exist.
+
+  The point of both is that they **grade** rather than print. −94 dBm means
+  nothing to most people and a 24-hour plot of it means less, so the connection
+  card sorts each radio reading into one of five steps and says which, with
+  five bars to match. RSRP, RSRQ and SNR each get their own scale, because they
+  measure different things: RSRQ is a ratio living between −3 and −20, while SNR
+  is a difference that is perfectly normal at 0 and catastrophic as an RSRP.
+
+  **5G is graded about 5 dB stricter than LTE.** An NR carrier is wider, so the
+  same transmitted power is spread over more resource elements and each one
+  measures lower for an equally good connection. Judged on the LTE scale, NR
+  reads one step too generous throughout. On a 5G non-standalone link the
+  router is on an LTE anchor *and* an NR carrier at once, so the card draws
+  both rows rather than picking which half of the truth to show.
+
+  Throughput reads its unit off the entity instead of assuming one — the same
+  reading arrives as `6106 bit/s` from one integration and `0.006 Mbit/s` from
+  the next — and carries a sparkline prefilled once from the recorder, so a
+  freshly loaded dashboard shows a shape instead of growing one over the next
+  twenty minutes.
+
+  The diagnostics card carries modem temperatures, cell and band detail,
+  reachability checks and a restart button that takes two taps and disarms
+  itself after four seconds, because an armed red button left on a wall tablet
+  is a trap for whoever walks past next.
+
+### Changed
+
+- **Throttle sensors are a chip, not a graph.** They read 0 almost always, and
+  a 24-hour bar chart of a value that is always zero is a picture of nothing.
+  The set collapses into one chip naming what it watches, or what tripped.
+
+- **The diagnostics verdict counts faults, not highlights.** Carrier
+  aggregation switches itself off whenever the link is idle, so it reads
+  `ca_deactivated` most of the time on a quiet connection. That is worth
+  colouring amber in the grid and not worth reporting as a finding in the
+  header — a verdict that is always amber has stopped being a verdict. The
+  built-in vocabulary colours; only a value named in `warn_value` counts.
+
+### Fixed
+
+- **Router temperature sensors are found by unit, not by name.** The obvious
+  filter — an id containing "temp" — misses `sensor.zte_pm_modem_5g`, which
+  carries "Temp" in its friendly name and nowhere in its id, so a name filter
+  drew one of the two modem temperatures and silently dropped the other. The
+  unit is also what keeps a unitless "PA sensor" reading −40 out of a
+  temperature list.
+
+- **Data volumes use the locale's decimal separator.** `toFixed` writes a
+  decimal point whatever the language, which put "580.6 GB" on a German
+  dashboard beside the card's own "2,2 dB".
+
 ## [2.5.0] – 2026-10-20
 
 ### Added

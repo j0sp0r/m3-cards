@@ -2496,3 +2496,104 @@ export const CONFIRM_BUTTON_PRESS_MS = 400;
 export const CONFIRM_CANCEL_TINT = 8;
 /** The red a destructive confirmation is painted in. */
 export const CONFIRM_DESTRUCTIVE_COLOR = "#e57368";
+
+// ---- m3-router-card / m3-router-diagnostics-card ---------------------------
+// The two cards share a palette: the grade colours are the project's own
+// (PALETTE), and the two throughput colours are the same blue and yellow the
+// energy cards use for "in" and "out", so a dashboard reads one direction the
+// same way everywhere.
+
+export const ROUTER_COLOR_EXCELLENT = PALETTE.ok; // #81c784
+export const ROUTER_COLOR_GOOD = PALETTE.dryAuto; // #5dcaa5
+export const ROUTER_COLOR_FAIR = PALETTE.solar; // #f0a24a
+export const ROUTER_COLOR_WEAK = PALETTE.heat; // #e57368
+export const ROUTER_COLOR_BAD = PALETTE.heat;
+export const ROUTER_COLOR_OFFLINE = "#8fa3b8";
+export const ROUTER_COLOR_DOWNLOAD = PALETTE.home; // #85b7eb
+export const ROUTER_COLOR_UPLOAD = PALETTE.light; // #f0c46e
+export const ROUTER_COLOR_ACCENT = PALETTE.grid; // #8f79e0 — the volume total
+
+export const ROUTER_HEADER_ICON_SIZE = 46;
+export const ROUTER_HEADER_ICON_RADIUS = 17;
+
+/** The signal well: padding and radius from the design, tint share below. */
+export const ROUTER_SIGNAL_PADDING = 13;
+export const ROUTER_SIGNAL_RADIUS = 21;
+export const ROUTER_SIGNAL_TINT = 12;
+
+/** Five bars, rising. Widths are equal; only the heights climb. */
+export const ROUTER_BAR_WIDTH = 6;
+export const ROUTER_BAR_GAP = 3;
+export const ROUTER_BAR_RADIUS = 3;
+export const ROUTER_BAR_HEIGHTS = [12, 19, 26, 33, 40] as const;
+export const ROUTER_BAR_COUNT = ROUTER_BAR_HEIGHTS.length;
+
+export const ROUTER_CHIP_HEIGHT = 28;
+export const ROUTER_CHIP_RADIUS = 14;
+
+export const ROUTER_TILE_RADIUS = 18;
+export const ROUTER_TILE_PADDING_V = 11;
+export const ROUTER_TILE_PADDING_H = 12;
+export const ROUTER_TILE_TINT = 12;
+
+export const ROUTER_SPARK_WIDTH = 160;
+export const ROUTER_SPARK_HEIGHT = 26;
+export const ROUTER_SPARK_STROKE = 1.6;
+
+export const ROUTER_VOLUME_BAR_HEIGHT = 12;
+export const ROUTER_VOLUME_BAR_RADIUS = 6;
+export const ROUTER_VOLUME_BAR_GAP = 3;
+export const ROUTER_VOLUME_TRACK_TINT = 9;
+export const ROUTER_LEGEND_SWATCH = 8;
+
+/** Diagnostics card. */
+export const ROUTER_DIAG_ICON_SIZE = 44;
+export const ROUTER_DIAG_ICON_RADIUS = RADIUS.squircle44; // 16
+export const ROUTER_TEMP_ROW_HEIGHT = 44;
+export const ROUTER_TEMP_ROW_RADIUS = RADIUS.row; // 18 — the suite's row radius
+export const ROUTER_TEMP_ROW_TINT = 5;
+export const ROUTER_TEMP_ICON_SIZE = 26;
+export const ROUTER_TEMP_ICON_RADIUS = 9;
+export const ROUTER_TEMP_BAR_HEIGHT = 4;
+export const ROUTER_TEMP_BAR_RADIUS = 2;
+/** Full scale for a temperature bar. A modem throttles long before this. */
+export const DEFAULT_ROUTER_TEMP_MAX = 85;
+export const DEFAULT_ROUTER_TEMP_WARN = 60;
+export const DEFAULT_ROUTER_TEMP_HOT = 70;
+
+export const ROUTER_INFO_CELL_RADIUS = 15;
+export const ROUTER_INFO_CELL_PADDING_V = 9;
+export const ROUTER_INFO_CELL_PADDING_H = 11;
+export const ROUTER_INFO_CELL_TINT = 5;
+
+export const ROUTER_CHECK_TILE_RADIUS = 16;
+export const ROUTER_CHECK_TILE_PADDING_V = 10;
+export const ROUTER_CHECK_TILE_PADDING_H = 6;
+export const ROUTER_CHECK_TILE_TINT = 8;
+export const ROUTER_CHECK_ICON_SIZE = 26;
+export const ROUTER_CHECK_ICON_RADIUS = 9;
+export const ROUTER_CHECK_COLUMNS = 4;
+
+/** The reboot button, at rest and armed. */
+export const ROUTER_REBOOT_HEIGHT = 52;
+export const ROUTER_REBOOT_RADIUS = 26;
+export const ROUTER_REBOOT_RADIUS_ARMED = 16;
+export const ROUTER_REBOOT_TINT = 16;
+/**
+ * How long the armed button waits for the second tap.
+ *
+ * Four seconds: long enough to read "really restart?" and decide, short
+ * enough that a button left armed by a mis-tap disarms itself before anyone
+ * walks past the tablet and finishes the job by accident.
+ */
+export const DEFAULT_ROUTER_CONFIRM_TIMEOUT = 4000;
+/** How long the card shows "restarting…" before giving up on the wait. */
+export const ROUTER_REBOOT_WAIT_MS = 180_000;
+
+export const DEFAULT_ROUTER_SPARK_POINTS = 40;
+export const DEFAULT_ROUTER_SPARK_MINUTES = 60;
+export const DEFAULT_ROUTER_ICON = "mdi:router-wireless";
+export const DEFAULT_ROUTER_DIAG_ICON = "mdi:stethoscope";
+
+/** Outer card radius for both router cards — the suite's standard. */
+export const DEFAULT_ROUTER_RADIUS = RADIUS.card;

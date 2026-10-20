@@ -1832,7 +1832,9 @@ export type M3CardConfig =
   | M3ClockCardConfig
   | M3StatusCardConfig
   | M3HeadingCardConfig
-  | M3RoomCardConfig;
+  | M3RoomCardConfig
+  | M3RouterCardConfig
+  | M3RouterDiagnosticsCardConfig;
 
 export interface SupplyItemConfig {
   /** A `counter.*` or `input_number.*` helper holding the remaining count. */
@@ -3017,6 +3019,186 @@ export interface M3SearchCardConfig {
   secondary_text_color?: string;
   card_background?: string;
   animation?: "auto" | "on" | "off";
+  glass_background?: boolean;
+  radius?: number;
+  corners?: CornerRadiusConfig;
+  card_version?: string;
+}
+
+// ---- router cards -----------------------------------------------------------
+
+/** One step of a configurable signal scale, as `rsrp_thresholds` takes it. */
+export interface RouterThresholdConfig {
+  min: number;
+  grade: "excellent" | "good" | "fair" | "weak" | "bad";
+}
+
+/**
+ * Every entity the connection card can draw, each overridable on its own.
+ *
+ * Split out from the config so the diagnostics card can share the ones it
+ * needs without inheriting `show_sparkline` and friends.
+ */
+export interface RouterEntityOverrides {
+  /**
+   * Narrows discovery to one router's entities by their shared id prefix
+   * (`zte` for `sensor.zte_*`). Guessed from the instance when left out.
+   */
+  entity_prefix?: string;
+  /** Turns discovery off entirely; only what is named below is drawn. */
+  auto_discover?: boolean;
+
+  rsrp_entity?: string;
+  rsrq_entity?: string;
+  snr_entity?: string;
+  rssi_entity?: string;
+  /** The 5G radio, shown as a second signal row when it reports. */
+  nr_rsrp_entity?: string;
+  nr_snr_entity?: string;
+
+  band_entity?: string;
+  nr_band_entity?: string;
+  cell_id_entity?: string;
+  pci_entity?: string;
+  nr_pci_entity?: string;
+  network_type_entity?: string;
+  carrier_aggregation_entity?: string;
+
+  download_entity?: string;
+  upload_entity?: string;
+
+  data_down_entity?: string;
+  data_up_entity?: string;
+  data_total_entity?: string;
+
+  operator_entity?: string;
+  sim_entity?: string;
+  uptime_entity?: string;
+  firmware_entity?: string;
+  connected_devices_entity?: string;
+}
+
+export interface M3RouterCardConfig extends RouterEntityOverrides, NotifyConfigBase {
+  type: string;
+  /**
+   * The connection entity — a `binary_sensor` with a connectivity class, or a
+   * status `sensor` carrying the modem's own vocabulary. Everything else is
+   * discovered or named above.
+   */
+  entity?: string;
+  name?: string;
+  icon?: string;
+
+  /** Blocks. Each also disappears on its own when its entities are missing. */
+  show_signal?: boolean;
+  show_signal_details?: boolean;
+  show_throughput?: boolean;
+  show_sparkline?: boolean;
+  show_data?: boolean;
+  /** The second signal row for the 5G carrier on an NSA connection. */
+  show_nr_signal?: boolean;
+  /** A chip carrying the highest throughput seen since the card loaded. */
+  peak_chip?: boolean;
+
+  /** How many readings the sparkline keeps. */
+  spark_points?: number;
+  /** How far back the first render prefills from the recorder, in minutes. */
+  spark_history_minutes?: number;
+
+  rsrp_thresholds?: RouterThresholdConfig[];
+  nr_rsrp_thresholds?: RouterThresholdConfig[];
+  snr_thresholds?: RouterThresholdConfig[];
+  rsrq_thresholds?: RouterThresholdConfig[];
+
+  /** A tariff allowance in GB; turns the volume bar into a budget. */
+  data_limit?: number;
+  /** Raw state → label, applied before the built-in vocabulary table. */
+  value_map?: Record<string, string>;
+
+  tap_action?: HaActionConfig;
+  hold_action?: HaActionConfig;
+  double_tap_action?: HaActionConfig;
+
+  accent_color?: string;
+  download_color?: string;
+  upload_color?: string;
+  online_color?: string;
+  offline_color?: string;
+  text_color?: string;
+  secondary_text_color?: string;
+  card_background?: string;
+  glass_background?: boolean;
+  radius?: number;
+  corners?: CornerRadiusConfig;
+  card_version?: string;
+}
+
+/** A temperature row on the diagnostics card. */
+export interface RouterTemperatureConfig {
+  entity: string;
+  name?: string;
+  /** Full-scale value for the bar. Defaults to DEFAULT_ROUTER_TEMP_MAX. */
+  max?: number;
+}
+
+/** A label/value cell in the "cell & band" grid. */
+export interface RouterInfoConfig {
+  entity: string;
+  label?: string;
+  /** A state that should be drawn in the warning colour, e.g. `ca_deactivated`. */
+  warn_value?: string;
+}
+
+/** A reachability tile. */
+export interface RouterCheckConfig {
+  entity: string;
+  name?: string;
+  /** The state that counts as healthy. Defaults to `on`. */
+  ok_state?: string;
+}
+
+export interface M3RouterDiagnosticsCardConfig extends RouterEntityOverrides, NotifyConfigBase {
+  type: string;
+  /** The connection entity, used to tell when a reboot has completed. */
+  entity?: string;
+  name?: string;
+  icon?: string;
+
+  temperature_entities?: RouterTemperatureConfig[];
+  throttle_entities?: string[];
+  info_entities?: RouterInfoConfig[];
+  check_entities?: RouterCheckConfig[];
+
+  show_temperatures?: boolean;
+  show_throttle?: boolean;
+  show_info?: boolean;
+  show_checks?: boolean;
+  show_reboot?: boolean;
+  show_uptime?: boolean;
+  show_firmware?: boolean;
+  show_clients?: boolean;
+
+  /** Warning and alarm temperature, in the sensors' own unit. */
+  temp_warn?: number;
+  temp_hot?: number;
+  /** Full-scale value for a temperature bar without its own `max`. */
+  temp_max?: number;
+
+  /** What the reboot button does. Defaults to pressing the discovered button. */
+  reboot_action?: HaActionConfig;
+  confirm_reboot?: boolean;
+  /** How long the armed button waits for the second tap, in milliseconds. */
+  confirm_timeout?: number;
+
+  value_map?: Record<string, string>;
+
+  accent_color?: string;
+  ok_color?: string;
+  warn_color?: string;
+  hot_color?: string;
+  text_color?: string;
+  secondary_text_color?: string;
+  card_background?: string;
   glass_background?: boolean;
   radius?: number;
   corners?: CornerRadiusConfig;

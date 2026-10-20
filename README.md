@@ -7,7 +7,7 @@
 Material 3–inspired, native Lovelace cards for Home Assistant — built with
 TypeScript + [Lit](https://lit.dev), **without** any dependency on
 `button-card`, `card-mod`, `mod-card`, or `stack-in-card`. A single bundle
-(`m3-cards.js`) registers **44 cards**, all sharing one design language.
+(`m3-cards.js`) registers **46 cards**, all sharing one design language.
 
 New here? Start with the category that matches what you want to show — every
 card links to its full documentation further down.
@@ -84,6 +84,8 @@ card links to its full documentation further down.
 | [Updates](#m3-updates-card) | `m3-updates-card` | Every available update (core, OS, add-ons, HACS, firmware) |
 | [NAS](#m3-nas-card--m3-system-card) | `m3-nas-card` | NAS volumes, CPU, RAM, network via Glances or Synology DSM + Syncthing |
 | [System](#m3-nas-card--m3-system-card) | `m3-system-card` | The same, fed by the System Monitor integration |
+| [Router](#m3-router-card) | `m3-router-card` | An LTE/5G router's connection, signal quality, throughput and monthly data — graded, not just printed |
+| [Router diagnostics](#m3-router-diagnostics-card) | `m3-router-diagnostics-card` | Modem temperatures, throttling, cell and band detail, reachability checks and a restart button that asks first |
 
 ### 🐠 Special
 
@@ -5470,6 +5472,295 @@ Enclosure temperature, filament dryer, AMS humidity — those are climate
 readings, and the suite already has a card that draws climate readings well.
 Put them in [M3 Climate Overview Card](#m3-climate-overview-card) rather than
 here; this card is about the job.
+
+## M3 Router Card
+
+A connection tile for an LTE or 5G router. Built against a ZTE MC801A fed by
+REST sensors, and usable with a Fritzbox, a Huawei, a GL.iNet or anything else
+that publishes the same quantities.
+
+Only the blocks whose entities exist are drawn, so a router that reports
+throughput but no radio values gets the header, the rates and the volume bar
+without being asked for an RSRP it does not have.
+
+```yaml
+type: custom:m3-router-card
+entity: binary_sensor.zte_reachable
+entity_prefix: zte
+```
+
+## It grades the value rather than printing it
+
+−94 dBm means nothing to most people, and a history graph of it means less. The
+card sorts every radio reading into one of five steps and says which:
+
+| RSRP (LTE) | Verdict | Bars |
+| --- | --- | --- |
+| ≥ −80 dBm | Excellent | 5 |
+| ≥ −90 dBm | Good | 4 |
+| ≥ −100 dBm | Fair | 3 |
+| ≥ −110 dBm | Weak | 2 |
+| below | Very weak | 1 |
+
+**5G is graded on its own scale**, about 5 dB stricter at every step. That is
+not decoration: an NR carrier is wider, so the same transmitted power is spread
+over more resource elements and each one measures lower for an equally good
+connection — and the bands in use sit higher than LTE B3, where the same path
+loss costs more. Judged on the LTE scale, NR reads one step too generous
+throughout.
+
+RSRQ, SNR and SINR get their own scales too, because they measure different
+things. RSRQ is a ratio and lives between −3 and −20; SNR is a difference and
+is perfectly normal at 0, which would be catastrophic as an RSRP. Each has its
+own `*_thresholds` key, each is a list of lower bounds, and the first step a
+value clears wins:
+
+```yaml
+rsrp_thresholds:
+  - { min: -75, grade: excellent }
+  - { min: -85, grade: good }
+  - { min: -95, grade: fair }
+  - { min: -105, grade: weak }
+```
+
+Some integrations publish RSRP with the sign stripped — `94` rather than `−94`.
+The card flips it, because the quantity cannot be positive and grading `94` as
+written would call a mediocre signal perfect. SNR is never flipped: it genuinely
+can be positive, and usually is.
+
+## Two radios, two rows
+
+On a 5G non-standalone connection the router is on an LTE anchor **and** an NR
+carrier at the same time — LTE B3 and n1, in the case this was built against.
+Showing one of them is a choice about which half of the truth to print, so the
+card shows both: the anchor full size, the NR carrier in a shorter row beneath
+it, each graded on its own scale. `show_nr_signal: false` collapses it back to
+one.
+
+With only one radio reporting, there is only ever one row, and it is graded
+against whichever scale fits what it is.
+
+## Throughput, with a shape
+
+The two rate tiles read their unit off the entity rather than assuming one. The
+same reading arrives as `6106 bit/s` from one integration and `0.006 Mbit/s`
+from the next, and guessing is wrong by six orders of magnitude. Byte units are
+accepted and multiplied by 8, because `MB/s` is the same quantity and nobody
+should do that conversion in their head.
+
+Under each number is a sparkline of the last `spark_points` readings (40 by
+default), scaled to its own maximum — the question it answers is "what has this
+been doing lately", not "how close to the line rate is it". A freshly loaded
+dashboard has no past to draw, so the first render asks the recorder once for
+the last hour and prefills; two cards wanting the same sensor share the one
+round-trip. No recorder, or an excluded entity, simply means no line: a
+sparkline is an ornament on a number that is displayed anyway.
+
+`peak_chip: true` adds the highest rate seen since the card loaded.
+
+## Data volume
+
+A two-colour bar split by direction, with the month's total in the accent
+colour. Give it `data_limit` and the bar becomes a budget instead: the share of
+the allowance used, amber from 80%, red from 95%, with the remainder spelled
+out beside it.
+
+## Finding the entities
+
+`entity_prefix` narrows discovery to one router — `zte` for `sensor.zte_*`. Left
+out, the card guesses it: the prefix owning the most router-shaped entities
+wins.
+
+Discovery matches on the **entity id**, not on the device. That is deliberate.
+The sensors this was built against are published by a pyscript app with
+`state.set()`, which never touches the entity registry — they have no device, no
+unique id and no config entry, and a device-registry lookup finds nothing at
+all. An integration that does register its entities is found by the same
+patterns, because the id is the one thing every source has.
+
+Every slot can be named outright when the guess is wrong, and a named entity
+always beats a discovered one. `auto_discover: false` turns guessing off
+entirely and draws only what is configured.
+
+## Options
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `entity` | string | discovered | The connection entity — a `binary_sensor` with the `connectivity` class, or a status sensor carrying the modem's own vocabulary. |
+| `entity_prefix` | string | guessed | Narrows discovery to one router's entities by their shared id prefix. |
+| `auto_discover` | boolean | `true` | Off, only the entities named below are drawn. |
+| `name` | string | `<PREFIX> Router` | Header title. The connection sensor's own name is not used: it is named after what it measures, not after the device. |
+| `icon` | string | `mdi:router-wireless` | Overrides the header icon. Becomes `router-wireless-off` when the link is down. |
+| `rsrp_entity`, `rsrq_entity`, `snr_entity`, `rssi_entity` | string | discovered | The LTE radio. |
+| `nr_rsrp_entity`, `nr_snr_entity` | string | discovered | The 5G radio. |
+| `band_entity`, `nr_band_entity`, `cell_id_entity`, `network_type_entity` | string | discovered | What the subtitle and the cell chip read. |
+| `download_entity`, `upload_entity` | string | discovered | Throughput. The unit is read off the entity. |
+| `data_down_entity`, `data_up_entity`, `data_total_entity` | string | discovered | Monthly volume, in GB. |
+| `show_signal` | boolean | `true` | The graded signal block. |
+| `show_signal_details` | boolean | `true` | The RSRQ / SNR / cell chip row. |
+| `show_nr_signal` | boolean | `true` | The second signal row for the 5G carrier. |
+| `show_throughput` | boolean | `true` | The two rate tiles. |
+| `show_sparkline` | boolean | `true` | The line under each rate. |
+| `show_data` | boolean | `true` | The volume bar. |
+| `peak_chip` | boolean | `false` | The highest rate seen since the card loaded. |
+| `spark_points` | number | `40` | How many readings the line keeps. |
+| `spark_history_minutes` | number | `60` | How far back the first render prefills from the recorder. |
+| `rsrp_thresholds`, `nr_rsrp_thresholds`, `snr_thresholds`, `rsrq_thresholds` | list | see above | Each entry takes `min` and `grade`. |
+| `data_limit` | number | — | A tariff allowance in GB; turns the volume bar into a budget. |
+| `value_map` | map | — | Raw state → label, applied before the built-in vocabulary table. |
+| `tap_action` | action | `more-info` | What a tap on the header does. |
+| `accent_color`, `download_color`, `upload_color`, `online_color`, `offline_color` | string | — | Colour overrides. |
+| `text_color`, `secondary_text_color`, `card_background`, `glass_background`, `radius`, `corners`, `card_version` | — | — | The usual shared appearance options. |
+
+## What is deliberately not here
+
+**History graphs.** They are what this card replaces. A 24-hour plot of RSRP is
+a band of noise between −88 and −95 that answers no question anyone asks of it;
+the verdict and the current number do. Tap any value to get HA's own more-info
+dialog, which has the graph.
+
+The companion [M3 Router Diagnostics Card](#m3-router-diagnostics-card) carries
+the temperatures, the cell and band detail, the reachability checks and the
+restart button.
+
+## M3 Router Diagnostics Card
+
+The other half of the router pair: what the modem is doing to itself, what cell
+it is on, whether the internet is actually reachable, and one button to start
+the thing again.
+
+```yaml
+type: custom:m3-router-diagnostics-card
+entity: binary_sensor.zte_reachable
+entity_prefix: zte
+```
+
+## A verdict, and what it counts
+
+The header says "Everything in order" or "*n* findings", with a chip to match.
+A finding is a temperature over the alarm threshold, active throttling, a
+failed reachability check, or a value the config explicitly flagged.
+
+**It is deliberately not everything that is highlighted.** Carrier aggregation
+switches itself off whenever the link is idle or the cell is busy, so on a quiet
+connection it reads `ca_deactivated` most of the time. That is worth colouring
+amber in the grid, and it is not worth reporting as a fault in the header — a
+verdict that is always amber has stopped being a verdict. Values from the
+built-in vocabulary therefore colour but do not count. Name one in `warn_value`
+and it counts, because then someone has said that for *this* router it is a
+problem.
+
+## Temperatures
+
+One row per sensor, with a bar against `temp_max` (85 °C by default) and the
+value in the grade's colour — blue below `temp_warn`, amber above it, red above
+`temp_hot`.
+
+The sensors are found by **unit**, not by name. The obvious filter — an id
+containing "temp" — misses the one this was built against: the ZTE publishes
+its 5G modem temperature as `sensor.zte_pm_modem_5g`, which carries "Temp" in
+its friendly name and nowhere in its id, so a name filter silently drew one of
+the two modem temperatures and dropped the other.
+
+The unit is also what keeps the ZTE's `pm_sensor_pa1` out: it reads −40 on a
+scale nobody has documented and publishes no unit at all, and drawing it as
+40 °C below zero beside a modem at 52 °C is worse than leaving it out.
+
+## Throttling is a chip, never a graph
+
+Thermal throttle sensors read 0 the overwhelming majority of the time. A
+24-hour bar chart of a value that is always zero is a picture of nothing, which
+is exactly what the dashboard this replaces had.
+
+What is worth drawing is one bit — is anything throttling right now — and if so,
+which sensor said so. So the whole set collapses into a single chip: green and
+naming the sensors it is watching, or red and naming the one that tripped.
+
+## Cell & band
+
+A two-column grid of label/value cells, each opening more-info on a tap. The
+vocabulary is shortened and translated on the way out: `LTE BAND 3` becomes
+`LTE B3`, `ca_deactivated` becomes `Aus`. `value_map` overrides any of it and
+covers a brand this table has never seen.
+
+Left unconfigured, the grid is built from whatever the PCI, band, carrier
+aggregation and cell-id slots discovered.
+
+## Reachability checks
+
+Four tiles per row, each a filled tick or cross. These are the one block with
+no discovery behind them, because what counts as "the internet works" is a
+local question — a TCP probe, a DNS lookup against your own resolver, the same
+lookup against a public one:
+
+```yaml
+check_entities:
+  - { entity: binary_sensor.dns_tcp_reachable, name: Verbindung }
+  - { entity: binary_sensor.dns_local_ok, name: AdGuard }
+  - { entity: binary_sensor.dns_external_ok, name: Extern }
+  - { entity: sensor.dns_check_status, name: Status, ok_state: OK }
+```
+
+`ok_state` names the healthy state for a sensor that is not a binary one.
+Without it the usual on/connected vocabulary is accepted. A sensor that is not
+reporting goes grey with a question mark rather than red: "no data" and "broken"
+are different answers.
+
+## The restart button asks first
+
+A full-width button that takes **two taps**. The first fills it with the alarm
+colour, squares off its corners and changes the label to "Really restart?"; the
+second fires. Nothing happens on one tap.
+
+If the second tap does not come, the button disarms itself after
+`confirm_timeout` (4 seconds). That matters more than it sounds: an armed red
+button left on a wall tablet is a trap for the next person who walks past it.
+
+After firing, the card shows "Restarting…" with a turning icon until the
+connection entity reports back. Watched rather than timed, because a ZTE is back
+in about 50 seconds and a Fritzbox in three minutes and a fixed wait would be
+wrong for both. A three-minute backstop ends it if the router never returns.
+
+`reboot_action` takes the usual action grammar. Left out, the card looks for a
+`button.*_reboot` or `button.*_restart` on the same prefix. Where the restart is
+a service rather than an entity:
+
+```yaml
+reboot_action:
+  action: perform-action
+  perform_action: pyscript.zte_reboot_router
+```
+
+`confirm_reboot: false` makes a single tap fire immediately. The editor says
+plainly what that means.
+
+## Options
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `entity` | string | discovered | The connection entity, used to tell when a restart has completed. |
+| `entity_prefix` | string | guessed | Narrows discovery to one router's entities. |
+| `auto_discover` | boolean | `true` | Off, only what is configured is drawn. |
+| `name` | string | "Diagnostics" | Header title. |
+| `icon` | string | `mdi:stethoscope` | Header icon. |
+| `temperature_entities` | list | discovered | Each entry takes `entity`, `name`, `max`. |
+| `throttle_entities` | list | discovered | Collapsed into one chip — see above. |
+| `info_entities` | list | discovered | The cell/band grid. Each entry takes `entity`, `label`, `warn_value`. |
+| `check_entities` | list | — | The reachability tiles. Each takes `entity`, `name`, `ok_state`. **Required for the block to appear.** |
+| `temp_warn` | number | `60` | Amber above this. |
+| `temp_hot` | number | `70` | Red above this, and counted as a finding. |
+| `temp_max` | number | `85` | Full scale for a bar without its own `max`. |
+| `show_temperatures`, `show_throttle`, `show_info`, `show_checks`, `show_reboot` | boolean | `true` | Block switches. |
+| `show_uptime`, `show_firmware`, `show_clients` | boolean | `false` | Extra header chips, drawn when the entity exists. |
+| `reboot_action` | action | the discovered reboot button | What the second tap does. |
+| `confirm_reboot` | boolean | `true` | The two-tap confirmation. |
+| `confirm_timeout` | number | `4000` | How long the armed button waits, in milliseconds. |
+| `value_map` | map | — | Raw state → label for the cell/band grid. |
+| `accent_color`, `ok_color`, `warn_color`, `hot_color` | string | — | Colour overrides. |
+| `text_color`, `secondary_text_color`, `card_background`, `glass_background`, `radius`, `corners`, `card_version` | — | — | The usual shared appearance options. |
+
+Its companion, [M3 Router Card](#m3-router-card), carries the connection, the
+signal grading, the throughput and the monthly volume.
 
 ## Development
 

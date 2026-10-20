@@ -48,3 +48,5 @@ export * from "./m3-search-card";
 export * from "./m3-vacuum-card";
 export * from "./m3-vacuum-maintenance-card";
 export * from "./m3-printer-card";
+export * from "./m3-router-card";
+export * from "./m3-router-diagnostics-card";
