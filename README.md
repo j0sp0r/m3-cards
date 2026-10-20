@@ -6032,6 +6032,51 @@ call reported "nothing happened" for a launch that had plainly succeeded on
 screen — which is how `vnd.youtube://` came to be written off here before the
 person in front of the television said otherwise.
 
+### Switching inputs on a Samsung
+
+`KEY_HDMI1` … `KEY_HDMI4` appear in every Samsung key list on the internet and
+**do nothing** on a 2020 Tizen set. What works is the source bar, and that bar
+is a list of *connected devices* — "TV", "Chromecast", "PlayStation 5" — not a
+fixed HDMI 1–4, so a card cannot know the positions without being told them
+once.
+
+It also opens with the highlight on whatever input is **currently active**,
+which means "press right three times" lands somewhere different depending on
+where you started. The fix is to walk to the edge first: the row does not wrap,
+so more LEFT presses than there are entries always ends on the leftmost one, and
+the count from there is exact.
+
+`remote.send_command` takes a list, so the whole thing is one action:
+
+```yaml
+apps:
+  - name: PlayStation
+    action:
+      action: perform-action
+      perform_action: remote.send_command
+      target: { entity_id: remote.samsung_q90 }
+      data:
+        delay_secs: 0.3
+        command:
+          - KEY_SOURCE
+          - KEY_LEFT   # ×8 — anchor on the leftmost entry
+          - KEY_LEFT
+          - KEY_LEFT
+          - KEY_LEFT
+          - KEY_LEFT
+          - KEY_LEFT
+          - KEY_LEFT
+          - KEY_LEFT
+          - KEY_RIGHT  # ×n — n is the entry's position, counted from 0
+          - KEY_RIGHT
+          - KEY_RIGHT
+          - KEY_ENTER
+```
+
+Count the positions off the bar once, including entries for devices that are
+switched off — they stay in the list and still take up a position. `delay_secs`
+below about 0.25 starts dropping presses.
+
 ## Text entry
 
 On Android TV this is the biggest everyday win. The integration types any
