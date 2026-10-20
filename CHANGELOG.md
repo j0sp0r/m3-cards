@@ -43,12 +43,15 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
-- **The power button picks the entity that can do the direction asked of it.**
-  A Samsung's `media_player` declares `TURN_OFF` and not `TURN_ON` — once the
-  panel is off its websocket is unreachable — so sending both to it answered
-  "action not supported" instead of switching the TV on. Its `remote` entity
-  wakes the set over the network, so off goes to one and on to the other, and
-  the single button does both again.
+- **The power button goes through the remote entity whenever there is one.** A
+  remote's power *is* the device's power; a `media_player`'s is whatever its
+  integration decided that should mean. Two devices showed the two ways that
+  goes wrong: a Samsung stops declaring `TURN_ON` once its panel is off — the
+  websocket is then unreachable — so the button answered "action not
+  supported" instead of switching the TV on; and on a Cast entity `turn_on`
+  resumes the **last receiver app**, so pressing power on a Google TV opened
+  Home Assistant Cast on the television. Both are faithful executions of the
+  wrong idea, and both go away once power is asked of the remote.
 
 ### Changed
 

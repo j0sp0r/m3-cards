@@ -413,26 +413,31 @@ export function capabilitiesOf(
 }
 
 /**
- * Which entity can switch the device in *this* direction.
+ * Which entity to switch the device with.
  *
- * The two are not interchangeable. A Samsung's `media_player` declares
- * `TURN_OFF` and not `TURN_ON`, because the TV's websocket cannot be reached
- * once the panel is off; its `remote` entity can, because it wakes the set
- * over the network instead. Sending both to the media_player is what made the
- * power button answer "action not supported" instead of switching the TV on.
+ * The remote wins whenever there is one, because a remote's power *is* the
+ * device's power, while a media_player's is whatever its integration decided
+ * that should mean. On a Cast entity `turn_on` launches the last receiver app
+ * — pressing power on a Google TV opened Home Assistant Cast on the
+ * television, which is a faithful execution of the wrong idea.
  *
  * `remote.turn_on` / `remote.turn_off` belong to the remote platform itself,
  * so there is no feature bit to consult: having the entity is the condition.
+ * It is also the half that can reach a Samsung whose panel is already off,
+ * since once that happens the TV's websocket is unreachable and its
+ * media_player stops declaring TURN_ON at all.
  */
 export function powerTarget(
   on: boolean,
   mediaEntity: string | undefined,
   remoteEntity: string | undefined,
-  supportedFeatures: number | undefined,
+  supportedFeatures?: number | undefined,
 ): string | undefined {
+  if (remoteEntity) return remoteEntity;
+  // No remote: the media_player is all there is, and the feature bit is worth
+  // checking only to prefer an entity that admits it can do this direction.
   const bit = on ? MP_FEATURE.TURN_ON : MP_FEATURE.TURN_OFF;
   if (mediaEntity && hasFeature(supportedFeatures, bit)) return mediaEntity;
-  if (remoteEntity) return remoteEntity;
   return mediaEntity;
 }
 

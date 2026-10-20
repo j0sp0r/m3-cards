@@ -179,20 +179,19 @@ describe("powerTarget", () => {
   const SAMSUNG_MP = 24381; // TURN_OFF, no TURN_ON
   const CAST = 152451; // both
 
-  it("switches a Samsung on through the remote, which is the half that can", () => {
-    // The media_player answers "action not supported" to turn_on: once the
-    // panel is off its websocket is unreachable, so only the remote entity
-    // can wake it.
+  it("uses the remote for both directions when there is one", () => {
+    // A remote's power is the device's power. The media_player's is not: a
+    // Samsung stops declaring TURN_ON once its panel is off, and a Cast
+    // entity's turn_on launches an app rather than waking anything.
     expect(powerTarget(true, "media_player.tv", "remote.tv", SAMSUNG_MP)).toBe("remote.tv");
+    expect(powerTarget(false, "media_player.tv", "remote.tv", SAMSUNG_MP)).toBe("remote.tv");
   });
 
-  it("switches it off through the media_player, which declares TURN_OFF", () => {
-    expect(powerTarget(false, "media_player.tv", "remote.tv", SAMSUNG_MP)).toBe("media_player.tv");
-  });
-
-  it("stays on the media_player when it can do both", () => {
-    expect(powerTarget(true, "media_player.gtv", "remote.gtv", CAST)).toBe("media_player.gtv");
-    expect(powerTarget(false, "media_player.gtv", "remote.gtv", CAST)).toBe("media_player.gtv");
+  it("does not switch a Cast device on, which would launch its last app", () => {
+    // Pressing power on a Google TV opened Home Assistant Cast, because
+    // media_player.turn_on on a cast entity resumes the last receiver.
+    expect(powerTarget(true, "media_player.gtv", "remote.gtv", CAST)).toBe("remote.gtv");
+    expect(powerTarget(false, "media_player.gtv", "remote.gtv", CAST)).toBe("remote.gtv");
   });
 
   it("uses the remote when there is no media entity at all", () => {
