@@ -55,14 +55,33 @@ the image — everything else is live data.</sub>
 
 [![Open this repository in HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=j0sp0r&repository=m3-cards&category=plugin)
 
-The button opens the repository straight in your own Home Assistant — press
-*Download* and you are done. To add it by hand instead:
+M3 Cards is in the **default HACS store**, so there is nothing to add first:
+
+1. Open HACS in Home Assistant
+2. Search for **M3 Cards**
+3. Open it and press *Download*
+4. Reload Home Assistant
+
+The button above does the same thing without the search — it opens the
+repository straight in your own Home Assistant.
+
+<details>
+<summary>Not showing up in the search yet?</summary>
+
+HACS refreshes its copy of the store list periodically rather than on every
+open, so a recently added repository can take a few hours to appear. Until it
+does, it can still be added by hand:
 
 1. HACS → menu (⋮) in the top right → *Custom repositories*
 2. Enter the repository URL, pick type **Dashboard**, then *Add*
    (**not** *Integration* — this is a Lovelace card, not an integration)
 3. Search for "M3 Cards", open it and press *Download*
 4. Reload Home Assistant
+
+Adding it this way is harmless once it does appear: HACS treats it as the same
+repository either way.
+
+</details>
 
 ### Manual
 
