@@ -18,8 +18,16 @@ of them is a reversal rather than an addition:
   temperature" under the one number a thermostat has. A *band* keeps its
   captions — those name which of the two rows is which.
 
-This release is mostly about the cards saying what they know, and about the
-three findings the HACS store review turned up on the way in.
+A fourth difference shows only on old hardware. Anything that stopped at
+iOS 15 — an iPod touch 7, an iPad Air 2 — ran this suite badly enough to be
+unusable, and now runs it. What those devices give up is the tint on a fill,
+not the fill. Nothing changes on a current browser; see *Old hardware is still
+a dashboard* below.
+
+This release is mostly about the cards saying what they know, about the three
+findings the HACS store review turned up on the way in, and — late, and after
+a photograph of a very small screen — about the hardware that never got a
+newer Safari.
 
 The suite registers 44 cards.
 
@@ -90,6 +98,56 @@ chips changes, rather than on every state tick: measured on a live instance at
 207 state changes in 20 seconds for zero label measurements. Contributed by
 **@UHaFnir**.
 
+## The waste card says which bin
+
+The reminder had no way of telling you what it covered. It watched every bin
+on the card, and nothing in the editor said so — the natural reading was that
+it watched the one bin you were looking at. `notify_entities` narrows it to
+the bins you pick, and the panel now states the part that was never written
+down: **one** notification goes out, naming every bin that is due, rather than
+one per bin arriving in a row.
+
+Three smaller things on the same card. A collection due today sat at 0% of the
+timeline and one at the far end at 100%, each pulled back by half its own
+width, so both hung over the edge of the track; they are inset by their radius
+now. The timeline itself is optional — `show_timeline: false` — because it is
+the part of the card you either read every day or never. And a reminder that
+has started escalating is red rather than the colour of the bin: "put it out
+now" on a grey Restmüll bin was washed in grey, which is what every card in
+this suite looks like when it is switched off. The hero icon keeps the bin's
+own colour, so it still says *which* bin.
+
+## Old hardware is still a dashboard
+
+A photograph of an iPod touch 7 started this. One icon covered half the screen,
+the cards had no padding, and the tiles were holes with the wallpaper showing
+through. The device is not the point — it is the last iOS 15 device, and so is
+every iPad Air 2 still screwed to a kitchen wall.
+
+Two features explain all of it. Safari learned container queries in 16.0 and
+`color-mix()` in 16.2, and this suite uses both heavily.
+
+The repair is not interesting in itself, but one thing about it is worth
+knowing if you ever write CSS for this project. The ordinary way to fall back —
+a plain declaration before the modern one — only works on a value the parser
+can reject on sight. A declaration that contains `var()` anywhere is not
+checked until after substitution, and one that fails *then* resolves to
+`unset`, not to the declaration before it. That is the whole bug: the icon's
+size arrived through a custom property, so its fallback never ran and an `<svg>`
+at `width: auto` is 300×150 by definition. Every such value is now chosen in
+script against a capability test, and the colour fallbacks live in an
+`@supports not` block, which is the one place only those browsers look.
+
+Nothing is detected about the device. There is no version check and no
+user-agent string anywhere in this — a browser that has the feature gets
+exactly what it got before, byte for byte, and a browser that does not gets a
+solid fill instead of a tinted one. That ages better than a list of devices,
+and it covers hardware nobody here has ever tested on.
+
+What those browsers give up, concretely: fills are solid rather than tinted,
+overlays that fade to transparent are simply not drawn, and the layouts that
+adapt to a narrow *card* rather than a narrow screen keep their wide form.
+
 ## Security
 
 Three findings from the HACS store review — thank you, **@frenck**. None was
@@ -124,6 +182,13 @@ person does not control, which on a shared instance is the point.
   drawn for the length of the whole bar and ran off the right edge, and the
   track line crossed it on its own midline, which made the animation look like
   it was running behind the bar.
+- **A nav bar that scrolls starts at its first entry.** The bar spread its
+  entries with `space-around`. On a bar too narrow for them that splits the
+  overflow across both ends — and whatever lands before the scroll origin
+  cannot be reached, because `scrollLeft` does not go below zero. The first
+  entry sat half outside the bar and no amount of swiping brought it back.
+  Current browsers resolve this themselves, which is why it took an iOS 15
+  device to show it.
 - **A picture the card refuses to load is a picture it does not have**, so the
   artwork falls back to its note and an avatar to its initials rather than
   leaving an empty box.

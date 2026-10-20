@@ -4,60 +4,7 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format angelehnt an [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
-## [Unreleased]
-
-### Added
-
-- **The waste card's reminder can name which bins it watches.** The editor
-  gave no way to tell whether the reminder covered one bin or all of them, and
-  the answer was all of them. `notify_entities` narrows it, and the panel now
-  says what actually happens: **one** notification is sent, naming every bin
-  that is due, rather than one per bin.
-
-### Fixed
-
-- **The cards render on iOS 15.** Safari learned container queries in 16.0,
-  and the button card handed its icon and padding sizes to the stylesheet
-  through custom properties — where a unit the browser does not know cannot
-  be caught by the cascade and falls to `unset` instead. `--mdc-icon-size`
-  landed on `unset`, which on ha-icon's `<svg>` means `width: auto`, which
-  for an SVG with no intrinsic size means 300x150: one icon covered half the
-  screen and the card lost its padding with it. Every container-query value
-  that travels through a custom property is now chosen in script, with a
-  pixel equivalent for browsers without the units. The expressive climate
-  card's hero temperature, which was dropping to the inherited size for the
-  same reason, falls back to a viewport-relative size instead.
-- **A nav bar that scrolls starts at its first entry.** The bar spread its
-  entries with `space-around`, which on a bar too narrow for them splits the
-  overflow across both ends — and the part before the scroll origin cannot be
-  scrolled to at all, so the first entry sat half outside the bar and stayed
-  there however hard it was swiped. Current browsers correct this themselves;
-  Safari 15 does not, which is where it surfaced. A bar that fits is
-  `fit-content` wide and has no free space to spread, so starting at the start
-  changes nothing anywhere else.
-- **Tinted fills survive on iOS 15 as solid ones.** `color-mix()` is Safari
-  16.2, and 107 fills across 25 cards were mixed over the card surface with
-  it — so on an older Safari an inner tile had no background at all and the
-  dashboard's wallpaper showed through where a tile should be. A plain
-  declaration before each mix is no help: all of them contain `var()`, which
-  defers the check until after substitution, and a declaration that fails
-  there resolves to `unset` rather than to the declaration before it. The
-  fallbacks are therefore in an `@supports not` block, which is the one place
-  only those browsers look. They give up the tint and keep the shape. The
-  expressive climate card's hero temperature was the sharp edge of the same
-  problem: its gradient died while `-webkit-text-fill-color: transparent`
-  survived, leaving the temperature painted in nothing.
-- **The waste card's timeline dots stay inside the timeline.** A collection
-  today sat at 0% and one at the far end at 100%, each pulled back by half its
-  own width — so both hung half over the edge of the track. They are inset by
-  their radius now.
-- **A reminder about to come due is red, not the colour of the bin.** The hero
-  wore the next bin's colour even while escalating, so "put it out now" on a
-  grey Restmüll bin was washed in grey, which is what a card looks like when
-  it is switched off. The hero icon keeps the bin's colour, so it still says
-  which bin.
-
-## [2.5.0] – 2026-10-19
+## [2.5.0] – 2026-10-20
 
 ### Added
 
@@ -157,6 +104,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   `use_entity_color` rather than instead of them. `show_name: false` hides the
   name; with `show_state` off as well the chip becomes a round icon button.
 
+- **The waste card's reminder can name which bins it watches.** The editor
+  gave no way to tell whether the reminder covered one bin or all of them, and
+  the answer was all of them. `notify_entities` narrows it, and the panel now
+  says what actually happens: **one** notification is sent, naming every bin
+  that is due, rather than one per bin.
+
 ### Changed
 
 - **A single setpoint no longer carries a caption.** The `tiles` style wrote
@@ -191,6 +144,40 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **The cards render on iOS 15.** Safari learned container queries in 16.0,
+  and the button card handed its icon and padding sizes to the stylesheet
+  through custom properties — where a unit the browser does not know cannot
+  be caught by the cascade and falls to `unset` instead. `--mdc-icon-size`
+  landed on `unset`, which on ha-icon's `<svg>` means `width: auto`, which
+  for an SVG with no intrinsic size means 300x150: one icon covered half the
+  screen and the card lost its padding with it. Every container-query value
+  that travels through a custom property is now chosen in script, with a
+  pixel equivalent for browsers without the units. The expressive climate
+  card's hero temperature, which was dropping to the inherited size for the
+  same reason, falls back to a viewport-relative size instead.
+
+- **Tinted fills survive on iOS 15 as solid ones.** `color-mix()` is Safari
+  16.2, and 107 fills across 25 cards were mixed over the card surface with
+  it — so on an older Safari an inner tile had no background at all and the
+  dashboard's wallpaper showed through where a tile should be. A plain
+  declaration before each mix is no help: all of them contain `var()`, which
+  defers the check until after substitution, and a declaration that fails
+  there resolves to `unset` rather than to the declaration before it. The
+  fallbacks are therefore in an `@supports not` block, which is the one place
+  only those browsers look. They give up the tint and keep the shape. The
+  expressive climate card's hero temperature was the sharp edge of the same
+  problem: its gradient died while `-webkit-text-fill-color: transparent`
+  survived, leaving the temperature painted in nothing.
+
+- **A nav bar that scrolls starts at its first entry.** The bar spread its
+  entries with `space-around`, which on a bar too narrow for them splits the
+  overflow across both ends — and the part before the scroll origin cannot be
+  scrolled to at all, so the first entry sat half outside the bar and stayed
+  there however hard it was swiped. Current browsers correct this themselves;
+  Safari 15 does not, which is where it surfaced. A bar that fits is
+  `fit-content` wide and has no free space to spread, so starting at the start
+  changes nothing anywhere else.
+
 - **The climate card's setpoint no longer breaks across two lines.** On a
   narrow card "18,0 °C" put the number on one line and dropped "°C" onto the
   next, under it — a unit reading as a second value. The number and the unit
@@ -208,6 +195,17 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   position leaves after its tip; drawn straight through, the line crossed the
   wave on its own midline and made the animation look like it was running
   behind the bar.
+
+- **The waste card's timeline dots stay inside the timeline.** A collection
+  today sat at 0% and one at the far end at 100%, each pulled back by half its
+  own width — so both hung half over the edge of the track. They are inset by
+  their radius now.
+
+- **A reminder about to come due is red, not the colour of the bin.** The hero
+  wore the next bin's colour even while escalating, so "put it out now" on a
+  grey Restmüll bin was washed in grey, which is what a card looks like when
+  it is switched off. The hero icon keeps the bin's colour, so it still says
+  which bin.
 
 ### Security
 
