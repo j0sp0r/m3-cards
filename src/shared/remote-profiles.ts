@@ -412,6 +412,30 @@ export function capabilitiesOf(
   };
 }
 
+/**
+ * Which entity can switch the device in *this* direction.
+ *
+ * The two are not interchangeable. A Samsung's `media_player` declares
+ * `TURN_OFF` and not `TURN_ON`, because the TV's websocket cannot be reached
+ * once the panel is off; its `remote` entity can, because it wakes the set
+ * over the network instead. Sending both to the media_player is what made the
+ * power button answer "action not supported" instead of switching the TV on.
+ *
+ * `remote.turn_on` / `remote.turn_off` belong to the remote platform itself,
+ * so there is no feature bit to consult: having the entity is the condition.
+ */
+export function powerTarget(
+  on: boolean,
+  mediaEntity: string | undefined,
+  remoteEntity: string | undefined,
+  supportedFeatures: number | undefined,
+): string | undefined {
+  const bit = on ? MP_FEATURE.TURN_ON : MP_FEATURE.TURN_OFF;
+  if (mediaEntity && hasFeature(supportedFeatures, bit)) return mediaEntity;
+  if (remoteEntity) return remoteEntity;
+  return mediaEntity;
+}
+
 // ---- turning a key into a call ---------------------------------------------
 
 export interface ResolvedCall {

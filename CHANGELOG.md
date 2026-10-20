@@ -41,6 +41,15 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   place that knows, and the heuristic is now only the stopgap for the first
   render.
 
+### Fixed
+
+- **The power button picks the entity that can do the direction asked of it.**
+  A Samsung's `media_player` declares `TURN_OFF` and not `TURN_ON` — once the
+  panel is off its websocket is unreachable — so sending both to it answered
+  "action not supported" instead of switching the TV on. Its `remote` entity
+  wakes the set over the network, so off goes to one and on to the other, and
+  the single button does both again.
+
 ### Changed
 
 - **The card omits what the device cannot do, rather than drawing dead

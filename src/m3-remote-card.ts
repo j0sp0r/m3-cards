@@ -92,6 +92,7 @@ import {
 import {
   KEY_ICONS,
   PROFILE_DEFAULTS,
+  powerTarget,
   capabilitiesOf,
   currentPosition,
   formatPosition,
@@ -564,9 +565,30 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
       this.hass.callService(domain, on ? "turn_on" : "turn_off", { entity_id: cfg.power_entity });
       return;
     }
-    const target = this._mediaEntity ?? this._remoteEntity;
+    const target = this._powerTarget(on);
     if (!target) return;
     this.hass.callService(target.split(".")[0], on ? "turn_on" : "turn_off", { entity_id: target });
+  }
+
+  /**
+   * Which entity can perform *this* direction.
+   *
+   * The two are not interchangeable, and picking the media_player for both is
+   * what broke switching a Samsung on: its `media_player` declares `TURN_OFF`
+   * and not `TURN_ON`, because the TV's websocket cannot be reached once the
+   * panel is off. The `remote` entity can — it wakes the set over the network
+   * instead — so off goes to one and on to the other.
+   *
+   * Checked per direction rather than once, because an entity that supports
+   * neither should hand over rather than throw "action not supported" at the
+   * user, which is all the old code did.
+   */
+  private _powerTarget(on: boolean): string | undefined {
+    const media = this._mediaEntity;
+    const supported = media
+      ? (this.hass?.states[media]?.attributes.supported_features as number | undefined)
+      : undefined;
+    return powerTarget(on, media, this._remoteEntity, supported);
   }
 
   // ---- now playing ----------------------------------------------------------

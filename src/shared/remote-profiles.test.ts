@@ -8,6 +8,7 @@ import {
   formatPosition,
   isAppActive,
   hasFeature,
+  powerTarget,
   MP_FEATURE,
   PROFILE_DEFAULTS,
   PROFILE_KEYS,
@@ -171,6 +172,35 @@ describe("capabilitiesOf", () => {
     expect(hasFeature(24381, MP_FEATURE.TURN_ON)).toBe(false);
     expect(hasFeature(152499, MP_FEATURE.VOLUME_STEP)).toBe(false);
     expect(hasFeature(152499, MP_FEATURE.SEEK)).toBe(true);
+  });
+});
+
+describe("powerTarget", () => {
+  const SAMSUNG_MP = 24381; // TURN_OFF, no TURN_ON
+  const CAST = 152451; // both
+
+  it("switches a Samsung on through the remote, which is the half that can", () => {
+    // The media_player answers "action not supported" to turn_on: once the
+    // panel is off its websocket is unreachable, so only the remote entity
+    // can wake it.
+    expect(powerTarget(true, "media_player.tv", "remote.tv", SAMSUNG_MP)).toBe("remote.tv");
+  });
+
+  it("switches it off through the media_player, which declares TURN_OFF", () => {
+    expect(powerTarget(false, "media_player.tv", "remote.tv", SAMSUNG_MP)).toBe("media_player.tv");
+  });
+
+  it("stays on the media_player when it can do both", () => {
+    expect(powerTarget(true, "media_player.gtv", "remote.gtv", CAST)).toBe("media_player.gtv");
+    expect(powerTarget(false, "media_player.gtv", "remote.gtv", CAST)).toBe("media_player.gtv");
+  });
+
+  it("uses the remote when there is no media entity at all", () => {
+    expect(powerTarget(true, undefined, "remote.tv", undefined)).toBe("remote.tv");
+  });
+
+  it("falls back to the media entity rather than returning nothing", () => {
+    expect(powerTarget(true, "media_player.cast", undefined, 0)).toBe("media_player.cast");
   });
 });
 
