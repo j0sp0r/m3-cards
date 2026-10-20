@@ -52,7 +52,28 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   header — a verdict that is always amber has stopped being a verdict. The
   built-in vocabulary colours; only a value named in `warn_value` counts.
 
+- **Fibre lines are graded as a window, not a ramp.** With no radio value
+  present at all, the connection card grades a line's optical receive power
+  instead. It needs its own scale: an ONT is specified from about −28 dBm, below
+  which nothing arrives, up to about −8 dBm, above which the receiver saturates
+  and the error rate climbs again. "More signal is better" is true for RSRP and
+  false here, so a fibre line graded on the LTE ramp would call a dangerously
+  hot one perfect — and send whoever read it looking in the wrong place, since
+  the fix for that is an attenuator.
+
+- **Volumes are read in whatever unit they arrive in.** The ZTE app divides into
+  GB, a Fritzbox reports GB, a Huawei reports raw bytes. Binary units are
+  honoured as binary: GiB is 2³⁰, not 10⁹, a 7% difference and more than enough
+  to put a tariff warning on the wrong side of the line.
+
 ### Fixed
+
+- **A monthly total is no longer mistaken for a live rate.** A Huawei publishes
+  `current_month_download` beside `current_download_rate`, and both end in a
+  word the throughput patterns want; claimed the wrong way round, the card
+  showed 580 GB as a throughput. Volumes are now matched before rates. A
+  Fritzbox's `max_connection_download_rate` is excluded by name for the same
+  reason: a line's sync rate in the live tile is a plausible-looking lie.
 
 - **Router temperature sensors are found by unit, not by name.** The obvious
   filter — an id containing "temp" — misses `sensor.zte_pm_modem_5g`, which

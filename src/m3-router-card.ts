@@ -73,6 +73,10 @@ import {
   discoverRouterEntities,
   formatGigabytes,
   gradeBy,
+  gradeOptical,
+  DEFAULT_OPTICAL_RX_THRESHOLDS,
+  OPTICAL_RX_MAX_DBM,
+  toGigabytes,
   guessRouterPrefix,
   limitGrade,
   linkStateOf,
@@ -225,6 +229,8 @@ export class M3RouterCard extends TemplatedCard(LitElement) implements LovelaceC
       snr: this._slot("snr", c.snr_entity),
       nrRsrp: this._slot("nr_rsrp", c.nr_rsrp_entity),
       nrSnr: this._slot("nr_snr", c.nr_snr_entity),
+      opticalRx: this._slot("optical_rx", c.optical_rx_entity),
+      opticalTx: this._slot("optical_tx", c.optical_tx_entity),
       band: this._slot("band", c.band_entity),
       nrBand: this._slot("nr_band", c.nr_band_entity),
       cellId: this._slot("cell_id", c.cell_id_entity),
@@ -256,6 +262,13 @@ export class M3RouterCard extends TemplatedCard(LitElement) implements LovelaceC
       return undefined;
     }
     return st.state;
+  }
+
+  /** A volume sensor in gigabytes, whatever unit it publishes. */
+  private _gb(entityId?: string): number | undefined {
+    const raw = this._num(entityId);
+    if (raw === undefined || !entityId || !this.hass) return undefined;
+    return toGigabytes(raw, this.hass.states[entityId]?.attributes.unit_of_measurement);
   }
 
   private _bps(entityId?: string): number | undefined {
@@ -452,9 +465,11 @@ export class M3RouterCard extends TemplatedCard(LitElement) implements LovelaceC
     const lte = normalizeNegativeDb(this._num(e.rsrp));
     const nr = normalizeNegativeDb(this._num(e.nrRsrp));
 
-    // With neither radio reporting there is nothing to grade; the block goes
-    // rather than showing five empty bars, which reads as "no signal".
-    if (lte === undefined && nr === undefined) return nothing;
+    // A fibre line has no RSRP at all; what it has is an optical receive
+    // level, which is the same question asked of a different medium. It only
+    // takes over when there is no radio, so a 5G router that happens to expose
+    // an SFP is still graded on its radio.
+    if (lte === undefined && nr === undefined) return this._renderOpticalSignal();
 
     const primaryIsNr = lte === undefined;
     const value = primaryIsNr ? nr! : lte!;
@@ -484,13 +499,49 @@ export class M3RouterCard extends TemplatedCard(LitElement) implements LovelaceC
   }
 
   /**
+   * The fibre equivalent of the radio block: optical receive power, graded
+   * against a window rather than a ramp, with the transmit level as a chip
+   * beside it.
+   */
+  private _renderOpticalSignal() {
+    const cfg = this._config!;
+    const rx = this._num(this._e.opticalRx);
+    if (rx === undefined) return nothing;
+    const grade = gradeOptical(
+      rx,
+      cfg.optical_rx_thresholds?.length ? cfg.optical_rx_thresholds : DEFAULT_OPTICAL_RX_THRESHOLDS,
+      cfg.optical_rx_max ?? OPTICAL_RX_MAX_DBM,
+    );
+    const tx = this._num(this._e.opticalTx);
+    return html`
+      ${this._renderSignalWell(rx, grade, "RX", true, "dBm RX")}
+      ${cfg.show_signal_details === false || tx === undefined
+        ? nothing
+        : html`<div class="chips">
+            <div class="chip">
+              <span class="chip-label">TX</span>
+              <span class="chip-value"
+                >${withMinusSign(formatNumber(this._language, tx, { maximumFractionDigits: 1 }))} dBm</span
+              >
+            </div>
+          </div>`}
+    `;
+  }
+
+  /**
    * One graded well: bars, verdict, raw value.
    *
    * `compact` halves the vertical padding and drops the bar heights — used by
    * the second well on an NSA connection, where two full-height blocks would
    * push everything else off a four-row card.
    */
-  private _renderSignalWell(value: number, grade: SignalGrade, tech: string, compact: boolean) {
+  private _renderSignalWell(
+    value: number,
+    grade: SignalGrade,
+    tech: string,
+    compact: boolean,
+    unitCaption?: string,
+  ) {
     const colorCss = GRADE_COLORS[grade];
     const filled = GRADE_BARS[grade];
     const scale = compact ? 0.68 : 1;
@@ -529,7 +580,7 @@ export class M3RouterCard extends TemplatedCard(LitElement) implements LovelaceC
         </div>
         <div class="signal-value">
           <div class="signal-dbm">${withMinusSign(formatNumber(this._language, value, { maximumFractionDigits: 0 }))}</div>
-          <div class="signal-unit">dBm ${compact ? "" : `${tech} `}RSRP</div>
+          <div class="signal-unit">${unitCaption ?? `dBm ${compact ? "" : `${tech} `}RSRP`}</div>
         </div>
       </div>
     `;
@@ -672,9 +723,9 @@ export class M3RouterCard extends TemplatedCard(LitElement) implements LovelaceC
   private _renderData() {
     const cfg = this._config!;
     const e = this._e;
-    const down = this._num(e.dataDown);
-    const up = this._num(e.dataUp);
-    const totalEntity = this._num(e.dataTotal);
+    const down = this._gb(e.dataDown);
+    const up = this._gb(e.dataUp);
+    const totalEntity = this._gb(e.dataTotal);
     const split = splitVolume(down, up);
     const total = totalEntity ?? split?.total;
     if (total === undefined) return nothing;

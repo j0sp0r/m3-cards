@@ -24,6 +24,7 @@ import {
 import {
   DEFAULT_NR_RSRP_THRESHOLDS,
   DEFAULT_RSRP_THRESHOLDS,
+  DEFAULT_OPTICAL_RX_THRESHOLDS,
   DEFAULT_RSRQ_THRESHOLDS,
   DEFAULT_SNR_THRESHOLDS,
   discoverRouterEntities,
@@ -98,6 +99,8 @@ export class M3RouterCardEditor extends LitElement implements LovelaceCardEditor
       { name: "snr_entity", selector: { entity: { domain: "sensor" } } },
       { name: "nr_rsrp_entity", selector: { entity: { domain: "sensor" } } },
       { name: "nr_snr_entity", selector: { entity: { domain: "sensor" } } },
+      { name: "optical_rx_entity", selector: { entity: { domain: "sensor" } } },
+      { name: "optical_tx_entity", selector: { entity: { domain: "sensor" } } },
       { name: "band_entity", selector: { entity: { domain: "sensor" } } },
       { name: "nr_band_entity", selector: { entity: { domain: "sensor" } } },
       { name: "cell_id_entity", selector: { entity: { domain: "sensor" } } },
@@ -146,6 +149,8 @@ export class M3RouterCardEditor extends LitElement implements LovelaceCardEditor
       rssi_entity: "editor_router_rssi_entity",
       nr_rsrp_entity: "editor_router_nr_rsrp_entity",
       nr_snr_entity: "editor_router_nr_snr_entity",
+      optical_rx_entity: "editor_router_optical_rx_entity",
+      optical_tx_entity: "editor_router_optical_tx_entity",
       band_entity: "editor_router_band_entity",
       nr_band_entity: "editor_router_nr_band_entity",
       cell_id_entity: "editor_router_cell_id_entity",
@@ -204,7 +209,7 @@ export class M3RouterCardEditor extends LitElement implements LovelaceCardEditor
    */
   private _thresholdRow(
     label: string,
-    field: "rsrp_thresholds" | "nr_rsrp_thresholds" | "snr_thresholds" | "rsrq_thresholds",
+    field: "rsrp_thresholds" | "nr_rsrp_thresholds" | "snr_thresholds" | "rsrq_thresholds" | "optical_rx_thresholds",
     fallback: RouterThresholdConfig[],
   ) {
     const current = this._config?.[field]?.length ? this._config[field]! : fallback;
@@ -224,7 +229,7 @@ export class M3RouterCardEditor extends LitElement implements LovelaceCardEditor
   }
 
   private _thresholdsChanged(
-    field: "rsrp_thresholds" | "nr_rsrp_thresholds" | "snr_thresholds" | "rsrq_thresholds",
+    field: "rsrp_thresholds" | "nr_rsrp_thresholds" | "snr_thresholds" | "rsrq_thresholds" | "optical_rx_thresholds",
     raw: string,
     fallback: RouterThresholdConfig[],
   ): void {
@@ -328,6 +333,8 @@ export class M3RouterCardEditor extends LitElement implements LovelaceCardEditor
       snr_entity: cfg.snr_entity ?? "",
       nr_rsrp_entity: cfg.nr_rsrp_entity ?? "",
       nr_snr_entity: cfg.nr_snr_entity ?? "",
+      optical_rx_entity: cfg.optical_rx_entity ?? "",
+      optical_tx_entity: cfg.optical_tx_entity ?? "",
       band_entity: cfg.band_entity ?? "",
       nr_band_entity: cfg.nr_band_entity ?? "",
       cell_id_entity: cfg.cell_id_entity ?? "",
@@ -389,6 +396,7 @@ export class M3RouterCardEditor extends LitElement implements LovelaceCardEditor
               .computeLabel=${this._computeLabel}
               @value-changed=${this._valueChanged}
             ></ha-form>
+            <div class="hint">${this._t("editor_router_optical_hint")}</div>
           </div>
         </ha-expansion-panel>
 
@@ -442,6 +450,11 @@ export class M3RouterCardEditor extends LitElement implements LovelaceCardEditor
               this._t("editor_router_rsrq_thresholds"),
               "rsrq_thresholds",
               DEFAULT_RSRQ_THRESHOLDS,
+            )}
+            ${this._thresholdRow(
+              this._t("editor_router_optical_thresholds"),
+              "optical_rx_thresholds",
+              DEFAULT_OPTICAL_RX_THRESHOLDS,
             )}
             <div class="hint">${this._t("editor_router_thresholds_hint")}</div>
           </div>

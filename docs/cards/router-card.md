@@ -115,6 +115,71 @@ Every slot can be named outright when the guess is wrong, and a named entity
 always beats a discovered one. `auto_discover: false` turns guessing off
 entirely and draws only what is configured.
 
+### What is actually verified
+
+**One router.** The card was built against a ZTE MC801A and checked on it. The
+patterns for other integrations are written from their published sensor
+definitions and covered by unit tests, which is enough to catch a pattern that
+stops matching and *not* enough to call them supported. If you have one of
+these, the thing worth checking first is that the two throughput tiles show a
+rate and not a monthly total.
+
+| Source | Signal | Throughput | Volume |
+| --- | --- | --- | --- |
+| ZTE (REST/pyscript) | LTE + NR, verified | verified | verified |
+| Huawei LTE | RSRP/RSRQ/SINR/RSSI/band/cell | `current_*_rate` | `current_month_*`, in bytes |
+| AVM Fritz!Box | none — no radio values | `*_throughput` | `gb_received` / `gb_sent` |
+| Fibre / ONT | optical RX, graded as a window | whatever it publishes | if it publishes one |
+
+Two traps the tests exist for, both found by writing them:
+
+- A Huawei publishes `current_month_download` **and** `current_download_rate`,
+  and both end in a word a rate pattern wants. Claimed the wrong way round, the
+  card showed 580 GB as a live throughput. Volumes are therefore matched before
+  rates.
+- A Fritzbox publishes `download_throughput` (what is flowing) **and**
+  `max_connection_download_rate` (what the line synced at). The second is
+  excluded by name, because putting a sync rate in the live tile is a
+  plausible-looking lie.
+
+### Fibre lines
+
+A fibre router has no RSRP. What it has is **optical receive power**, and the
+card grades that instead whenever no radio value is present at all.
+
+It needs its own scale, because optical power is a **window, not a ramp**. An
+ONT is specified from roughly −28 dBm, below which there is nothing left to
+detect, up to roughly −8 dBm, above which the receiver saturates and the error
+rate climbs again. "More signal is better" is true for RSRP and false here, so a
+fibre line graded on the LTE ramp would call a dangerously hot one perfect — and
+send whoever reads it looking in the wrong place, since the fix for that is an
+attenuator.
+
+```yaml
+type: custom:m3-router-card
+optical_rx_entity: sensor.ont_rx_power
+optical_tx_entity: sensor.ont_tx_power
+optical_rx_max: -8
+```
+
+The transmit level sits beside it as a chip. Both are discovered from the usual
+names — `rx_power`, `optical_rx_power`, `ont_rx_power`, `optical_signal_level`
+and their transmit counterparts.
+
+**DSL is not covered.** SNR margin, line attenuation and sync rate are the
+equivalent numbers there, and the Fritzbox integration does not expose them
+without a custom TR-064 setup. Point `rsrp_entity` and `snr_entity` at whatever
+your setup does publish and set `*_thresholds` to that line's own figures; the
+grading machinery does not care what produced the number.
+
+### Volumes are read in whatever unit they arrive in
+
+The ZTE app divides into GB, a Fritzbox reports GB, a Huawei reports raw
+**bytes**. The card reads the unit off each sensor, so the same configuration
+does not show "414,6 GB" for one and "414.600.000.000 GB" for the next. Binary
+units are honoured as binary: GiB is 2³⁰, not 10⁹, which is a 7% difference —
+more than enough to put a tariff warning on the wrong side of the line.
+
 ## Options
 
 | Option | Type | Default | Description |
@@ -126,6 +191,7 @@ entirely and draws only what is configured.
 | `icon` | string | `mdi:router-wireless` | Overrides the header icon. Becomes `router-wireless-off` when the link is down. |
 | `rsrp_entity`, `rsrq_entity`, `snr_entity`, `rssi_entity` | string | discovered | The LTE radio. |
 | `nr_rsrp_entity`, `nr_snr_entity` | string | discovered | The 5G radio. |
+| `optical_rx_entity`, `optical_tx_entity` | string | discovered | A fibre line's optical power, used when there is no radio value at all. |
 | `band_entity`, `nr_band_entity`, `cell_id_entity`, `network_type_entity` | string | discovered | What the subtitle and the cell chip read. |
 | `download_entity`, `upload_entity` | string | discovered | Throughput. The unit is read off the entity. |
 | `data_down_entity`, `data_up_entity`, `data_total_entity` | string | discovered | Monthly volume, in GB. |
@@ -138,7 +204,8 @@ entirely and draws only what is configured.
 | `peak_chip` | boolean | `false` | The highest rate seen since the card loaded. |
 | `spark_points` | number | `40` | How many readings the line keeps. |
 | `spark_history_minutes` | number | `60` | How far back the first render prefills from the recorder. |
-| `rsrp_thresholds`, `nr_rsrp_thresholds`, `snr_thresholds`, `rsrq_thresholds` | list | see above | Each entry takes `min` and `grade`. |
+| `rsrp_thresholds`, `nr_rsrp_thresholds`, `snr_thresholds`, `rsrq_thresholds`, `optical_rx_thresholds` | list | see above | Each entry takes `min` and `grade`. |
+| `optical_rx_max` | number | `-8` | Above this the optical receiver is overdriven and the reading is graded as a fault, not as a perfect signal. |
 | `data_limit` | number | — | A tariff allowance in GB; turns the volume bar into a budget. |
 | `value_map` | map | — | Raw state → label, applied before the built-in vocabulary table. |
 | `tap_action` | action | `more-info` | What a tap on the header does. |

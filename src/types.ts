@@ -3055,6 +3055,9 @@ export interface RouterEntityOverrides {
   /** The 5G radio, shown as a second signal row when it reports. */
   nr_rsrp_entity?: string;
   nr_snr_entity?: string;
+  /** A fibre line's optical power, used when there is no radio at all. */
+  optical_rx_entity?: string;
+  optical_tx_entity?: string;
 
   band_entity?: string;
   nr_band_entity?: string;
@@ -3109,6 +3112,9 @@ export interface M3RouterCardConfig extends RouterEntityOverrides, NotifyConfigB
   nr_rsrp_thresholds?: RouterThresholdConfig[];
   snr_thresholds?: RouterThresholdConfig[];
   rsrq_thresholds?: RouterThresholdConfig[];
+  optical_rx_thresholds?: RouterThresholdConfig[];
+  /** Above this the optical receiver is overdriven; see shared/router.ts. */
+  optical_rx_max?: number;
 
   /** A tariff allowance in GB; turns the volume bar into a budget. */
   data_limit?: number;

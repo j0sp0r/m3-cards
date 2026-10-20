@@ -20,6 +20,9 @@ import {
   gradeTemp,
   throttleStateOf,
   discoverRouterEntities,
+  DEFAULT_OPTICAL_RX_THRESHOLDS,
+  gradeOptical,
+  toGigabytes,
   discoverTemperatureEntities,
   discoverThrottleEntities,
   guessRouterPrefix,
@@ -367,18 +370,118 @@ describe("discoverRouterEntities against the real ZTE set", () => {
   });
 });
 
-describe("discoverRouterEntities without a prefix", () => {
-  it("still fills the slots for a Fritzbox-shaped set", () => {
-    const fritz = [
-      "binary_sensor.fritzbox_7590_connection",
-      "sensor.fritzbox_7590_downstream_current",
-      "sensor.fritzbox_7590_upstream_current",
-      "sensor.fritzbox_7590_uptime",
-    ];
-    const f = discoverRouterEntities(fritz);
+// These are the entity ids the integrations are *expected* to publish, written
+// from their sensor definitions rather than read off live hardware. They catch
+// a pattern that stops matching; they are not a substitute for someone with
+// that router actually looking at the card.
+describe("other routers", () => {
+  const FRITZ = [
+    "binary_sensor.fritzbox_7590_connection",
+    "sensor.fritzbox_7590_download_throughput",
+    "sensor.fritzbox_7590_upload_throughput",
+    "sensor.fritzbox_7590_max_connection_download_rate",
+    "sensor.fritzbox_7590_max_connection_upload_rate",
+    "sensor.fritzbox_7590_gb_received",
+    "sensor.fritzbox_7590_gb_sent",
+    "sensor.fritzbox_7590_external_ip",
+    "sensor.fritzbox_7590_connection_uptime",
+  ];
+
+  const HUAWEI = [
+    "binary_sensor.lte_mobile_connection",
+    "sensor.lte_rsrp", "sensor.lte_rsrq", "sensor.lte_rssi", "sensor.lte_sinr",
+    "sensor.lte_band", "sensor.lte_cell_id",
+    "sensor.lte_current_download_rate", "sensor.lte_current_upload_rate",
+    "sensor.lte_current_month_download", "sensor.lte_current_month_upload",
+    "sensor.lte_operator_name", "sensor.lte_uptime",
+  ];
+
+  const FIBRE = [
+    "binary_sensor.ont_connection",
+    "sensor.ont_rx_power",
+    "sensor.ont_tx_power",
+    "sensor.ont_download_rate",
+    "sensor.ont_upload_rate",
+    "sensor.ont_uptime",
+  ];
+
+  it("takes the Fritzbox's live throughput, not its line sync rate", () => {
+    const f = discoverRouterEntities(FRITZ);
+    expect(f.download).toBe("sensor.fritzbox_7590_download_throughput");
+    expect(f.upload).toBe("sensor.fritzbox_7590_upload_throughput");
+    expect(Object.values(f)).not.toContain("sensor.fritzbox_7590_max_connection_download_rate");
+  });
+
+  it("finds the Fritzbox's data volume", () => {
+    const f = discoverRouterEntities(FRITZ);
+    expect(f.data_down).toBe("sensor.fritzbox_7590_gb_received");
+    expect(f.data_up).toBe("sensor.fritzbox_7590_gb_sent");
     expect(f.connection).toBe("binary_sensor.fritzbox_7590_connection");
-    expect(f.download).toBe("sensor.fritzbox_7590_downstream_current");
-    expect(f.upload).toBe("sensor.fritzbox_7590_upstream_current");
-    expect(f.uptime).toBe("sensor.fritzbox_7590_uptime");
+    expect(f.uptime).toBe("sensor.fritzbox_7590_connection_uptime");
+  });
+
+  it("does not mistake a Huawei monthly total for a live rate", () => {
+    const f = discoverRouterEntities(HUAWEI);
+    expect(f.download).toBe("sensor.lte_current_download_rate");
+    expect(f.upload).toBe("sensor.lte_current_upload_rate");
+    expect(f.data_down).toBe("sensor.lte_current_month_download");
+    expect(f.data_up).toBe("sensor.lte_current_month_upload");
+  });
+
+  it("fills the Huawei radio slots", () => {
+    const f = discoverRouterEntities(HUAWEI);
+    expect(f.rsrp).toBe("sensor.lte_rsrp");
+    expect(f.snr).toBe("sensor.lte_sinr");
+    expect(f.rssi).toBe("sensor.lte_rssi");
+    expect(f.band).toBe("sensor.lte_band");
+    expect(f.connection).toBe("binary_sensor.lte_mobile_connection");
+  });
+
+  it("finds a fibre line's optical power", () => {
+    const f = discoverRouterEntities(FIBRE);
+    expect(f.optical_rx).toBe("sensor.ont_rx_power");
+    expect(f.optical_tx).toBe("sensor.ont_tx_power");
+    expect(f.download).toBe("sensor.ont_download_rate");
+    expect(f.rsrp).toBeUndefined();
+  });
+});
+
+describe("gradeOptical", () => {
+  it("grades a normal GPON receive level", () => {
+    expect(gradeOptical(-18)).toBe("excellent");
+    expect(gradeOptical(-22)).toBe("good");
+    expect(gradeOptical(-26)).toBe("fair");
+    expect(gradeOptical(-30)).toBe("bad");
+  });
+
+  it("calls an overdriven receiver a fault, not a perfect signal", () => {
+    // The whole reason optics cannot reuse the RSRP ramp.
+    expect(gradeBy(-3, DEFAULT_OPTICAL_RX_THRESHOLDS)).toBe("excellent");
+    expect(gradeOptical(-3)).toBe("bad");
+  });
+
+  it("treats the limit itself as still in range", () => {
+    expect(gradeOptical(-8)).toBe("excellent");
+    expect(gradeOptical(-7.9)).toBe("bad");
+  });
+});
+
+describe("toGigabytes", () => {
+  it("reads raw bytes, as a Huawei reports them", () => {
+    expect(toGigabytes(414_600_000_000, "B")).toBeCloseTo(414.6);
+  });
+
+  it("leaves gigabytes alone, as a Fritzbox and the ZTE app report them", () => {
+    expect(toGigabytes(414.6, "GB")).toBeCloseTo(414.6);
+    expect(toGigabytes(414.6, undefined)).toBeCloseTo(414.6);
+  });
+
+  it("treats binary units as binary", () => {
+    expect(toGigabytes(1, "GiB")).toBeCloseTo(1.0737, 3);
+    expect(toGigabytes(1, "TiB")).toBeCloseTo(1099.5, 1);
+  });
+
+  it("does not scale by a guess for an unknown unit", () => {
+    expect(toGigabytes(42, "widgets")).toBe(42);
   });
 });

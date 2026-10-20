@@ -73,6 +73,46 @@ export const DEFAULT_SNR_THRESHOLDS: Threshold[] = [
   { min: -5, grade: "weak" },
 ];
 
+/**
+ * Optical receive power on a fibre line (GPON/EPON/SFP), in dBm.
+ *
+ * Unlike every radio value, this is a **window, not a ramp**. An ONT is
+ * specified from about −28 dBm (nothing left to detect) up to about −8 dBm,
+ * above which the receiver saturates and the error rate climbs again. "More
+ * signal is better" is true for RSRP and false here, so a fibre line graded on
+ * the LTE scale would call a dangerously hot one perfect.
+ *
+ * These bounds are the common Class B+ figures. An operator who specifies
+ * something else overrides them like any other scale.
+ */
+export const DEFAULT_OPTICAL_RX_THRESHOLDS: Threshold[] = [
+  { min: -20, grade: "excellent" },
+  { min: -24, grade: "good" },
+  { min: -27, grade: "fair" },
+  { min: -28, grade: "weak" },
+];
+
+/** Above this the receiver is overdriven, and more is worse, not better. */
+export const OPTICAL_RX_MAX_DBM = -8;
+
+/**
+ * Grades optical power, respecting the upper limit the ramp cannot express.
+ *
+ * Anything hotter than `max` is reported as the worst step rather than the
+ * best: a saturated receiver is a fault, and it is one a technician fixes with
+ * an attenuator, so saying "excellent" would send someone looking in the wrong
+ * place entirely.
+ */
+export function gradeOptical(
+  dbm: number,
+  thresholds: Threshold[] = DEFAULT_OPTICAL_RX_THRESHOLDS,
+  max: number = OPTICAL_RX_MAX_DBM,
+): SignalGrade {
+  if (!Number.isFinite(dbm)) return "bad";
+  if (dbm > max) return "bad";
+  return gradeBy(dbm, thresholds);
+}
+
 /** RSRQ, in dB — quality rather than strength, so a much narrower range. */
 export const DEFAULT_RSRQ_THRESHOLDS: Threshold[] = [
   { min: -10, grade: "excellent" },
@@ -191,6 +231,32 @@ export function formatGigabytes(language: string, gb: number, decimals = 1): str
     minimumFractionDigits: digits,
     maximumFractionDigits: digits,
   })} ${unit}`;
+}
+
+/**
+ * Reads a volume sensor into gigabytes, whatever unit it publishes.
+ *
+ * The ZTE app this was built against already divides into GB; a Huawei
+ * publishes raw **bytes** and a Fritzbox publishes GB, so the same card would
+ * otherwise show "414,6 GB" for one and "414.600.000.000 GB" for the next.
+ *
+ * Binary units are honoured as binary: GiB is 2^30, not 10^9. The difference
+ * is 7% at this magnitude, which is more than enough to put a tariff warning
+ * on the wrong side of the line.
+ */
+export function toGigabytes(value: number, unit: string | undefined): number {
+  const u = (unit ?? "").trim().toLowerCase();
+  const table: Record<string, number> = {
+    b: 1e-9, byte: 1e-9, bytes: 1e-9,
+    kb: 1e-6, mb: 1e-3, gb: 1, tb: 1e3, pb: 1e6,
+    kib: 1024 / 1e9,
+    mib: 1024 ** 2 / 1e9,
+    gib: 1024 ** 3 / 1e9,
+    tib: 1024 ** 4 / 1e9,
+  };
+  // An unknown or missing unit is taken as GB: that is what every sensor this
+  // card was written for reports, and scaling by a guess would be worse.
+  return value * (table[u] ?? 1);
 }
 
 export interface VolumeSplit {
@@ -367,12 +433,22 @@ export function throttleStateOf(
 export interface DiscoverySlot {
   key: RouterSlot;
   patterns: RegExp[];
+  /**
+   * Ids this slot must never claim, however well they match.
+   *
+   * A Fritzbox publishes both `download_throughput` (what is flowing now) and
+   * `max_connection_download_rate` (what the line synced at). Both end in
+   * something a rate pattern wants, and putting the line rate in the live
+   * throughput tile is a plausible-looking lie.
+   */
+  exclude?: RegExp;
 }
 
 export type RouterSlot =
   | "connection"
   | "rsrp" | "rsrq" | "snr" | "rssi"
   | "nr_rsrp" | "nr_snr"
+  | "optical_rx" | "optical_tx"
   | "band" | "nr_band" | "cell_id" | "pci" | "nr_pci" | "network_type" | "carrier_aggregation"
   | "download" | "upload"
   | "data_down" | "data_up" | "data_total"
@@ -394,15 +470,73 @@ export const DISCOVERY_SLOTS: DiscoverySlot[] = [
   { key: "snr", patterns: [/(?:^|_)(?:lte_)?(?:sinr|snr)$/] },
   { key: "rssi", patterns: [/(?:^|_)(?:lte_)?rssi$/] },
   { key: "pci", patterns: [/(?:^|_)(?:lte_)?pci$/] },
+  {
+    key: "optical_rx",
+    patterns: [
+      /(?:^|_)(?:optical_|ont_|gpon_|sfp_)?rx_power$/,
+      /(?:^|_)optical_(?:signal_level|rx)$/,
+      /(?:^|_)receive(?:d)?_power$/,
+    ],
+  },
+  {
+    key: "optical_tx",
+    patterns: [
+      /(?:^|_)(?:optical_|ont_|gpon_|sfp_)?tx_power$/,
+      /(?:^|_)optical_tx$/,
+      /(?:^|_)transmit_power$/,
+    ],
+  },
   { key: "cell_id", patterns: [/(?:^|_)cell_?id$/, /(?:^|_)enb_?id$/] },
   { key: "carrier_aggregation", patterns: [/(?:^|_)(?:wan_)?lte_ca$/, /(?:^|_)carrier_aggregation$/] },
   { key: "band", patterns: [/(?:^|_)(?:wan_)?(?:active_)?band$/, /(?:^|_)lte_band$/] },
   { key: "network_type", patterns: [/(?:^|_)network_type$/, /(?:^|_)(?:ppp|modem(?:_main)?)_(?:status|state)$/] },
-  { key: "download", patterns: [/(?:^|_)(?:download|rx)_(?:bps|bits|throughput|thrpt)$/, /(?:^|_)downstream_current$/, /(?:^|_)download$/] },
-  { key: "upload", patterns: [/(?:^|_)(?:upload|tx)_(?:bps|bits|throughput|thrpt)$/, /(?:^|_)upstream_current$/, /(?:^|_)upload$/] },
-  { key: "data_total", patterns: [/(?:^|_)monthly_total(?:_gb)?$/, /(?:^|_)data_total$/] },
-  { key: "data_down", patterns: [/(?:^|_)monthly_rx(?:_gb)?$/, /(?:^|_)data_(?:down|rx)$/] },
-  { key: "data_up", patterns: [/(?:^|_)monthly_tx(?:_gb)?$/, /(?:^|_)data_(?:up|tx)$/] },
+
+  // Volumes are claimed **before** rates, deliberately. A Huawei publishes
+  // `current_month_download` (a monthly total, in bytes) alongside
+  // `current_download_rate`, and both end in a word the rate patterns want.
+  // Claimed the other way round, the card showed 580 GB as a live throughput.
+  { key: "data_total", patterns: [/(?:^|_)monthly_total(?:_gb)?$/, /(?:^|_)(?:data|month(?:ly)?)_total$/, /(?:^|_)total_(?:traffic|data|usage)$/] },
+  {
+    key: "data_down",
+    patterns: [
+      /(?:^|_)monthly_rx(?:_gb)?$/,
+      /(?:^|_)data_(?:down|rx)$/,
+      /(?:^|_)(?:current_)?month(?:ly)?_(?:download|rx|received)$/,
+      /(?:^|_)gb_received$/,
+      /(?:^|_)total_(?:download|rx|received)$/,
+    ],
+  },
+  {
+    key: "data_up",
+    patterns: [
+      /(?:^|_)monthly_tx(?:_gb)?$/,
+      /(?:^|_)data_(?:up|tx)$/,
+      /(?:^|_)(?:current_)?month(?:ly)?_(?:upload|tx|sent)$/,
+      /(?:^|_)gb_sent$/,
+      /(?:^|_)total_(?:upload|tx|sent)$/,
+    ],
+  },
+
+  {
+    key: "download",
+    patterns: [
+      /(?:^|_)(?:download|rx|downstream)_(?:bps|bits|throughput|thrpt|rate|speed)$/,
+      /(?:^|_)(?:downstream|download)_current$/,
+      /(?:^|_)current_download(?:_rate)?$/,
+      /(?:^|_)download$/,
+    ],
+    exclude: /(?:^|_)max_/,
+  },
+  {
+    key: "upload",
+    patterns: [
+      /(?:^|_)(?:upload|tx|upstream)_(?:bps|bits|throughput|thrpt|rate|speed)$/,
+      /(?:^|_)(?:upstream|upload)_current$/,
+      /(?:^|_)current_upload(?:_rate)?$/,
+      /(?:^|_)upload$/,
+    ],
+    exclude: /(?:^|_)max_/,
+  },
   { key: "operator", patterns: [/(?:^|_)(?:operator|provider|network_name)$/] },
   { key: "sim", patterns: [/(?:^|_)sim(?:_status|_state)?$/] },
   { key: "uptime", patterns: [/(?:^|_)uptime$/] },
@@ -465,6 +599,7 @@ export function discoverRouterEntities(
         if (claimed.has(id)) return false;
         const object = id.slice(id.indexOf(".") + 1);
         const tail = prefix && object.startsWith(`${prefix}_`) ? object.slice(prefix.length) : object;
+        if (slot.exclude?.test(tail) || slot.exclude?.test(object)) return false;
         return pattern.test(tail) || pattern.test(object);
       });
       if (hit) {
