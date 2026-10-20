@@ -209,10 +209,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Security
 
-Three findings from the HACS store review (thanks **@frenck**). None was
-exploitable by a card's own author — they all need a value the person
-configuring the card does not control, which on a shared instance is exactly
-the point.
+Three findings from the HACS store review (thanks **@frenck**), and a fourth
+that following his reasoning turned up. None was exploitable by a card's own
+author — they all need a value the person configuring the card does not
+control, which on a shared instance is exactly the point.
 
 - **A `url` action only opens http(s) now.** `window.open` was handed
   `url_path` unchecked, and it runs a `javascript:` target in the page's own
@@ -231,6 +231,17 @@ the point.
   have, so the artwork falls back to its note and an avatar to its initials
   rather than leaving an empty box — the artwork-colour sampler goes through
   the same check instead of sniffing the value with `startsWith("http")`.
+- **A config colour is checked before it reaches a style.** The review raised
+  templating for the `url` action: a card renders Jinja2 in *any* string it
+  reads out of its config, so the value can be an entity's state. That is
+  equally true of the sixty-odd colour options, which were spliced into inline
+  styles as written. What such a value can do is narrower than it looks — a
+  `style` attribute holds a declaration list, not rules, so it cannot reach
+  another element — but it can append declarations to the one it is on, which
+  is enough to lay that element over the viewport or to fire a request through
+  `url()`. Both chokepoints now check: `resolveThemeColor` treats a value that
+  cannot be a colour as an unset option, and `buildCssVars`, which writes the
+  semicolons itself, drops an entry rather than write one carrying its own.
 - **The notification editor only adopts automation ids it minted.** A stored
   `notify_automation_id` was reused on trust, so a card config pasted from
   somewhere else could point at any automation on the instance and have the

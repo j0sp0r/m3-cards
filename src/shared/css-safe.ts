@@ -55,3 +55,52 @@ export function cssUrl(raw: string | null | undefined, base?: string): string | 
 export function cssIdent(raw: string | undefined): string {
   return (raw ?? "").toLowerCase().replace(/[^a-z0-9_]/g, "");
 }
+
+// Functions that make the browser fetch something. None of them belongs in a
+// colour or a size, and all of them turn a style into an outbound request —
+// which is what makes a crafted value worth crafting.
+const RESOURCE_FUNCTION = /(?:^|[^\w-])(?:-webkit-|-moz-)?(?:url|src|image|image-set|cross-fade|element|paint)\s*\(/i;
+
+// The characters that let a value stop being a value. A semicolon ends the
+// declaration and starts the next one, which is the whole attack; braces and
+// comments are the shapes an escape attempt takes; a backslash hides any of
+// them from a plain reading; and `!important` is how a value that cannot add
+// a declaration overrides one instead.
+const STRUCTURAL = /[;{}!\\<>]|\/\*|\*\//;
+
+/** Longer than any colour, size or gradient this suite writes. */
+const MAX_VALUE_LENGTH = 400;
+
+/**
+ * A value fit to splice into a CSS declaration, or undefined when it is not.
+ *
+ * The reason this is needed on config values and not only on entity state:
+ * `shared/templated-card.ts` renders Jinja2 in *any* string a card reads out
+ * of its config, so `color: "{{ states('sensor.x') }}"` is a colour whoever
+ * writes that entity controls. The HACS review raised this for the URL action;
+ * it is equally true of the sixty-odd colour options.
+ *
+ * What an injected value can actually do is narrower than it looks, and the
+ * limit is worth knowing. A `style` attribute holds a declaration list, not
+ * rules — measured, not assumed: `red; } .victim { display: none` changes
+ * nothing, because there is no rule to close. What does work is appending
+ * declarations to the element carrying the style, which is enough to lay it
+ * over the whole viewport or to fire a request through `url()`. Hence these
+ * two rules and nothing more elaborate: no function whitelist, because
+ * `calc()`, `min()`, `clamp()`, `var()` and `color-mix()` all have to keep
+ * working, and the blacklist is what the attack actually needs.
+ */
+export function cssValue(raw: string | null | undefined): string | undefined {
+  if (raw === null || raw === undefined) return undefined;
+  const value = String(raw).trim();
+  if (!value || value.length > MAX_VALUE_LENGTH) return undefined;
+  if (STRUCTURAL.test(value) || RESOURCE_FUNCTION.test(value)) return undefined;
+  // Unbalanced parentheses mean the value is relying on something after it to
+  // close them, which a well-formed one never does.
+  let depth = 0;
+  for (const c of value) {
+    if (c === "(") depth++;
+    else if (c === ")" && --depth < 0) return undefined;
+  }
+  return depth === 0 ? value : undefined;
+}

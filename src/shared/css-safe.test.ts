@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { cssIdent, cssUrl, safeImageUrl } from "./css-safe";
+import { cssIdent, cssUrl, cssValue, safeImageUrl } from "./css-safe";
+import { buildCssVars, resolveThemeColor } from "./color-config";
 
 /**
  * Values from Home Assistant that end up inside a `style` attribute. An
@@ -75,5 +76,99 @@ describe("safeImageUrl", () => {
     // `startsWith("http")` used to pass this.
     expect(safeImageUrl("httpfoo://example.com/a.jpg", BASE)).toBeUndefined();
     expect(safeImageUrl("https://example.com/a.jpg", BASE)).toBe("https://example.com/a.jpg");
+  });
+});
+
+describe("cssValue", () => {
+  it("passes every colour shape the options document", () => {
+    for (const good of [
+      "red",
+      "currentColor",
+      "transparent",
+      "#fff",
+      "#1c1c1c",
+      "#aabbccdd",
+      "rgb(0, 0, 0)",
+      "rgba(0,0,0,.5)",
+      "hsl(210 50% 40%)",
+      "var(--primary-color)",
+      "var(--state-light-on-color, var(--primary-color))",
+      "color-mix(in srgb, var(--x) 20%, var(--ha-card-background, #111))",
+      "light-dark(#fff, #000)",
+    ]) {
+      expect(cssValue(good), good).toBe(good);
+    }
+  });
+
+  it("passes the non-colour values buildCssVars also carries", () => {
+    for (const good of ["12px", "min(56px, 78cqh)", "calc(100% - 16px)", "0.5", "300ms"]) {
+      expect(cssValue(good), good).toBe(good);
+    }
+  });
+
+  it("refuses a value that ends its own declaration", () => {
+    // The whole attack: a config colour is templatable, so this can be an
+    // entity's state. Raised by following the HACS review's own reasoning
+    // past the three values it named.
+    expect(cssValue("red; position: fixed; top: 0; width: 100vw; height: 100vh")).toBeUndefined();
+    expect(cssValue("red;")).toBeUndefined();
+  });
+
+  it("refuses anything that would fetch", () => {
+    expect(cssValue("url(https://example.invalid/leak)")).toBeUndefined();
+    expect(cssValue("image-set(https://example.invalid/a 1x)")).toBeUndefined();
+    expect(cssValue("-webkit-image-set(https://example.invalid/a 1x)")).toBeUndefined();
+    // A colour that merely spells one of those inside a word is not a call.
+    expect(cssValue("burlywood")).toBe("burlywood");
+  });
+
+  it("refuses the shapes an escape attempt takes", () => {
+    expect(cssValue("red; } .victim { display: none")).toBeUndefined();
+    expect(cssValue("red !important")).toBeUndefined();
+    expect(cssValue("red /* hidden */")).toBeUndefined();
+    expect(cssValue("\\72 ed")).toBeUndefined();
+  });
+
+  it("refuses a value leaning on what comes after it to close", () => {
+    expect(cssValue("var(--x")).toBeUndefined();
+    expect(cssValue("rgb(0,0,0))")).toBeUndefined();
+  });
+
+  it("survives nothing at all", () => {
+    expect(cssValue(undefined)).toBeUndefined();
+    expect(cssValue(null)).toBeUndefined();
+    expect(cssValue("   ")).toBeUndefined();
+    expect(cssValue("#fff".padEnd(500, "0"))).toBeUndefined();
+  });
+});
+
+describe("the chokepoints that use it", () => {
+  it("resolveThemeColor still answers a curated token and an honest colour", () => {
+    expect(resolveThemeColor("#ff0000")).toBe("#ff0000");
+    expect(resolveThemeColor("var(--primary-color)")).toBe("var(--primary-color)");
+    // A name from the curated list maps to its hex rather than passing through.
+    expect(resolveThemeColor("red")).not.toBe("");
+  });
+
+  it("resolveThemeColor treats an impossible colour as an unset option", () => {
+    expect(resolveThemeColor("red; position: fixed; z-index: 9999")).toBe("var(--primary-color)");
+  });
+
+  it("resolveThemeColor leaves an emptied field empty", () => {
+    // Clearing a colour in the editor asks for nothing, not for the accent.
+    expect(resolveThemeColor("")).toBe("");
+    expect(resolveThemeColor("   ")).toBe("   ");
+  });
+
+  it("buildCssVars drops a poisoned entry and keeps its neighbours", () => {
+    const out = buildCssVars({
+      "m3-good": "#ff0000",
+      "m3-bad": "red; position: fixed; top: 0",
+      "m3-also-good": "var(--primary-color)",
+    });
+    expect(out).toContain("--m3-good: #ff0000;");
+    expect(out).toContain("--m3-also-good: var(--primary-color);");
+    expect(out).not.toContain("m3-bad");
+    expect(out).not.toContain("position: fixed");
   });
 });

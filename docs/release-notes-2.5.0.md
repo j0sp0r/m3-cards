@@ -150,9 +150,10 @@ adapt to a narrow *card* rather than a narrow screen keep their wide form.
 
 ## Security
 
-Three findings from the HACS store review — thank you, **@frenck**. None was
-exploitable by the person writing the card; they all turn on a value that
-person does not control, which on a shared instance is the point.
+Three findings from the HACS store review — thank you, **@frenck** — and a
+fourth that his own reasoning led to. None was exploitable by the person
+writing the card; they all turn on a value that person does not control, which
+on a shared instance is the point.
 
 - A `url` action was handed to `window.open` unchecked, and `window.open` runs
   a `javascript:` target in the page's own context with the user's session.
@@ -164,6 +165,15 @@ person does not control, which on a shared instance is the point.
   *name*. A crafted value could close the declaration and add rules of its own.
   URLs now go through a checked, escaped `url("…")`, and anything reaching a
   property name is reduced to `[a-z0-9_]`.
+- The review made its case about the `url` action by pointing out that a card
+  renders templates anywhere in its config, so the value can come from an
+  entity. That argument does not stop at one option: the same is true of every
+  colour a card takes, and those went into inline styles as written. The limit
+  is worth stating, because it is narrower than "CSS injection" sounds — a
+  `style` attribute is a declaration list with no rule to escape, so no other
+  element can be touched. What a crafted value *can* do is add declarations to
+  the element it is on: cover the viewport with it, or make it fetch something.
+  Colours are now checked where they are resolved and where they are assembled.
 - A stored `notify_automation_id` was reused on trust, so a card config pasted
   from somewhere else could name any automation on the instance and have the
   editor overwrite it on save. It is reused only when it matches the shape this

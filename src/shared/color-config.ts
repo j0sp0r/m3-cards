@@ -10,12 +10,26 @@ import {
 } from "./contrast";
 import type { Rgb } from "./contrast";
 import { CARD_SURFACE_CSS, SUPPORTS_COLOR_MIX } from "./css-support";
+import { cssValue } from "./css-safe";
 
 // Resolves a config color value against the curated HA/tile-card token list
 // (e.g. "red", "primary"); anything not found is used verbatim as a CSS
 // color (hex, rgb(), var(...), color-mix(...), ...).
 export function resolveThemeColor(value: string): string {
-  return THEME_COLOR_TOKENS[value] ?? value;
+  const token = THEME_COLOR_TOKENS[value];
+  if (token) return token;
+  // An emptied field is an unset option, not a rejected one: it has always
+  // produced an invalid declaration that the browser drops, and answering the
+  // accent instead would paint something where clearing the field asked for
+  // nothing.
+  if (!value.trim()) return value;
+  // Anything not in the curated list is used as written — which is the point
+  // of the option, and the reason it has to be checked. A config string is
+  // not the author's text: templated-card.ts renders Jinja2 in any string a
+  // card reads, so this can be an entity's state. A value that cannot be one
+  // is treated as if the option were unset rather than silently repaired,
+  // because a half-stripped colour is a bug report nobody can read.
+  return cssValue(value) ?? "var(--primary-color)";
 }
 
 // Formats a `color-mix(...)` background-tint string. `opacityPercent` is the
@@ -150,7 +164,13 @@ export function foregroundVars(
 }
 
 export function buildCssVars(vars: Record<string, string | undefined>): string {
+  // This is where most of the suite's inline styling is assembled, and it
+  // writes the semicolon itself — so a value carrying one of its own would
+  // start a declaration of its own. A value that does not survive the check
+  // is dropped rather than written empty: an unset custom property falls
+  // back to whatever the stylesheet already says, an empty one does not.
   return Object.entries(vars)
+    .map(([k, v]) => [k, cssValue(v)] as const)
     .filter(([, v]) => v !== undefined)
     .map(([k, v]) => `--${k}: ${v};`)
     .join(" ");
