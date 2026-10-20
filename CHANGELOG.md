@@ -16,6 +16,17 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **The cards render on iOS 15.** Safari learned container queries in 16.0,
+  and the button card handed its icon and padding sizes to the stylesheet
+  through custom properties — where a unit the browser does not know cannot
+  be caught by the cascade and falls to `unset` instead. `--mdc-icon-size`
+  landed on `unset`, which on ha-icon's `<svg>` means `width: auto`, which
+  for an SVG with no intrinsic size means 300x150: one icon covered half the
+  screen and the card lost its padding with it. Every container-query value
+  that travels through a custom property is now chosen in script, with a
+  pixel equivalent for browsers without the units. The expressive climate
+  card's hero temperature, which was dropping to the inherited size for the
+  same reason, falls back to a viewport-relative size instead.
 - **The waste card's timeline dots stay inside the timeline.** A collection
   today sat at 0% and one at the far end at 100%, each pulled back by half its
   own width — so both hung half over the edge of the track. They are inset by

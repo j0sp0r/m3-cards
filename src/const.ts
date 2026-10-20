@@ -270,6 +270,26 @@ export const BUTTON_SHAPE_ON_ICON_RADIUS = "28%";
 /** How long a button takes to change between the two shapes. */
 export const BUTTON_SHAPE_MS = 300;
 
+/**
+ * The card height the button card's container-query sizes are tuned for: one
+ * row of the Sections view. Every `cqh` number below is that formula
+ * evaluated at this height, for browsers that have no container-query units
+ * (Safari 15 and older — an iPod touch 7 and an iPad Air 2 both stop at
+ * iOS 15). They land on a correctly proportioned normal-sized card instead
+ * of an unsized one; what they give up is growing with a taller card.
+ */
+export const BUTTON_CQ_BASE_PX = 56;
+/** `min(56px, 78cqh)` at BUTTON_CQ_BASE_PX — the icon well. */
+export const BUTTON_ICON_BOX_PX = Math.min(56, 0.78 * BUTTON_CQ_BASE_PX);
+/** `min(28px, 39cqh)` at BUTTON_CQ_BASE_PX — the glyph inside it. */
+export const BUTTON_ICON_GLYPH_PX = Math.min(28, 0.39 * BUTTON_CQ_BASE_PX);
+/** `min(16px, 11cqh)` at BUTTON_CQ_BASE_PX — the icon's left inset. */
+export const BUTTON_ICON_OFFSET_PX = Math.min(16, 0.11 * BUTTON_CQ_BASE_PX);
+/** `min(12px, 9cqh)` at BUTTON_CQ_BASE_PX — the card's vertical padding. */
+export const BUTTON_PAD_V_PX = Math.min(12, 0.09 * BUTTON_CQ_BASE_PX);
+/** `min(16px, 11cqh)` at BUTTON_CQ_BASE_PX — the card's horizontal padding. */
+export const BUTTON_PAD_H_PX = Math.min(16, 0.11 * BUTTON_CQ_BASE_PX);
+
 export const CLIMATE_RADIUS_PRESETS: Record<string, number> = {
   eckig: 12,
   leicht_rund: 20,

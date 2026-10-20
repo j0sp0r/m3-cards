@@ -82,6 +82,7 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | C19 | `url`-Aktion mit fremdem Schema | `tap_action: {action: url, url_path: "javascript:alert(1)"}` an einer Button- und einer Statuskarte | Tippen tut **nichts** — kein Dialog, kein neuer Tab, kein Fehler in der Konsole. Mit `https://example.com` öffnet es normal |
 | C20 | Bild mit krummem Wert | Entität mit `entity_picture` auf `data:image/svg+xml,<svg onload=alert(1)>` setzen (Dev-Tools → Zustände), Medien- bzw. Anwesenheitskarte ansehen | Es wird **kein** Bild gezeichnet, die Karte fällt auf Icon bzw. Initialen zurück; Layout bleibt heil |
 | C21 | Benachrichtigungs-ID aus fremder Konfiguration | In einer Kartenkonfiguration `notify_automation_id` von Hand auf eine bestehende fremde Automatisierungs-ID setzen, dann im Editor die Benachrichtigung speichern | Die fremde Automatisierung bleibt **unverändert**; die Karte legt sich eine eigene `m3_…`-ID an |
+| C22 | Safari 15 / iOS 15 (ohne Container-Queries) | Dashboard auf einem Gerät öffnen, das auf iOS 15 feststeckt (iPod touch 7, iPad Air 2) — ersatzweise in den Dev-Tools `CSS.supports('width','1cqh')` prüfen | Jede Karte behält Layout, Innenabstand und Icon-Größe. Insbesondere die Button Card: Icon ~44 px, **nicht** bildschirmfüllend; Flächentönungen dürfen blasser ausfallen, Maße nicht |
 
 ## M3 Climate Card
 
@@ -145,6 +146,7 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | `invert_colors` | Aktivieren bei einem `off`-Zustand | Aktiv-/Inaktiv-Farblogik dreht sich sichtbar um |
 | Vertikales Layout | `vertical: true` | Icon über Text statt daneben, zentriert |
 | Nested-ARIA-Grenzfall | Screenreader/Tab-Test bei aktivem `icon_tap_action` | Icon-Bereich ist bewusst *nicht* separat fokussierbar (vermeidet verschachtelte `role="button"`); Haupt-Tap-Ziel bleibt vollständig erreichbar |
+| Icon-Größe ohne Container-Queries | In den Dev-Tools am `ha-card` der Karte `--m3-icon-box` und `--m3-icon-glyph` von Hand auf `min(56px, 78cqh)` bzw. `min(28px, 39cqh)` setzen und einen Browser ohne `cqh` simulieren (oder ein iOS-15-Gerät verwenden) | Icon-Topf und Glyphe behalten ihre Größe; das `<svg>` fällt **nicht** auf seine Standardgröße von 300×150 px zurück |
 
 ## M3 Progress Card
 

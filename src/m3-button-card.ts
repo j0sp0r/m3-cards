@@ -16,6 +16,11 @@ import {
   BUTTON_SHAPE_ON_RADIUS,
   BUTTON_SHAPE_ON_ICON_RADIUS,
   BUTTON_SHAPE_MS,
+  BUTTON_ICON_BOX_PX,
+  BUTTON_ICON_GLYPH_PX,
+  BUTTON_ICON_OFFSET_PX,
+  BUTTON_PAD_V_PX,
+  BUTTON_PAD_H_PX,
   THEME_COLOR_TOKENS,
   STATELESS_DOMAINS,
   ACTIVE_STATES,
@@ -46,6 +51,7 @@ import {
 } from "./shared/chip-buttons";
 import { TapHoldGesture } from "./shared/gestures";
 import { openActionUrl } from "./shared/actions";
+import { SUPPORTS_CONTAINER_UNITS } from "./shared/css-support";
 
 const HOLD_DURATION_MS = 500;
 const DOUBLE_TAP_WINDOW_MS = 250;
@@ -654,12 +660,19 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
       : unavailable
         ? this._t("unavailable")
         : this._formatStateContent(entity);
+    // Every size below rides to the stylesheet inside a custom property, so
+    // a container-query unit a browser does not know cannot be caught by the
+    // cascade — it lands on `unset` instead. See SUPPORTS_CONTAINER_UNITS.
     const iconBoxCss = this._config.icon_size
       ? `${this._config.icon_size}px`
-      : "min(56px, 78cqh)";
+      : SUPPORTS_CONTAINER_UNITS
+        ? "min(56px, 78cqh)"
+        : `${BUTTON_ICON_BOX_PX}px`;
     const iconGlyphCss = this._config.icon_size
       ? `${this._config.icon_size * 0.5}px`
-      : "min(28px, 39cqh)";
+      : SUPPORTS_CONTAINER_UNITS
+        ? "min(28px, 39cqh)"
+        : `${BUTTON_ICON_GLYPH_PX}px`;
     // Fixed value matches the responsive formula (min(16px, 11cqh))
     // evaluated at a single Sections-view row (~56px tall), so a taller
     // aligned card's icon sits at the exact same left inset as a normal
@@ -667,8 +680,16 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
     // position stays centered regardless of align_icons — only horizontal
     // inset is fixed.
     const iconOffsetCss = this._config.align_icons
-      ? "6.16px"
-      : "min(16px, 11cqh)";
+      ? `${BUTTON_ICON_OFFSET_PX}px`
+      : SUPPORTS_CONTAINER_UNITS
+        ? "min(16px, 11cqh)"
+        : `${BUTTON_ICON_OFFSET_PX}px`;
+    // The card's own padding, for the same reason: its container-query form
+    // sits behind var(--m3-group-padding), which the group card may leave
+    // unset, so the fallback has to be one a Safari 15 can actually use.
+    const cardPaddingCss = SUPPORTS_CONTAINER_UNITS
+      ? "min(12px, 9cqh) min(16px, 11cqh) min(12px, 9cqh)"
+      : `${BUTTON_PAD_V_PX}px ${BUTTON_PAD_H_PX}px ${BUTTON_PAD_V_PX}px`;
     // A shape that follows the state says what the colour says, in a second
     // channel — which is the point on a phone's quick settings, where a glance
     // from across the room reads the outline before it reads the tint.
@@ -713,7 +734,7 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
         class=${`${dimUnavailable ? "unavailable" : ""} ${
           shouldAnimate(this._config.animation) ? "" : "no-animations"
         }`}
-        style=${`--m3-btn-color: ${color}; --m3-btn-inactive-color: ${inactiveColor}; --m3-btn-slider-fill-bg: ${sliderFillBg}; --m3-btn-icon-bg-inactive: ${iconBgInactive}; --m3-btn-icon-bg-active: ${iconBgActive}; --m3-btn-icon-bg-active-solid: ${iconBgActiveSolid}; --m3-btn-icon-ink-active: ${iconInkActive}; --m3-btn-icon-ink-inactive: ${iconInkInactive}; --m3-btn-color-fg: ${foregroundColor(this, color)}; --m3-icon-box: ${iconBoxCss}; --m3-icon-glyph: ${iconGlyphCss}; --m3-icon-offset: ${iconOffsetCss}; border-radius: ${radius};`}
+        style=${`--m3-btn-color: ${color}; --m3-btn-inactive-color: ${inactiveColor}; --m3-btn-slider-fill-bg: ${sliderFillBg}; --m3-btn-icon-bg-inactive: ${iconBgInactive}; --m3-btn-icon-bg-active: ${iconBgActive}; --m3-btn-icon-bg-active-solid: ${iconBgActiveSolid}; --m3-btn-icon-ink-active: ${iconInkActive}; --m3-btn-icon-ink-inactive: ${iconInkInactive}; --m3-btn-color-fg: ${foregroundColor(this, color)}; --m3-icon-box: ${iconBoxCss}; --m3-icon-glyph: ${iconGlyphCss}; --m3-icon-offset: ${iconOffsetCss}; --m3-card-padding: ${cardPaddingCss}; border-radius: ${radius};`}
       >
         <div
           class="card-inner ${glassCardClass(this._config.glass_background)} ${sliderInfo ? "sliderable" : ""} ${shouldAnimate(this._config.animation) ? "" : "no-animations"}"
@@ -850,9 +871,17 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
     .card-inner {
       position: relative;
       overflow: hidden;
+      /* Both inner values are set on the host, in pixels wherever
+         container-query units are not available — a cqh unit reaching here
+         through var() could not be caught by the cascade. */
       padding: var(
         --m3-group-padding,
-        min(12px, 9cqh) min(16px, 11cqh) min(12px, 9cqh) var(--m3-icon-offset, min(16px, 11cqh))
+        var(
+            --m3-card-padding,
+            ${unsafeCSS(BUTTON_PAD_V_PX)}px ${unsafeCSS(BUTTON_PAD_H_PX)}px
+              ${unsafeCSS(BUTTON_PAD_V_PX)}px
+          )
+          var(--m3-icon-offset, ${unsafeCSS(BUTTON_ICON_OFFSET_PX)}px)
       );
       cursor: pointer;
       justify-content: center;
@@ -936,8 +965,8 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
     .icon-container {
       flex-shrink: 0;
       align-self: center;
-      width: var(--m3-icon-box, min(56px, 78cqh));
-      height: var(--m3-icon-box, min(56px, 78cqh));
+      width: var(--m3-icon-box, ${unsafeCSS(BUTTON_ICON_BOX_PX)}px);
+      height: var(--m3-icon-box, ${unsafeCSS(BUTTON_ICON_BOX_PX)}px);
       min-width: 24px;
       min-height: 24px;
       border-radius: 50%;
@@ -951,7 +980,7 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
     }
 
     .icon-container ha-icon {
-      --mdc-icon-size: var(--m3-icon-glyph, min(28px, 39cqh));
+      --mdc-icon-size: var(--m3-icon-glyph, ${unsafeCSS(BUTTON_ICON_GLYPH_PX)}px);
     }
 
     .icon-container.active {
@@ -988,8 +1017,8 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
     .icon-bare {
       flex-shrink: 0;
       align-self: center;
-      width: var(--m3-icon-box, min(56px, 78cqh));
-      height: var(--m3-icon-box, min(56px, 78cqh));
+      width: var(--m3-icon-box, ${unsafeCSS(BUTTON_ICON_BOX_PX)}px);
+      height: var(--m3-icon-box, ${unsafeCSS(BUTTON_ICON_BOX_PX)}px);
       min-width: 24px;
       min-height: 24px;
       display: flex;
@@ -1001,7 +1030,7 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
     }
 
     .icon-bare ha-icon {
-      --mdc-icon-size: var(--m3-icon-glyph, min(28px, 39cqh));
+      --mdc-icon-size: var(--m3-icon-glyph, ${unsafeCSS(BUTTON_ICON_GLYPH_PX)}px);
     }
 
     .icon-bare.active {

@@ -167,6 +167,16 @@ export const heroTempStyles = css`
 
   .hero-temp .value {
     display: inline-block;
+    /* The viewport stands in for the card on a browser with no
+       container-query units (Safari 15 and older): this declaration is
+       dropped wholesale there, and the one before it wins. On a phone the
+       card is nearly the full width anyway, so the two agree within a few
+       pixels; on a desktop both land on the maximum. */
+    font-size: clamp(
+      ${unsafeCSS(HERO_TEMP_MIN_PX)}px,
+      ${unsafeCSS(HERO_TEMP_CQW)}vw,
+      ${unsafeCSS(HERO_TEMP_MAX_PX)}px
+    );
     font-size: clamp(
       ${unsafeCSS(HERO_TEMP_MIN_PX)}px,
       ${unsafeCSS(HERO_TEMP_CQW)}cqw,
@@ -212,6 +222,7 @@ export const heroTempStyles = css`
     vertical-align: top;
     margin-top: 0.35em;
     margin-left: 0.1em;
+    font-size: clamp(15px, 6vw, 21px);
     font-size: clamp(15px, 6cqw, 21px);
     font-weight: ${unsafeCSS(HERO_TEMP_UNIT_WEIGHT)};
     letter-spacing: 0;
