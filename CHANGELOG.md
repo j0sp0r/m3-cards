@@ -27,6 +27,18 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   pixel equivalent for browsers without the units. The expressive climate
   card's hero temperature, which was dropping to the inherited size for the
   same reason, falls back to a viewport-relative size instead.
+- **Tinted fills survive on iOS 15 as solid ones.** `color-mix()` is Safari
+  16.2, and 107 fills across 25 cards were mixed over the card surface with
+  it — so on an older Safari an inner tile had no background at all and the
+  dashboard's wallpaper showed through where a tile should be. A plain
+  declaration before each mix is no help: all of them contain `var()`, which
+  defers the check until after substitution, and a declaration that fails
+  there resolves to `unset` rather than to the declaration before it. The
+  fallbacks are therefore in an `@supports not` block, which is the one place
+  only those browsers look. They give up the tint and keep the shape. The
+  expressive climate card's hero temperature was the sharp edge of the same
+  problem: its gradient died while `-webkit-text-fill-color: transparent`
+  survived, leaving the temperature painted in nothing.
 - **The waste card's timeline dots stay inside the timeline.** A collection
   today sat at 0% and one at the far end at 100%, each pulled back by half its
   own width — so both hung half over the edge of the track. They are inset by

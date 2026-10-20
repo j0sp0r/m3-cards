@@ -35,7 +35,7 @@ import {
   COST_REFRESH_MS,
   resolveCornerRadius,
 } from "./const";
-import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, tintInk, fillColor , foregroundVars} from "./shared/color-config";
+import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, tintInk, fillColor , foregroundVars, tintBackground } from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { shouldAnimate, STANDARD_EASING } from "./shared/animation";
 import { fireEvent } from "./shared/editor-helpers";
@@ -475,7 +475,7 @@ export class M3CostCard extends TemplatedCard(LitElement) implements LovelaceCar
                     ? html`
                         <div
                           class="chip"
-                          style=${`color: ${budgetChip.overBudget ? COST_WORSE_COLOR : COST_BETTER_COLOR}; background: color-mix(in srgb, ${budgetChip.overBudget ? COST_WORSE_COLOR : COST_BETTER_COLOR} 16%, var(--ha-card-background, var(--card-background-color)));`}
+                          style=${`color: ${budgetChip.overBudget ? COST_WORSE_COLOR : COST_BETTER_COLOR}; background: ${tintBackground(budgetChip.overBudget ? COST_WORSE_COLOR : COST_BETTER_COLOR, undefined, 16)};`}
                         >
                           <span>${this._t("cost_budget_percent").replace("{value}", String(budgetChip.percent))}</span>
                         </div>
@@ -951,7 +951,29 @@ export class M3CostCard extends TemplatedCard(LitElement) implements LovelaceCar
         margin-top: 6px;
         color: var(--cost-accent-fg, var(--cost-accent));
       }
-    `,
+
+      /* Safari gained color-mix() in 16.2, and an iPod touch 7 or an iPad Air 2
+         stops at iOS 15. A plain declaration before each mix cannot serve as the
+         fallback: every one of them contains var(), which defers the check until
+         after substitution, where failure yields unset rather than the previous
+         declaration — the tint did not fade, the fill disappeared entirely. This
+         block is the one those browsers alone can see; the tint is what it gives
+         up. Backticks are not allowed in here: this is a css template literal. */
+      @supports not (color: color-mix(in srgb, red 50%, blue)) {
+        .chip.neutral {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .nav-btn {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .nav-info {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .tariff-info {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+      }
+      `,
   ];
 }
 

@@ -1244,7 +1244,41 @@ export class M3UpdatesCard extends TemplatedCard(LitElement) implements Lovelace
         color: var(--m3p-secondary-text);
         padding: 8px 4px;
       }
-    `,
+
+      /* Safari gained color-mix() in 16.2, and an iPod touch 7 or an iPad Air 2
+         stops at iOS 15. A plain declaration before each mix cannot serve as the
+         fallback: every one of them contains var(), which defers the check until
+         after substitution, where failure yields unset rather than the previous
+         declaration — the tint did not fade, the fill disappeared entirely. This
+         block is the one those browsers alone can see; the tint is what it gives
+         up. Backticks are not allowed in here: this is a css template literal. */
+      @supports not (color: color-mix(in srgb, red 50%, blue)) {
+        .core-progress {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .row {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .toggle {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .toggle.accent-toggle {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .row-btn {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .uptodate-toggle {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .compact-row {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .note-pill {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+      }
+      `,
   ];
 }
 

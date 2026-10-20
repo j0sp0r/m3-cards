@@ -1206,7 +1206,26 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
       .member-toggle ha-icon {
         --mdc-icon-size: 16px;
       }
-    `,
+
+      /* Safari gained color-mix() in 16.2, and an iPod touch 7 or an iPad Air 2
+         stops at iOS 15. A plain declaration before each mix cannot serve as the
+         fallback: every one of them contains var(), which defers the check until
+         after substitution, where failure yields unset rather than the previous
+         declaration — the tint did not fade, the fill disappeared entirely. This
+         block is the one those browsers alone can see; the tint is what it gives
+         up. Backticks are not allowed in here: this is a css template literal. */
+      @supports not (color: color-mix(in srgb, red 50%, blue)) {
+        .temp-preset {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .scene-chip {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .member-toggle {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+      }
+      `,
   ];
 }
 

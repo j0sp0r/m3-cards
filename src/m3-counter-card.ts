@@ -32,7 +32,7 @@ import {
   COUNTER_ADJUST_RADIUS,
   resolveCornerRadius,
 } from "./const";
-import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, tintInk, foregroundOn , foregroundVars} from "./shared/color-config";
+import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, tintInk, foregroundOn , foregroundVars, tintBackground } from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { activateOnKey } from "./shared/a11y";
 import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
@@ -428,7 +428,7 @@ export class M3CounterCard extends TemplatedCard(LitElement) implements Lovelace
       : DEFAULT_COUNTER_ACCENT;
     const cellBackgroundCss = this._config.cell_background
       ? resolveThemeColor(this._config.cell_background)
-      : "color-mix(in srgb, var(--primary-text-color) 8%, var(--ha-card-background, var(--card-background-color)))";
+      : tintBackground("var(--primary-text-color)", undefined, 8);
     const { textColorCss, secondaryTextColorCss, cardBackgroundCss } = resolveCommonColors(
       this._config,
     );
@@ -865,7 +865,26 @@ export class M3CounterCard extends TemplatedCard(LitElement) implements Lovelace
         font-size: 11px;
         color: var(--error-color, #e57368);
       }
-    `,
+
+      /* Safari gained color-mix() in 16.2, and an iPod touch 7 or an iPad Air 2
+         stops at iOS 15. A plain declaration before each mix cannot serve as the
+         fallback: every one of them contains var(), which defers the check until
+         after substitution, where failure yields unset rather than the previous
+         declaration — the tint did not fade, the fill disappeared entirely. This
+         block is the one those browsers alone can see; the tint is what it gives
+         up. Backticks are not allowed in here: this is a css template literal. */
+      @supports not (color: color-mix(in srgb, red 50%, blue)) {
+        .adjust-open {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .adjust-input {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .adjust-btn {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+      }
+      `,
   ];
 }
 

@@ -31,7 +31,7 @@ import {
   POWER_LIST_FLIP_DURATION_MS,
   resolveCornerRadius,
 } from "./const";
-import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, foregroundOn , foregroundVars} from "./shared/color-config";
+import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, foregroundOn , foregroundVars, tintBackground } from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
 import { shouldAnimate, STANDARD_EASING } from "./shared/animation";
@@ -442,7 +442,7 @@ export class M3PowerListCard extends TemplatedCard(LitElement) implements Lovela
       right: html`<div class="row-value idle-value">${this._formatNumber(row.power)} W</div>`,
       onClick: this._moreInfo(row.entity),
       extraClass: "idle-row",
-      style: `--lr-row-height: ${POWER_LIST_IDLE_ROW_HEIGHT}px; --lr-row-radius: ${POWER_LIST_IDLE_ROW_RADIUS}px; --lr-row-bg: color-mix(in srgb, var(--primary-text-color) 4%, var(--ha-card-background, var(--card-background-color))); opacity: 0.5;`,
+      style: `--lr-row-height: ${POWER_LIST_IDLE_ROW_HEIGHT}px; --lr-row-radius: ${POWER_LIST_IDLE_ROW_RADIUS}px; --lr-row-bg: ${tintBackground("var(--primary-text-color)", undefined, 4)}; opacity: 0.5;`,
     });
   }
 
@@ -546,7 +546,20 @@ export class M3PowerListCard extends TemplatedCard(LitElement) implements Lovela
         padding: 16px 0;
         color: var(--m3p-secondary-text);
       }
-    `,
+
+      /* Safari gained color-mix() in 16.2, and an iPod touch 7 or an iPad Air 2
+         stops at iOS 15. A plain declaration before each mix cannot serve as the
+         fallback: every one of them contains var(), which defers the check until
+         after substitution, where failure yields unset rather than the previous
+         declaration — the tint did not fade, the fill disappeared entirely. This
+         block is the one those browsers alone can see; the tint is what it gives
+         up. Backticks are not allowed in here: this is a css template literal. */
+      @supports not (color: color-mix(in srgb, red 50%, blue)) {
+        .idle-toggle {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+      }
+      `,
   ];
 }
 

@@ -1368,7 +1368,56 @@ export class M3TimeCard extends TemplatedCard(LitElement) implements LovelaceCar
       .revert ha-icon {
         --mdc-icon-size: 20px;
       }
-    `,
+
+      /* Safari gained color-mix() in 16.2, and an iPod touch 7 or an iPad Air 2
+         stops at iOS 15. A plain declaration before each mix cannot serve as the
+         fallback: every one of them contains var(), which defers the check until
+         after substitution, where failure yields unset rather than the previous
+         declaration — the tint did not fade, the fill disappeared entirely. This
+         block is the one those browsers alone can see; the tint is what it gives
+         up. Backticks are not allowed in here: this is a css template literal. */
+      @supports not (color: color-mix(in srgb, red 50%, blue)) {
+        .external {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .step-btn {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .step-btn:active {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .field {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .field.active {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .half {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .half.on {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .wheel-box {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .nudge {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .nudge-value {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .preset {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .apply {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .revert {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+      }
+      `,
   ];
 }
 

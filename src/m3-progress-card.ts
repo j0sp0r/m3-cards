@@ -27,7 +27,7 @@ import {
 import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
 import { buildWavePath } from "./shared/wave";
-import { resolveCommonColors, tintOn, foregroundOn } from "./shared/color-config";
+import { resolveCommonColors, tintOn, foregroundOn , tintBackground } from "./shared/color-config";
 import { glassCardStyles, glassCardClass, renderMissingEntity } from "./shared/glass-card";
 import { TemplatedCard } from "./shared/templated-card";
 
@@ -336,10 +336,10 @@ export class M3ProgressCard extends TemplatedCard(LitElement) implements Lovelac
     const accentColor = this._resolveAccentForCategory(category);
     const trackColorCss = this._config.track_color
       ? this._resolveColor(this._config.track_color)
-      : "color-mix(in srgb, var(--primary-text-color) 12%, var(--ha-card-background, var(--card-background-color)))";
+      : tintBackground("var(--primary-text-color)", undefined, 12);
     const dotColorCss = this._config.dot_color
       ? this._resolveColor(this._config.dot_color)
-      : "color-mix(in srgb, var(--primary-text-color) 70%, var(--ha-card-background, var(--card-background-color)))";
+      : tintBackground("var(--primary-text-color)", undefined, 70);
     const iconColorCss = this._config.icon_color
       ? this._resolveColor(this._config.icon_color)
       : accentColor;

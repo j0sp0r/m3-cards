@@ -33,7 +33,7 @@ import {
   SUMMARY_VALUE_LERP_MS,
   resolveCornerRadius,
 } from "./const";
-import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, foregroundVars, foregroundColor, foregroundOn } from "./shared/color-config";
+import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, foregroundVars, foregroundColor, foregroundOn , tintBackground } from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { activateOnKey } from "./shared/a11y";
 import { shouldAnimate } from "./shared/animation";
@@ -428,13 +428,13 @@ export class M3PowerSummaryCard extends TemplatedCard(LitElement) implements Lov
       ? tintOn(this, explicitColor, flowTintOpacity, 14)
       : isProducer
         ? tintOn(this, producerColor, flowTintOpacity, 14)
-        : "color-mix(in srgb, var(--primary-text-color) 7%, var(--ha-card-background, var(--card-background-color)))";
+        : tintBackground("var(--primary-text-color)", undefined, 7);
     const iconColor = explicitColor ?? (isProducer ? producerColor : "var(--primary-text-color)");
     const iconBg = explicitColor
       ? tintOn(this, explicitColor, flowTintOpacity, 24)
       : isProducer
         ? tintOn(this, producerColor, flowTintOpacity, 24)
-        : "color-mix(in srgb, var(--primary-text-color) 12%, var(--ha-card-background, var(--card-background-color)))";
+        : tintBackground("var(--primary-text-color)", undefined, 12);
     const name = metric.name || state?.attributes.friendly_name || metric.entity;
     const icon = metric.icon || state?.attributes.icon || "mdi:power-plug";
     const formatted = this._formatWatts(value);

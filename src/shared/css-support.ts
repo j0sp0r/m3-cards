@@ -29,3 +29,20 @@ export const SUPPORTS_CONTAINER_UNITS: boolean =
   typeof CSS !== "undefined" && typeof CSS.supports === "function"
     ? CSS.supports("width", "1cqh")
     : true;
+
+/**
+ * Whether `color-mix()` resolves. False on Safari 16.1 and older.
+ *
+ * Unlike a container-query unit, a *literal* `color-mix()` is caught at parse
+ * time — the declaration is dropped and a plain one written before it wins,
+ * which is how the stylesheets handle it. This flag is for the values built
+ * in script and set inline, where there is no earlier declaration to fall
+ * back to. See `tintBackground`.
+ */
+export const SUPPORTS_COLOR_MIX: boolean =
+  typeof CSS !== "undefined" && typeof CSS.supports === "function"
+    ? CSS.supports("color", "color-mix(in srgb, red 50%, blue)")
+    : true;
+
+/** The card surface every tint in this suite is mixed over. */
+export const CARD_SURFACE_CSS = "var(--ha-card-background, var(--card-background-color))";

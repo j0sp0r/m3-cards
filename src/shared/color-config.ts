@@ -9,6 +9,7 @@ import {
   vividOn,
 } from "./contrast";
 import type { Rgb } from "./contrast";
+import { CARD_SURFACE_CSS, SUPPORTS_COLOR_MIX } from "./css-support";
 
 // Resolves a config color value against the curated HA/tile-card token list
 // (e.g. "red", "primary"); anything not found is used verbatim as a CSS
@@ -35,7 +36,15 @@ export function tintBackground(
   // near-black in a dark one. The card as a whole stays translucent; only
   // these inner fills become opaque, which is the Material tonal-surface
   // model and what keeps them legible.
-  return `color-mix(in srgb, ${colorCss} ${opacityPercent ?? defaultPercent}%, var(--ha-card-background, var(--card-background-color)))`;
+  const percent = opacityPercent ?? defaultPercent;
+  // Safari only learned color-mix() in 16.2, and this string is set inline,
+  // where a dropped declaration leaves nothing behind it. So the mix is
+  // decided here instead: whichever of the two colours the percentage was
+  // asking for more of. Below half that is the surface — a tile that is a
+  // definite shape without its tint — and above it the colour itself, which
+  // is what a 70% "mix" was always mostly made of.
+  if (!SUPPORTS_COLOR_MIX) return percent >= 50 ? colorCss : CARD_SURFACE_CSS;
+  return `color-mix(in srgb, ${colorCss} ${percent}%, ${CARD_SURFACE_CSS})`;
 }
 
 // Builds a `--prefix-key: value;` inline style string from a map, skipping

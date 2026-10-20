@@ -29,7 +29,7 @@ import {
   LEAK_ARM_TIMEOUT_MS,
   resolveCornerRadius,
 } from "./const";
-import { resolveThemeColor, buildCssVars, resolveCommonColors , tintOn, foregroundOn, foregroundVars} from "./shared/color-config";
+import { resolveThemeColor, buildCssVars, resolveCommonColors , tintOn, foregroundOn, foregroundVars, tintBackground } from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { shouldAnimate, isReducedMotion } from "./shared/animation";
 import { renderListRow, listRowStyles , listRowSurface} from "./shared/list-row";
@@ -388,7 +388,7 @@ export class M3LeakCard extends TemplatedCard(LitElement) implements LovelaceCar
     const bannerColor = state === "alarm" ? LEAK_ALARM_COLOR : state === "stale" ? LEAK_STALE_COLOR : accent;
     const cssVars = buildCssVars({
       "m3p-icon-color": bannerColor,
-      "m3p-icon-bg": `color-mix(in srgb, ${bannerColor} 18%, var(--ha-card-background, var(--card-background-color)))`,
+      "m3p-icon-bg": tintBackground(bannerColor, undefined, 18),
       "m3p-text": textColorCss,
       "m3p-secondary-text": secondaryTextColorCss,
       "leak-alarm": LEAK_ALARM_COLOR,
@@ -759,7 +759,53 @@ export class M3LeakCard extends TemplatedCard(LitElement) implements LovelaceCar
       .no-animations .banner-icon.pulse {
         animation: none;
       }
-    `,
+
+      /* Safari gained color-mix() in 16.2, and an iPod touch 7 or an iPad Air 2
+         stops at iOS 15. A plain declaration before each mix cannot serve as the
+         fallback: every one of them contains var(), which defers the check until
+         after substitution, where failure yields unset rather than the previous
+         declaration — the tint did not fade, the fill disappeared entirely. This
+         block is the one those browsers alone can see; the tint is what it gives
+         up. Backticks are not allowed in here: this is a css template literal. */
+      @supports not (color: color-mix(in srgb, red 50%, blue)) {
+        .card-inner.state-alarm {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .banner {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .banner.alarm {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .banner-icon {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .valve-chip.open {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .valve-chip.closed {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .test-chip {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .shutoff.armed {
+          background: var(--leak-alarm);
+        }
+        .ack {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .lr-row.row-wet {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .lr-row.row-stale {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .collapse-toggle {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+      }
+      `,
   ];
 }
 

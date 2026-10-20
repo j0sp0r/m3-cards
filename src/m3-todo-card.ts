@@ -1140,7 +1140,37 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
         border-radius: ${TODO_DONE_ROW_RADIUS}px;
         opacity: 0.6;
       }
-    `,
+
+      /* Safari gained color-mix() in 16.2, and an iPod touch 7 or an iPad Air 2
+         stops at iOS 15. A plain declaration before each mix cannot serve as the
+         fallback: every one of them contains var(), which defers the check until
+         after substitution, where failure yields unset rather than the previous
+         declaration — the tint did not fade, the fill disappeared entirely. This
+         block is the one those browsers alone can see; the tint is what it gives
+         up. Backticks are not allowed in here: this is a css template literal. */
+      @supports not (color: color-mix(in srgb, red 50%, blue)) {
+        .todo-input {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .todo-input.focused {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .quick-chip {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .row {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        .done-toggle {
+          background: var(--ha-card-background, var(--card-background-color));
+        }
+        @keyframes pulse {
+          0%, 100% {
+            background: var(--ha-card-background, var(--card-background-color));
+          }
+        }
+      }
+      `,
   ];
 }
 

@@ -24,6 +24,7 @@ import {
   buildCssVars,
   resolveCommonColors,
   tintOn, foregroundOn,
+  tintBackground,
 } from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
@@ -234,7 +235,7 @@ export class M3GaugeCard extends TemplatedCard(LitElement) implements LovelaceCa
       : DEFAULT_GAUGE_SEGMENT_B;
     const trackColorCss = this._config.track_color
       ? resolveThemeColor(this._config.track_color)
-      : "color-mix(in srgb, var(--primary-text-color) 12%, var(--ha-card-background, var(--card-background-color)))";
+      : tintBackground("var(--primary-text-color)", undefined, 12);
     const { textColorCss, secondaryTextColorCss, cardBackgroundCss } = resolveCommonColors(
       this._config,
     );

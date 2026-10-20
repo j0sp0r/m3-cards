@@ -194,7 +194,13 @@ export const heroTempStyles = css`
     margin: -0.16em 0;
   }
 
-  @supports (background-clip: text) or (-webkit-background-clip: text) {
+  /* color-mix() is part of the condition because the gradient below is built
+     with one. Without it the gradient declaration fails after substitution and
+     is dropped, while -webkit-text-fill-color: transparent survives on its own
+     line — which paints the temperature in nothing at all. Safari 16.1 and
+     older support the clip and not the mix, so they must skip both. */
+  @supports ((background-clip: text) or (-webkit-background-clip: text)) and
+    (color: color-mix(in srgb, red 50%, blue)) {
     .hero-temp .value {
       background: linear-gradient(
         180deg,
