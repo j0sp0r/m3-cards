@@ -54,6 +54,13 @@ describe("profileForPlatform", () => {
     expect(profileForPlatform("kodi")).toBe("kodi");
   });
 
+  it("recognises androidtv_remote, whose entity id names no integration", () => {
+    // remote.google_tv reads as nothing in particular; only the registry
+    // knows it is androidtv_remote, and guessing from the id gave generic —
+    // a Chromecast's card for a device with a full set of keycodes.
+    expect(profileForPlatform("androidtv_remote")).toBe("google_tv");
+  });
+
   it("falls back to generic for a Chromecast rather than guessing google_tv", () => {
     // A cast entity has no remote and no keycodes; calling it google_tv would
     // draw a ring whose every press is swallowed.

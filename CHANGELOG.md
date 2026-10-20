@@ -34,6 +34,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   does not recognise as a keycode as text, which turns a search box on a
   television from twenty-six d-pad presses into a phone keyboard.
 
+- **The profile is read from the entity registry, not guessed from the entity
+  id.** `remote.google_tv` names no integration at all, so the id heuristic
+  landed on `generic` and drew a Chromecast's card — no ring, no assistant —
+  for a device with a full set of Android keycodes. The registry is the only
+  place that knows, and the heuristic is now only the stopgap for the first
+  render.
+
 ### Changed
 
 - **The card omits what the device cannot do, rather than drawing dead

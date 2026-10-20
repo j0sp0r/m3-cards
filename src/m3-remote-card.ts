@@ -151,6 +151,9 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
   @state() private _keyboardText = "";
   /** Ticks once a second while a track is playing, to advance the position. */
   @state() private _tick = 0;
+  /** The integration behind `entity`, once the registry has answered. */
+  @state() private _registryPlatform?: string;
+  private _registryLoaded = false;
 
   private _repeatTimer?: number;
   private _repeatDelay?: number;
@@ -163,7 +166,10 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
   public setConfig(config: M3RemoteCardConfig): void {
     if (!config.entity) throw new Error("m3-remote-card: entity is required");
     this._config = { ...config };
+    this._registryLoaded = false;
+    this._registryPlatform = undefined;
     this._clearTimers();
+    void this._loadPlatform();
   }
 
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
@@ -215,6 +221,12 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
     return hassChangeMatters(changed, this.hass, [this._remoteEntity, this._mediaEntity, this._config?.power_entity]);
   }
 
+  protected updated(): void {
+    // setConfig can run before `hass` is set, so the registry lookup has to be
+    // retried once the card is actually connected to one.
+    if (this.hass && !this._registryLoaded) void this._loadPlatform();
+  }
+
   // ---- entities -------------------------------------------------------------
 
   /**
@@ -264,14 +276,41 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
     return profileForPlatform(this._platform);
   }
 
-  /** Guessed from the entity id, since the registry is not available here. */
+  /**
+   * The integration behind the entity.
+   *
+   * Read from the entity registry, which is the only place that actually
+   * knows. The id heuristic below is a stopgap for the first render, before
+   * the registry has arrived — and a poor one: `remote.google_tv` names no
+   * integration at all, and guessing from it landed on `generic`, which drew a
+   * Chromecast's card for a device with a full set of Android keycodes.
+   */
   private get _platform(): string | undefined {
+    if (this._registryPlatform) return this._registryPlatform;
     const e = this._config?.entity ?? "";
     if (/samsung/i.test(e)) return "samsungtv";
     if (/appletv|apple_tv/i.test(e)) return "apple_tv";
     if (/kodi/i.test(e)) return "kodi";
     if (/webos|lg_/i.test(e)) return "webostv";
+    if (/android|google_?tv|shield|chromecast|nvidia|onn/i.test(e)) return "androidtv_remote";
     return undefined;
+  }
+
+  private async _loadPlatform(): Promise<void> {
+    if (!this.hass || this._registryLoaded) return;
+    this._registryLoaded = true;
+    const want = this._config?.entity;
+    if (!want) return;
+    try {
+      const reg = await this.hass.callWS<Array<{ entity_id: string; platform: string }>>({
+        type: "config/entity_registry/list",
+      });
+      const hit = reg.find((r) => r.entity_id === want);
+      if (hit && hit.platform !== this._registryPlatform) this._registryPlatform = hit.platform;
+    } catch {
+      // No registry access: the id heuristic above stands, which is what the
+      // card ran on before. Degraded, not broken.
+    }
   }
 
   private get _defaults() {
