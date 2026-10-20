@@ -97,6 +97,9 @@ import {
   currentPosition,
   formatPosition,
   isAppActive,
+  isDeviceOn,
+  isDeviceUnavailable,
+  meaningfulAppName,
   profileForPlatform,
   resolveKey,
   resolveTextEntry,
@@ -222,12 +225,6 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
     return hassChangeMatters(changed, this.hass, [this._remoteEntity, this._mediaEntity, this._config?.power_entity]);
   }
 
-  protected updated(): void {
-    // setConfig can run before `hass` is set, so the registry lookup has to be
-    // retried once the card is actually connected to one.
-    if (this.hass && !this._registryLoaded) void this._loadPlatform();
-  }
-
   // ---- entities -------------------------------------------------------------
 
   /**
@@ -322,20 +319,22 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
     return capabilitiesOf(this.hass, this._remoteEntity, this._mediaEntity, this._profile);
   }
 
+  /** The states of every entity that has an opinion about this device. */
+  private get _witnessStates(): Array<string | undefined> {
+    return [this._remoteEntity, this._mediaEntity]
+      .filter((v): v is string => !!v)
+      .map((id) => this.hass?.states[id]?.state);
+  }
+
   private get _isOn(): boolean {
     const power = this._config?.power_entity;
     if (power) return this.hass?.states[power]?.state === "on";
-    const s = this._mediaState?.state ?? (this._remoteEntity ? this.hass?.states[this._remoteEntity]?.state : undefined);
-    return !!s && s !== "off" && s !== "unavailable" && s !== "unknown" && s !== "standby";
+    return isDeviceOn(...this._witnessStates);
   }
 
   private get _unavailable(): boolean {
-    const ids = [this._remoteEntity, this._mediaEntity].filter((v): v is string => !!v);
-    if (!ids.length) return true;
-    return ids.every((id) => {
-      const s = this.hass?.states[id]?.state;
-      return s === undefined || s === "unavailable";
-    });
+    if (!this._remoteEntity && !this._mediaEntity) return true;
+    return isDeviceUnavailable(...this._witnessStates);
   }
 
   private get _language(): string {
@@ -359,9 +358,12 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
       this._mediaEntity,
     );
     if (!call || !this.hass) return;
-    // Mute is a toggle in HA's API but a single button here, so the current
-    // state has to be inverted rather than asserted.
-    if (key === "mute") {
+    // `media_player.volume_mute` is a setter, not a toggle, so the current
+    // state has to be inverted rather than asserted. It is also the *only*
+    // call that takes the flag: a profile whose mute is a keycode goes through
+    // `remote.send_command`, which rejected the extra field outright —
+    // "not a valid option at 'is_volume_muted'".
+    if (key === "mute" && call.service === "volume_mute") {
       call.data = { ...call.data, is_volume_muted: !this._muted };
     }
     this.hass.callService(call.domain, call.service, call.data);
@@ -492,7 +494,9 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
     const cfg = this._config!;
     const on = this._isOn;
     const media = this._mediaState;
-    const app = media?.attributes.app_name ?? media?.attributes.source;
+    const app = meaningfulAppName(
+      (media?.attributes.app_name ?? media?.attributes.source) as string | undefined,
+    );
     const subtitle = this._unavailable
       ? this._t("remote_unavailable")
       : on
@@ -600,12 +604,15 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
     const media = this._mediaState;
     if (!media) return nothing;
     const title = media.attributes.media_title as string | undefined;
-    const app = (media.attributes.app_name ?? media.attributes.media_artist ?? media.attributes.source) as
-      | string
-      | undefined;
-    // An empty bar is worse than none: only render once the player actually
-    // says what it is doing.
-    if (!title && !app) return nothing;
+    const app = meaningfulAppName(
+      (media.attributes.app_name ?? media.attributes.media_artist ?? media.attributes.source) as
+        | string
+        | undefined,
+    );
+    // The bar is for what is *playing*. Without a title nothing is, and the
+    // app name alone is already in the header — rendering it here produced a
+    // row reading "Default Media Receiver" twice over.
+    if (!title) return nothing;
 
     // `_tick` is only here to make Lit re-render; the time comes from the clock.
     void this._tick;
@@ -635,7 +642,7 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
             : html`<ha-icon icon=${this._defaults.icon}></ha-icon>`}
         </div>
         <div class="np-text">
-          <div class="np-title">${title ?? app}</div>
+          <div class="np-title">${title}</div>
           <div class="np-meta">${meta}</div>
         </div>
         ${this._canSend("play_pause")
@@ -1128,21 +1135,48 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
    * so a search box on a television becomes a phone keyboard instead of
    * twenty-six presses of a d-pad.
    */
+  /**
+   * Built from plain elements rather than `ha-dialog` and `ha-textfield`.
+   *
+   * Home Assistant loads those lazily, and inside this card's shadow root —
+   * nested again inside whatever popup the card is placed in — they were never
+   * registered: the text field rendered as an unknown element with no height,
+   * leaving a black sheet with two buttons floating at the top of it. An
+   * `<input>` the card styles itself has no such dependency.
+   */
   private _renderKeyboardDialog() {
     if (!this._keyboardOpen) return nothing;
     return html`
-      <ha-dialog open hideActions .heading=${this._t("remote_keyboard")} @closed=${() => (this._keyboardOpen = false)}>
-        <div class="kb">
-          <ha-textfield
-            .label=${this._t("remote_keyboard_label")}
+      <div
+        class="kb-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-label=${this._t("remote_keyboard")}
+        @click=${(e: Event) => {
+          // Only the backdrop closes; a click inside the sheet must not.
+          if (e.target === e.currentTarget) this._closeKeyboard();
+        }}
+      >
+        <div class="kb-sheet">
+          <div class="kb-title">${this._t("remote_keyboard")}</div>
+          <input
+            class="kb-input"
+            type="text"
+            inputmode="search"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder=${this._t("remote_keyboard_label")}
             .value=${this._keyboardText}
             @input=${(e: Event) => (this._keyboardText = (e.target as HTMLInputElement).value)}
             @keydown=${(e: KeyboardEvent) => {
+              // The card's own arrow-key handler must not see these.
+              e.stopPropagation();
               if (e.key === "Enter") this._sendText();
+              if (e.key === "Escape") this._closeKeyboard();
             }}
-          ></ha-textfield>
+          />
           <div class="kb-actions">
-            <button class="kb-btn" type="button" @click=${() => (this._keyboardOpen = false)}>
+            <button class="kb-btn" type="button" @click=${this._closeKeyboard}>
               ${this._t("remote_cancel")}
             </button>
             <button class="kb-btn primary" type="button" @click=${this._sendText}>
@@ -1150,8 +1184,25 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
             </button>
           </div>
         </div>
-      </ha-dialog>
+      </div>
     `;
+  }
+
+  private readonly _closeKeyboard = () => {
+    this._keyboardOpen = false;
+    this._keyboardText = "";
+  };
+
+  protected updated(changed: PropertyValues): void {
+    // setConfig can run before `hass` is set, so the registry lookup has to be
+    // retried once the card is actually connected to one.
+    if (this.hass && !this._registryLoaded) void this._loadPlatform();
+    // Focus the field as it appears, so the phone's keyboard comes up without
+    // a second tap.
+    if (changed.has("_keyboardOpen") && this._keyboardOpen) {
+      const input = this.renderRoot.querySelector<HTMLInputElement>(".kb-input");
+      input?.focus();
+    }
   }
 
   private readonly _sendText = () => {
@@ -1748,15 +1799,52 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
 
       /* ---- keyboard dialog ---- */
 
-      .kb {
+      .kb-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: rgba(0, 0, 0, 0.6);
+      }
+
+      .kb-sheet {
+        width: 100%;
+        max-width: 420px;
+        box-sizing: border-box;
         display: flex;
         flex-direction: column;
         gap: 14px;
-        min-width: 260px;
+        padding: 20px;
+        border-radius: 24px;
+        background: var(--ha-card-background, var(--card-background-color, #1c1c1c));
+        color: var(--m3rc-text, var(--primary-text-color));
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
       }
 
-      .kb ha-textfield {
+      .kb-title {
+        font-size: 16px;
+        font-weight: 700;
+      }
+
+      .kb-input {
         width: 100%;
+        box-sizing: border-box;
+        height: 48px;
+        padding: 0 14px;
+        border-radius: 14px;
+        border: 1px solid rgba(127, 127, 127, 0.45);
+        background: transparent;
+        color: inherit;
+        font-size: 16px;
+        font-family: inherit;
+      }
+
+      .kb-input:focus {
+        outline: none;
+        border-color: var(--m3rc-accent);
       }
 
       .kb-actions {

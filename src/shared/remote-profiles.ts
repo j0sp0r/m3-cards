@@ -126,7 +126,11 @@ const ANDROID_TV_KEYS: KeyMap = {
   previous: { command: "MEDIA_PREVIOUS" },
   next: { command: "MEDIA_NEXT" },
   assistant: { command: "SEARCH" },
-  source: { command: "TV_INPUT" },
+  // No `source`. TV_INPUT is a valid Android keycode and does nothing on the
+  // devices that actually run androidtv_remote: a Chromecast, a Shield, a
+  // streaming stick — none of them has a tuner or an HDMI input to switch to.
+  // An Android TV *television* does, and can have the button back through
+  // `right_buttons`, which is better than everyone else getting a dead one.
   digit_0: { command: "0" }, digit_1: { command: "1" },
   digit_2: { command: "2" }, digit_3: { command: "3" },
   digit_4: { command: "4" }, digit_5: { command: "5" },
@@ -439,6 +443,54 @@ export function powerTarget(
   const bit = on ? MP_FEATURE.TURN_ON : MP_FEATURE.TURN_OFF;
   if (mediaEntity && hasFeature(supportedFeatures, bit)) return mediaEntity;
   return mediaEntity;
+}
+
+/**
+ * Whether the device is on, from every witness there is.
+ *
+ * Asking one entity is what made the Google TV card grey itself out while the
+ * box was plainly running: its `media_player` comes from the **Cast**
+ * integration and describes the cast *session*, not the hardware, so it reads
+ * `off` whenever nothing happens to be casting. The remote entity knew all
+ * along.
+ *
+ * So any witness saying "on" carries it. Neither entity reports a device that
+ * is on as `off` — they only ever fail to know — which is what makes the
+ * optimistic direction the safe one here.
+ */
+export function isDeviceOn(...states: Array<string | undefined>): boolean {
+  return states.some(
+    (s) =>
+      s !== undefined && s !== "unavailable" && s !== "unknown" && s !== "off" && s !== "standby",
+  );
+}
+
+/** True only when no entity is reporting at all. */
+export function isDeviceUnavailable(...states: Array<string | undefined>): boolean {
+  const known = states.filter((s) => s !== undefined);
+  if (!known.length) return true;
+  return known.every((s) => s === "unavailable");
+}
+
+/**
+ * An app name worth printing, or nothing.
+ *
+ * Two kinds of noise come through `app_name`. A Cast receiver with nothing
+ * loaded reports **"Default Media Receiver"**, which means "a cast session
+ * exists" and reads as a programme title. And `androidtv_remote` reports the
+ * raw package, so the home screen arrives as
+ * `com.google.android.apps.tv.launcherx`.
+ *
+ * Both say the same thing — nothing is playing — and both look like content.
+ */
+export function meaningfulAppName(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  const name = raw.trim();
+  if (!name) return undefined;
+  if (/^default media receiver$/i.test(name)) return undefined;
+  // A bare package: dotted, no spaces. Never something a person named.
+  if (/^[a-z0-9_]+(\.[a-z0-9_]+){2,}$/i.test(name)) return undefined;
+  return name;
 }
 
 // ---- turning a key into a call ---------------------------------------------

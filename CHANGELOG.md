@@ -43,6 +43,35 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **The card asks every entity whether the device is on, not just one.** The
+  Google TV card greyed itself out after an app restart while the box was
+  plainly running: its `media_player` comes from the **Cast** integration and
+  describes the cast *session*, so it reads `off` whenever nothing is casting.
+  The remote entity knew all along. Any witness saying "on" now carries it.
+
+- **A placeholder app name is no longer printed as content.** A Cast receiver
+  with nothing loaded reports "Default Media Receiver", and `androidtv_remote`
+  reports the raw package for the home screen — both say "nothing is playing"
+  and both look like a programme title. The now-playing bar also needs an
+  actual `media_title`, having previously rendered a row that said
+  "Default Media Receiver" twice over.
+
+- **The text-entry dialog is built from plain elements.** It used `ha-dialog`
+  and `ha-textfield`, which Home Assistant loads lazily and which were never
+  registered inside the card's shadow root: the field rendered as an unknown
+  element with no height, leaving a black sheet with two buttons floating at
+  the top of it.
+
+- **Mute stopped failing on keycode profiles.** `is_volume_muted` was attached
+  to every mute call, but it belongs only to `media_player.volume_mute`; a
+  profile whose mute is a keycode goes through `remote.send_command`, which
+  answered "not a valid option at 'is_volume_muted'".
+
+- **The Android TV profile no longer offers an input-source button.**
+  `TV_INPUT` is a valid keycode and does nothing on the devices that actually
+  run that integration — a Chromecast, a Shield, a streaming stick have no
+  tuner and no HDMI input to switch to.
+
 - **The power button goes through the remote entity whenever there is one.** A
   remote's power *is* the device's power; a `media_player`'s is whatever its
   integration decided that should mean. Two devices showed the two ways that

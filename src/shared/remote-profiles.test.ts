@@ -7,6 +7,9 @@ import {
   currentPosition,
   formatPosition,
   isAppActive,
+  isDeviceOn,
+  meaningfulAppName,
+  isDeviceUnavailable,
   hasFeature,
   powerTarget,
   MP_FEATURE,
@@ -200,6 +203,67 @@ describe("powerTarget", () => {
 
   it("falls back to the media entity rather than returning nothing", () => {
     expect(powerTarget(true, "media_player.cast", undefined, 0)).toBe("media_player.cast");
+  });
+});
+
+describe("meaningfulAppName", () => {
+  it("drops the Cast placeholder, which reads like a programme title", () => {
+    expect(meaningfulAppName("Default Media Receiver")).toBeUndefined();
+    expect(meaningfulAppName("default media receiver")).toBeUndefined();
+  });
+
+  it("drops a raw package, which androidtv_remote reports for the home screen", () => {
+    expect(meaningfulAppName("com.google.android.apps.tv.launcherx")).toBeUndefined();
+    expect(meaningfulAppName("org.smarttube.stable")).toBeUndefined();
+  });
+
+  it("keeps a name a person would recognise", () => {
+    expect(meaningfulAppName("SmartTube")).toBe("SmartTube");
+    expect(meaningfulAppName("Netflix")).toBe("Netflix");
+    expect(meaningfulAppName("Disney+")).toBe("Disney+");
+    // Two dots are a package; one is a name people really use.
+    expect(meaningfulAppName("ZDF.de")).toBe("ZDF.de");
+  });
+
+  it("treats blank as nothing", () => {
+    expect(meaningfulAppName("   ")).toBeUndefined();
+    expect(meaningfulAppName(undefined)).toBeUndefined();
+  });
+});
+
+describe("isDeviceOn", () => {
+  it("believes the remote when the cast player says otherwise", () => {
+    // The bug this exists for: media_player.google_tv is a Cast entity and
+    // reads "off" whenever nothing is casting, which greyed the card out
+    // while the box was plainly running. remote.google_tv knew.
+    expect(isDeviceOn("on", "off")).toBe(true);
+  });
+
+  it("counts a cast session as on even if the remote has not caught up", () => {
+    expect(isDeviceOn("off", "playing")).toBe(true);
+    expect(isDeviceOn(undefined, "paused")).toBe(true);
+  });
+
+  it("is off only when every witness says so", () => {
+    expect(isDeviceOn("off", "off")).toBe(false);
+    expect(isDeviceOn("standby", "off")).toBe(false);
+  });
+
+  it("does not read a non-answer as on", () => {
+    expect(isDeviceOn("unavailable", "unknown")).toBe(false);
+    expect(isDeviceOn(undefined, undefined)).toBe(false);
+  });
+});
+
+describe("isDeviceUnavailable", () => {
+  it("is true only when nothing reports at all", () => {
+    expect(isDeviceUnavailable("unavailable", "unavailable")).toBe(true);
+    expect(isDeviceUnavailable()).toBe(true);
+  });
+
+  it("is false while one half still answers", () => {
+    expect(isDeviceUnavailable("unavailable", "off")).toBe(false);
+    expect(isDeviceUnavailable("on", "unavailable")).toBe(false);
   });
 });
 
