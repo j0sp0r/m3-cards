@@ -265,6 +265,13 @@ describe("isAppActive", () => {
   it("says nothing is active when the player reports nothing", () => {
     expect(isAppActive(undefined, undefined, "Netflix")).toBe(false);
   });
+
+  it("matches a package against the entry that names it", () => {
+    // What the remote entity's current_activity carries on an Android TV: a
+    // package, which matches nothing by name and everything by app_id.
+    expect(isAppActive("org.smarttube.stable", undefined, "SmartTube", "org.smarttube.stable")).toBe(true);
+    expect(isAppActive("org.smarttube.stable", undefined, "Netflix", "com.netflix.ninja")).toBe(false);
+  });
 });
 
 describe("ring geometry", () => {

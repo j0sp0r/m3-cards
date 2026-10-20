@@ -1040,14 +1040,22 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
     const max = cfg.max_apps ?? 0;
     const shown = max > 0 ? apps.slice(0, max) : apps;
     const style = cfg.app_style ?? this._defaults.appStyle;
-    const appName = this._mediaState?.attributes.app_name as string | undefined;
-    const appId = this._mediaState?.attributes.app_id as string | undefined;
+    // The remote entity's own `current_activity` is asked first, because on an
+    // Android TV it is the authoritative answer and the media entity is often
+    // the wrong half: a box that also speaks Cast reports "Default Media
+    // Receiver" from its cast player while SmartTube is what is on screen.
+    const activity = this._remoteEntity
+      ? (this.hass?.states[this._remoteEntity]?.attributes.current_activity as string | undefined)
+      : undefined;
+    const appName = (this._mediaState?.attributes.app_name as string | undefined) ?? activity;
+    const appId =
+      (this._mediaState?.attributes.app_id as string | undefined) ?? activity;
     const source = this._mediaState?.attributes.source as string | undefined;
 
     return html`
       <div class="apps-label">${this._t("remote_apps")}</div>
       <div class=${style === "tiles" ? "app-tiles" : "app-chips"}>
-        ${shown.map((app) => this._renderApp(app, style, appName ?? appId, source))}
+        ${shown.map((app) => this._renderApp(app, style, appName, source, appId, activity))}
       </div>
     `;
   }
@@ -1057,9 +1065,16 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
     style: "chips" | "tiles",
     appName: string | undefined,
     source: string | undefined,
+    appId?: string,
+    activity?: string,
   ) {
     const colorCss = appColor(app.name, app.color);
-    const active = isAppActive(appName, source, app.name, app.app_id);
+    // Three witnesses, because no single one is right on every device: the
+    // player's app name, its app id, and the remote's current activity. A
+    // package only ever matches the entry that names that package.
+    const active =
+      isAppActive(appName, source, app.name, app.app_id) ||
+      (!!app.app_id && (appId === app.app_id || activity === app.app_id));
     const id = `app-${app.name}`;
     const vars = colorCss
       ? buildCssVars({

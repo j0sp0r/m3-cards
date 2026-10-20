@@ -158,6 +158,7 @@ all:
 | `market://launch?id=org.smarttube.stable` | nothing happens, silently |
 | `android-app://org.smarttube.stable` | nothing happens, silently |
 | `https://www.netflix.com/title` | opens Netflix |
+| `vnd.youtube://` | opens SmartTube |
 
 A bare package is not a URI, so Android has nothing to resolve and the request
 is dropped without an error — which is what makes this worth writing down.
@@ -169,11 +170,34 @@ installed, and `https://www.disneyplus.com` opened **Settings** for the same
 reason. A tile that launches the wrong thing is worse than no tile, so it is
 worth pressing each one once after configuring it.
 
-An app with no web presence — a sideloaded client, say — cannot be launched
-this way at all. The Android TV Remote integration's own options page takes a
-name and a package id per app, which then appear in `source_list`; that path
-ends at the same `send_launch_app_command`, so it does not rescue a package
-that a URI could not reach either.
+A custom scheme counts as a URI, so an app with no web address is not
+necessarily out of reach: SmartTube registers `vnd.youtube://` and opens on it
+in under a second, despite being sideloaded and despite `android-app://` and
+`market://` doing nothing for the same package. The question is never whether
+the app has a website — it is which URI the app registered for.
+
+The Android TV Remote integration's own options page takes a name and a package
+id per app, which then appear in `source_list`. That path ends at the same
+`send_launch_app_command`, so it does not rescue a package that no URI reaches.
+
+### How to find the one that works
+
+Launch the app by hand, then read `current_activity` off the remote entity to
+learn its package — that much is easy. Going the other way, from a package to a
+URI that reaches it, is trial and error, so **watch the television while you
+try**, and poll the entity rather than reading it once:
+
+```yaml
+# Developer tools → Actions
+action: remote.turn_on
+target: { entity_id: remote.google_tv }
+data: { activity: "vnd.youtube://" }
+```
+
+`current_activity` is a laggy witness. A single read a few seconds after the
+call reported "nothing happened" for a launch that had plainly succeeded on
+screen — which is how `vnd.youtube://` came to be written off here before the
+person in front of the television said otherwise.
 
 ## Text entry
 
