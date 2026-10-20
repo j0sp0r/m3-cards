@@ -176,6 +176,15 @@ in under a second, despite being sideloaded and despite `android-app://` and
 `market://` doing nothing for the same package. The question is never whether
 the app has a website — it is which URI the app registered for.
 
+**A scheme with no content in it may still make the app complain.** SmartTube
+opens on a bare `vnd.youtube://` and then shows its own toast — *"Can't process
+intent"* — because what arrived names no video, channel or playlist. The app is
+open and usable; the message is the app's, lasts a few seconds, and there is no
+way around it from here. Adding content to the URI silences it but forces that
+content on every launch, which is worse. There is no neutral "just open
+yourself" URI, and the integration's options page does not provide one either:
+it ends at the same call.
+
 The Android TV Remote integration's own options page takes a name and a package
 id per app, which then appear in `source_list`. That path ends at the same
 `send_launch_app_command`, so it does not rescue a package that no URI reaches.
