@@ -242,6 +242,9 @@ control, which on a shared instance is exactly the point.
   `url()`. Both chokepoints now check: `resolveThemeColor` treats a value that
   cannot be a colour as an unset option, and `buildCssVars`, which writes the
   semicolons itself, drops an entry rather than write one carrying its own.
+  Four cards carried their own two-line copy of the resolver, reading the token
+  list directly, and the check was worth nothing until those were folded into
+  the shared one — which only trying the attack revealed.
 - **The notification editor only adopts automation ids it minted.** A stored
   `notify_automation_id` was reused on trust, so a card config pasted from
   somewhere else could point at any automation on the instance and have the

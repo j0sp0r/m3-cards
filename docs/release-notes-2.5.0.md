@@ -173,7 +173,9 @@ on a shared instance is the point.
   `style` attribute is a declaration list with no rule to escape, so no other
   element can be touched. What a crafted value *can* do is add declarations to
   the element it is on: cover the viewport with it, or make it fetch something.
-  Colours are now checked where they are resolved and where they are assembled.
+  Colours are now checked where they are resolved and where they are assembled
+  — and four cards that kept their own copy of the colour resolver now use the
+  shared one, which is what makes a single check cover them at all.
 - A stored `notify_automation_id` was reused on trust, so a card config pasted
   from somewhere else could name any automation on the instance and have the
   editor overwrite it on save. It is reused only when it matches the shape this

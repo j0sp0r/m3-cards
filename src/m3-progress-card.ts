@@ -22,12 +22,11 @@ import {
   INDETERMINATE_SEGMENT_FRACTION,
   INDETERMINATE_CYCLE_MS,
   resolveCornerRadius,
-  THEME_COLOR_TOKENS,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
 import { buildWavePath } from "./shared/wave";
-import { resolveCommonColors, tintOn, foregroundOn , tintBackground } from "./shared/color-config";
+import { resolveCommonColors, tintOn, foregroundOn , tintBackground , resolveThemeColor } from "./shared/color-config";
 import { glassCardStyles, glassCardClass, renderMissingEntity } from "./shared/glass-card";
 import { TemplatedCard } from "./shared/templated-card";
 
@@ -166,7 +165,7 @@ export class M3ProgressCard extends TemplatedCard(LitElement) implements Lovelac
   }
 
   private _resolveColor(value: string): string {
-    return THEME_COLOR_TOKENS[value] ?? value;
+    return resolveThemeColor(value);
   }
 
   private get _reducedMotion(): boolean {

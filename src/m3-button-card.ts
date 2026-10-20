@@ -21,7 +21,6 @@ import {
   BUTTON_ICON_OFFSET_PX,
   BUTTON_PAD_V_PX,
   BUTTON_PAD_H_PX,
-  THEME_COLOR_TOKENS,
   STATELESS_DOMAINS,
   ACTIVE_STATES,
   SLIDER_DOMAINS,
@@ -40,6 +39,7 @@ import {
   foregroundColor,
   fillColor,
   inkOn,
+  resolveThemeColor,
 } from "./shared/color-config";
 import { TemplatedCard } from "./shared/templated-card";
 import {
@@ -163,8 +163,7 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
   }
 
   private _resolveColor(color?: string): string {
-    const token = color || DEFAULT_BUTTON_COLOR;
-    return THEME_COLOR_TOKENS[token] ?? token;
+    return resolveThemeColor(color || DEFAULT_BUTTON_COLOR);
   }
 
   private _isActive(state: string, domain: string): boolean {

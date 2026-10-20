@@ -47,7 +47,6 @@ import {
   EXPRESSIVE_PILL_RADIUS_PRESSED_PX,
   EXPRESSIVE_PILL_MORPH_MS,
   resolveCornerRadius,
-  THEME_COLOR_TOKENS,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
@@ -64,7 +63,7 @@ import {
 import { hassChangeMatters } from "./shared/should-update";
 import { formatNumber } from "./shared/formatting";
 import { renderMissingEntity } from "./shared/glass-card";
-import { tintOn, foregroundColor } from "./shared/color-config";
+import { tintOn, foregroundColor , resolveThemeColor } from "./shared/color-config";
 import { shouldAnimate } from "./shared/animation";
 import { migrateAnimationsField } from "./shared/config-migration";
 import { activateOnKey } from "./shared/a11y";
@@ -185,7 +184,7 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
     )?.[mode];
     const resolved =
       override || DEFAULT_MODE_COLORS[mode as HvacMode] || DEFAULT_MODE_COLORS.off;
-    return THEME_COLOR_TOKENS[resolved] ?? resolved;
+    return resolveThemeColor(resolved);
   }
 
   private _modeIcon(mode: string): string {
@@ -193,7 +192,7 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
   }
 
   private _resolveColor(value: string): string {
-    return THEME_COLOR_TOKENS[value] ?? value;
+    return resolveThemeColor(value);
   }
 
   private _defaultIcon(hvacModes: string[]): string {

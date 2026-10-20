@@ -14,7 +14,6 @@ import {
   DEFAULT_TEMP_STEP,
   DEFAULT_MINI_RADIUS,
   resolveCornerRadius,
-  THEME_COLOR_TOKENS,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
@@ -24,7 +23,7 @@ import { renderMissingEntity } from "./shared/glass-card";
 import { shouldAnimate } from "./shared/animation";
 import { migrateAnimationsField } from "./shared/config-migration";
 import { activateOnKey } from "./shared/a11y";
-import { tintOn, tintInk, foregroundOn, foregroundColor } from "./shared/color-config";
+import { tintOn, tintInk, foregroundOn, foregroundColor , resolveThemeColor } from "./shared/color-config";
 import { TemplatedCard } from "./shared/templated-card";
 import {
   readClimateTarget,
@@ -121,11 +120,11 @@ export class M3ClimateCardMini extends TemplatedCard(LitElement) implements Love
     )?.[mode];
     const resolved =
       override || DEFAULT_MODE_COLORS[mode as HvacMode] || DEFAULT_MODE_COLORS.off;
-    return THEME_COLOR_TOKENS[resolved] ?? resolved;
+    return resolveThemeColor(resolved);
   }
 
   private _resolveColor(value: string): string {
-    return THEME_COLOR_TOKENS[value] ?? value;
+    return resolveThemeColor(value);
   }
 
   private _defaultIcon(hvacModes: string[]): string {
