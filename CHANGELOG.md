@@ -27,6 +27,14 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   pixel equivalent for browsers without the units. The expressive climate
   card's hero temperature, which was dropping to the inherited size for the
   same reason, falls back to a viewport-relative size instead.
+- **A nav bar that scrolls starts at its first entry.** The bar spread its
+  entries with `space-around`, which on a bar too narrow for them splits the
+  overflow across both ends — and the part before the scroll origin cannot be
+  scrolled to at all, so the first entry sat half outside the bar and stayed
+  there however hard it was swiped. Current browsers correct this themselves;
+  Safari 15 does not, which is where it surfaced. A bar that fits is
+  `fit-content` wide and has no free space to spread, so starting at the start
+  changes nothing anywhere else.
 - **Tinted fills survive on iOS 15 as solid ones.** `color-mix()` is Safari
   16.2, and 107 fills across 25 cards were mixed over the card surface with
   it — so on an older Safari an inner tile had no background at all and the

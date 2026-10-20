@@ -2548,6 +2548,16 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     /* Entries that keep their width can add up to more than the screen, so the
        bar scrolls rather than clipping the last one off the edge. */
     :host([variant]) .bar.fit {
+      /* The base bar spreads its entries with space-around. On a bar that
+         scrolls that is a trap: the overflow is split across both ends, and
+         the part that lands before the scroll origin cannot be reached by
+         scrolling at all — the first entry sits half outside the bar and no
+         amount of swiping brings it back. Chrome and current Safari resolve
+         this themselves, Safari 15 does not, which is where it showed up: an
+         iPod touch 7 with the active entry cut in half against the left edge.
+         Starting at the start costs nothing here, because a bar that fits is
+         fit-content wide and has no free space to distribute anyway. */
+      justify-content: flex-start;
       overflow-x: auto;
       scrollbar-width: none;
       /* Hugging is done with width, not with a cap. It used to be written as
@@ -2667,6 +2677,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
        stops the first one being clipped out of reach once they do not. */
     :host([variant="segmented"]) .bar,
     :host([variant="header"]) .bar {
+      /* Plain flex-start first: a browser that does not know the safe keyword
+         drops the line below and would otherwise inherit space-around, which
+         is the very thing being avoided. */
+      justify-content: flex-start;
       justify-content: safe center;
       overflow-x: auto;
       scrollbar-width: none;
