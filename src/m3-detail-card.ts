@@ -13,6 +13,11 @@ import {
   DETAIL_DEFAULT_ACCENT,
   DETAIL_DEVICE_CLASS_COLORS,
   DETAIL_DEVICE_CLASS_ICONS,
+  DETAIL_BINARY_CLASS_COLORS,
+  DETAIL_BINARY_CLASS_ICONS,
+  DETAIL_DOMAIN_COLORS,
+  DETAIL_DOMAIN_ICONS,
+  DETAIL_MAX_SHARES,
   DETAIL_ICON_RADIUS,
   DETAIL_ICON_SIZE,
   DETAIL_MIN_ALT_COLOR,
@@ -62,6 +67,25 @@ import {
   type SeriesPoint,
 } from "./shared/entity-history";
 import { monotoneArea, monotonePath, type XY } from "./shared/smooth-path";
+import { defaultControlCard, detailKind, isTwoState, type DetailKind } from "./shared/detail-kind";
+import {
+  clipSegments,
+  countChanges,
+  fetchStateTimeline,
+  startOfDay,
+  stateShares,
+  type StateTimeline,
+} from "./shared/state-timeline";
+import {
+  detailStateStyles,
+  renderPairTiles,
+  renderShares,
+  renderTimeline,
+  stateColors,
+  isActiveState,
+} from "./shared/detail-states";
+import { DetailCardController } from "./shared/detail-card";
+import type { PopupCardHandle } from "./shared/popup-card";
 
 const EASING = unsafeCSS(STANDARD_EASING);
 
@@ -107,6 +131,11 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
   /** The period picked in this card, or remembered from the last time. */
   @state() private _picked?: DetailRange;
   private _seriesEntity?: string;
+  @state() private _timeline?: StateTimeline;
+  private _timelineEntity?: string;
+  /** The embedded control card of a `control` view. */
+  @state() private _control?: HTMLElement & PopupCardHandle;
+  private readonly _controlCtl = new DetailCardController();
   @state() private _chartWidth = 0;
   @state() private _now = Date.now();
 
@@ -156,12 +185,46 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
   }
 
   protected shouldUpdate(changed: PropertyValues): boolean {
+    // The embedded card reads more than this entity — a media card its
+    // artwork, a climate card the sensors it was given — and decides for
+    // itself what is worth a render. It gets every hass, whatever this card
+    // decides about its own.
+    if (changed.has("hass") && this._control) this._control.hass = this.hass;
     return hassChangeMatters(changed, this.hass, [this._config?.entity]);
   }
 
   protected updated(changed: PropertyValues): void {
-    if (changed.has("hass") || changed.has("_config")) this._maybeFetch();
+    if (changed.has("hass") || changed.has("_config")) {
+      this._maybeFetch();
+      this._syncControl();
+    }
     this._observeChart();
+  }
+
+  private _kind(st: HassEntity): DetailKind {
+    // Standing on its own, the card shows whatever it was given; only the
+    // sheet turns entities without a kind away.
+    return detailKind(st, this._config?.type_overrides) ?? "states";
+  }
+
+  private _syncControl(): void {
+    const entity = this._config?.entity;
+    const st = entity ? this.hass?.states[entity] : undefined;
+    const option = this._config?.control_card ?? "auto";
+    const skeleton =
+      !st || this._kind(st) !== "control" || option === "none"
+        ? undefined
+        : option === "auto"
+          ? defaultControlCard(entity!)
+          : option;
+    this._controlCtl.sync({
+      skeleton,
+      tokens: { entity },
+      hass: this.hass,
+      onChange: (el) => {
+        if (el !== this._control) this._control = el;
+      },
+    });
   }
 
   private get _language(): string {
@@ -218,9 +281,21 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const hass = this.hass;
     const entity = this._config?.entity;
     if (!hass || !entity || !hass.states[entity]) return;
-    const key = `${entity}|${this._range}`;
+    const kind = this._kind(hass.states[entity]);
+    if (kind === "info") return;
+    const key = `${entity}|${this._range}|${kind}`;
     if (key === this._fetchKey) return;
     this._fetchKey = key;
+    const seq = ++this._fetchSeq;
+    if (kind !== "numeric") {
+      if (entity !== this._timelineEntity) this._timeline = undefined;
+      void fetchStateTimeline(hass, entity, this._range).then((timeline) => {
+        if (seq !== this._fetchSeq) return;
+        this._timeline = timeline;
+        this._timelineEntity = entity;
+      });
+      return;
+    }
     // Another entity's graph is not a placeholder for this one. The same
     // entity's previous period is: it stays up, dimmed, on its own axis, until
     // the new one lands — a range switch that blanks the graph for half a
@@ -229,7 +304,6 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     // The websocket has no way to cancel a request, so "abort" means: the
     // answer to an older question is dropped when it arrives. Identical
     // questions from several cards are shared by ha-statistics.ts's cache.
-    const seq = ++this._fetchSeq;
     void fetchEntitySeries(hass, entity, this._range).then((series) => {
       if (seq !== this._fetchSeq) return;
       this._series = series;
@@ -285,12 +359,21 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     return { title: this._config?.name || title, crumb };
   }
 
+  /** A binary sensor's own class has an icon per state — the door shows open. */
+  private _binaryIcon(st: HassEntity, deviceClass: string): string | undefined {
+    if (!st.entity_id.startsWith("binary_sensor.")) return undefined;
+    const pair = DETAIL_BINARY_CLASS_ICONS[deviceClass];
+    return pair ? pair[st.state === "on" ? 0 : 1] : undefined;
+  }
+
   private _icon(st: HassEntity): string {
     const deviceClass = String(st.attributes.device_class ?? "");
     return (
       this._config?.icon ||
       (st.attributes.icon as string | undefined) ||
+      this._binaryIcon(st, deviceClass) ||
       DETAIL_DEVICE_CLASS_ICONS[deviceClass] ||
+      DETAIL_DOMAIN_ICONS[st.entity_id.split(".")[0]] ||
       DEFAULT_DETAIL_ICON
     );
   }
@@ -306,7 +389,10 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
 
   private _accent(st: HassEntity): string {
     if (this._config?.color) return resolveThemeColor(this._config.color);
-    return DETAIL_DEVICE_CLASS_COLORS[String(st.attributes.device_class ?? "")] ?? DETAIL_DEFAULT_ACCENT;
+    const domain = st.entity_id.split(".")[0];
+    const deviceClass = String(st.attributes.device_class ?? "");
+    const byClass = domain === "binary_sensor" ? DETAIL_BINARY_CLASS_COLORS : DETAIL_DEVICE_CLASS_COLORS;
+    return byClass[deviceClass] ?? DETAIL_DOMAIN_COLORS[domain] ?? DETAIL_DEFAULT_ACCENT;
   }
 
   // ---- numbers -----------------------------------------------------------------
@@ -511,9 +597,13 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     // Long numbers step down once; text — "Bewölkt", "Waschen" — starts
     // smaller, because a word at 52px wraps on a phone.
     const size = !numeric && text !== "—" ? "text" : text.length > 6 ? "long" : "";
+    // A door that is shut is not news: the accent is for the active half of a
+    // pair, and the other reads in the text colour.
+    const quiet = !numeric && isTwoState([st.state]) && !isActiveState(st.state);
+    const color = quiet ? "var(--dc-text, var(--primary-text-color))" : foregroundColor(this, accent);
     return html`
       <div class="value-row">
-        <div class="value ${size}" style="color:${foregroundColor(this, accent)}">
+        <div class="value ${size}" style="color:${color}">
           <span class="number">${text}</span>${unit ? html`<span class="unit">${unit}</span>` : nothing}
         </div>
         <div class="value-side">
@@ -604,6 +694,93 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     </div>`;
   }
 
+  private _renderBody(st: HassEntity, accent: string, available: boolean): unknown {
+    switch (this._kind(st)) {
+      case "numeric":
+        return html`${this._renderValue(st, accent)} ${this._renderRanges(accent)}
+        ${this._renderChart(st, accent, available)} ${this._renderStats(st, accent)}`;
+      case "info":
+        return html`${this._renderValue(st, accent)} ${this._renderInfo(st)}`;
+      case "control":
+        return html`${this._control ? html`<div class="control">${this._control}</div>` : this._renderValue(st, accent)}
+        ${this._renderRanges(accent)} ${this._renderStates(st, accent)}`;
+      default:
+        return html`${this._renderValue(st, accent)} ${this._renderRanges(accent)} ${this._renderStates(st, accent)}`;
+    }
+  }
+
+  private _stateLabel(st: HassEntity, state: string): string {
+    return this.hass?.formatEntityState?.({ ...st, state }) ?? state;
+  }
+
+  /** Timeline, then the pair's tiles or the list of states. */
+  private _renderStates(st: HassEntity, accent: string): unknown {
+    const timeline = this._timeline;
+    if (!timeline) return html`<div class="timeline-placeholder"></div>`;
+    if (timeline.source === "none") return html`<div class="no-history">${this._t("detail_no_history")}</div>`;
+    const t1 = this._now;
+    const t0 = t1 - DETAIL_RANGE_MS[timeline.range];
+    const stale = timeline.range !== this._range;
+    // Live: a change that arrived since the timeline was read extends it.
+    const segments = [...timeline.segments];
+    const last = segments[segments.length - 1];
+    if (last && last.to < t1) {
+      if (last.state === st.state) segments[segments.length - 1] = { ...last, to: t1 };
+      else segments.push({ state: st.state, from: Math.max(last.to, Date.parse(st.last_changed) || last.to), to: t1 });
+    }
+    const shares = stateShares(segments, t0, t1);
+    const twoState = isTwoState([...shares.map((s) => s.state), st.state]);
+    const colors = stateColors(this, shares, fillColor(this, accent), twoState);
+    const label = (state: string) => this._stateLabel(st, state);
+    const labels = this._labels(t0, timeline.range);
+    return html`
+      ${renderTimeline({ segments: clipSegments(segments, t0, t1), t0, t1, colors, stale, label })}
+      <div class="axis">
+        ${labels.map((l, i) => {
+          const pct = i === labels.length - 1 ? 100 : Math.min(100, Math.max(0, ((l.t - t0) / (t1 - t0)) * 100));
+          return html`<span class="tick ${i === 0 && pct < 8 ? "start" : ""} ${i === labels.length - 1 ? "end" : ""}" style="left:${pct}%">${l.text}</span>`;
+        })}
+      </div>
+      ${stale
+        ? nothing
+        : twoState
+          ? renderPairTiles({
+              shares,
+              changesToday: countChanges(segments, startOfDay(t1), t1),
+              colors,
+              language: this._language,
+              label,
+              changesLabel: this._t("detail_changes_today"),
+              inkFor: (c) => foregroundColor(this, c),
+            })
+          : renderShares({ shares, colors, language: this._language, label, max: DETAIL_MAX_SHARES })}
+    `;
+  }
+
+  /** The few attributes worth a line for an entity with no useful history. */
+  private _renderInfo(st: HassEntity): unknown {
+    if (!st.entity_id.startsWith("weather.")) return nothing;
+    const a = st.attributes;
+    const rows: [TranslationKey, unknown, unknown][] = [
+      ["detail_temperature", a.temperature, a.temperature_unit],
+      ["detail_humidity", a.humidity, "%"],
+      ["detail_wind", a.wind_speed, a.wind_speed_unit],
+      ["detail_pressure", a.pressure, a.pressure_unit],
+    ];
+    const shown = rows.filter(([, v]) => typeof v === "number");
+    if (!shown.length) return nothing;
+    return html`<div class="tiles" style="grid-template-columns: repeat(${Math.min(shown.length, 2)}, minmax(0, 1fr))">
+      ${shown.map(
+        ([key, v, unit]) => html`<div class="tile">
+          <div class="tile-value">
+            ${this._format(v as number, Number.isInteger(v) ? 0 : 1)}${unit ? html`<span class="tile-unit">${unit}</span>` : nothing}
+          </div>
+          <div class="tile-label">${this._t(key)}</div>
+        </div>`,
+      )}
+    </div>`;
+  }
+
   private _openSettings(): void {
     const entity = this._config?.entity;
     // Home Assistant's dialog opening on top of ours would leave two modals
@@ -652,8 +829,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
                 </button>`
               : nothing}
           </div>
-          ${this._renderValue(st, accent)} ${this._renderRanges(accent)}
-          ${this._renderChart(st, accent, available)} ${this._renderStats(st, accent)}
+          ${this._renderBody(st, accent, available)}
         </div>
       </ha-card>
     `;
@@ -661,6 +837,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
 
   static styles = [
     glassCardStyles,
+    detailStateStyles,
     css`
       .card-inner {
         gap: 16px;
@@ -944,6 +1121,18 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         opacity: 0.42;
         margin-top: 2px;
         color: var(--dc-secondary);
+      }
+
+      .timeline-placeholder {
+        height: 32px;
+        border-radius: 10px;
+        background: var(--dc-button-bg);
+        opacity: 0.5;
+      }
+      /* The embedded card brings its own frame; in the sheet it sits on the
+         sheet's surface like any other part of the view. */
+      .control {
+        margin: 0 -2px;
       }
 
       .no-history {

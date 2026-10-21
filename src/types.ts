@@ -3304,6 +3304,14 @@ export interface M3DetailCardConfig {
   ranges?: DetailRangeOption[];
   /** The tiles under the graph. Default: min, mean, max — plus sum for a meter. */
   stats?: DetailStat[];
+  /**
+   * The card at the top of a controllable entity's view. `auto` picks the
+   * suite's own card for the domain, `none` shows none, and a card config is
+   * used as given, with `[[entity]]` standing for this entity.
+   */
+  control_card?: "auto" | "none" | Record<string, unknown>;
+  /** Layout per entity id or domain: numeric, binary, states, control, info. */
+  type_overrides?: Record<string, string>;
   /** For readings where rising is bad news — a green arrow on a falling value. */
   trend_inverted?: boolean;
   text_color?: string;

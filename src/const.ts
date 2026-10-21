@@ -2749,6 +2749,76 @@ export const DETAIL_DEVICE_CLASS_ICONS: Record<string, string> = {
   data_rate: "mdi:transfer",
   precipitation: "mdi:weather-rainy",
 };
+// By domain, when the device_class says nothing.
+export const DETAIL_DOMAIN_COLORS: Record<string, string> = {
+  light: PALETTE.light,
+  cover: PALETTE.cover,
+  media_player: PALETTE.media,
+  climate: PALETTE.heat,
+  humidifier: PALETTE.cool,
+  vacuum: PALETTE.dryAuto,
+  switch: PALETTE.ok,
+  input_boolean: PALETTE.ok,
+  fan: PALETTE.fan,
+  lock: PALETTE.ok,
+  weather: PALETTE.light,
+  person: PALETTE.home,
+  device_tracker: PALETTE.home,
+};
+// binary_sensor device classes, which share no names with the sensor ones.
+export const DETAIL_BINARY_CLASS_COLORS: Record<string, string> = {
+  door: PALETTE.cover,
+  window: PALETTE.cover,
+  opening: PALETTE.cover,
+  garage_door: PALETTE.cover,
+  motion: PALETTE.light,
+  occupancy: PALETTE.light,
+  presence: PALETTE.light,
+  moisture: PALETTE.cool,
+  smoke: PALETTE.heat,
+  gas: PALETTE.heat,
+  problem: PALETTE.heat,
+  safety: PALETTE.heat,
+  connectivity: PALETTE.ok,
+  plug: PALETTE.ok,
+  power: PALETTE.solar,
+};
+// binary_sensor icons by device class, as [on, off].
+export const DETAIL_BINARY_CLASS_ICONS: Record<string, [string, string]> = {
+  door: ["mdi:door-open", "mdi:door-closed"],
+  garage_door: ["mdi:garage-open", "mdi:garage"],
+  window: ["mdi:window-open", "mdi:window-closed"],
+  opening: ["mdi:square-outline", "mdi:square"],
+  motion: ["mdi:motion-sensor", "mdi:motion-sensor-off"],
+  occupancy: ["mdi:home", "mdi:home-outline"],
+  presence: ["mdi:home", "mdi:home-outline"],
+  moisture: ["mdi:water-alert", "mdi:water-off"],
+  smoke: ["mdi:smoke-detector-alert", "mdi:smoke-detector"],
+  connectivity: ["mdi:check-network-outline", "mdi:close-network-outline"],
+  plug: ["mdi:power-plug", "mdi:power-plug-off"],
+  battery: ["mdi:battery-alert", "mdi:battery"],
+  problem: ["mdi:alert-circle", "mdi:check-circle"],
+};
+export const DETAIL_DOMAIN_ICONS: Record<string, string> = {
+  light: "mdi:lightbulb",
+  cover: "mdi:window-shutter",
+  media_player: "mdi:play-box",
+  climate: "mdi:thermostat",
+  humidifier: "mdi:air-humidifier",
+  vacuum: "mdi:robot-vacuum",
+  switch: "mdi:toggle-switch",
+  input_boolean: "mdi:toggle-switch",
+  fan: "mdi:fan",
+  lock: "mdi:lock",
+  weather: "mdi:weather-partly-cloudy",
+  person: "mdi:account",
+  device_tracker: "mdi:map-marker",
+  binary_sensor: "mdi:checkbox-blank-circle-outline",
+  select: "mdi:format-list-bulleted",
+  input_select: "mdi:format-list-bulleted",
+  automation: "mdi:robot",
+};
+export const DETAIL_MAX_SHARES = 6;
 export const DEFAULT_DETAIL_ICON = "mdi:eye";
 export const DETAIL_DEFAULT_RANGES = ["1h", "24h", "7d", "30d"] as const;
 export const DETAIL_SEGMENT_RADIUS = 20;

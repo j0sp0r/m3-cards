@@ -14,6 +14,7 @@ import { anchorFocus, anchorTarget } from "./focus-anchor";
 import { POPUP_CLICK_GUARD_MS } from "./popup-card";
 import { SheetGesture } from "./sheet-gesture";
 import { registerDetailSheet } from "./entity-detail";
+import { detailKind } from "./detail-kind";
 import "../m3-detail-card";
 
 // The detail sheet: m3-detail-card in a bottom sheet, opened in place of Home
@@ -40,19 +41,12 @@ const EASING = unsafeCSS(STANDARD_EASING);
 
 const sheets = new WeakMap<HTMLElement, M3DetailSheet>();
 
-/** Domains whose detail this sheet can show. Anything else stays with more-info. */
+/**
+ * Whether the sheet has a layout for the entity. Release notes, press-only
+ * entities and the like do not (see detail-kind.ts) and stay with more-info.
+ */
 function canShow(hass: HomeAssistant | undefined, entityId: string): boolean {
-  const st = hass?.states[entityId];
-  if (!st) return false;
-  const domain = entityId.split(".")[0];
-  // An update's more-info carries its release notes, which the sheet has no
-  // equivalent for. Every other domain gets its own layout in a later step;
-  // until then only what this step draws properly — a number with a history.
-  if (domain === "update") return false;
-  if (["sensor", "number", "input_number", "counter"].includes(domain)) {
-    return st.attributes.unit_of_measurement !== undefined || Number.isFinite(Number(st.state));
-  }
-  return false;
+  return detailKind(hass?.states[entityId]) !== undefined;
 }
 
 function openDetailSheet(host: HTMLElement, entityId: string): boolean {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatClock, formatDuration } from "./formatting";
+import { formatClock, formatDuration, formatSpan } from "./formatting";
 
 describe("formatClock", () => {
   const now = Date.parse("2026-09-13T15:00:00Z");
@@ -46,5 +46,14 @@ describe("formatDuration", () => {
     expect(formatDuration("unknown", "h", strings)).toBeUndefined();
     expect(formatDuration("", "h", strings)).toBeUndefined();
     expect(formatDuration("5", "parsecs", strings)).toBeUndefined();
+  });
+});
+
+describe("formatSpan", () => {
+  it("uses at most two units, larger first, and drops an empty second one", () => {
+    expect(formatSpan(12 * 60_000, "en")).toBe("12 min");
+    expect(formatSpan(3 * 3_600_000 + 5 * 60_000, "en")).toBe("3 hr 5 min");
+    expect(formatSpan(3 * 3_600_000, "en")).toBe("3 hr");
+    expect(formatSpan(2 * 86_400_000 + 4 * 3_600_000 + 59 * 60_000, "en")).toBe("2 days 4 hr");
   });
 });
