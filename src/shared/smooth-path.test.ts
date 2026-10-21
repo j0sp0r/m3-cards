@@ -81,6 +81,13 @@ describe("niceTicks", () => {
     expect(niceTicks(Number.NaN, 4)).toEqual([]);
   });
 
+  it("ends on a span at float noise", () => {
+    // Statistics for a flat 21 °C, measured: max 21.000000000000004. The
+    // step was too small to move 21, and the loop never ended.
+    expect(niceTicks(21, 21.000000000000004, 3)).toEqual([]);
+    expect(niceTicks(1e6, 1e6 + 1e-9, 3).length).toBeLessThanOrEqual(12);
+  });
+
   it("gives labels just enough decimals", () => {
     expect(tickDecimals([0, 5000, 10000])).toBe(0);
     expect(tickDecimals([0.2, 0.3])).toBe(1);

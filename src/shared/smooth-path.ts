@@ -101,9 +101,17 @@ export function niceTicks(lo: number, hi: number, count = 3): number[] {
   const magnitude = 10 ** Math.floor(Math.log10(raw));
   const norm = raw / magnitude;
   const step = (norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10) * magnitude;
-  const out: number[] = [];
+  const first = Math.ceil(lo / step) * step;
+  // A span down at float noise (statistics answering 21.000000000000004 for
+  // a flat 21) gives a step too small to move the value: 21 + step is 21
+  // again, and stepping by it never ends. Counted rather than stepped, and
+  // with nothing to show when the step cannot move the value at all.
+  if (!(first + step > first)) return [];
   // A tolerance of a millionth of a step, so 0.1 + 0.2 still counts as 0.3.
-  for (let v = Math.ceil(lo / step) * step; v <= hi + step * 1e-6; v += step) {
+  const n = Math.min(Math.floor((hi - first) / step + 1e-6) + 1, count * 4);
+  const out: number[] = [];
+  for (let i = 0; i < n; i++) {
+    const v = first + i * step;
     out.push(Math.abs(v) < step * 1e-6 ? 0 : Number(v.toPrecision(12)));
   }
   return out;

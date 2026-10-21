@@ -906,7 +906,8 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       const plotW = width - DETAIL_CHART_HALO;
       const lo = min.v as number;
       const hi = max.v as number;
-      const spread = hi - lo || Math.abs(hi) * 0.1 || 1;
+      // A difference at float noise is a flat line, not a scale to zoom into.
+      const spread = hi - lo > Math.abs(hi) * 1e-9 ? hi - lo : Math.abs(hi) * 0.1 || 1;
       const yLo = lo - spread * DETAIL_CHART_PADDING;
       const yHi = hi + spread * DETAIL_CHART_PADDING;
       const top = DETAIL_CHART_HALO;
