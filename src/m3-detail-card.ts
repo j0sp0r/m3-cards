@@ -26,6 +26,7 @@ import {
   DETAIL_SWAP_MS,
   DETAIL_ZOOM_MS,
   DETAIL_WIPE_MS,
+  DETAIL_TREND_MORPH_MS,
   DETAIL_TOOLTIP_LINGER_MS,
   DETAIL_ICON_RADIUS,
   DETAIL_ICON_SIZE,
@@ -164,6 +165,8 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
   private _hoverTimer?: number;
   /** The period the timeline on screen was read for, to zoom from on a switch. */
   private _drawnTimeline?: { entity: string; range: DetailRange };
+  /** The trend chip as it was before the render in progress. */
+  private _trendBefore?: { width: number; text: string };
   /** The previous period's curve, cloned for the cross-fade. */
   private _oldChart?: SVGSVGElement;
   private _swapTimer?: number;
@@ -242,6 +245,12 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     // kept as a picture, to fade out under the new one (see _wipeChart). It
     // has to be taken here: after the render it is gone.
     const previous = changed.get("_series") as EntitySeries | undefined;
+    // The chip's size and words before this render, to move from (see
+    // _morphTrend).
+    const chip = this.renderRoot.querySelector<HTMLElement>(".trend");
+    this._trendBefore = chip
+      ? { width: chip.getBoundingClientRect().width, text: chip.querySelector(".trend-text")?.textContent ?? "" }
+      : undefined;
     if (previous && this._series && previous.range !== this._series.range) {
       const svg = this.renderRoot.querySelector<SVGSVGElement>(".chart svg");
       this._oldChart = svg ? (svg.cloneNode(true) as SVGSVGElement) : undefined;
@@ -256,6 +265,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     this._observeChart();
     if (changed.has("_timeline")) this._zoomTimeline();
     if (changed.has("_series")) this._wipeChart();
+    this._morphTrend();
   }
 
   /**
@@ -267,6 +277,29 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
    * _zoomTimeline): a bar of stretches has an obvious place for the old period
    * inside the new one, a curve with a new vertical scale does not.
    */
+  /**
+   * The trend chip changes its figure without jumping.
+   *
+   * Colour and the arrow's angle are CSS transitions. What CSS cannot do is
+   * animate a width that follows its text, and "+8" becoming "−707" grew the
+   * chip in one frame, so its old width is taken before the render and the
+   * new one animated to from there. The figure itself slides up into place.
+   */
+  private _morphTrend(): void {
+    const before = this._trendBefore;
+    this._trendBefore = undefined;
+    const chip = this.renderRoot.querySelector<HTMLElement>(".trend");
+    const text = chip?.querySelector<HTMLElement>(".trend-text");
+    if (!before || !chip || !text || text.textContent === before.text) return;
+    if (!shouldAnimate(this._config?.animation) || isReducedMotion() || !chip.animate) return;
+    const width = chip.getBoundingClientRect().width;
+    const options = { duration: DETAIL_TREND_MORPH_MS, easing: STANDARD_EASING };
+    if (Math.abs(width - before.width) > 0.5) {
+      chip.animate([{ width: `${before.width}px` }, { width: `${width}px` }], options);
+    }
+    text.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], options);
+  }
+
   private _wipeChart(): void {
     const old = this._oldChart;
     this._oldChart = undefined;
@@ -465,14 +498,17 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
    * is left after stripping (the entity *is* the device), the full name stays.
    */
   private _names(st: HassEntity, own = true): { title: string; crumb: string } {
-    const { entity, device, area } = this._registry(st.entity_id);
+    const { device, area } = this._registry(st.entity_id);
     const friendly = String(st.attributes.friendly_name ?? st.entity_id);
     const deviceName = (device?.name_by_user || device?.name || "").trim();
     let title = friendly;
     if (deviceName && friendly.toLowerCase().startsWith(deviceName.toLowerCase() + " ")) {
       title = friendly.slice(deviceName.length).trim() || friendly;
     }
-    const crumb = [deviceName, area?.name ?? entity?.platform].filter(Boolean).join(" · ");
+    // Device and area, nothing else. The integration's name used to stand in
+    // when there was no area — "template", "mqtt" — which says how the entity
+    // is made, not where or what it is. With neither, the line is left out.
+    const crumb = [deviceName, area?.name].filter(Boolean).join(" · ");
     return { title: (own && this._config?.name) || title, crumb };
   }
 
@@ -883,7 +919,9 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const series = this._series;
     const live = Number(st.state);
     if (!series?.points.length || MISSING.has(st.state) || !Number.isFinite(live)) return nothing;
-    if (series.range !== this._range) return nothing;
+    // While the next period loads, the chip keeps the previous answer, dimmed
+    // like the graph. Dropping it shifted everything beside it and back again.
+    const stale = series.range !== this._range;
     const t0 = this._now - DETAIL_RANGE_MS[series.range];
     const first = seriesExtremes(series.points.filter((p) => p.t >= t0)).first;
     if (!first) return nothing;
@@ -892,18 +930,21 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const dir = diff > step ? 1 : diff < -step ? -1 : 0;
     const good = this._config?.trend_inverted ? -dir : dir;
     const color = good > 0 ? DETAIL_TREND_UP_COLOR : good < 0 ? DETAIL_TREND_DOWN_COLOR : "var(--primary-text-color)";
-    const icon = dir > 0 ? "mdi:arrow-top-right" : dir < 0 ? "mdi:arrow-bottom-right" : "mdi:arrow-right";
     const sign = dir > 0 ? "+" : dir < 0 ? "−" : "±";
+    // One arrow, turned: up-right, flat, down-right. A change of direction is
+    // then a rotation the eye can follow, not one glyph swapped for another.
+    const angle = dir > 0 ? -45 : dir < 0 ? 45 : 0;
     return html`
       <span
-        class="trend"
+        class="trend ${stale ? "stale" : ""}"
         title=${this._t("detail_trend")}
         style=${buildCssVars({
           "trend-bg": tintOn(this, color, undefined, 18),
           "trend-ink": tintInk(this, color, undefined, 18),
+          "trend-angle": `${angle}deg`,
         })}
       >
-        <ha-icon icon=${icon}></ha-icon>${sign}${this._format(Math.abs(diff), decimals)}
+        <ha-icon icon="mdi:arrow-right"></ha-icon><span class="trend-text">${sign}${this._format(Math.abs(diff), decimals)}</span>
       </span>
     `;
   }
@@ -1470,6 +1511,23 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         font-variant-numeric: tabular-nums;
         --mdc-icon-size: 15px;
         white-space: nowrap;
+        overflow: hidden;
+        box-sizing: border-box;
+        transition:
+          background-color 400ms ${EASING},
+          color 400ms ${EASING},
+          opacity 300ms ${EASING};
+      }
+      .trend.stale {
+        opacity: 0.5;
+      }
+      .trend ha-icon {
+        flex: 0 0 auto;
+        transform: rotate(var(--trend-angle, 0deg));
+        transition: transform 400ms ${EASING};
+      }
+      .trend-text {
+        display: inline-block;
       }
 
       .since {

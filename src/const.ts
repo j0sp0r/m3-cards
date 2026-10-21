@@ -2830,6 +2830,8 @@ export const DETAIL_SWAP_MS = 160;
 export const DETAIL_ZOOM_MS = 450;
 // A new period's curve wiping in over the old one.
 export const DETAIL_WIPE_MS = 650;
+// The trend chip resizing and its figure sliding in.
+export const DETAIL_TREND_MORPH_MS = 400;
 // How long a reading under a lifted finger stays on screen.
 export const DETAIL_TOOLTIP_LINGER_MS = 2500;
 export const DEFAULT_DETAIL_ICON = "mdi:eye";
