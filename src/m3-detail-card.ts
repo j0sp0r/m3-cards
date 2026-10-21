@@ -1195,7 +1195,11 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
   private _detailsMode(st: HassEntity): "expanded" | "collapsed" | "hidden" {
     const configured = this._config?.details;
     if (configured === "expanded" || configured === "collapsed" || configured === "hidden") return configured;
-    return this._bigToggle(st) ? "collapsed" : "expanded";
+    // Open only where the history is the content: a sensor's curve, a
+    // weather summary. For a lamp, a door or a socket it is context most
+    // people never need, and it pushed the control half off the screen.
+    const kind = this._kind(st);
+    return kind === "numeric" || kind === "info" ? "expanded" : "collapsed";
   }
 
   private _storedDetailsOpen(entity: string): boolean {
@@ -1442,6 +1446,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
 
     const accent = this._accent(st);
     const { title, crumb } = this._names(st);
+    const embedded = this._kind(st) === "control" && !!this._control && !this._bigToggle(st);
     const available = !MISSING.has(st.state);
     const animate = shouldAnimate(this._config.animation) && !isReducedMotion();
     const { textColorCss, secondaryTextColorCss, cardBackgroundCss } = resolveCommonColors(this._config);
@@ -1462,11 +1467,15 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         >
           <div class="content ${this._swap ? `swap-${this._swap}` : ""}">
           <div class="header">
-            <div class="icon"><ha-icon icon=${this._icon(st)}></ha-icon></div>
-            <div class="titles">
-              ${crumb ? html`<div class="crumb">${crumb}</div>` : nothing}
-              <div class="title">${title}</div>
-            </div>
+            ${embedded
+              ? // The embedded card carries the icon and the name already;
+                // the header keeps only where it is and the two buttons.
+                html`<div class="titles">${crumb ? html`<div class="crumb solo">${crumb}</div>` : nothing}</div>`
+              : html`<div class="icon"><ha-icon icon=${this._icon(st)}></ha-icon></div>
+                  <div class="titles">
+                    ${crumb ? html`<div class="crumb">${crumb}</div>` : nothing}
+                    <div class="title">${title}</div>
+                  </div>`}
             <button class="hbtn settings" @click=${() => this._openSettings()} aria-label=${this._t("detail_settings")}>
               <ha-icon icon="mdi:cog-outline"></ha-icon>
             </button>
@@ -1790,6 +1799,13 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       /* Two lines before an ellipsis: "Thermostat Arbeitszimmer" beside two
          buttons does not fit one line on a phone, and the title is the one
          thing in the view that has to be readable. */
+      /* Alone in the header, above an embedded card, the area reads as a
+         label rather than a footnote. */
+      .crumb.solo {
+        font-size: 13px;
+        opacity: 0.6;
+      }
+
       .title {
         font-size: 18px;
         font-weight: 700;

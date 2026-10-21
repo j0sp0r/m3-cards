@@ -74,7 +74,23 @@ export class M3DetailCardEditor extends LitElement implements LovelaceCardEditor
   }
 
   private _behaviorSchema(): SchemaEntry[] {
-    const schema: SchemaEntry[] = [{ name: "show_related", selector: { boolean: {} } }];
+    const schema: SchemaEntry[] = [
+      {
+        name: "details",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "auto", label: this._t("editor_detail_details_auto") },
+              { value: "expanded", label: this._t("editor_detail_details_expanded") },
+              { value: "collapsed", label: this._t("editor_detail_details_collapsed") },
+              { value: "hidden", label: this._t("editor_detail_details_hidden") },
+            ],
+          },
+        },
+      },
+      { name: "show_related", selector: { boolean: {} } },
+    ];
     if (this._config?.show_related !== false) {
       schema.push({ name: "max_related", selector: { number: { min: 1, max: 12, mode: "box" } } });
     }
@@ -124,6 +140,7 @@ export class M3DetailCardEditor extends LitElement implements LovelaceCardEditor
       show_related: "editor_detail_show_related",
       max_related: "editor_detail_max_related",
       control_card: "editor_detail_control_card",
+      details: "editor_detail_details",
       animation: "editor_progress_animation",
       glass_background: "editor_glass_background",
       ...radiusLabelMap,
@@ -156,6 +173,8 @@ export class M3DetailCardEditor extends LitElement implements LovelaceCardEditor
     for (const key of ["ranges", "stats"]) {
       if (Array.isArray(next[key]) && (next[key] as unknown[]).length === 0) delete next[key];
     }
+    // "auto" is the absence of the option, not a fourth value.
+    if (next.details === "auto") delete next.details;
     this._emit(next as unknown as M3DetailCardConfig);
   }
 
@@ -219,6 +238,7 @@ export class M3DetailCardEditor extends LitElement implements LovelaceCardEditor
       y_axis: cfg.y_axis ?? true,
     };
     const behaviorData = {
+      details: cfg.details ?? "auto",
       show_related: cfg.show_related ?? true,
       max_related: cfg.max_related ?? DETAIL_DEFAULT_MAX_RELATED,
       control_card: typeof cfg.control_card === "object" ? undefined : (cfg.control_card ?? "auto"),
