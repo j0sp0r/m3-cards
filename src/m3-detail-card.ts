@@ -165,6 +165,8 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
   private _hoverTimer?: number;
   /** The period the timeline on screen was read for, to zoom from on a switch. */
   private _drawnTimeline?: { entity: string; range: DetailRange };
+  /** The tiles' figures as they were before the render in progress. */
+  private _tilesBefore?: string[];
   /** The trend chip as it was before the render in progress. */
   private _trendBefore?: { width: number; text: string };
   /** The previous period's curve, cloned for the cross-fade. */
@@ -251,6 +253,10 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     this._trendBefore = chip
       ? { width: chip.getBoundingClientRect().width, text: chip.querySelector(".trend-text")?.textContent ?? "" }
       : undefined;
+    // And the tiles' figures, by position, for the same slide (_morphTiles).
+    this._tilesBefore = [...this.renderRoot.querySelectorAll<HTMLElement>(".tile-value")].map(
+      (el) => el.textContent?.trim() ?? "",
+    );
     if (previous && this._series && previous.range !== this._series.range) {
       const svg = this.renderRoot.querySelector<SVGSVGElement>(".chart svg");
       this._oldChart = svg ? (svg.cloneNode(true) as SVGSVGElement) : undefined;
@@ -266,6 +272,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     if (changed.has("_timeline")) this._zoomTimeline();
     if (changed.has("_series")) this._wipeChart();
     this._morphTrend();
+    this._morphTiles();
   }
 
   /**
@@ -285,6 +292,33 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
    * chip in one frame, so its old width is taken before the render and the
    * new one animated to from there. The figure itself slides up into place.
    */
+  /**
+   * A tile whose figure changed slides the new one up into place, as the
+   * trend chip does. The tiles keep their width (it is the grid's), so there
+   * is nothing to resize; colour is a transition in the stylesheet. Tiles are
+   * matched by position, and a row that gained or lost a tile is left alone:
+   * the figures moved to different tiles, and sliding them would say they
+   * changed.
+   */
+  private _morphTiles(): void {
+    const before = this._tilesBefore;
+    this._tilesBefore = undefined;
+    if (!before?.length || !shouldAnimate(this._config?.animation) || isReducedMotion()) return;
+    const now = [...this.renderRoot.querySelectorAll<HTMLElement>(".tile-value")];
+    if (now.length !== before.length) return;
+    now.forEach((el, i) => {
+      if ((el.textContent?.trim() ?? "") === before[i] || !el.animate) return;
+      el.animate([{ opacity: 0, transform: "translateY(6px)" }, { opacity: 1, transform: "none" }], {
+        duration: DETAIL_TREND_MORPH_MS,
+        easing: STANDARD_EASING,
+        // One after another, left to right, a few frames apart: the row reads
+        // as updating rather than flashing.
+        delay: i * 40,
+        fill: "backwards",
+      });
+    });
+  }
+
   private _morphTrend(): void {
     const before = this._trendBefore;
     this._trendBefore = undefined;
@@ -1660,6 +1694,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        transition: color 400ms ${EASING};
       }
       .tile-unit {
         font-size: 10px;
