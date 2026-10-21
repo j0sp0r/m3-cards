@@ -1220,9 +1220,12 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
           : kind === "control"
             ? html`${this._renderRanges(accent)} ${this._renderStates(st, accent, "bar")} ${this._renderStates(st, accent, "tiles")}`
             : this._renderStates(st, accent, "tiles");
-    const details = html`${extra} ${this._renderRelated(st)}`;
+    const related = this._renderRelated(st);
+    const details = html`${extra} ${related}`;
     const mode = this._detailsMode();
-    if (mode === "hidden") return html`${head} ${primary}`;
+    // A fold with nothing in it is a button that opens onto nothing: a person
+    // or the sun has no extras and, without a device, no siblings either.
+    if (mode === "hidden" || (extra === nothing && related === nothing)) return html`${head} ${primary}`;
     if (mode === "expanded") return html`${head} ${primary} ${details}`;
     const open = this._detailsOpen;
     // The arrow turns with the fold, not after it: tied to "open" alone it
