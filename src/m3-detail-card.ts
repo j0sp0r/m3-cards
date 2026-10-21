@@ -65,7 +65,7 @@ import { formatClock, formatNumber } from "./shared/formatting";
 import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
-import { openEntitySettings } from "./shared/entity-detail";
+import { openEntityDetail, openEntitySettings } from "./shared/entity-detail";
 import {
   DETAIL_RANGE_MS,
   fetchEntitySeries,
@@ -145,7 +145,7 @@ function nearestValued(points: readonly SeriesPoint[], t: number, t0: number): S
 export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceCard {
   @property({ attribute: false }) public hass?: HomeAssistant;
   /** Set by the sheet. With it the card draws a close button and calls this. */
-  @property({ attribute: false }) public closeHandler?: () => void;
+  @property({ attribute: false }) public closeHandler?: () => void | Promise<void>;
 
   @state() private _config?: M3DetailCardConfig;
   @state() private _series?: EntitySeries;
@@ -637,8 +637,9 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
   private _onInnerMoreInfo = (e: Event): void => {
     const detail = (e as CustomEvent<{ entityId?: string; view?: string }>).detail ?? {};
     const id = detail.entityId;
-    if (!id || detail.view) {
-      this.closeHandler?.();
+    if (!id) return;
+    if (detail.view) {
+      this._handOver(e, id, detail.view);
       return;
     }
     if (id === this._config?.entity) {
@@ -650,8 +651,22 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       this._switchTo(id);
       return;
     }
-    this.closeHandler?.();
+    this._handOver(e, id);
   };
+
+  /**
+   * Closes the sheet, then lets Home Assistant's dialog open — in that order,
+   * and only once the sheet's history entry is gone, or the dialog's own
+   * entry would be the one popped and it would close as it opened. On a
+   * dashboard, with no sheet to close, the request simply goes on.
+   */
+  private _handOver(e: Event, entityId: string, view?: string): void {
+    if (!this.closeHandler) return;
+    e.stopPropagation();
+    void Promise.resolve(this.closeHandler()).then(() =>
+      view === "settings" ? openEntitySettings(this, entityId) : openEntityDetail(this, entityId),
+    );
+  }
 
   /** The other entities of this one's device, one row each. */
   private _renderRelated(st: HassEntity): unknown {
@@ -974,7 +989,13 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const tiles = this._statKinds(st)
       .map((kind) => {
         const value =
-          kind === "sum" ? series.sum : kind === "min" ? stats.min : kind === "max" ? stats.max : stats.mean;
+          kind === "sum"
+            ? series.sum
+            : kind === "min"
+              ? Math.min(series.extremes?.min ?? stats.min, stats.min)
+              : kind === "max"
+                ? Math.max(series.extremes?.max ?? stats.max, stats.max)
+                : stats.mean;
         if (value === undefined) return undefined;
         const color =
           kind === "min"
@@ -1101,9 +1122,9 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
   private _openSettings(): void {
     const entity = this._config?.entity;
     // Home Assistant's dialog opening on top of ours would leave two modals
-    // stacked, one of them unreachable. Close first.
-    this.closeHandler?.();
-    openEntitySettings(this, entity);
+    // stacked, one of them unreachable. Close first, and wait for the close:
+    // see _handOver.
+    void Promise.resolve(this.closeHandler?.()).then(() => openEntitySettings(this, entity));
   }
 
   protected render() {

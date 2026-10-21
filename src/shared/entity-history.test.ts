@@ -5,6 +5,7 @@ import {
   historyToPoints,
   seriesExtremes,
   seriesStats,
+  bucketExtremes,
   statisticsToPoints,
   type SeriesPoint,
 } from "./entity-history";
@@ -189,5 +190,21 @@ describe("fetchEntitySeries sum", () => {
     }));
     const series = await fetchEntitySeries(hass, "sensor.h", "7d", t);
     expect(series.sum).toBeUndefined();
+  });
+});
+
+describe("bucketExtremes", () => {
+  it("takes the buckets' own min and max, not the extremes of their means", () => {
+    const rows = [
+      { start: 0, mean: 150, min: 140, max: 160 },
+      { start: 1000, mean: 2946, min: 150, max: 14350 },
+      { start: 2000, mean: 300, min: -232, max: 900 },
+      { start: -5, mean: 1, min: -9999, max: 99999 },
+    ];
+    expect(bucketExtremes(rows, 0)).toEqual({ min: -232, max: 14350 });
+  });
+
+  it("has nothing for a meter, whose buckets carry neither", () => {
+    expect(bucketExtremes([{ start: 0, state: 5 }], 0)).toBeUndefined();
   });
 });

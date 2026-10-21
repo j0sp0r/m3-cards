@@ -90,6 +90,8 @@ export class M3DetailSheet extends LitElement {
   private _gesture?: SheetGesture;
   private _detach: (() => void)[] = [];
   private _closeTimer?: number;
+  /** Whether the sheet's entry is on top of the browser history. */
+  private _inHistory = false;
 
   public show(entityId: string, opener: HTMLElement): void {
     window.clearTimeout(this._closeTimer);
@@ -112,6 +114,8 @@ export class M3DetailSheet extends LitElement {
       if (this._body) this._body.scrollTop = 0;
       const reopening = dialog.open;
       if (!reopening) dialog.showModal();
+      // Also when reopened while sliding out: closing took the entry away.
+      this._pushHistory();
       this._openedAt = Date.now();
       // Off the bottom edge first, without a transition, so the slide up has
       // somewhere to start from. This used to place it at fully open, which
@@ -130,10 +134,66 @@ export class M3DetailSheet extends LitElement {
     });
   }
 
-  /** Slides out, then closes. `immediate` skips the animation (card removed). */
-  public dismiss(immediate = false): void {
+  /**
+   * A step in the browser history for the open sheet.
+   *
+   * Home Assistant's own dialogs push one, which is why Android's back
+   * gesture closes them. The sheet pushed none, so back left the page — and
+   * with no page before it, the companion app closed. Now back pops this entry
+   * and the sheet closes; any other way of closing pops it too, so the history
+   * is left as it was found. Same URL, so the dashboard's router sees no
+   * navigation.
+   */
+  private _pushHistory(): void {
+    if (this._inHistory) return;
+    window.history.pushState({ ...(window.history.state ?? {}), m3DetailSheet: true }, "");
+    this._inHistory = true;
+    window.addEventListener("popstate", this._onPopState);
+  }
+
+  /** Back was pressed (or swiped) while the sheet was open. */
+  private _onPopState = (e: PopStateEvent): void => {
+    if (!this._inHistory || (e.state as { m3DetailSheet?: boolean } | null)?.m3DetailSheet) return;
+    this._leaveHistory(false);
+    this.dismiss();
+  };
+
+  /**
+   * Takes the sheet's entry back out of the history. Resolves once the
+   * browser has done so: whoever opens Home Assistant's dialog next pushes an
+   * entry of its own, and a `back()` still in flight would pop that one and
+   * close the dialog it just opened.
+   */
+  private _leaveHistory(goBack: boolean): Promise<void> {
+    if (!this._inHistory) return Promise.resolve();
+    this._inHistory = false;
+    window.removeEventListener("popstate", this._onPopState);
+    const ours = (window.history.state as { m3DetailSheet?: boolean } | null)?.m3DetailSheet;
+    if (!goBack || !ours) return Promise.resolve();
+    return new Promise((resolve) => {
+      const settled = () => {
+        window.removeEventListener("popstate", settled);
+        window.clearTimeout(timer);
+        resolve();
+      };
+      // A browser that never answers must not leave the next dialog waiting.
+      const timer = window.setTimeout(settled, 300);
+      window.addEventListener("popstate", settled);
+      window.history.back();
+    });
+  }
+
+  /**
+   * Slides out, then closes. `immediate` skips the animation (card removed).
+   * The promise resolves once the history entry is gone, which is when it is
+   * safe to open another dialog.
+   */
+  public dismiss(immediate = false): Promise<void> {
     const dialog = this._dialog;
-    if (!dialog?.open || this._closing) return;
+    // Removed with the card, the page is already being navigated away from:
+    // stepping back now would undo that navigation.
+    const history = this._leaveHistory(!immediate);
+    if (!dialog?.open || this._closing) return history;
     this._closing = true;
     this.removeAttribute("open");
     const done = () => {
@@ -142,10 +202,11 @@ export class M3DetailSheet extends LitElement {
     };
     if (immediate || isReducedMotion()) {
       done();
-      return;
+      return history;
     }
     this._place(0, true);
     this._closeTimer = window.setTimeout(done, DETAIL_SHEET_SLIDE_MS);
+    return history;
   }
 
   protected firstUpdated(): void {
@@ -170,6 +231,7 @@ export class M3DetailSheet extends LitElement {
   public disconnectedCallback(): void {
     super.disconnectedCallback();
     window.clearTimeout(this._closeTimer);
+    void this._leaveHistory(false);
     this._detach.forEach((off) => off());
     this._detach = [];
     this._gesture?.destroy();
@@ -192,7 +254,7 @@ export class M3DetailSheet extends LitElement {
     el.style.setProperty("--sheet-open", String(fraction));
   }
 
-  private _close = (): void => this.dismiss();
+  private _close = (): Promise<void> => this.dismiss();
 
   /** A sibling opened from the bottom of the list starts at its own top. */
   private _toTop = (): void => {

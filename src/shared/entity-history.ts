@@ -65,11 +65,18 @@ export interface EntitySeries {
   range: DetailRange;
   /** What a meter added over the window. See `meterSum`. */
   sum?: number;
+  /**
+   * The lowest and highest reading inside the window, from the statistics'
+   * own per-bucket `min` and `max`. See `bucketExtremes`.
+   */
+  extremes?: { min: number; max: number };
 }
 
 interface StatRow {
   start: string | number;
   mean?: number | null;
+  min?: number | null;
+  max?: number | null;
   state?: number | null;
 }
 
@@ -104,6 +111,7 @@ export async function fetchEntitySeries(
           source: "statistics",
           range,
           sum: meterSum(rows, start, hass.states[entityId]?.attributes?.state_class),
+          extremes: bucketExtremes(rows, start),
         };
       }
     } catch {
@@ -128,6 +136,29 @@ export async function fetchEntitySeries(
     // No recorder, an excluded entity: nothing to draw, which is an answer.
   }
   return { points: [], source: "none", range };
+}
+
+/**
+ * The real lowest and highest reading in the window.
+ *
+ * The curve is drawn through bucket means, and the extremes of the means are
+ * not the extremes of the readings — they shrink as the buckets grow. Measured
+ * on 2026-10-21 on a household's total power: one spike of 14,350 W became a
+ * 5-minute mean of 10,087 W and an hourly mean of 2,946 W, so the "maximum"
+ * tile fell from 10 kW to 3 kW when the period was widened to include it.
+ * Every bucket also stores its own min and max; these are what the tiles show.
+ * A meter has neither (no mean either), and gets none.
+ */
+export function bucketExtremes(rows: readonly StatRow[], start: number): { min: number; max: number } | undefined {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const row of rows) {
+    const t = typeof row.start === "number" ? row.start : Date.parse(row.start);
+    if (t < start) continue;
+    if (typeof row.min === "number") min = Math.min(min, row.min);
+    if (typeof row.max === "number") max = Math.max(max, row.max);
+  }
+  return Number.isFinite(min) && Number.isFinite(max) ? { min, max } : undefined;
 }
 
 /**
@@ -179,7 +210,7 @@ async function fetchStatRows(
     end_time: new Date(Math.ceil(end / step) * step).toISOString(),
     statistic_ids: [entityId],
     period,
-    types: ["mean", "state"],
+    types: ["mean", "min", "max", "state"],
   });
   return response[entityId] ?? [];
 }
