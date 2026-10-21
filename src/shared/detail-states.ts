@@ -96,14 +96,14 @@ export function renderTimeline(params: {
 /** Time in each half of a pair, active first, then the changes since midnight. */
 export function renderPairTiles(params: {
   shares: readonly StateShare[];
-  changesToday: number;
+  changes: number;
   colors: Map<string, string>;
   language: string;
   label: (state: string) => string;
   changesLabel: string;
   inkFor: (color: string) => string;
 }): TemplateResult {
-  const { shares, changesToday, colors, language, label, changesLabel, inkFor } = params;
+  const { shares, changes, colors, language, label, changesLabel, inkFor } = params;
   const ordered = [...shares].sort((a, b) => Number(isActiveState(b.state)) - Number(isActiveState(a.state)));
   return html`
     <div class="tiles pair" style="grid-template-columns: repeat(${ordered.length + 1}, minmax(0, 1fr))">
@@ -116,7 +116,7 @@ export function renderPairTiles(params: {
         </div>`,
       )}
       <div class="tile">
-        <div class="tile-value">${changesToday}</div>
+        <div class="tile-value">${changes}</div>
         <div class="tile-label">${changesLabel}</div>
       </div>
     </div>

@@ -2832,6 +2832,16 @@ export const DETAIL_ZOOM_MS = 450;
 export const DETAIL_WIPE_MS = 650;
 // The trend chip resizing and its figure sliding in.
 export const DETAIL_TREND_MORPH_MS = 400;
+// The big switch at the top of a switch's view.
+export const DETAIL_BIG_TOGGLE_WIDTH = 128;
+export const DETAIL_BIG_TOGGLE_HEIGHT = 208;
+export const DETAIL_BIG_TOGGLE_RADIUS = 40;
+// How long the thumb waits for the entity to confirm before going back.
+export const DETAIL_TOGGLE_CONFIRM_MS = 5000;
+// "History and details" folding open or shut.
+export const DETAIL_DETAILS_MS = 380;
+// localStorage key prefix: whether "history and details" was left open, per entity.
+export const DETAIL_OPEN_STORAGE_PREFIX = "m3-detail-open:";
 // How long a reading under a lifted finger stays on screen.
 export const DETAIL_TOOLTIP_LINGER_MS = 2500;
 export const DEFAULT_DETAIL_ICON = "mdi:eye";

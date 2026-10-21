@@ -25,6 +25,12 @@ import {
   DETAIL_RELATED_ROW_RADIUS,
   DETAIL_SWAP_MS,
   DETAIL_ZOOM_MS,
+  DETAIL_OPEN_STORAGE_PREFIX,
+  DETAIL_TOGGLE_CONFIRM_MS,
+  DETAIL_BIG_TOGGLE_WIDTH,
+  DETAIL_BIG_TOGGLE_HEIGHT,
+  DETAIL_BIG_TOGGLE_RADIUS,
+  DETAIL_DETAILS_MS,
   DETAIL_WIPE_MS,
   DETAIL_TREND_MORPH_MS,
   DETAIL_TOOLTIP_LINGER_MS,
@@ -81,7 +87,9 @@ import { defaultControlCard, detailKind, isTwoState, type DetailKind } from "./s
 import {
   clipSegments,
   countChanges,
-  fetchStateTimeline,
+  subscribeStateTimeline,
+  isMissingState,
+  type StateSegment,
   startOfDay,
   stateShares,
   type StateTimeline,
@@ -150,6 +158,10 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
 
   @state() private _config?: M3DetailCardConfig;
   @state() private _series?: EntitySeries;
+  /** Whether the folded "history and details" part is open, per entity. */
+  @state() private _detailsOpen = false;
+  /** A toggle sent and not yet confirmed by the entity: the state it asked for. */
+  @state() private _pendingToggle?: { to: boolean; since: number };
   /** The period picked in this card, or remembered from the last time. */
   @state() private _picked?: DetailRange;
   private _seriesEntity?: string;
@@ -163,6 +175,8 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
   /** "out" while the old entity fades, "in" for the first frame of the new one. */
   @state() private _swap?: "out" | "in";
   private _hoverTimer?: number;
+  /** Ends the live history subscription of the timeline on screen. */
+  private _timelineUnsub?: () => void;
   /** The period the timeline on screen was read for, to zoom from on a switch. */
   private _drawnTimeline?: { entity: string; range: DetailRange };
   /** The tiles' figures as they were before the render in progress. */
@@ -183,7 +197,11 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
 
   public setConfig(config: M3DetailCardConfig): void {
     if (!config?.entity) throw new Error("m3-detail-card: `entity` is required");
-    if (config.entity !== this._config?.entity) this._picked = this._storedRange(config.entity);
+    if (config.entity !== this._config?.entity) {
+      this._picked = this._storedRange(config.entity);
+      this._detailsOpen = this._storedDetailsOpen(config.entity);
+      this._pendingToggle = undefined;
+    }
     this._config = config;
   }
 
@@ -227,6 +245,10 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     if (this._tick) clearInterval(this._tick);
     window.clearTimeout(this._hoverTimer);
     window.clearTimeout(this._swapTimer);
+    this._timelineUnsub?.();
+    this._timelineUnsub = undefined;
+    // Back on the page, the next update subscribes again.
+    this._fetchKey = "";
     this._resize?.disconnect();
     this._resize = undefined;
     this._observed = undefined;
@@ -243,6 +265,11 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
 
   protected willUpdate(changed: PropertyValues): void {
     super.willUpdate(changed);
+    // "Now" is otherwise moved on once a minute, for the relative times. A
+    // change of state or a new history must be drawn against the real now:
+    // against one up to a minute old, a change that just happened lay in the
+    // future, outside the window, and the change counter did not move.
+    if (changed.has("hass") || changed.has("_timeline") || changed.has("_series")) this._now = Date.now();
     // The curve about to be replaced by another period of the same entity is
     // kept as a picture, to fade out under the new one (see _wipeChart). It
     // has to be taken here: after the render it is gone.
@@ -267,6 +294,8 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     if (changed.has("hass") || changed.has("_config")) {
       this._maybeFetch();
       this._syncControl();
+      const st = this._config ? this.hass?.states[this._config.entity] : undefined;
+      if (this._pendingToggle && st && (st.state === "on") === this._pendingToggle.to) this._pendingToggle = undefined;
     }
     this._observeChart();
     if (changed.has("_timeline")) this._zoomTimeline();
@@ -396,7 +425,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const st = entity ? this.hass?.states[entity] : undefined;
     const option = this._config?.control_card ?? "auto";
     const skeleton =
-      !st || this._kind(st) !== "control" || option === "none"
+      !st || this._kind(st) !== "control" || option === "none" || this._bigToggle(st)
         ? undefined
         : option === "auto"
           ? defaultControlCard(entity!)
@@ -473,7 +502,8 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const seq = ++this._fetchSeq;
     if (kind !== "numeric") {
       if (entity !== this._timelineEntity) this._timeline = undefined;
-      void fetchStateTimeline(hass, entity, this._range).then((timeline) => {
+      this._timelineUnsub?.();
+      this._timelineUnsub = subscribeStateTimeline(hass, entity, this._range, (timeline) => {
         if (seq !== this._fetchSeq) return;
         this._timeline = timeline;
         this._timelineEntity = entity;
@@ -542,7 +572,10 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     // Device and area, nothing else. The integration's name used to stand in
     // when there was no area — "template", "mqtt" — which says how the entity
     // is made, not where or what it is. With neither, the line is left out.
-    const crumb = [deviceName, area?.name].filter(Boolean).join(" · ");
+    // An entity named exactly like its device ("Steckdose 17 - 3D-Drucker"
+    // on a device of that name) would print the name twice, once small.
+    const shownDevice = deviceName && deviceName.toLowerCase() !== title.toLowerCase() ? deviceName : "";
+    const crumb = [shownDevice, area?.name].filter(Boolean).join(" · ");
     return { title: (own && this._config?.name) || title, crumb };
   }
 
@@ -1002,14 +1035,13 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const numeric = !MISSING.has(st.state) && st.state.trim() !== "" && Number.isFinite(Number(st.state));
     const decimals = numeric ? this._decimals(st) : 0;
     const unit = numeric ? (st.attributes.unit_of_measurement as string | undefined) : undefined;
-    const text = MISSING.has(st.state)
-      ? "—"
-      : numeric
-        ? this._format(Number(st.state), decimals)
-        : this._stateText(st);
+    // Unknown and unavailable are words, in Home Assistant's own language,
+    // not a dash: at 52px a dash read as a bar, and the line under it said
+    // "unavailable" for an entity that was merely unknown.
+    const text = numeric ? this._format(Number(st.state), decimals) : this._stateText(st) || "—";
     // Long numbers step down once; text — "Bewölkt", "Waschen" — starts
     // smaller, because a word at 52px wraps on a phone.
-    const size = !numeric && text !== "—" ? "text" : text.length > 6 ? "long" : "";
+    const size = !numeric ? "text" : text.length > 6 ? "long" : "";
     // A door that is shut is not news: the accent is for the active half of a
     // pair, and the other reads in the text colour.
     const quiet = !numeric && isTwoState([st.state]) && !isActiveState(st.state);
@@ -1021,9 +1053,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         </div>
         <div class="value-side">
           ${this._renderTrend(st, decimals)}
-          <span class="since"
-            >${MISSING.has(st.state) ? this._t("detail_unavailable") : this._since(st.last_changed)}</span
-          >
+          <span class="since">${this._since(st.last_changed)}</span>
         </div>
       </div>
     `;
@@ -1120,21 +1150,163 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     </div>`;
   }
 
+  /**
+   * The view as two parts: what the entity is or does right now, and the
+   * history and context under it. The second part can be folded away
+   * (`details`), which is the default where the first part is the point — a
+   * switch someone opens to switch, not to read about.
+   */
   private _renderBody(st: HassEntity, accent: string, available: boolean): unknown {
-    switch (this._kind(st)) {
-      case "numeric":
-        return html`${this._renderValue(st, accent)} ${this._renderRanges(accent)}
-        ${this._renderChart(st, accent, available)} ${this._renderStats(st, accent)}`;
-      case "info":
-        return html`${this._renderValue(st, accent)} ${this._renderInfo(st)}`;
-      case "control":
-        return html`${this._control
-          ? html`<div class="control" @hass-more-info=${this._onInnerMoreInfo}>${this._control}</div>`
-          : this._renderValue(st, accent)}
-        ${this._renderRanges(accent)} ${this._renderStates(st, accent)}`;
-      default:
-        return html`${this._renderValue(st, accent)} ${this._renderRanges(accent)} ${this._renderStates(st, accent)}`;
+    const kind = this._kind(st);
+    const head =
+      kind === "control"
+        ? this._bigToggle(st)
+          ? this._renderBigToggle(st, accent)
+          : this._control
+            ? html`<div class="control" @hass-more-info=${this._onInnerMoreInfo}>${this._control}</div>`
+            : this._renderValue(st, accent)
+        : this._renderValue(st, accent);
+    const details =
+      kind === "numeric"
+        ? html`${this._renderRanges(accent)} ${this._renderChart(st, accent, available)} ${this._renderStats(st, accent)}`
+        : kind === "info"
+          ? this._renderInfo(st)
+          : html`${this._renderRanges(accent)} ${this._renderStates(st, accent)}`;
+    const mode = this._detailsMode(st);
+    if (mode === "hidden") return head;
+    if (mode === "expanded") return html`${head} ${details} ${this._renderRelated(st)}`;
+    const open = this._detailsOpen;
+    return html`
+      ${head}
+      <button class="details-toggle ${open ? "open" : ""}" aria-expanded=${open ? "true" : "false"} @click=${this._toggleDetails}>
+        <span>${this._t("detail_more")}</span>
+        <ha-icon icon="mdi:chevron-down"></ha-icon>
+      </button>
+      ${open ? html`<div class="details">${details} ${this._renderRelated(st)}</div>` : nothing}
+    `;
+  }
+
+  /** Domains whose view leads with one big switch instead of an embedded card. */
+  private _bigToggle(st: HassEntity): boolean {
+    const option = this._config?.control_card ?? "auto";
+    return option === "auto" && ["switch", "input_boolean"].includes(st.entity_id.split(".")[0]);
+  }
+
+  private _detailsMode(st: HassEntity): "expanded" | "collapsed" | "hidden" {
+    const configured = this._config?.details;
+    if (configured === "expanded" || configured === "collapsed" || configured === "hidden") return configured;
+    return this._bigToggle(st) ? "collapsed" : "expanded";
+  }
+
+  private _storedDetailsOpen(entity: string): boolean {
+    try {
+      return window.localStorage.getItem(DETAIL_OPEN_STORAGE_PREFIX + entity) === "1";
+    } catch {
+      return false;
     }
+  }
+
+  /**
+   * Opens or folds the details, with the height animated both ways: the part
+   * grows from nothing to its measured height and its content fades in, and
+   * folding runs the same backwards before the content is removed. It used
+   * to appear and vanish in one frame, which read as the sheet jumping.
+   */
+  private _toggleDetails = async (): Promise<void> => {
+    const opening = !this._detailsOpen;
+    const entity = this._config?.entity;
+    if (entity) {
+      try {
+        window.localStorage.setItem(DETAIL_OPEN_STORAGE_PREFIX + entity, opening ? "1" : "0");
+      } catch {
+        // Remembering is a convenience.
+      }
+    }
+    const animate = shouldAnimate(this._config?.animation) && !isReducedMotion();
+    const options = { duration: DETAIL_DETAILS_MS, easing: STANDARD_EASING };
+    if (opening) {
+      this._detailsOpen = true;
+      await this.updateComplete;
+      const el = this.renderRoot.querySelector<HTMLElement>(".details");
+      if (!animate || !el?.animate) return;
+      const height = el.getBoundingClientRect().height;
+      el.animate(
+        [
+          { height: "0px", opacity: 0, overflow: "hidden" },
+          { height: `${height}px`, opacity: 1, overflow: "hidden" },
+        ],
+        options,
+      );
+      return;
+    }
+    const el = this.renderRoot.querySelector<HTMLElement>(".details");
+    if (animate && el?.animate) {
+      const height = el.getBoundingClientRect().height;
+      await el
+        .animate(
+          [
+            { height: `${height}px`, opacity: 1, overflow: "hidden" },
+            { height: "0px", opacity: 0, overflow: "hidden" },
+          ],
+          { ...options, fill: "forwards" },
+        )
+        .finished.catch(() => undefined);
+    }
+    this._detailsOpen = false;
+  };
+
+  /**
+   * One large switch: a tall track, a thumb that rides to the top for on.
+   *
+   * Made for the entity someone opens in order to switch it — a socket with a
+   * 3D printer behind it — where the embedded button card was a single row
+   * under a header and the thing that mattered looked like the least of it.
+   * Large enough to be pressed on purpose rather than brushed. The thumb moves
+   * as soon as it is pressed and is held there, dimmed, until the entity
+   * confirms; if it never does, it goes back.
+   */
+  private _renderBigToggle(st: HassEntity, accent: string): unknown {
+    const available = !MISSING.has(st.state);
+    const pending = this._pendingToggle;
+    const confirmed = st.state === "on";
+    const shown = pending ? pending.to : confirmed;
+    const fill = fillColor(this, accent);
+    return html`
+      <div class="big-toggle-wrap">
+        <button
+          class="big-toggle ${shown ? "on" : ""} ${pending ? "pending" : ""}"
+          role="switch"
+          aria-checked=${shown ? "true" : "false"}
+          aria-label=${this._names(st).title}
+          ?disabled=${!available}
+          style=${buildCssVars({
+            "bt-fill": fill,
+            "bt-ink": inkOn(fill, this),
+            "bt-track-on": tintOn(this, accent, undefined, 30),
+          })}
+          @click=${() => this._flip(st)}
+        >
+          <span class="big-thumb"><ha-icon icon="mdi:power"></ha-icon></span>
+        </button>
+        <div class="big-state">
+          <span class="big-state-label">${MISSING.has(st.state) ? "—" : this._stateText(st)}</span>
+          <span class="since">${MISSING.has(st.state) ? this._t("detail_unavailable") : this._since(st.last_changed)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  private _flip(st: HassEntity): void {
+    if (!this.hass || MISSING.has(st.state) || this._pendingToggle) return;
+    const to = st.state !== "on";
+    const domain = st.entity_id.split(".")[0];
+    this._pendingToggle = { to, since: Date.now() };
+    void this.hass
+      .callService(domain, to ? "turn_on" : "turn_off", { entity_id: st.entity_id })
+      .catch(() => (this._pendingToggle = undefined));
+    window.setTimeout(() => {
+      if (this._pendingToggle?.to === to) this._pendingToggle = undefined;
+    }, DETAIL_TOGGLE_CONFIRM_MS);
   }
 
   private _stateLabel(st: HassEntity, state: string): string {
@@ -1149,13 +1321,17 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const t1 = this._now;
     const t0 = t1 - DETAIL_RANGE_MS[timeline.range];
     const stale = timeline.range !== this._range;
-    // Live: a change that arrived since the timeline was read extends it.
+    // Streamed, so every change Home Assistant records arrives as it happens;
+    // the last stretch only needs running on to now between changes.
     const segments = [...timeline.segments];
     const last = segments[segments.length - 1];
-    if (last && last.to < t1) {
-      if (last.state === st.state) segments[segments.length - 1] = { ...last, to: t1 };
-      else segments.push({ state: st.state, from: Math.max(last.to, Date.parse(st.last_changed) || last.to), to: t1 });
-    }
+    if (last && last.to < t1) segments[segments.length - 1] = { ...last, to: t1 };
+    // A timestamp sensor's every state is a different moment, so a bar of
+    // stretches per state would be a rainbow and a list of how long each
+    // lasted meaningless. Its bar shows when it had a value at all, and the
+    // list under it is what changed, newest first.
+    const timestamp = st.attributes.device_class === "timestamp";
+    if (timestamp) return this._renderTimestampHistory(st, segments, t0, t1, timeline.range, stale, accent);
     const shares = stateShares(segments, t0, t1);
     const twoState = isTwoState([...shares.map((s) => s.state), st.state]);
     const colors = stateColors(this, shares, fillColor(this, accent), twoState);
@@ -1173,14 +1349,56 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         ${twoState
           ? renderPairTiles({
               shares,
-              changesToday: countChanges(segments, startOfDay(t1), t1),
+              // In the period on screen, like the two tiles beside it. It was
+              // "since midnight" whatever the period, which read as broken
+              // next to two figures for the last seven days.
+              changes: countChanges(segments, t0, t1),
               colors,
               language: this._language,
               label,
-              changesLabel: this._t("detail_changes_today"),
+              changesLabel: this._t("detail_changes"),
               inkFor: (c) => foregroundColor(this, c),
             })
           : renderShares({ shares, colors, language: this._language, label, max: DETAIL_MAX_SHARES })}
+      </div>
+    `;
+  }
+
+  private _renderTimestampHistory(
+    st: HassEntity,
+    segments: StateSegment[],
+    t0: number,
+    t1: number,
+    range: DetailRange,
+    stale: boolean,
+    accent: string,
+  ): unknown {
+    const SET = "set";
+    const bar = segments.map((s) => (isMissingState(s.state) ? s : { ...s, state: SET }));
+    const colors = new Map([[SET, fillColor(this, accent)]]);
+    const label = (state: string) => (state === SET ? this._t("detail_set") : this._stateLabel(st, state));
+    const labels = this._labels(t0, range);
+    const events = clipSegments(segments, t0, t1).reverse().slice(0, DETAIL_MAX_SHARES);
+    const text = (state: string) =>
+      isMissingState(state) ? this._stateLabel(st, state) : (formatClock(state, this._language) ?? state);
+    return html`
+      ${renderTimeline({ segments: clipSegments(bar, t0, t1), t0, t1, colors, stale, label })}
+      <div class="axis">
+        ${labels.map((l, i) => {
+          const pct = i === labels.length - 1 ? 100 : Math.min(100, Math.max(0, ((l.t - t0) / (t1 - t0)) * 100));
+          return html`<span class="tick ${i === 0 && pct < 8 ? "start" : ""} ${i === labels.length - 1 ? "end" : ""}" style="left:${pct}%">${l.text}</span>`;
+        })}
+      </div>
+      <div class="below ${stale ? "stale" : ""}">
+        <div class="shares">
+          ${events.map(
+            (e) => html`<div class="share event">
+              <span class="dot ${isMissingState(e.state) ? "missing" : ""}" style="background:${isMissingState(e.state) ? "transparent" : fillColor(this, accent)}"></span>
+              <span class="share-name">${text(e.state)}</span>
+              <span class="share-time">${formatClock(new Date(e.from).toISOString(), this._language)}</span>
+            </div>`,
+          )}
+        </div>
       </div>
     `;
   }
@@ -1258,7 +1476,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
                 </button>`
               : nothing}
           </div>
-          ${this._renderBody(st, accent, available)} ${this._renderRelated(st)}
+          ${this._renderBody(st, accent, available)}
           </div>
         </div>
       </ha-card>
@@ -1354,6 +1572,114 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       }
       .tooltip span:not(.tip-unit) {
         opacity: 0.6;
+      }
+
+      .big-toggle-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+        padding: 6px 0 2px;
+      }
+      .big-toggle {
+        position: relative;
+        width: ${DETAIL_BIG_TOGGLE_WIDTH}px;
+        height: ${DETAIL_BIG_TOGGLE_HEIGHT}px;
+        border: none;
+        padding: 8px;
+        border-radius: ${DETAIL_BIG_TOGGLE_RADIUS}px;
+        background: var(--dc-button-bg);
+        cursor: pointer;
+        transition:
+          background-color 300ms ${EASING},
+          border-radius 200ms ${EASING};
+      }
+      .big-toggle.on {
+        background: var(--bt-track-on);
+      }
+      .big-toggle:active:not(:disabled) {
+        border-radius: ${DETAIL_BIG_TOGGLE_RADIUS - 10}px;
+      }
+      .big-toggle:disabled {
+        opacity: 0.4;
+        cursor: default;
+      }
+      .big-thumb {
+        position: absolute;
+        left: 8px;
+        right: 8px;
+        bottom: 8px;
+        height: calc(50% - 8px);
+        border-radius: ${DETAIL_BIG_TOGGLE_RADIUS - 8}px;
+        display: grid;
+        place-items: center;
+        background: color-mix(in srgb, var(--primary-text-color) 22%, var(--ha-card-background, var(--card-background-color, #1c1c1c)));
+        color: var(--primary-text-color);
+        --mdc-icon-size: 30px;
+        transition:
+          transform 350ms ${EASING},
+          background-color 300ms ${EASING},
+          color 300ms ${EASING},
+          opacity 200ms;
+      }
+      .big-toggle.on .big-thumb {
+        transform: translateY(calc(-100% - 0px));
+        background: var(--bt-fill);
+        color: var(--bt-ink);
+      }
+      .big-toggle.pending .big-thumb {
+        opacity: 0.7;
+      }
+      .big-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+      }
+      .big-state-label {
+        font-size: 22px;
+        font-weight: 700;
+      }
+
+      .share.event {
+        grid-template-columns: 10px minmax(0, 1fr) auto;
+      }
+      .dot.missing {
+        box-shadow: inset 0 0 0 1.5px currentColor;
+        opacity: 0.45;
+      }
+
+      /* The folded part. A column of its own, so its height can be animated
+         as one box; the gap matches the card's. */
+      .details {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-width: 0;
+      }
+
+      .details-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 40px;
+        border: none;
+        border-radius: 20px;
+        background: var(--dc-button-bg);
+        color: inherit;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        opacity: 0.8;
+        --mdc-icon-size: 18px;
+      }
+      .details-toggle ha-icon {
+        transition: transform 250ms ${EASING};
+      }
+      .details-toggle.open ha-icon {
+        transform: rotate(180deg);
       }
 
       .related {

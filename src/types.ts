@@ -3320,6 +3320,11 @@ export interface M3DetailCardConfig {
   show_tooltip?: boolean;
   /** A few round values up the side of the curve. Default true. */
   y_axis?: boolean;
+  /**
+   * History, tiles and the device's other entities: shown, folded behind a
+   * button, or left out. Default: folded for a switch, shown for the rest.
+   */
+  details?: "expanded" | "collapsed" | "hidden";
   /** For readings where rising is bad news — a green arrow on a falling value. */
   trend_inverted?: boolean;
   text_color?: string;

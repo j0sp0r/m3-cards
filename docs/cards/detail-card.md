@@ -77,10 +77,10 @@ popup:
 | Layout | For | Shows |
 | --- | --- | --- |
 | `numeric` | `sensor`, `number`, `input_number`, `counter` with a number | Value with a trend chip, the curve, minimum / average / maximum, plus the total for a meter |
-| `binary` | `binary_sensor`, `automation`, `schedule` | A timeline, time in each state, changes today |
-| `states` | Text sensors, `select`, `input_select`, anything else | A timeline and how long each state lasted |
+| `binary` | `binary_sensor`, `automation`, `schedule` | A timeline, time in each state, number of changes in the period |
+| `states` | Text sensors, `select`, `input_select`, timestamps, anything else | A timeline and how long each state lasted; for a timestamp, when it was set and its last changes |
 | `control` | `light`, `switch`, `fan`, `cover`, `climate`, `media_player`, `humidifier`, `vacuum`, `lock`, `input_boolean` | The matching M3 card, then the timeline |
-| `info` | `weather`, `person`, `device_tracker`, `sun`, timestamp sensors | The value and, for weather, temperature, humidity, wind and pressure |
+| `info` | `weather`, `person`, `device_tracker`, `sun` | The value and, for weather, temperature, humidity, wind and pressure |
 
 `type_overrides` changes the layout per entity id or per domain; the entity
 id wins:

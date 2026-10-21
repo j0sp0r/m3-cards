@@ -30,27 +30,21 @@ export function isMissingState(state: string): boolean {
   return MISSING.has(state);
 }
 
-/** Local midnight before `now` — where "today" starts for "changes today". */
+/** Local midnight before `now`. */
 export function startOfDay(now: number): number {
   const d = new Date(now);
   d.setHours(0, 0, 0, 0);
   return d.getTime();
 }
 
-/**
- * Reads the timeline for `range`, ending now.
- *
- * The request reaches back to midnight when the range is shorter than today,
- * because "changes today" is asked of every two-state entity whichever period
- * is on screen. The extra rows cost a few bytes; drawing clips them.
- */
+/** Reads the timeline for `range`, ending now. */
 export async function fetchStateTimeline(
   hass: HomeAssistant,
   entityId: string,
   range: DetailRange,
   now = Date.now(),
 ): Promise<StateTimeline> {
-  const start = Math.min(now - DETAIL_RANGE_MS[range], startOfDay(now));
+  const start = now - DETAIL_RANGE_MS[range];
   try {
     const response = await hass.callWS<Record<string, HistoryPoint[]>>({
       type: "history/history_during_period",
@@ -66,6 +60,80 @@ export async function fetchStateTimeline(
     // Excluded from the recorder, or no recorder: the view says so.
   }
   return { segments: [], source: "none", range };
+}
+
+interface StreamConnection {
+  subscribeMessage: <T>(callback: (msg: T) => void, msg: Record<string, unknown>) => Promise<() => void>;
+}
+
+/**
+ * The timeline for `range`, kept up to date by Home Assistant itself.
+ *
+ * `history/stream` is what Home Assistant's own more-info dialog draws its
+ * history from: it sends the recorded window first and then every new state
+ * as it is recorded. A one-off read went stale the moment the entity changed
+ * — switched on and off again, a switch's change counter never moved — and
+ * reading again right after a change returned the old timeline, because the
+ * recorder writes in batches. The stream has neither problem, and what it
+ * shows is exactly what Home Assistant has.
+ *
+ * Without a websocket connection (a test, an old frontend) it falls back to a
+ * single read. Returns the unsubscribe.
+ */
+export function subscribeStateTimeline(
+  hass: HomeAssistant,
+  entityId: string,
+  range: DetailRange,
+  onUpdate: (timeline: StateTimeline) => void,
+  now = Date.now(),
+): () => void {
+  const start = now - DETAIL_RANGE_MS[range];
+  const connection = (hass as unknown as { connection?: StreamConnection }).connection;
+  if (!connection?.subscribeMessage) {
+    void fetchStateTimeline(hass, entityId, range, now).then(onUpdate);
+    return () => undefined;
+  }
+  const rows: HistoryPoint[] = [];
+  let closed = false;
+  let unsubscribe: (() => void) | undefined;
+  const emit = () => {
+    const segments = historyToSegments(rows, start, Date.now());
+    onUpdate({ segments, source: segments.length ? "history" : "none", range });
+  };
+  connection
+    .subscribeMessage<{ states?: Record<string, HistoryPoint[]> }>(
+      (msg) => {
+        const incoming = msg.states?.[entityId];
+        if (!incoming) {
+          // An empty first answer still means "nothing recorded", which the
+          // view has to say rather than wait for.
+          if (!rows.length) emit();
+          return;
+        }
+        rows.push(...incoming);
+        rows.sort((a, b) => (a.lu ?? 0) - (b.lu ?? 0));
+        emit();
+      },
+      {
+        type: "history/stream",
+        start_time: new Date(start).toISOString(),
+        entity_ids: [entityId],
+        minimal_response: true,
+        no_attributes: true,
+        significant_changes_only: false,
+      },
+    )
+    .then((unsub) => {
+      if (closed) unsub();
+      else unsubscribe = unsub;
+    })
+    .catch(() => {
+      if (!closed) void fetchStateTimeline(hass, entityId, range, now).then(onUpdate);
+    });
+  return () => {
+    closed = true;
+    unsubscribe?.();
+  };
 }
 
 /**

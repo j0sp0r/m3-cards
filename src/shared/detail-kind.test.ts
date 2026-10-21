@@ -16,7 +16,7 @@ describe("detailKind", () => {
     // Unavailable right now, but meant to be a number.
     expect(detailKind(st("sensor.t", "unavailable", { unit_of_measurement: "°C" }))).toBe("numeric");
     expect(detailKind(st("sensor.wash", "Spülen"))).toBe("states");
-    expect(detailKind(st("sensor.next", "2026-10-21T10:00:00+00:00", { device_class: "timestamp" }))).toBe("info");
+    expect(detailKind(st("sensor.next", "2026-10-21T10:00:00+00:00", { device_class: "timestamp" }))).toBe("states");
     expect(detailKind(st("binary_sensor.door", "off"))).toBe("binary");
     expect(detailKind(st("select.mode", "eco"))).toBe("states");
     expect(detailKind(st("light.k", "on"))).toBe("control");

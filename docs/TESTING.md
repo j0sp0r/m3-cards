@@ -1110,7 +1110,7 @@ unten nicht als „ungesehen“ markiert ist. Am Handy war davon bisher nichts.
       da ist. Die Wahl ist nach dem Neuladen noch da (pro Entität)
 - [ ] Zähler (`total_increasing`): Die Summen-Kachel stimmt mit dem Anstieg
       der Kurve überein, auch über einen Reset hinweg
-- [ ] Türkontakt: Zeitleiste, Zeit offen/geschlossen, „Wechsel heute“. Ein
+- [ ] Türkontakt: Zeitleiste, Zeit offen/geschlossen, „Wechsel“ (im gewählten Zeitraum). Ein
       kurzer Ausfall zählt nicht als Wechsel
 - [ ] Licht (`control`): Die Lichtkarte ist eingebettet und schaltet. Ein Tap
       in ihr, der More-info öffnen würde, bleibt im Sheet

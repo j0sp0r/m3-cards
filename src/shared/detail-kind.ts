@@ -3,7 +3,7 @@
 // Five layouts, decided by domain first and by the state itself second:
 //
 //   numeric  a number with a history: the smoothed curve and its stats
-//   binary   two states: a timeline, time in each, changes today
+//   binary   two states: a timeline, time in each, changes in the period
 //   states   any other set of words: a timeline and how long each lasted
 //   control  something to operate: the suite's own card for it, then a timeline
 //   info     a summary with no useful history: weather, a person's location
@@ -58,7 +58,9 @@ export function detailKind(
     // A timestamp sensor's state parses as a date, not a number, and a
     // numeric one can be unavailable right now — the unit says which it is
     // meant to be.
-    if (st.attributes.device_class === "timestamp") return "info";
+    // A timestamp is text with a history worth seeing: when the print
+    // started, and when it started before that.
+    if (st.attributes.device_class === "timestamp") return "states";
     const n = Number(st.state);
     if (st.attributes.unit_of_measurement !== undefined || st.attributes.state_class) return "numeric";
     return st.state.trim() !== "" && Number.isFinite(n) ? "numeric" : "states";
