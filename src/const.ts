@@ -2842,6 +2842,8 @@ export const DETAIL_TOGGLE_CONFIRM_MS = 5000;
 export const DETAIL_DETAILS_MS = 380;
 // localStorage key prefix: whether "history and details" was left open, per entity.
 export const DETAIL_OPEN_STORAGE_PREFIX = "m3-detail-open:";
+// localStorage key: whether the same-device list was left open (one for all entities).
+export const DETAIL_RELATED_STORAGE_KEY = "m3-detail-related-open";
 // How long a reading under a lifted finger stays on screen.
 export const DETAIL_TOOLTIP_LINGER_MS = 2500;
 export const DEFAULT_DETAIL_ICON = "mdi:eye";

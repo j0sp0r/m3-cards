@@ -31,6 +31,7 @@ import {
   DETAIL_BIG_TOGGLE_HEIGHT,
   DETAIL_BIG_TOGGLE_RADIUS,
   DETAIL_DETAILS_MS,
+  DETAIL_RELATED_STORAGE_KEY,
   DETAIL_WIPE_MS,
   DETAIL_TREND_MORPH_MS,
   DETAIL_TOOLTIP_LINGER_MS,
@@ -162,6 +163,9 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
   @state() private _detailsOpen = false;
   /** Folding shut: the content is still there, animating, but the button already says closed. */
   @state() private _detailsClosing = false;
+  /** The same-device list, folded on its own; remembered once for all entities. */
+  @state() private _relatedOpen = this._storedRelatedOpen();
+  @state() private _relatedClosing = false;
   /** A toggle sent and not yet confirmed by the entity: the state it asked for. */
   @state() private _pendingToggle?: { to: boolean; since: number };
   /** The period picked in this card, or remembered from the last time. */
@@ -783,9 +787,25 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       .filter((id) => detailKind(this.hass!.states[id]) !== undefined)
       .slice(0, this._config?.max_related ?? DETAIL_DEFAULT_MAX_RELATED);
     if (!ids.length) return nothing;
+    const open = this._relatedOpen;
+    const shown = open && !this._relatedClosing;
     return html`
       <div class="related">
-        <div class="related-title">${this._t("detail_related")}</div>
+        <button
+          class="related-title ${shown ? "open" : ""}"
+          aria-expanded=${shown ? "true" : "false"}
+          @click=${this._toggleRelated}
+        >
+          <span>${this._t("detail_related")} · ${ids.length}</span>
+          <ha-icon icon="mdi:chevron-down"></ha-icon>
+        </button>
+        ${open ? html`<div class="related-rows">${this._renderRelatedRows(ids)}</div>` : nothing}
+      </div>
+    `;
+  }
+
+  private _renderRelatedRows(ids: string[]): unknown {
+    return html`
         ${ids.map((id) => {
           const sib = this.hass!.states[id];
           const accent = this._accent(sib, false);
@@ -810,8 +830,53 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
             <ha-icon class="related-chevron" icon="mdi:chevron-right"></ha-icon>
           </button>`;
         })}
-      </div>
     `;
+  }
+
+  /**
+   * The same-device list folds on its own, shut by default and remembered
+   * on this device for every entity. It is the part people open least: with
+   * the history shown for a sensor, it was four rows of other readings
+   * under the one they came for.
+   */
+  private _toggleRelated = async (): Promise<void> => {
+    if (this._relatedClosing) return;
+    const opening = !this._relatedOpen;
+    try {
+      window.localStorage.setItem(DETAIL_RELATED_STORAGE_KEY, opening ? "1" : "0");
+    } catch {
+      // Remembering is a convenience.
+    }
+    if (opening) {
+      this._relatedOpen = true;
+      await this.updateComplete;
+      void this._animateFold(this.renderRoot.querySelector<HTMLElement>(".related-rows"), true);
+      return;
+    }
+    this._relatedClosing = true;
+    await this._animateFold(this.renderRoot.querySelector<HTMLElement>(".related-rows"), false);
+    this._relatedOpen = false;
+    this._relatedClosing = false;
+  };
+
+  /**
+   * Height, opacity and the gap above a folding part, animated together, so
+   * neither end of the motion snaps. Shared by the details and the
+   * same-device list.
+   */
+  private async _animateFold(el: HTMLElement | null, opening: boolean): Promise<void> {
+    if (!el?.animate || !shouldAnimate(this._config?.animation) || isReducedMotion()) return;
+    const height = el.getBoundingClientRect().height;
+    const gap = getComputedStyle(el.parentElement ?? el).rowGap || "0px";
+    const shut = { height: "0px", opacity: 0, overflow: "hidden", marginTop: `-${gap}` };
+    const full = { height: `${height}px`, opacity: 1, overflow: "hidden", marginTop: "0px" };
+    await el
+      .animate(opening ? [shut, full] : [full, shut], {
+        duration: DETAIL_DETAILS_MS,
+        easing: STANDARD_EASING,
+        fill: opening ? "none" : "forwards",
+      })
+      .finished.catch(() => undefined);
   }
 
   /**
@@ -1209,6 +1274,14 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     return this._kind(st) === "control" ? "collapsed" : "expanded";
   }
 
+  private _storedRelatedOpen(): boolean {
+    try {
+      return window.localStorage.getItem(DETAIL_RELATED_STORAGE_KEY) === "1";
+    } catch {
+      return false;
+    }
+  }
+
   private _storedDetailsOpen(entity: string): boolean {
     try {
       return window.localStorage.getItem(DETAIL_OPEN_STORAGE_PREFIX + entity) === "1";
@@ -1234,40 +1307,14 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         // Remembering is a convenience.
       }
     }
-    const animate = shouldAnimate(this._config?.animation) && !isReducedMotion();
-    const options = { duration: DETAIL_DETAILS_MS, easing: STANDARD_EASING };
     if (opening) {
       this._detailsOpen = true;
       await this.updateComplete;
-      const el = this.renderRoot.querySelector<HTMLElement>(".details");
-      if (!animate || !el?.animate) return;
-      const height = el.getBoundingClientRect().height;
-      // The column's 16px gap above the part comes and goes with it; animated
-      // as a negative margin, or it would snap in at the start of opening and
-      // out at the end of folding, a jump of its own.
-      el.animate(
-        [
-          { height: "0px", opacity: 0, overflow: "hidden", marginTop: "-16px" },
-          { height: `${height}px`, opacity: 1, overflow: "hidden", marginTop: "0px" },
-        ],
-        options,
-      );
+      void this._animateFold(this.renderRoot.querySelector<HTMLElement>(".details"), true);
       return;
     }
-    const el = this.renderRoot.querySelector<HTMLElement>(".details");
     this._detailsClosing = true;
-    if (animate && el?.animate) {
-      const height = el.getBoundingClientRect().height;
-      await el
-        .animate(
-          [
-            { height: `${height}px`, opacity: 1, overflow: "hidden", marginTop: "0px" },
-            { height: "0px", opacity: 0, overflow: "hidden", marginTop: "-16px" },
-          ],
-          { ...options, fill: "forwards" },
-        )
-        .finished.catch(() => undefined);
-    }
+    await this._animateFold(this.renderRoot.querySelector<HTMLElement>(".details"), false);
     this._detailsOpen = false;
     this._detailsClosing = false;
   };
@@ -1710,10 +1757,30 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         gap: 6px;
       }
       .related-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 36px;
+        padding: 0 4px;
+        border: none;
+        background: none;
+        color: var(--dc-secondary, inherit);
+        font: inherit;
         font-size: 13px;
-        opacity: 0.6;
-        margin: 4px 0 2px;
-        color: var(--dc-secondary);
+        cursor: pointer;
+        opacity: 0.7;
+        --mdc-icon-size: 18px;
+      }
+      .related-title ha-icon {
+        transition: transform 250ms ${EASING};
+      }
+      .related-title.open ha-icon {
+        transform: rotate(180deg);
+      }
+      .related-rows {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
       }
       .related-row {
         display: flex;
