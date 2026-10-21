@@ -110,11 +110,19 @@ export class M3DetailSheet extends LitElement {
       // last open.
       else card?.refresh();
       if (this._body) this._body.scrollTop = 0;
-      if (!dialog.open) dialog.showModal();
+      const reopening = dialog.open;
+      if (!reopening) dialog.showModal();
       this._openedAt = Date.now();
-      this._place(1, false);
-      // Next frame: the dialog has to be laid out at its start position before
-      // the transition to the open one has anything to animate from.
+      // Off the bottom edge first, without a transition, so the slide up has
+      // somewhere to start from. This used to place it at fully open, which
+      // left the transition nothing to animate: the sheet appeared in one
+      // frame and only closing moved. A sheet already open (a second tap
+      // while it slides out) stays where it is and just comes back up.
+      if (!reopening) this._place(0, false);
+      // Commit that position before asking for the next one. Without the
+      // layout read, the browser folds both writes into one style change
+      // and, again, there is nothing between them to animate.
+      void this._sheetEl?.offsetHeight;
       requestAnimationFrame(() => {
         this.setAttribute("open", "");
         this._place(1, true);
