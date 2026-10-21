@@ -6250,7 +6250,7 @@ The period last picked is remembered per entity on that device.
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `entity` | string | – | **Required.** The entity to show |
-| `name` / `icon` / `color` | string | from the entity | Title, icon and accent. The default colour follows the device class: temperature red, humidity blue, energy orange |
+| `name` / `icon` / `color` | string | from the entity | Title, icon and accent. The default colour follows the device class (humidity blue, energy orange); a temperature takes its colour from its value, blue when cold through green to red when hot, on the climate overview's stages |
 | `range` | `1h` \| `24h` \| `7d` \| `30d` | `24h` | Period on opening, until the viewer picks another |
 | `ranges` | list | all four | The periods offered above the graph, in order |
 | `stats` | list of `min` / `mean` / `max` / `sum` | min, mean, max (+ sum for a meter) | The tiles under the curve |

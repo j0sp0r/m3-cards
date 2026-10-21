@@ -104,6 +104,7 @@ import {
 } from "./shared/detail-states";
 import { DetailCardController } from "./shared/detail-card";
 import { deviceSiblings } from "./shared/ha-registry";
+import { temperatureColor } from "./shared/temperature-color";
 import { stopSwipe } from "./shared/swipe";
 import type { PopupCardHandle } from "./shared/popup-card";
 
@@ -613,6 +614,10 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     if (own && this._config?.color) return resolveThemeColor(this._config.color);
     const domain = st.entity_id.split(".")[0];
     const deviceClass = String(st.attributes.device_class ?? "");
+    if (deviceClass === "temperature") {
+      const byValue = temperatureColor(Number(st.state), st.attributes.unit_of_measurement as string | undefined);
+      if (byValue) return byValue;
+    }
     const byClass = domain === "binary_sensor" ? DETAIL_BINARY_CLASS_COLORS : DETAIL_DEVICE_CLASS_COLORS;
     return byClass[deviceClass] ?? DETAIL_DOMAIN_COLORS[domain] ?? DETAIL_DEFAULT_ACCENT;
   }
@@ -1378,6 +1383,10 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const label = (state: string) => this._stateLabel(st, state);
     const labels = this._labels(t0, timeline.range);
     if (part === "bar") {
+      // Home Assistant shows the latest changes under the bar for a sensor;
+      // for something to operate the whole bar is behind the fold anyway.
+      const events = clipSegments(segments, t0, t1).reverse().slice(0, DETAIL_MAX_SHARES);
+      const neutral = tintOn(this, "var(--primary-text-color)", undefined, 40);
       return html`
         ${renderTimeline({ segments: clipSegments(segments, t0, t1), t0, t1, colors, stale, label })}
         <div class="axis">
@@ -1386,6 +1395,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
             return html`<span class="tick ${i === 0 && pct < 8 ? "start" : ""} ${i === labels.length - 1 ? "end" : ""}" style="left:${pct}%">${l.text}</span>`;
           })}
         </div>
+        ${this._renderActivity(events, label, (state) => colors.get(state) ?? neutral, stale)}
       `;
     }
     return html`
@@ -1433,11 +1443,30 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
           return html`<span class="tick ${i === 0 && pct < 8 ? "start" : ""} ${i === labels.length - 1 ? "end" : ""}" style="left:${pct}%">${l.text}</span>`;
         })}
       </div>
+      ${this._renderActivity(events, text, () => fillColor(this, accent), stale)}
+    `;
+  }
+
+  /**
+   * The latest changes, newest first, with their time: Home Assistant's
+   * "Activity" under the history, for anything whose states are words.
+   */
+  private _renderActivity(
+    events: readonly StateSegment[],
+    text: (state: string) => string,
+    color: (state: string) => string,
+    stale: boolean,
+  ): unknown {
+    if (!events.length) return nothing;
+    return html`
       <div class="below ${stale ? "stale" : ""}">
         <div class="shares">
           ${events.map(
             (e) => html`<div class="share event">
-              <span class="dot ${isMissingState(e.state) ? "missing" : ""}" style="background:${isMissingState(e.state) ? "transparent" : fillColor(this, accent)}"></span>
+              <span
+                class="dot ${isMissingState(e.state) ? "missing" : ""}"
+                style="background:${isMissingState(e.state) ? "transparent" : color(e.state)}"
+              ></span>
               <span class="share-name">${text(e.state)}</span>
               <span class="share-time">${formatClock(new Date(e.from).toISOString(), this._language)}</span>
             </div>`,
