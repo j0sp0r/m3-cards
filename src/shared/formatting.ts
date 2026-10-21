@@ -143,14 +143,19 @@ export function formatDuration(
  * Assistant ships gets its words without a translation table here.
  */
 export function formatSpan(ms: number, language: string): string {
+  return formatSpanParts(ms, language).join(" ");
+}
+
+/** The same, one string per unit, so a layout can break between them and never inside one. */
+export function formatSpanParts(ms: number, language: string): string[] {
   const unit = (n: number, u: "minute" | "hour" | "day") => {
     const fmt = getNumberFormat(language, { style: "unit", unit: u, unitDisplay: "short" });
     return fmt ? fmt.format(n) : `${n} ${u[0]}`;
   };
   const minutes = Math.max(0, Math.round(ms / 60_000));
-  if (minutes < 60) return unit(minutes, "minute");
+  if (minutes < 60) return [unit(minutes, "minute")];
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return minutes % 60 ? `${unit(hours, "hour")} ${unit(minutes % 60, "minute")}` : unit(hours, "hour");
+  if (hours < 24) return minutes % 60 ? [unit(hours, "hour"), unit(minutes % 60, "minute")] : [unit(hours, "hour")];
   const days = Math.floor(hours / 24);
-  return hours % 24 ? `${unit(days, "day")} ${unit(hours % 24, "hour")}` : unit(days, "day");
+  return hours % 24 ? [unit(days, "day"), unit(hours % 24, "hour")] : [unit(days, "day")];
 }

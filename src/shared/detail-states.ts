@@ -8,7 +8,7 @@
 import { css, html, nothing, type TemplateResult } from "lit";
 import { PALETTE } from "./tokens";
 import { tintOn } from "./color-config";
-import { formatNumber, formatSpan } from "./formatting";
+import { formatNumber, formatSpan, formatSpanParts } from "./formatting";
 import { parseColor } from "./contrast";
 import { isMissingState, type StateSegment, type StateShare } from "./state-timeline";
 
@@ -75,6 +75,7 @@ export function renderTimeline(params: {
   const span = t1 - t0;
   return html`
     <div class="timeline ${stale ? "stale" : ""}" role="img">
+      <div class="track">
       ${segments.map((s) => {
         const left = ((s.from - t0) / span) * 100;
         const width = ((s.to - s.from) / span) * 100;
@@ -87,6 +88,7 @@ export function renderTimeline(params: {
           style="left:${left}%;width:max(1px, ${width}%);background:${colors.get(s.state) ?? PALETTE.off}"
         ></span>`;
       })}
+      </div>
     </div>
   `;
 }
@@ -108,7 +110,7 @@ export function renderPairTiles(params: {
       ${ordered.map(
         (s) => html`<div class="tile">
           <div class="tile-value" style="color:${inkFor(colors.get(s.state) ?? PALETTE.off)}">
-            ${formatSpan(s.ms, language)}
+            ${formatSpanParts(s.ms, language).map((part, i) => html`${i ? " " : ""}<span class="unit-part">${part}</span>`)}
           </div>
           <div class="tile-label">${label(s.state)}</div>
         </div>`,
@@ -164,6 +166,13 @@ export const detailStateStyles = css`
   .timeline.stale {
     opacity: 0.4;
   }
+  /* What the period switch scales; anchored at "now", which is the one
+     point both periods share. */
+  .track {
+    position: absolute;
+    inset: 0;
+    transform-origin: right center;
+  }
   .seg {
     position: absolute;
     top: 0;
@@ -184,6 +193,19 @@ export const detailStateStyles = css`
     font-size: 15px;
     white-space: normal;
     line-height: 1.2;
+    /* Always room for two lines, so "3 Min." and "23 Std. 57 Min." give the
+       row the same height and a period switch does not move what is under
+       it. Centred, so the one-line case does not hang at the top. */
+    min-height: 2.4em;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    column-gap: 0.25em;
+  }
+
+  .unit-part {
+    white-space: nowrap;
   }
 
   .shares {

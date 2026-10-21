@@ -24,6 +24,7 @@ import {
   DETAIL_RELATED_ROW_HEIGHT,
   DETAIL_RELATED_ROW_RADIUS,
   DETAIL_SWAP_MS,
+  DETAIL_ZOOM_MS,
   DETAIL_TOOLTIP_LINGER_MS,
   DETAIL_ICON_RADIUS,
   DETAIL_ICON_SIZE,
@@ -59,7 +60,7 @@ import {
 } from "./shared/color-config";
 import { glassCardStyles, glassCardClass, renderMissingEntity } from "./shared/glass-card";
 import { shouldAnimate, isReducedMotion, STANDARD_EASING } from "./shared/animation";
-import { formatNumber } from "./shared/formatting";
+import { formatClock, formatNumber } from "./shared/formatting";
 import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
@@ -160,6 +161,8 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
   /** "out" while the old entity fades, "in" for the first frame of the new one. */
   @state() private _swap?: "out" | "in";
   private _hoverTimer?: number;
+  /** The period the timeline on screen was read for, to zoom from on a switch. */
+  private _drawnTimeline?: { entity: string; range: DetailRange };
   private _swapTimer?: number;
   @state() private _chartWidth = 0;
   @state() private _now = Date.now();
@@ -236,6 +239,34 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       this._syncControl();
     }
     this._observeChart();
+    if (changed.has("_timeline")) this._zoomTimeline();
+  }
+
+  /**
+   * A new period's timeline arrives: zoom to it instead of swapping it in.
+   *
+   * The day on screen is the last seventh of a week, so going from 24 hours to
+   * 7 days starts the new bar stretched seven times, anchored at "now", where
+   * it looks exactly like the old one — and shrinks it to size, the old day
+   * settling into the right seventh where it actually lies. The other way
+   * round the new bar starts squeezed into that seventh and opens out. The
+   * eye follows where the time went instead of watching the bar repaint.
+   */
+  private _zoomTimeline(): void {
+    const timeline = this._timeline;
+    const entity = this._config?.entity;
+    if (!timeline || !entity || timeline.source === "none") return;
+    const before = this._drawnTimeline;
+    this._drawnTimeline = { entity, range: timeline.range };
+    if (!before || before.entity !== entity || before.range === timeline.range) return;
+    if (!shouldAnimate(this._config?.animation) || isReducedMotion()) return;
+    const track = this.renderRoot.querySelector<HTMLElement>(".timeline .track");
+    if (!track?.animate) return;
+    const ratio = DETAIL_RANGE_MS[timeline.range] / DETAIL_RANGE_MS[before.range];
+    track.animate([{ transform: `scaleX(${ratio})` }, { transform: "scaleX(1)" }], {
+      duration: DETAIL_ZOOM_MS,
+      easing: STANDARD_EASING,
+    });
   }
 
   private _kind(st: HassEntity): DetailKind {
@@ -449,6 +480,17 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     });
   }
 
+  /**
+   * A state as words. Home Assistant's own formatter, except for a timestamp:
+   * it gives that its full date, "20. September 2026 um 16:37", which is
+   * correct and pushed the name out of a row on a phone. formatClock drops
+   * today's date and shortens any other.
+   */
+  private _stateText(st: HassEntity): string {
+    if (st.attributes.device_class === "timestamp") return formatClock(st.state, this._language) ?? st.state;
+    return this.hass?.formatEntityState?.(st) ?? st.state;
+  }
+
   private _since(iso: string): string {
     const seconds = Math.round((Date.parse(iso) - this._now) / 1000);
     if (!Number.isFinite(seconds)) return "";
@@ -565,7 +607,12 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
   /** The other entities of this one's device, one row each. */
   private _renderRelated(st: HassEntity): unknown {
     if (this._config?.show_related === false || !this.hass) return nothing;
-    const ids = deviceSiblings(this.hass, st.entity_id).slice(0, this._config?.max_related ?? DETAIL_DEFAULT_MAX_RELATED);
+    // Only entities this view can show. A vacuum's program buttons are on the
+    // same device, but their state is the time they were last pressed, and a
+    // tap on one would step to a view with nothing in it.
+    const ids = deviceSiblings(this.hass, st.entity_id)
+      .filter((id) => detailKind(this.hass!.states[id]) !== undefined)
+      .slice(0, this._config?.max_related ?? DETAIL_DEFAULT_MAX_RELATED);
     if (!ids.length) return nothing;
     return html`
       <div class="related">
@@ -579,7 +626,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
             ? "—"
             : numeric
               ? `${this._format(Number(sib.state), this._decimals(sib))}${unit ? ` ${unit}` : ""}`
-              : (this.hass!.formatEntityState?.(sib) ?? sib.state);
+              : this._stateText(sib);
           return html`<button class="related-row" @click=${() => this._switchTo(id)}>
             <span
               class="related-icon"
@@ -805,7 +852,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       ? "—"
       : numeric
         ? this._format(Number(st.state), decimals)
-        : (this.hass?.formatEntityState?.(st) ?? st.state);
+        : this._stateText(st);
     // Long numbers step down once; text — "Bewölkt", "Waschen" — starts
     // smaller, because a word at 52px wraps on a phone.
     const size = !numeric && text !== "—" ? "text" : text.length > 6 ? "long" : "";
@@ -865,7 +912,11 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const series = this._series;
     // Tiles for a period that is still loading would contradict the graph's
     // own scale above them; they wait with it.
-    if (!series || series.source === "none" || series.range !== this._range) return nothing;
+    if (!series || series.source === "none") return nothing;
+    // While the next period loads, the tiles keep the previous answer, dimmed
+    // with the graph: dropping them collapsed the view by their height and
+    // threw it open again a moment later.
+    const stale = series.range !== this._range;
     const t1 = this._now;
     const stats = seriesStats(this._pointsWithLive(series.points, st, t1), t1 - DETAIL_RANGE_MS[series.range], t1);
     if (!stats) return nothing;
@@ -901,7 +952,10 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     // graph, so a crowded row drops it and steps the figures down instead of
     // cutting them off.
     const dense = tiles.length > 3 ? "dense" : "";
-    return html`<div class="tiles ${dense}" style="grid-template-columns: repeat(${tiles.length}, minmax(0, 1fr))">
+    return html`<div
+      class="tiles ${dense} ${stale ? "stale" : ""}"
+      style="grid-template-columns: repeat(${tiles.length}, minmax(0, 1fr))"
+    >
       ${tiles}
     </div>`;
   }
@@ -955,9 +1009,8 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
           return html`<span class="tick ${i === 0 && pct < 8 ? "start" : ""} ${i === labels.length - 1 ? "end" : ""}" style="left:${pct}%">${l.text}</span>`;
         })}
       </div>
-      ${stale
-        ? nothing
-        : twoState
+      <div class="below ${stale ? "stale" : ""}">
+        ${twoState
           ? renderPairTiles({
               shares,
               changesToday: countChanges(segments, startOfDay(t1), t1),
@@ -968,6 +1021,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
               inkFor: (c) => foregroundColor(this, c),
             })
           : renderShares({ shares, colors, language: this._language, label, max: DETAIL_MAX_SHARES })}
+      </div>
     `;
   }
 
@@ -1069,6 +1123,16 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
         padding: 0;
+      }
+      /* And no corners of its own. With the padding gone the content runs to
+         the card's edge, so a 28px rounding with overflow: hidden cut into
+         whatever sat there: the icon and the close button at the top, the
+         last tile or row at the bottom, a word of text in a short view. The
+         radius is set inline, hence the !important. */
+      :host([in-sheet]) ha-card,
+      :host([in-sheet]) .card-inner {
+        border-radius: 0 !important;
+        overflow: visible;
       }
 
       /* Everything moves together when the view steps to a sibling; the card's
@@ -1172,16 +1236,27 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         color: var(--ri-ink);
         --mdc-icon-size: 15px;
       }
+      /* The name wins: it may take two lines, and the value is what gets
+         shortened when the two do not fit side by side. */
       .related-name {
-        flex: 1;
-        min-width: 0;
+        flex: 1 1 auto;
+        min-width: 40%;
         font-size: 14px;
         font-weight: 600;
-        white-space: nowrap;
+        line-height: 1.25;
+        padding: 6px 0;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
         overflow: hidden;
-        text-overflow: ellipsis;
       }
       .related-value {
+        flex: 0 1 auto;
+        min-width: 0;
+        max-width: 55%;
+        overflow: hidden;
+        text-overflow: ellipsis;
         font-size: 14px;
         font-weight: 700;
         white-space: nowrap;
@@ -1226,13 +1301,19 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         line-height: 1.4;
       }
 
+      /* Two lines before an ellipsis: "Thermostat Arbeitszimmer" beside two
+         buttons does not fit one line on a phone, and the title is the one
+         thing in the view that has to be readable. */
       .title {
         font-size: 18px;
         font-weight: 700;
         line-height: 1.25;
-        white-space: nowrap;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
         overflow: hidden;
-        text-overflow: ellipsis;
+        overflow-wrap: anywhere;
       }
 
       .hbtn {
@@ -1379,6 +1460,14 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       .chart.stale {
         opacity: 0.4;
       }
+      .tiles,
+      .below {
+        transition: opacity 300ms ${EASING};
+      }
+      .tiles.stale,
+      .below.stale {
+        opacity: 0.4;
+      }
 
       .segments {
         display: flex;
@@ -1469,7 +1558,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       /* The embedded card brings its own frame; in the sheet it sits on the
          sheet's surface like any other part of the view. */
       .control {
-        margin: 0 -2px;
+        min-width: 0;
       }
 
       .no-history {
