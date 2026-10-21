@@ -51,3 +51,6 @@ export * from "./m3-printer-card";
 export * from "./m3-router-card";
 export * from "./m3-router-diagnostics-card";
 export * from "./m3-remote-card";
+export * from "./m3-detail-card";
+// Registers itself with shared/entity-detail.ts, which never imports it.
+import "./shared/detail-sheet";

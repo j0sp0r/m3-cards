@@ -1801,6 +1801,7 @@ export interface M3ClockCardConfig {
 
 export type M3CardConfig =
   | M3NavCardConfig
+  | M3DetailCardConfig
   | M3ClimateCardConfig
   | M3ClimateCardMiniConfig
   | M3ButtonCardConfig
@@ -3282,4 +3283,27 @@ export interface M3RemoteCardConfig {
   corners?: CornerRadiusConfig;
   animation?: "auto" | "on" | "off";
   card_version?: string;
+}
+
+/** What a tap that would open more-info opens instead. See shared/entity-detail.ts. */
+export type DetailMode = "more_info" | "sheet";
+
+export interface M3DetailCardConfig {
+  type: string;
+  entity: string;
+  name?: string;
+  icon?: string;
+  /** The entity's colour. Defaults by device_class. */
+  color?: string;
+  /** The window the graph shows. */
+  range?: "1h" | "24h" | "7d" | "30d";
+  /** For readings where rising is bad news — a green arrow on a falling value. */
+  trend_inverted?: boolean;
+  text_color?: string;
+  secondary_text_color?: string;
+  card_background?: string;
+  animation?: "auto" | "on" | "off";
+  glass_background?: boolean;
+  radius?: number;
+  corners?: CornerRadiusConfig;
 }

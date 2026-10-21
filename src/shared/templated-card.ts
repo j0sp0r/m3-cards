@@ -1,6 +1,7 @@
-import type { LitElement, PropertyValues } from "lit";
+import type { LitElement, PropertyDeclaration, PropertyValues } from "lit";
 import { ConfigTemplateResolver } from "./config-templates";
 import type { HomeAssistant } from "../types";
+import { closeSheetOf, forwardHassToSheet } from "./entity-detail";
 
 // Jinja2 in a card's own config, for every card at once.
 //
@@ -82,7 +83,24 @@ export const TemplatedCard = <T extends Constructor<LitElement>>(
 
     public disconnectedCallback(): void {
       this._templates.close();
+      closeSheetOf(this);
       super.disconnectedCallback();
+    }
+
+    // The detail sheet (shared/detail-sheet.ts) lives in this card's shadow root
+    // and shows live values, so it needs every new `hass` — including the
+    // ones the card's own shouldUpdate decides are not worth a render, which
+    // is most of them. Every property write passes through here, render or
+    // not; willUpdate would only see the ones that render.
+    public requestUpdate(
+      name?: PropertyKey,
+      oldValue?: unknown,
+      options?: PropertyDeclaration,
+      useNewValue?: boolean,
+      newValue?: unknown,
+    ): void {
+      super.requestUpdate(name, oldValue, options, useNewValue, newValue);
+      if (name === "hass") forwardHassToSheet(this, (this as unknown as TemplatedCardHost).hass);
     }
 
     protected willUpdate(changed: PropertyValues): void {

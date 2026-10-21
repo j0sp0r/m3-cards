@@ -12,7 +12,7 @@ export type StatisticType = "change" | "state";
 const STATS_CACHE_TTL_MS = 30_000;
 const statsCache = new Map<string, { promise: Promise<unknown>; timestamp: number }>();
 
-function cachedStatsCall<T>(hass: HomeAssistant, params: Record<string, unknown>): Promise<T> {
+export function cachedStatsCall<T>(hass: HomeAssistant, params: Record<string, unknown>): Promise<T> {
   const key = JSON.stringify(params);
   const cached = statsCache.get(key);
   const now = Date.now();

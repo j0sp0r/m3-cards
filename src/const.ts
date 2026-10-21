@@ -2673,3 +2673,79 @@ export const REMOTE_MAX_WIDTH = 440;
 export const REMOTE_NARROW_WIDTH = 340;
 
 export const DEFAULT_REMOTE_RADIUS = RADIUS.card;
+
+// ---- Detail card / sheet ----------------------------------------------------
+// The suite's own entity detail view (m3-detail-card), and the bottom sheet
+// that shows it in place of Home Assistant's more-info dialog.
+export const DETAIL_SHEET_RADIUS = 30;
+export const DETAIL_SHEET_MAX_WIDTH = 440;
+export const DETAIL_SHEET_SLIDE_MS = 400;
+export const DETAIL_GRIP_WIDTH = 42;
+export const DETAIL_GRIP_HEIGHT = 4;
+export const DETAIL_ICON_SIZE = 44;
+export const DETAIL_ICON_RADIUS = RADIUS.squircle44;
+export const DETAIL_BUTTON_SIZE = 34;
+export const DETAIL_SETTINGS_RADIUS = 13;
+// Half the button: a circle, against the settings button's squircle.
+export const DETAIL_CLOSE_RADIUS = DETAIL_BUTTON_SIZE / 2;
+export const DETAIL_BUTTON_RADIUS_PRESSED = 10;
+export const DETAIL_TREND_HEIGHT = 26;
+export const DETAIL_TREND_RADIUS = 10;
+export const DETAIL_CHART_HEIGHT = 170;
+// Room above the highest and below the lowest reading, as a share of the span,
+// so the extreme rings are never clipped by the plot's edge.
+export const DETAIL_CHART_PADDING = 0.18;
+// The current-value halo's radius: the plot keeps this much clear on the right
+// so the halo is not cut in half.
+export const DETAIL_CHART_HALO = 10;
+export const DETAIL_TICK_MS = 60_000;
+export const DETAIL_DEFAULT_ACCENT = PALETTE.home;
+export const DETAIL_MIN_COLOR = PALETTE.solar;
+export const DETAIL_TREND_UP_COLOR = PALETTE.ok;
+export const DETAIL_TREND_DOWN_COLOR = PALETTE.heat;
+// An entity's colour when none is configured, by device_class.
+export const DETAIL_DEVICE_CLASS_COLORS: Record<string, string> = {
+  temperature: PALETTE.heat,
+  humidity: PALETTE.cool,
+  moisture: PALETTE.cool,
+  precipitation: PALETTE.cool,
+  battery: PALETTE.ok,
+  power: PALETTE.solar,
+  energy: PALETTE.solar,
+  current: PALETTE.solar,
+  voltage: PALETTE.solar,
+  illuminance: PALETTE.light,
+  irradiance: PALETTE.light,
+  carbon_dioxide: PALETTE.dryAuto,
+  volatile_organic_compounds: PALETTE.dryAuto,
+  pm25: PALETTE.dryAuto,
+  signal_strength: PALETTE.off,
+  data_rate: PALETTE.grid,
+  data_size: PALETTE.grid,
+  water: PALETTE.cool,
+  gas: PALETTE.heat,
+  pressure: PALETTE.grid,
+  atmospheric_pressure: PALETTE.grid,
+};
+// Its icon when the entity carries none of its own.
+export const DETAIL_DEVICE_CLASS_ICONS: Record<string, string> = {
+  temperature: "mdi:thermometer",
+  humidity: "mdi:water-percent",
+  moisture: "mdi:water",
+  battery: "mdi:battery",
+  power: "mdi:flash",
+  energy: "mdi:lightning-bolt",
+  current: "mdi:current-ac",
+  voltage: "mdi:sine-wave",
+  illuminance: "mdi:brightness-5",
+  carbon_dioxide: "mdi:molecule-co2",
+  pm25: "mdi:blur",
+  signal_strength: "mdi:wifi",
+  pressure: "mdi:gauge",
+  atmospheric_pressure: "mdi:gauge",
+  water: "mdi:water",
+  gas: "mdi:fire",
+  data_rate: "mdi:transfer",
+  precipitation: "mdi:weather-rainy",
+};
+export const DEFAULT_DETAIL_ICON = "mdi:eye";
