@@ -160,6 +160,8 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
   @state() private _series?: EntitySeries;
   /** Whether the folded "history and details" part is open, per entity. */
   @state() private _detailsOpen = false;
+  /** Folding shut: the content is still there, animating, but the button already says closed. */
+  @state() private _detailsClosing = false;
   /** A toggle sent and not yet confirmed by the entity: the state it asked for. */
   @state() private _pendingToggle?: { to: boolean; since: number };
   /** The period picked in this card, or remembered from the last time. */
@@ -1176,9 +1178,13 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     if (mode === "hidden") return head;
     if (mode === "expanded") return html`${head} ${details} ${this._renderRelated(st)}`;
     const open = this._detailsOpen;
+    // The arrow turns with the fold, not after it: tied to "open" alone it
+    // turned only once the content was gone, two changes in one frame at the
+    // end of the animation.
+    const shown = open && !this._detailsClosing;
     return html`
       ${head}
-      <button class="details-toggle ${open ? "open" : ""}" aria-expanded=${open ? "true" : "false"} @click=${this._toggleDetails}>
+      <button class="details-toggle ${shown ? "open" : ""}" aria-expanded=${shown ? "true" : "false"} @click=${this._toggleDetails}>
         <span>${this._t("detail_more")}</span>
         <ha-icon icon="mdi:chevron-down"></ha-icon>
       </button>
@@ -1217,6 +1223,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
    * to appear and vanish in one frame, which read as the sheet jumping.
    */
   private _toggleDetails = async (): Promise<void> => {
+    if (this._detailsClosing) return;
     const opening = !this._detailsOpen;
     const entity = this._config?.entity;
     if (entity) {
@@ -1234,29 +1241,34 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       const el = this.renderRoot.querySelector<HTMLElement>(".details");
       if (!animate || !el?.animate) return;
       const height = el.getBoundingClientRect().height;
+      // The column's 16px gap above the part comes and goes with it; animated
+      // as a negative margin, or it would snap in at the start of opening and
+      // out at the end of folding, a jump of its own.
       el.animate(
         [
-          { height: "0px", opacity: 0, overflow: "hidden" },
-          { height: `${height}px`, opacity: 1, overflow: "hidden" },
+          { height: "0px", opacity: 0, overflow: "hidden", marginTop: "-16px" },
+          { height: `${height}px`, opacity: 1, overflow: "hidden", marginTop: "0px" },
         ],
         options,
       );
       return;
     }
     const el = this.renderRoot.querySelector<HTMLElement>(".details");
+    this._detailsClosing = true;
     if (animate && el?.animate) {
       const height = el.getBoundingClientRect().height;
       await el
         .animate(
           [
-            { height: `${height}px`, opacity: 1, overflow: "hidden" },
-            { height: "0px", opacity: 0, overflow: "hidden" },
+            { height: `${height}px`, opacity: 1, overflow: "hidden", marginTop: "0px" },
+            { height: "0px", opacity: 0, overflow: "hidden", marginTop: "-16px" },
           ],
           { ...options, fill: "forwards" },
         )
         .finished.catch(() => undefined);
     }
     this._detailsOpen = false;
+    this._detailsClosing = false;
   };
 
   /**
