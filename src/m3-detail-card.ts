@@ -31,7 +31,6 @@ import {
   DETAIL_BIG_TOGGLE_HEIGHT,
   DETAIL_BIG_TOGGLE_RADIUS,
   DETAIL_DETAILS_MS,
-  DETAIL_RELATED_STORAGE_KEY,
   DETAIL_WIPE_MS,
   DETAIL_TREND_MORPH_MS,
   DETAIL_TOOLTIP_LINGER_MS,
@@ -163,9 +162,6 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
   @state() private _detailsOpen = false;
   /** Folding shut: the content is still there, animating, but the button already says closed. */
   @state() private _detailsClosing = false;
-  /** The same-device list, folded on its own; remembered once for all entities. */
-  @state() private _relatedOpen = this._storedRelatedOpen();
-  @state() private _relatedClosing = false;
   /** A toggle sent and not yet confirmed by the entity: the state it asked for. */
   @state() private _pendingToggle?: { to: boolean; since: number };
   /** The period picked in this card, or remembered from the last time. */
@@ -787,19 +783,12 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       .filter((id) => detailKind(this.hass!.states[id]) !== undefined)
       .slice(0, this._config?.max_related ?? DETAIL_DEFAULT_MAX_RELATED);
     if (!ids.length) return nothing;
-    const open = this._relatedOpen;
-    const shown = open && !this._relatedClosing;
+    // Behind the one "more details" fold already; a second fold inside it
+    // would be one tap too many.
     return html`
       <div class="related">
-        <button
-          class="related-title ${shown ? "open" : ""}"
-          aria-expanded=${shown ? "true" : "false"}
-          @click=${this._toggleRelated}
-        >
-          <span>${this._t("detail_related")} · ${ids.length}</span>
-          <ha-icon icon="mdi:chevron-down"></ha-icon>
-        </button>
-        ${open ? html`<div class="related-rows">${this._renderRelatedRows(ids)}</div>` : nothing}
+        <div class="related-title">${this._t("detail_related")}</div>
+        <div class="related-rows">${this._renderRelatedRows(ids)}</div>
       </div>
     `;
   }
@@ -832,32 +821,6 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         })}
     `;
   }
-
-  /**
-   * The same-device list folds on its own, shut by default and remembered
-   * on this device for every entity. It is the part people open least: with
-   * the history shown for a sensor, it was four rows of other readings
-   * under the one they came for.
-   */
-  private _toggleRelated = async (): Promise<void> => {
-    if (this._relatedClosing) return;
-    const opening = !this._relatedOpen;
-    try {
-      window.localStorage.setItem(DETAIL_RELATED_STORAGE_KEY, opening ? "1" : "0");
-    } catch {
-      // Remembering is a convenience.
-    }
-    if (opening) {
-      this._relatedOpen = true;
-      await this.updateComplete;
-      void this._animateFold(this.renderRoot.querySelector<HTMLElement>(".related-rows"), true);
-      return;
-    }
-    this._relatedClosing = true;
-    await this._animateFold(this.renderRoot.querySelector<HTMLElement>(".related-rows"), false);
-    this._relatedOpen = false;
-    this._relatedClosing = false;
-  };
 
   /**
    * Height, opacity and the gap above a folding part, animated together, so
@@ -1233,27 +1196,41 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
             ? html`<div class="control" @hass-more-info=${this._onInnerMoreInfo}>${this._control}</div>`
             : this._renderValue(st, accent)
         : this._renderValue(st, accent);
-    const details =
+    // What Home Assistant's own dialog shows for the kind stays in view; the
+    // rest — tiles, lists, the device's other entities, and for something
+    // to operate its whole history — is the extra, behind one fold.
+    const primary =
       kind === "numeric"
-        ? html`${this._renderRanges(accent)} ${this._renderChart(st, accent, available)} ${this._renderStats(st, accent)}`
+        ? html`${this._renderRanges(accent)} ${this._renderChart(st, accent, available)}`
         : kind === "info"
           ? this._renderInfo(st)
-          : html`${this._renderRanges(accent)} ${this._renderStates(st, accent)}`;
-    const mode = this._detailsMode(st);
-    if (mode === "hidden") return head;
-    if (mode === "expanded") return html`${head} ${details} ${this._renderRelated(st)}`;
+          : kind === "control"
+            ? nothing
+            : html`${this._renderRanges(accent)} ${this._renderStates(st, accent, "bar")}`;
+    const extra =
+      kind === "numeric"
+        ? this._renderStats(st, accent)
+        : kind === "info"
+          ? nothing
+          : kind === "control"
+            ? html`${this._renderRanges(accent)} ${this._renderStates(st, accent, "bar")} ${this._renderStates(st, accent, "tiles")}`
+            : this._renderStates(st, accent, "tiles");
+    const details = html`${extra} ${this._renderRelated(st)}`;
+    const mode = this._detailsMode();
+    if (mode === "hidden") return html`${head} ${primary}`;
+    if (mode === "expanded") return html`${head} ${primary} ${details}`;
     const open = this._detailsOpen;
     // The arrow turns with the fold, not after it: tied to "open" alone it
     // turned only once the content was gone, two changes in one frame at the
     // end of the animation.
     const shown = open && !this._detailsClosing;
     return html`
-      ${head}
+      ${head} ${primary}
       <button class="details-toggle ${shown ? "open" : ""}" aria-expanded=${shown ? "true" : "false"} @click=${this._toggleDetails}>
-        <span>${this._t("detail_more")}</span>
+        <span>${this._t(kind === "control" ? "detail_more" : "detail_extra")}</span>
         <ha-icon icon="mdi:chevron-down"></ha-icon>
       </button>
-      ${open ? html`<div class="details">${details} ${this._renderRelated(st)}</div>` : nothing}
+      ${open ? html`<div class="details">${details}</div>` : nothing}
     `;
   }
 
@@ -1263,23 +1240,12 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     return option === "auto" && ["switch", "input_boolean"].includes(st.entity_id.split(".")[0]);
   }
 
-  private _detailsMode(st: HassEntity): "expanded" | "collapsed" | "hidden" {
+  private _detailsMode(): "expanded" | "collapsed" | "hidden" {
     const configured = this._config?.details;
     if (configured === "expanded" || configured === "collapsed" || configured === "hidden") return configured;
-    // Folded only where there is something to operate: a lamp, a socket, a
-    // thermostat, whose history is context most people never open and which
-    // pushed the control off the screen. For anything that only reports —
-    // a number, a window contact, a text or a timestamp — the history is the
-    // content, and folding it away left a word and a button.
-    return this._kind(st) === "control" ? "collapsed" : "expanded";
-  }
-
-  private _storedRelatedOpen(): boolean {
-    try {
-      return window.localStorage.getItem(DETAIL_RELATED_STORAGE_KEY) === "1";
-    } catch {
-      return false;
-    }
+    // What Home Assistant shows is always in view (see _renderBody), so the
+    // fold holds only extras and starts shut.
+    return "collapsed";
   }
 
   private _storedDetailsOpen(entity: string): boolean {
@@ -1378,10 +1344,17 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
   }
 
   /** Timeline, then the pair's tiles or the list of states. */
-  private _renderStates(st: HassEntity, accent: string): unknown {
+  /**
+   * The timeline (`bar`) or the tiles and lists under it (`tiles`) — the
+   * first is what Home Assistant's own dialog shows, the second the extra
+   * that goes behind "more details".
+   */
+  private _renderStates(st: HassEntity, accent: string, part: "bar" | "tiles"): unknown {
     const timeline = this._timeline;
-    if (!timeline) return html`<div class="timeline-placeholder"></div>`;
-    if (timeline.source === "none") return html`<div class="no-history">${this._t("detail_no_history")}</div>`;
+    if (!timeline) return part === "bar" ? html`<div class="timeline-placeholder"></div>` : nothing;
+    if (timeline.source === "none") {
+      return part === "bar" ? html`<div class="no-history">${this._t("detail_no_history")}</div>` : nothing;
+    }
     const t1 = this._now;
     const t0 = t1 - DETAIL_RANGE_MS[timeline.range];
     const stale = timeline.range !== this._range;
@@ -1395,20 +1368,27 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     // lasted meaningless. Its bar shows when it had a value at all, and the
     // list under it is what changed, newest first.
     const timestamp = st.attributes.device_class === "timestamp";
-    if (timestamp) return this._renderTimestampHistory(st, segments, t0, t1, timeline.range, stale, accent);
+    // Its change list is the activity Home Assistant shows too: part of the bar.
+    if (timestamp) {
+      return part === "bar" ? this._renderTimestampHistory(st, segments, t0, t1, timeline.range, stale, accent) : nothing;
+    }
     const shares = stateShares(segments, t0, t1);
     const twoState = isTwoState([...shares.map((s) => s.state), st.state]);
     const colors = stateColors(this, shares, fillColor(this, accent), twoState);
     const label = (state: string) => this._stateLabel(st, state);
     const labels = this._labels(t0, timeline.range);
+    if (part === "bar") {
+      return html`
+        ${renderTimeline({ segments: clipSegments(segments, t0, t1), t0, t1, colors, stale, label })}
+        <div class="axis">
+          ${labels.map((l, i) => {
+            const pct = i === labels.length - 1 ? 100 : Math.min(100, Math.max(0, ((l.t - t0) / (t1 - t0)) * 100));
+            return html`<span class="tick ${i === 0 && pct < 8 ? "start" : ""} ${i === labels.length - 1 ? "end" : ""}" style="left:${pct}%">${l.text}</span>`;
+          })}
+        </div>
+      `;
+    }
     return html`
-      ${renderTimeline({ segments: clipSegments(segments, t0, t1), t0, t1, colors, stale, label })}
-      <div class="axis">
-        ${labels.map((l, i) => {
-          const pct = i === labels.length - 1 ? 100 : Math.min(100, Math.max(0, ((l.t - t0) / (t1 - t0)) * 100));
-          return html`<span class="tick ${i === 0 && pct < 8 ? "start" : ""} ${i === labels.length - 1 ? "end" : ""}" style="left:${pct}%">${l.text}</span>`;
-        })}
-      </div>
       <div class="below ${stale ? "stale" : ""}">
         ${twoState
           ? renderPairTiles({
@@ -1757,25 +1737,10 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         gap: 6px;
       }
       .related-title {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        min-height: 36px;
-        padding: 0 4px;
-        border: none;
-        background: none;
-        color: var(--dc-secondary, inherit);
-        font: inherit;
         font-size: 13px;
-        cursor: pointer;
-        opacity: 0.7;
-        --mdc-icon-size: 18px;
-      }
-      .related-title ha-icon {
-        transition: transform 250ms ${EASING};
-      }
-      .related-title.open ha-icon {
-        transform: rotate(180deg);
+        opacity: 0.6;
+        margin: 4px 0 2px;
+        color: var(--dc-secondary);
       }
       .related-rows {
         display: flex;
