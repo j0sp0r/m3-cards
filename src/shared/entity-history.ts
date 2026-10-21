@@ -370,6 +370,25 @@ export interface SeriesExtremes {
 }
 
 /** Lowest, highest and first valued point — the markers and the trend's base. */
+/**
+ * The points of a period starting at `t0`, with the reading that was current
+ * at `t0` pinned to it.
+ *
+ * History rows are changes, so the row before the window still holds at its
+ * start: a bin countdown that read 9 until 22:00 read 9 at the window's left
+ * edge. Dropping that row left the scale without it while the curve still
+ * ran up to it, off the top of the chart; keeping it at its own time drew
+ * the curve out past the left edge.
+ */
+export function windowPoints(points: readonly SeriesPoint[], t0: number): SeriesPoint[] {
+  const firstIn = points.findIndex((p) => p.t >= t0);
+  const before = firstIn === -1 ? points.length - 1 : firstIn - 1;
+  const inside = firstIn === -1 ? [] : points.slice(firstIn);
+  const held = before >= 0 ? points[before] : undefined;
+  if (!held || held.v === null || inside[0]?.t === t0) return inside;
+  return [{ t: t0, v: held.v }, ...inside];
+}
+
 export function seriesExtremes(points: readonly SeriesPoint[]): SeriesExtremes {
   const out: SeriesExtremes = {};
   for (const p of points) {

@@ -4,6 +4,7 @@ import {
   fetchEntitySeries,
   historyToPoints,
   seriesExtremes,
+  windowPoints,
   seriesStats,
   bucketExtremes,
   statisticsToPoints,
@@ -206,5 +207,31 @@ describe("bucketExtremes", () => {
 
   it("has nothing for a meter, whose buckets carry neither", () => {
     expect(bucketExtremes([{ start: 0, state: 5 }], 0)).toBeUndefined();
+  });
+});
+
+describe("windowPoints", () => {
+  it("pins the reading that held at the start to the start", () => {
+    // A bin countdown: 9 until 22:00, 8 since. The window opens at 20:00.
+    expect(windowPoints([{ t: 0, v: 9 }, { t: 220, v: 8 }], 200)).toEqual([
+      { t: 200, v: 9 },
+      { t: 220, v: 8 },
+    ]);
+  });
+
+  it("keeps a series that starts inside the window as it is", () => {
+    expect(windowPoints([{ t: 200, v: 1 }, { t: 300, v: 2 }], 200)).toEqual([
+      { t: 200, v: 1 },
+      { t: 300, v: 2 },
+    ]);
+    expect(windowPoints([{ t: 250, v: 1 }], 200)).toEqual([{ t: 250, v: 1 }]);
+  });
+
+  it("holds the last reading across a window with no change in it", () => {
+    expect(windowPoints([{ t: 0, v: 5 }], 200)).toEqual([{ t: 200, v: 5 }]);
+  });
+
+  it("pins nothing when the reading before was a gap", () => {
+    expect(windowPoints([{ t: 0, v: null }, { t: 250, v: 1 }], 200)).toEqual([{ t: 250, v: 1 }]);
   });
 });

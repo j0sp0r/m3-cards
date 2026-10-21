@@ -77,6 +77,7 @@ import {
   DETAIL_RANGE_MS,
   fetchEntitySeries,
   seriesExtremes,
+  windowPoints,
   seriesStats,
   type DetailRange,
   type EntitySeries,
@@ -895,9 +896,8 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const span = DETAIL_RANGE_MS[series.range];
     const t1 = this._now;
     const t0 = t1 - span;
-    const points = this._pointsWithLive(series.points, st, t1);
-    const visible = points.filter((p) => p.t >= t0);
-    const { min, max } = seriesExtremes(visible);
+    const points = windowPoints(this._pointsWithLive(series.points, st, t1), t0);
+    const { min, max } = seriesExtremes(points);
 
     let body: unknown = nothing;
     let tooltip: unknown = nothing;
@@ -1041,7 +1041,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     // like the graph. Dropping it shifted everything beside it and back again.
     const stale = series.range !== this._range;
     const t0 = this._now - DETAIL_RANGE_MS[series.range];
-    const first = seriesExtremes(series.points.filter((p) => p.t >= t0)).first;
+    const first = seriesExtremes(windowPoints(series.points, t0)).first;
     if (!first) return nothing;
     const diff = live - (first.v as number);
     const step = 10 ** -decimals / 2;
