@@ -1126,6 +1126,17 @@ unten nicht als „ungesehen“ markiert ist. Am Handy war davon bisher nichts.
 - [ ] Editor: `detail_mode` steht im Erscheinungsbild jeder Karte, die Details
       öffnen kann, und bei Uhr, Gauge, Heading, Suche usw. **nicht**
 - [ ] Helles Theme: Kurve, Kacheln und Zeitleiste bleiben lesbar
+- [ ] **Die Regel:** Sichtbar ist, was HAs Dialog zeigt (Kurve bzw.
+      Zeitleiste mit Aktivität bzw. die Bedienung). Alles Weitere liegt
+      hinter genau einer Zeile „Weitere Details“ bzw. „Verlauf und
+      Details“, zu Beginn eingeklappt und pro Entität gemerkt
+- [ ] Steckdose/`input_boolean`: großer Schalter, Daumen fährt hoch,
+      Zustand wird bestätigt. **Nicht an der 3D-Drucker-Steckdose testen**
+- [ ] Mit eingebetteter Karte (Licht): Name und Icon stehen nur einmal
+- [ ] Zeitraum wechseln: Zeitleiste zoomt, Kurve wischt, Trend-Chip und
+      Kacheln gleiten, nichts springt in der Höhe
+- [ ] Temperatur: Farbe nach Wert (kalt blau, angenehm grün, heiß rot)
+- [ ] Android-Zurück schließt das Sheet, nicht die App
 
 ## Bekannte Einschränkungen
 
