@@ -18,6 +18,13 @@ import {
   DETAIL_DOMAIN_COLORS,
   DETAIL_DOMAIN_ICONS,
   DETAIL_MAX_SHARES,
+  DETAIL_DEFAULT_MAX_RELATED,
+  DETAIL_RELATED_ICON_RADIUS,
+  DETAIL_RELATED_ICON_SIZE,
+  DETAIL_RELATED_ROW_HEIGHT,
+  DETAIL_RELATED_ROW_RADIUS,
+  DETAIL_SWAP_MS,
+  DETAIL_TOOLTIP_LINGER_MS,
   DETAIL_ICON_RADIUS,
   DETAIL_ICON_SIZE,
   DETAIL_MIN_ALT_COLOR,
@@ -85,6 +92,8 @@ import {
   isActiveState,
 } from "./shared/detail-states";
 import { DetailCardController } from "./shared/detail-card";
+import { deviceSiblings } from "./shared/ha-registry";
+import { stopSwipe } from "./shared/swipe";
 import type { PopupCardHandle } from "./shared/popup-card";
 
 const EASING = unsafeCSS(STANDARD_EASING);
@@ -112,6 +121,16 @@ interface RegistryArea {
 
 const MISSING = new Set(["unavailable", "unknown", ""]);
 
+/** The valued point closest in time to `t`, inside the window. */
+function nearestValued(points: readonly SeriesPoint[], t: number, t0: number): SeriesPoint | undefined {
+  let best: SeriesPoint | undefined;
+  for (const p of points) {
+    if (p.v === null || p.t < t0) continue;
+    if (!best || Math.abs(p.t - t) < Math.abs(best.t - t)) best = p;
+  }
+  return best;
+}
+
 /**
  * One entity, large: its value, where it has been, and how far it moved.
  *
@@ -136,6 +155,12 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
   /** The embedded control card of a `control` view. */
   @state() private _control?: HTMLElement & PopupCardHandle;
   private readonly _controlCtl = new DetailCardController();
+  /** Where the pointer is on the curve, as a time; the nearest reading is shown. */
+  @state() private _hoverT?: number;
+  /** "out" while the old entity fades, "in" for the first frame of the new one. */
+  @state() private _swap?: "out" | "in";
+  private _hoverTimer?: number;
+  private _swapTimer?: number;
   @state() private _chartWidth = 0;
   @state() private _now = Date.now();
 
@@ -159,6 +184,11 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     return { type: "custom:m3-detail-card", entity };
   }
 
+  /** The entity on screen, which a tap on a sibling changes. */
+  public get entity(): string | undefined {
+    return this._config?.entity;
+  }
+
   /** Reads the history again — the sheet calls this each time it opens. */
   public refresh(): void {
     this._fetchKey = "";
@@ -179,6 +209,8 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
   public disconnectedCallback(): void {
     super.disconnectedCallback();
     if (this._tick) clearInterval(this._tick);
+    window.clearTimeout(this._hoverTimer);
+    window.clearTimeout(this._swapTimer);
     this._resize?.disconnect();
     this._resize = undefined;
     this._observed = undefined;
@@ -347,7 +379,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
    * breadcrumb above the title already says which thermometer. When nothing
    * is left after stripping (the entity *is* the device), the full name stays.
    */
-  private _names(st: HassEntity): { title: string; crumb: string } {
+  private _names(st: HassEntity, own = true): { title: string; crumb: string } {
     const { entity, device, area } = this._registry(st.entity_id);
     const friendly = String(st.attributes.friendly_name ?? st.entity_id);
     const deviceName = (device?.name_by_user || device?.name || "").trim();
@@ -356,7 +388,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       title = friendly.slice(deviceName.length).trim() || friendly;
     }
     const crumb = [deviceName, area?.name ?? entity?.platform].filter(Boolean).join(" · ");
-    return { title: this._config?.name || title, crumb };
+    return { title: (own && this._config?.name) || title, crumb };
   }
 
   /** A binary sensor's own class has an icon per state — the door shows open. */
@@ -366,10 +398,10 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     return pair ? pair[st.state === "on" ? 0 : 1] : undefined;
   }
 
-  private _icon(st: HassEntity): string {
+  private _icon(st: HassEntity, own = true): string {
     const deviceClass = String(st.attributes.device_class ?? "");
     return (
-      this._config?.icon ||
+      (own && this._config?.icon) ||
       (st.attributes.icon as string | undefined) ||
       this._binaryIcon(st, deviceClass) ||
       DETAIL_DEVICE_CLASS_ICONS[deviceClass] ||
@@ -387,8 +419,8 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     return accent.toLowerCase() === DETAIL_MIN_COLOR.toLowerCase() ? DETAIL_MIN_ALT_COLOR : DETAIL_MIN_COLOR;
   }
 
-  private _accent(st: HassEntity): string {
-    if (this._config?.color) return resolveThemeColor(this._config.color);
+  private _accent(st: HassEntity, own = true): string {
+    if (own && this._config?.color) return resolveThemeColor(this._config.color);
     const domain = st.entity_id.split(".")[0];
     const deviceClass = String(st.attributes.device_class ?? "");
     const byClass = domain === "binary_sensor" ? DETAIL_BINARY_CLASS_COLORS : DETAIL_DEVICE_CLASS_COLORS;
@@ -454,6 +486,114 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     return out;
   }
 
+  private _tooltipTime(t: number, range: DetailRange): string {
+    const tf = this.hass?.locale?.time_format;
+    const hour12 = tf === "12" ? true : tf === "24" ? false : undefined;
+    const sameDay = startOfDay(t) === startOfDay(this._now);
+    const opts: Intl.DateTimeFormatOptions =
+      range === "1h" || (range === "24h" && sameDay)
+        ? { hour: "numeric", minute: "2-digit", hour12 }
+        : { weekday: "short", day: "numeric", month: "numeric", hour: "numeric", minute: "2-digit", hour12 };
+    return new Intl.DateTimeFormat(this._language, opts).format(new Date(t));
+  }
+
+  /**
+   * A pointer on the curve. A mouse shows the reading under it as it moves; a
+   * finger shows it while down and for a moment after, so it can be read
+   * without the thumb in the way.
+   */
+  private _onChartPointer = (e: PointerEvent): void => {
+    if (this._config?.show_tooltip === false || !this._series || this._series.source === "none") return;
+    if (e.pointerType !== "mouse" && e.type === "pointermove" && !e.buttons && e.pressure === 0) return;
+    window.clearTimeout(this._hoverTimer);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const plotW = Math.max(1, rect.width - DETAIL_CHART_HALO);
+    const fraction = Math.min(1, Math.max(0, (e.clientX - rect.left) / plotW));
+    const span = DETAIL_RANGE_MS[this._series.range];
+    this._hoverT = this._now - span + fraction * span;
+  };
+
+  private _onChartRelease = (e: PointerEvent): void => {
+    window.clearTimeout(this._hoverTimer);
+    if (e.pointerType === "mouse") {
+      if (e.type === "pointerleave") this._hoverT = undefined;
+      return;
+    }
+    this._hoverTimer = window.setTimeout(() => (this._hoverT = undefined), DETAIL_TOOLTIP_LINGER_MS);
+  };
+
+  /** The other entities of this one's device, one row each. */
+  private _renderRelated(st: HassEntity): unknown {
+    if (this._config?.show_related === false || !this.hass) return nothing;
+    const ids = deviceSiblings(this.hass, st.entity_id).slice(0, this._config?.max_related ?? DETAIL_DEFAULT_MAX_RELATED);
+    if (!ids.length) return nothing;
+    return html`
+      <div class="related">
+        <div class="related-title">${this._t("detail_related")}</div>
+        ${ids.map((id) => {
+          const sib = this.hass!.states[id];
+          const accent = this._accent(sib, false);
+          const numeric = !MISSING.has(sib.state) && sib.state.trim() !== "" && Number.isFinite(Number(sib.state));
+          const unit = sib.attributes.unit_of_measurement as string | undefined;
+          const value = MISSING.has(sib.state)
+            ? "—"
+            : numeric
+              ? `${this._format(Number(sib.state), this._decimals(sib))}${unit ? ` ${unit}` : ""}`
+              : (this.hass!.formatEntityState?.(sib) ?? sib.state);
+          return html`<button class="related-row" @click=${() => this._switchTo(id)}>
+            <span
+              class="related-icon"
+              style=${buildCssVars({
+                "ri-bg": tintOn(this, accent, undefined, 20),
+                "ri-ink": tintInk(this, accent, undefined, 20, 3),
+              })}
+              ><ha-icon icon=${this._icon(sib, false)}></ha-icon
+            ></span>
+            <span class="related-name">${this._names(sib, false).title}</span>
+            <span class="related-value" style="color:${foregroundColor(this, accent)}">${value}</span>
+            <ha-icon class="related-chevron" icon="mdi:chevron-right"></ha-icon>
+          </button>`;
+        })}
+      </div>
+    `;
+  }
+
+  /**
+   * Shows another entity in place of this one.
+   *
+   * The config's own name, icon, colour and control card were written for the
+   * entity it was given and are dropped; periods, stats and the rest carry
+   * over. The old view fades out a little to the left and the new one in from
+   * the right — a step sideways, not a new dialog.
+   */
+  private _switchTo(entityId: string): void {
+    const config = this._config;
+    if (!config || entityId === config.entity) return;
+    const apply = () => {
+      const { name: _n, icon: _i, color: _c, ...rest } = config;
+      void _n;
+      void _i;
+      void _c;
+      const control_card = typeof rest.control_card === "object" ? undefined : rest.control_card;
+      this.setConfig({ ...rest, control_card, entity: entityId });
+      this._hoverT = undefined;
+      this.dispatchEvent(new CustomEvent("m3-detail-switched", { bubbles: true, composed: true }));
+    };
+    window.clearTimeout(this._swapTimer);
+    if (!shouldAnimate(config.animation) || isReducedMotion()) {
+      apply();
+      return;
+    }
+    this._swap = "out";
+    this._swapTimer = window.setTimeout(() => {
+      apply();
+      this._swap = "in";
+      // Two frames: the new view has to be laid out at its offset before the
+      // transition back to rest has anywhere to start from.
+      requestAnimationFrame(() => requestAnimationFrame(() => (this._swap = undefined)));
+    }, DETAIL_SWAP_MS);
+  }
+
   private _renderChart(st: HassEntity, accent: string, available: boolean): unknown {
     const series = this._series;
     if (!series) return html`<div class="chart loading" style="height:${DETAIL_CHART_HEIGHT}px"></div>`;
@@ -471,6 +611,8 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const { min, max } = seriesExtremes(visible);
 
     let body: unknown = nothing;
+    let tooltip: unknown = nothing;
+    let guide: unknown = nothing;
     if (width > 0 && min && max) {
       const plotW = width - DETAIL_CHART_HALO;
       const lo = min.v as number;
@@ -496,6 +638,24 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       if (run.length) runs.push(run);
 
       const last = available ? [...points].reverse().find((p) => p.v !== null) : undefined;
+      // Under a pointer the dot leaves "now" and follows it to the nearest
+      // reading — one moving dot, not a second one beside the first.
+      const hover = this._hoverT !== undefined ? nearestValued(points, this._hoverT, t0) : undefined;
+      const dot = hover ?? last;
+      if (hover) {
+        const hx = x(hover.t);
+        const hy = y(hover.v as number);
+        tooltip = html`<div
+          class="tooltip ${hy < 52 ? "below" : ""}"
+          style="left:${Math.min(Math.max(hx, 48), width - 48)}px; top:${hy}px"
+        >
+          <b>${this._format(hover.v as number, this._decimals(st))}${st.attributes.unit_of_measurement
+            ? html`<span class="tip-unit">${st.attributes.unit_of_measurement}</span>`
+            : nothing}</b>
+          <span>${this._tooltipTime(hover.t, series.range)}</span>
+        </div>`;
+        guide = svg`<line class="guide" x1=${hx} x2=${hx} y1="0" y2=${height}></line>`;
+      }
       const minColor = fillColor(this, this._minColor(accent));
       const lineColor = fillColor(this, accent);
       body = svg`
@@ -513,10 +673,11 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
               <circle class="ring" cx=${x(max.t)} cy=${y(hi)} r="4" stroke=${lineColor}></circle>
             `
           : nothing}
-        ${last
+        ${guide}
+        ${dot
           ? svg`
-              <circle cx=${x(last.t)} cy=${y(last.v as number)} r=${DETAIL_CHART_HALO} fill=${lineColor} opacity="0.2"></circle>
-              <circle cx=${x(last.t)} cy=${y(last.v as number)} r="5.5" fill=${lineColor}></circle>
+              <circle cx=${x(dot.t)} cy=${y(dot.v as number)} r=${DETAIL_CHART_HALO} fill=${lineColor} opacity="0.2"></circle>
+              <circle cx=${x(dot.t)} cy=${y(dot.v as number)} r="5.5" fill=${lineColor}></circle>
             `
           : nothing}
       `;
@@ -525,10 +686,21 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const labels = this._labels(t0, series.range);
     const stale = series.range !== this._range;
     return html`
-      <div class="chart ${available ? "" : "dim"} ${stale ? "stale" : ""}" data-source=${series.source}>
+      <div
+        class="chart ${available ? "" : "dim"} ${stale ? "stale" : ""}"
+        data-source=${series.source}
+        @pointerdown=${this._onChartPointer}
+        @pointermove=${this._onChartPointer}
+        @pointerup=${this._onChartRelease}
+        @pointercancel=${this._onChartRelease}
+        @pointerleave=${this._onChartRelease}
+        @touchstart=${stopSwipe}
+        @touchmove=${stopSwipe}
+      >
         <svg width="100%" height=${height} viewBox="0 0 ${Math.max(1, width)} ${height}" aria-hidden="true">
           ${body}
         </svg>
+        ${tooltip}
       </div>
       <div class="axis">
         ${labels.map((l, i) => {
@@ -814,6 +986,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
           class="card-inner ${glassCardClass(this._config.glass_background)} ${animate ? "" : "no-animations"}"
           style=${`border-radius: ${radius};${cardBackgroundCss ? ` background: ${cardBackgroundCss};` : ""}`}
         >
+          <div class="content ${this._swap ? `swap-${this._swap}` : ""}">
           <div class="header">
             <div class="icon"><ha-icon icon=${this._icon(st)}></ha-icon></div>
             <div class="titles">
@@ -829,7 +1002,8 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
                 </button>`
               : nothing}
           </div>
-          ${this._renderBody(st, accent, available)}
+          ${this._renderBody(st, accent, available)} ${this._renderRelated(st)}
+          </div>
         </div>
       </ha-card>
     `;
@@ -853,6 +1027,127 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         backdrop-filter: none;
         -webkit-backdrop-filter: none;
         padding: 0;
+      }
+
+      /* Everything moves together when the view steps to a sibling; the card's
+         frame does not. */
+      .content {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-width: 0;
+        transition:
+          opacity ${DETAIL_SWAP_MS}ms ${EASING},
+          transform ${DETAIL_SWAP_MS}ms ${EASING};
+      }
+      .content.swap-out {
+        opacity: 0;
+        transform: translateX(-12px);
+      }
+      .content.swap-in {
+        opacity: 0;
+        transform: translateX(12px);
+        transition: none;
+      }
+
+      .chart {
+        touch-action: pan-y;
+      }
+      .guide {
+        stroke: currentColor;
+        stroke-opacity: 0.25;
+        stroke-width: 1;
+        stroke-dasharray: 2 3;
+      }
+      .tooltip {
+        position: absolute;
+        transform: translate(-50%, calc(-100% - 14px));
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 5px 10px;
+        border-radius: 10px;
+        background: var(--ha-card-background, var(--card-background-color, #1c1c1c));
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        font-size: 11px;
+        line-height: 1.3;
+        white-space: nowrap;
+        pointer-events: none;
+        font-variant-numeric: tabular-nums;
+      }
+      .tooltip.below {
+        transform: translate(-50%, 14px);
+      }
+      .tooltip b {
+        font-size: 14px;
+      }
+      .tip-unit {
+        font-weight: 400;
+        font-size: 11px;
+        margin-left: 2px;
+      }
+      .tooltip span:not(.tip-unit) {
+        opacity: 0.6;
+      }
+
+      .related {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .related-title {
+        font-size: 13px;
+        opacity: 0.6;
+        margin: 4px 0 2px;
+        color: var(--dc-secondary);
+      }
+      .related-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-height: ${DETAIL_RELATED_ROW_HEIGHT}px;
+        padding: 0 12px;
+        border: none;
+        border-radius: ${DETAIL_RELATED_ROW_RADIUS}px;
+        background: var(--dc-button-bg);
+        color: inherit;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+        transition: border-radius 200ms ${EASING};
+      }
+      .related-row:active {
+        border-radius: ${DETAIL_BUTTON_RADIUS_PRESSED}px;
+      }
+      .related-icon {
+        flex: 0 0 auto;
+        width: ${DETAIL_RELATED_ICON_SIZE}px;
+        height: ${DETAIL_RELATED_ICON_SIZE}px;
+        border-radius: ${DETAIL_RELATED_ICON_RADIUS}px;
+        display: grid;
+        place-items: center;
+        background: var(--ri-bg);
+        color: var(--ri-ink);
+        --mdc-icon-size: 15px;
+      }
+      .related-name {
+        flex: 1;
+        min-width: 0;
+        font-size: 14px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .related-value {
+        font-size: 14px;
+        font-weight: 700;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+      }
+      .related-chevron {
+        --mdc-icon-size: 18px;
+        opacity: 0.4;
       }
 
       .header {

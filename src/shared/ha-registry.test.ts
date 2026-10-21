@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { discoverLightRooms } from "./ha-registry";
+import { deviceSiblings, discoverLightRooms } from "./ha-registry";
 import type { HomeAssistant, HassEntity } from "../types";
 
 interface RegistryFixture {
@@ -227,5 +227,27 @@ describe("discoverLightRooms on the hass registry snapshots", () => {
       areas: {},
     });
     expect(await discoverLightRooms(hass, {})).toEqual([]);
+  });
+});
+
+describe("deviceSiblings", () => {
+  it("keeps diagnostics after primaries and drops config, hidden and disabled", () => {
+    const state = (id: string) => ({ entity_id: id, state: "1", attributes: {}, last_changed: "", last_updated: "" });
+    const ids = ["sensor.h", "sensor.t", "sensor.bat", "sensor.rssi", "switch.lock", "sensor.hid", "sensor.off", "sensor.other"];
+    const hass = {
+      states: Object.fromEntries(ids.map((id) => [id, state(id)])),
+      entities: {
+        "sensor.h": { device_id: "d" },
+        "sensor.t": { device_id: "d" },
+        "sensor.rssi": { device_id: "d", entity_category: "diagnostic" },
+        "sensor.bat": { device_id: "d", entity_category: "diagnostic" },
+        "switch.lock": { device_id: "d", entity_category: "config" },
+        "sensor.hid": { device_id: "d", hidden: true },
+        "sensor.off": { device_id: "d", disabled_by: "user" },
+        "sensor.other": { device_id: "e" },
+      },
+    } as unknown as HomeAssistant;
+    expect(deviceSiblings(hass, "sensor.h")).toEqual(["sensor.t", "sensor.bat", "sensor.rssi"]);
+    expect(deviceSiblings(hass, "sensor.none")).toEqual([]);
   });
 });

@@ -675,6 +675,33 @@ export function deviceEntityIds(hass: HomeAssistant, deviceId: string): string[]
   return ids;
 }
 
+/**
+ * The other entities of `entityId`'s device, for the detail view's "same
+ * device" list.
+ *
+ * Unlike `deviceEntityIds`, diagnostic entities are kept: a thermometer's
+ * battery and signal strength are diagnostic, and they are exactly what
+ * someone looking at its humidity wants next. Configuration entities (a
+ * child lock, an LED brightness) are settings rather than readings and stay
+ * out, as do hidden and disabled ones. Primary entities come first, then
+ * diagnostic, each in id order.
+ */
+export function deviceSiblings(hass: HomeAssistant, entityId: string): string[] {
+  const registry = hass.entities as unknown as Record<string, RegistryEntity> | undefined;
+  const deviceId = registry?.[entityId]?.device_id;
+  if (!registry || !deviceId) return [];
+  const primary: string[] = [];
+  const diagnostic: string[] = [];
+  for (const [id, entry] of Object.entries(registry)) {
+    if (id === entityId || entry.device_id !== deviceId) continue;
+    if (entry.entity_category === "config") continue;
+    if (entry.hidden || entry.hidden_by || entry.disabled_by) continue;
+    if (!hass.states[id]) continue;
+    (entry.entity_category === "diagnostic" ? diagnostic : primary).push(id);
+  }
+  return [...primary.sort(), ...diagnostic.sort()];
+}
+
 interface RegistryEntity {
   area_id?: string | null;
   device_id?: string | null;

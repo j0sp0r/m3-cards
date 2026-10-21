@@ -2819,6 +2819,15 @@ export const DETAIL_DOMAIN_ICONS: Record<string, string> = {
   automation: "mdi:robot",
 };
 export const DETAIL_MAX_SHARES = 6;
+export const DETAIL_DEFAULT_MAX_RELATED = 5;
+export const DETAIL_RELATED_ROW_HEIGHT = 44;
+export const DETAIL_RELATED_ROW_RADIUS = 15;
+export const DETAIL_RELATED_ICON_SIZE = 26;
+export const DETAIL_RELATED_ICON_RADIUS = 9;
+// The step sideways to a sibling: each half of the cross-fade.
+export const DETAIL_SWAP_MS = 160;
+// How long a reading under a lifted finger stays on screen.
+export const DETAIL_TOOLTIP_LINGER_MS = 2500;
 export const DEFAULT_DETAIL_ICON = "mdi:eye";
 export const DETAIL_DEFAULT_RANGES = ["1h", "24h", "7d", "30d"] as const;
 export const DETAIL_SEGMENT_RADIUS = 20;

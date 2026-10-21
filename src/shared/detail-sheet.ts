@@ -1,5 +1,5 @@
-import { LitElement, html, css, unsafeCSS, type PropertyValues } from "lit";
-import { customElement, property, query, state } from "lit/decorators.js";
+import { LitElement, html, css, unsafeCSS } from "lit";
+import { customElement, property, query } from "lit/decorators.js";
 import type { HomeAssistant } from "../types";
 import type { M3DetailCard } from "../m3-detail-card";
 import {
@@ -80,26 +80,20 @@ registerDetailSheet({ open: openDetailSheet, forward: forwardHass, close: closeS
 @customElement("m3-detail-sheet")
 export class M3DetailSheet extends LitElement {
   @property({ attribute: false }) public hass?: HomeAssistant;
-  @state() private _entityId?: string;
 
   @query("dialog") private _dialog?: HTMLDialogElement;
   @query(".sheet") private _sheetEl?: HTMLElement;
+  @query(".body") private _body?: HTMLElement;
 
   private _openedAt = 0;
   private _closing = false;
   private _gesture?: SheetGesture;
   private _detach: (() => void)[] = [];
   private _closeTimer?: number;
-  private _configuredFor?: string;
 
   public show(entityId: string, opener: HTMLElement): void {
     window.clearTimeout(this._closeTimer);
     this._closing = false;
-    const sameEntity = entityId === this._entityId;
-    this._entityId = entityId;
-    // Reopened on the entity it showed last: the card is already configured,
-    // but its graph was read when it was last open.
-    if (sameEntity) this.renderRoot.querySelector<M3DetailCard>("m3-detail-card")?.refresh();
     // Closing a <dialog> hands focus back to whatever had it on opening and
     // scrolls that into view; parked on what the finger hit, the page stays
     // where it was. The same anchor popup-card.ts sets.
@@ -107,6 +101,15 @@ export class M3DetailSheet extends LitElement {
     void this.updateComplete.then(() => {
       const dialog = this._dialog;
       if (!dialog) return;
+      // Configured imperatively, as Lovelace does it. The card may have moved
+      // on to a sibling since it was last open, so it is asked which entity it
+      // shows rather than trusted to still show the last one asked for.
+      const card = this.renderRoot.querySelector<M3DetailCard>("m3-detail-card");
+      if (card && card.entity !== entityId) card.setConfig({ type: "custom:m3-detail-card", entity: entityId });
+      // The same entity again: configured, but its graph was read when it was
+      // last open.
+      else card?.refresh();
+      if (this._body) this._body.scrollTop = 0;
       if (!dialog.open) dialog.showModal();
       this._openedAt = Date.now();
       this._place(1, false);
@@ -172,16 +175,6 @@ export class M3DetailSheet extends LitElement {
     if (this.hasUpdated && !this._gesture) this._attachGesture();
   }
 
-  protected updated(changed: PropertyValues): void {
-    // The card is configured imperatively, as Lovelace does it, and only when
-    // the entity changes — a new config object per render would reset it.
-    if (!changed.has("_entityId") || !this._entityId || this._entityId === this._configuredFor) return;
-    const card = this.renderRoot.querySelector<M3DetailCard>("m3-detail-card");
-    if (!card) return;
-    card.setConfig({ type: "custom:m3-detail-card", entity: this._entityId });
-    this._configuredFor = this._entityId;
-  }
-
   /** 1 is fully open, 0 is off the bottom edge. */
   private _place(fraction: number, animated: boolean): void {
     const el = this._sheetEl;
@@ -192,6 +185,11 @@ export class M3DetailSheet extends LitElement {
   }
 
   private _close = (): void => this.dismiss();
+
+  /** A sibling opened from the bottom of the list starts at its own top. */
+  private _toTop = (): void => {
+    this._body?.scrollTo({ top: 0, behavior: isReducedMotion() ? "auto" : "smooth" });
+  };
 
   private _onBackdrop(e: MouseEvent): void {
     if (e.target !== e.currentTarget) return;
@@ -215,7 +213,7 @@ export class M3DetailSheet extends LitElement {
              itself takes the focus instead; Tab still reaches every button. -->
         <div class="sheet" role="document" tabindex="-1" autofocus>
           <div class="grip-zone"><div class="grip"></div></div>
-          <div class="body">
+          <div class="body" @m3-detail-switched=${this._toTop}>
             <m3-detail-card in-sheet .hass=${this.hass} .closeHandler=${this._close}></m3-detail-card>
           </div>
         </div>

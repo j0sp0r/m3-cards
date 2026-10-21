@@ -3312,6 +3312,12 @@ export interface M3DetailCardConfig {
   control_card?: "auto" | "none" | Record<string, unknown>;
   /** Layout per entity id or domain: numeric, binary, states, control, info. */
   type_overrides?: Record<string, string>;
+  /** The other entities of the same device, under the view. Default true. */
+  show_related?: boolean;
+  /** At most this many of them. Default 5. */
+  max_related?: number;
+  /** The reading under a pointer on the curve. Default true. */
+  show_tooltip?: boolean;
   /** For readings where rising is bad news — a green arrow on a falling value. */
   trend_inverted?: boolean;
   text_color?: string;
