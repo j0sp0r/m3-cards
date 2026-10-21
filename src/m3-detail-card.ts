@@ -1201,11 +1201,12 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
   private _detailsMode(st: HassEntity): "expanded" | "collapsed" | "hidden" {
     const configured = this._config?.details;
     if (configured === "expanded" || configured === "collapsed" || configured === "hidden") return configured;
-    // Open only where the history is the content: a sensor's curve, a
-    // weather summary. For a lamp, a door or a socket it is context most
-    // people never need, and it pushed the control half off the screen.
-    const kind = this._kind(st);
-    return kind === "numeric" || kind === "info" ? "expanded" : "collapsed";
+    // Folded only where there is something to operate: a lamp, a socket, a
+    // thermostat, whose history is context most people never open and which
+    // pushed the control off the screen. For anything that only reports —
+    // a number, a window contact, a text or a timestamp — the history is the
+    // content, and folding it away left a word and a button.
+    return this._kind(st) === "control" ? "collapsed" : "expanded";
   }
 
   private _storedDetailsOpen(entity: string): boolean {

@@ -133,7 +133,7 @@ The period last picked is remembered per entity on that device.
 | `show_related` / `max_related` | boolean / number | `true` / `5` | The device's other entities, including diagnostic ones such as battery |
 | `control_card` | `auto` \| `none` \| card config | `auto` | The card at the top of a `control` view; `[[entity]]` stands for the entity |
 | `type_overrides` | map | – | Layout per entity id or domain, see above |
-| `details` | `expanded` \| `collapsed` \| `hidden` | open for sensors and weather, folded otherwise | History, tiles and the same-device list: shown, behind a "History and details" button, or left out |
+| `details` | `expanded` \| `collapsed` \| `hidden` | folded for controllable devices, open for everything else | History, tiles and the same-device list: shown, behind a "History and details" button, or left out |
 | `text_color` / `secondary_text_color` | string | theme default | Text colours |
 | `card_background` | string | glass/solid background | Card background |
 | `animation` | `auto` \| `on` \| `off` | `auto` | Respects `prefers-reduced-motion` |
