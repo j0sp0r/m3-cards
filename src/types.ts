@@ -3285,6 +3285,9 @@ export interface M3RemoteCardConfig {
   card_version?: string;
 }
 
+export type DetailRangeOption = "1h" | "24h" | "7d" | "30d";
+export type DetailStat = "min" | "mean" | "max" | "sum";
+
 /** What a tap that would open more-info opens instead. See shared/entity-detail.ts. */
 export type DetailMode = "more_info" | "sheet";
 
@@ -3295,8 +3298,12 @@ export interface M3DetailCardConfig {
   icon?: string;
   /** The entity's colour. Defaults by device_class. */
   color?: string;
-  /** The window the graph shows. */
-  range?: "1h" | "24h" | "7d" | "30d";
+  /** The window the graph opens on, until the viewer picks another. */
+  range?: DetailRangeOption;
+  /** The windows offered above the graph, in this order. */
+  ranges?: DetailRangeOption[];
+  /** The tiles under the graph. Default: min, mean, max — plus sum for a meter. */
+  stats?: DetailStat[];
   /** For readings where rising is bad news — a green arrow on a falling value. */
   trend_inverted?: boolean;
   text_color?: string;

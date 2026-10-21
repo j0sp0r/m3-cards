@@ -2701,6 +2701,7 @@ export const DETAIL_CHART_HALO = 10;
 export const DETAIL_TICK_MS = 60_000;
 export const DETAIL_DEFAULT_ACCENT = PALETTE.home;
 export const DETAIL_MIN_COLOR = PALETTE.solar;
+export const DETAIL_MIN_ALT_COLOR = PALETTE.cool;
 export const DETAIL_TREND_UP_COLOR = PALETTE.ok;
 export const DETAIL_TREND_DOWN_COLOR = PALETTE.heat;
 // An entity's colour when none is configured, by device_class.
@@ -2749,3 +2750,15 @@ export const DETAIL_DEVICE_CLASS_ICONS: Record<string, string> = {
   precipitation: "mdi:weather-rainy",
 };
 export const DEFAULT_DETAIL_ICON = "mdi:eye";
+export const DETAIL_DEFAULT_RANGES = ["1h", "24h", "7d", "30d"] as const;
+export const DETAIL_SEGMENT_RADIUS = 20;
+export const DETAIL_SEGMENT_PADDING = 4;
+export const DETAIL_PILL_HEIGHT = 32;
+// The active pill is the squarer one: the selection reads as a shape, not
+// only as a colour.
+export const DETAIL_PILL_RADIUS_ACTIVE = RADIUS.rowActive;
+export const DETAIL_PILL_RADIUS = DETAIL_PILL_HEIGHT / 2;
+export const DETAIL_TILE_RADIUS = 16;
+export const DETAIL_TILE_PADDING = 10;
+// localStorage key prefix for the period a viewer last picked, per entity.
+export const DETAIL_RANGE_STORAGE_PREFIX = "m3-detail-range:";

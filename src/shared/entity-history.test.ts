@@ -4,6 +4,7 @@ import {
   fetchEntitySeries,
   historyToPoints,
   seriesExtremes,
+  seriesStats,
   statisticsToPoints,
   type SeriesPoint,
 } from "./entity-history";
@@ -125,6 +126,68 @@ describe("fetchEntitySeries", () => {
   it("reports none when nothing at all was recorded", async () => {
     const hass = hassWith({}, "unavailable", () => ({}));
     const series = await fetchEntitySeries(hass, "sensor.h", "1h", NOW);
-    expect(series).toEqual({ points: [], source: "none" });
+    expect(series).toEqual({ points: [], source: "none", range: "1h" });
+  });
+});
+
+describe("seriesStats", () => {
+  it("weights the mean by how long each value held, and skips holes", () => {
+    const stats = seriesStats(
+      [
+        { t: 0, v: 20 },
+        { t: 11, v: 25 },
+        { t: 11.5, v: 26 },
+        { t: 12, v: null },
+        { t: 13, v: 20 },
+      ],
+      0,
+      14,
+    );
+    // 20·11 + 25·0.5 + 26·0.5 + 20·1 over 13 held hours.
+    expect(stats?.mean).toBeCloseTo((220 + 12.5 + 13 + 20) / 13, 6);
+    expect(stats?.min).toBe(20);
+    expect(stats?.max).toBe(26);
+  });
+
+  it("counts a value held into the window from before it", () => {
+    const stats = seriesStats([{ t: -5, v: 7 }], 0, 10);
+    expect(stats).toEqual({ min: 7, max: 7, mean: 7 });
+  });
+
+  it("has nothing to say about an empty series", () => {
+    expect(seriesStats([{ t: 1, v: null }], 0, 10)).toBeUndefined();
+  });
+});
+
+describe("fetchEntitySeries sum", () => {
+  const rowsAt = (t: number, states: number[]) =>
+    states.map((state, i) => ({ start: t - (states.length - i) * HOUR, state }));
+
+  it("counts a meter's rises and ignores a fall, as a reset", async () => {
+    const t = NOW + 9 * HOUR;
+    const hass = hassWith({ state_class: "total_increasing" }, "4", () => ({
+      // 100 → 104, reset to 0, → 3: seven units, whatever `sum` says.
+      "sensor.h": rowsAt(t, [100, 102, 104, 0, 1, 3]),
+    }));
+    const series = await fetchEntitySeries(hass, "sensor.h", "7d", t);
+    expect(series.sum).toBe(7);
+  });
+
+  it("takes last minus first for a total, which may fall", async () => {
+    const t = NOW + 10 * HOUR;
+    const hass = hassWith({ state_class: "total" }, "4", () => ({
+      "sensor.h": rowsAt(t, [10, 14, 6]),
+    }));
+    const series = await fetchEntitySeries(hass, "sensor.h", "7d", t);
+    expect(series.sum).toBe(-4);
+  });
+
+  it("has no sum for a measurement", async () => {
+    const t = NOW + 11 * HOUR;
+    const hass = hassWith({ state_class: "measurement" }, "4", () => ({
+      "sensor.h": rowsAt(t, [1, 2]).map((r) => ({ ...r, mean: r.state })),
+    }));
+    const series = await fetchEntitySeries(hass, "sensor.h", "7d", t);
+    expect(series.sum).toBeUndefined();
   });
 });

@@ -14,7 +14,9 @@
 import type { HomeAssistant } from "../types";
 import { cachedStatsCall } from "./ha-statistics";
 
-export type DetailRange = "1h" | "24h" | "7d" | "30d";
+import type { DetailRangeOption } from "../types";
+
+export type DetailRange = DetailRangeOption;
 
 export const DETAIL_RANGE_MS: Record<DetailRange, number> = {
   "1h": 3_600_000,
@@ -58,6 +60,11 @@ export interface SeriesPoint {
 export interface EntitySeries {
   points: SeriesPoint[];
   source: "statistics" | "history" | "none";
+  /** The window this was read for, so a card can keep drawing the previous
+   *  answer on its own axis while the next range loads. */
+  range: DetailRange;
+  /** What a meter added over the window. See `meterSum`. */
+  sum?: number;
 }
 
 interface StatRow {
@@ -92,7 +99,12 @@ export async function fetchEntitySeries(
       const rows = await fetchStatRows(hass, entityId, start, now, period);
       const points = statisticsToPoints(rows, PERIOD_MS[period]);
       if (points.some((p) => p.v !== null)) {
-        return { points: thin(withLiveEnd(points, now, live)), source: "statistics" };
+        return {
+          points: thin(withLiveEnd(points, now, live)),
+          source: "statistics",
+          range,
+          sum: meterSum(rows, start, hass.states[entityId]?.attributes?.state_class),
+        };
       }
     } catch {
       // Falls through to the history, which is the more forgiving of the two.
@@ -110,12 +122,44 @@ export async function fetchEntitySeries(
     });
     const points = historyToPoints(response[entityId] ?? [], start);
     if (points.some((p) => p.v !== null)) {
-      return { points: thin(withLiveEnd(points, now, live)), source: "history" };
+      return { points: thin(withLiveEnd(points, now, live)), source: "history", range };
     }
   } catch {
     // No recorder, an excluded entity: nothing to draw, which is an answer.
   }
-  return { points: [], source: "none" };
+  return { points: [], source: "none", range };
+}
+
+/**
+ * What a meter added over the window, read off its readings.
+ *
+ * Not the statistics' own `change`, which is what Home Assistant's energy
+ * dashboard sums. That one is derived from `sum`, and `sum` takes any dip in
+ * a `total_increasing` sensor as a meter reset and adds the whole reading
+ * again. Measured on 2026-10-21 on a group of meters: one five-minute row
+ * carried a change of 2,894.5 kWh while the readings either side of it were
+ * 1,632.2 and 1,632.4 — a member had dropped out for a moment inside the
+ * bucket. Summing `change` put 2,907.7 kWh in a tile under a graph that rose
+ * by 13.
+ *
+ * So: `total_increasing` counts every rise between two rows and no fall — a
+ * real reset falls to near zero and climbs again, and only the climb is
+ * consumption. `total` may fall legitimately (a net meter, a balance), so it
+ * is plain last minus first. Rows that began before the window are skipped;
+ * the request was widened to whole buckets.
+ */
+function meterSum(rows: readonly StatRow[], start: number, stateClass: unknown): number | undefined {
+  if (stateClass !== "total" && stateClass !== "total_increasing") return undefined;
+  const readings: number[] = [];
+  for (const row of rows) {
+    const t = typeof row.start === "number" ? row.start : Date.parse(row.start);
+    if (t >= start && typeof row.state === "number") readings.push(row.state);
+  }
+  if (readings.length < 2) return undefined;
+  if (stateClass === "total") return readings[readings.length - 1] - readings[0];
+  let sum = 0;
+  for (let i = 1; i < readings.length; i++) sum += Math.max(0, readings[i] - readings[i - 1]);
+  return sum;
 }
 
 async function fetchStatRows(
@@ -304,4 +348,47 @@ export function seriesExtremes(points: readonly SeriesPoint[]): SeriesExtremes {
     if (!out.max || p.v > (out.max.v as number)) out.max = p;
   }
   return out;
+}
+
+export interface SeriesStats {
+  min: number;
+  max: number;
+  mean: number;
+}
+
+/**
+ * Minimum, maximum and time-weighted mean over [t0, t1].
+ *
+ * Time-weighted because history rows are changes, not samples: a sensor that
+ * sat at 20 for eleven hours and then twitched between 25 and 26 for one has
+ * a dozen rows near 25 and one at 20, and their plain average says 24. Each
+ * value is held until the next row, a hole holds nothing, and the last value
+ * runs to t1. For statistics, whose rows are evenly spaced, it comes out as
+ * the plain mean of the buckets.
+ */
+export function seriesStats(points: readonly SeriesPoint[], t0: number, t1: number): SeriesStats | undefined {
+  let min = Infinity;
+  let max = -Infinity;
+  let weighted = 0;
+  let span = 0;
+  for (let i = 0; i < points.length; i++) {
+    const p = points[i];
+    if (p.v === null) continue;
+    const from = Math.max(t0, p.t);
+    const to = Math.min(t1, i + 1 < points.length ? points[i + 1].t : t1);
+    if (p.t <= t1 && p.t >= t0) {
+      min = Math.min(min, p.v);
+      max = Math.max(max, p.v);
+    }
+    if (to > from) {
+      // A value held into the window from before it counts towards the
+      // extremes too: it is what the sensor read at t0.
+      min = Math.min(min, p.v);
+      max = Math.max(max, p.v);
+      weighted += p.v * (to - from);
+      span += to - from;
+    }
+  }
+  if (!Number.isFinite(min)) return undefined;
+  return { min, max, mean: span > 0 ? weighted / span : (min + max) / 2 };
 }

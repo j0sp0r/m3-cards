@@ -1,6 +1,6 @@
 import { LitElement, html, css, nothing, svg, unsafeCSS, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import type { HomeAssistant, HassEntity, LovelaceCard, M3DetailCardConfig } from "./types";
+import type { DetailStat, HomeAssistant, HassEntity, LovelaceCard, M3DetailCardConfig } from "./types";
 import {
   CARD_VERSION,
   DEFAULT_DETAIL_ICON,
@@ -15,9 +15,19 @@ import {
   DETAIL_DEVICE_CLASS_ICONS,
   DETAIL_ICON_RADIUS,
   DETAIL_ICON_SIZE,
+  DETAIL_MIN_ALT_COLOR,
   DETAIL_MIN_COLOR,
   DETAIL_SETTINGS_RADIUS,
   DETAIL_TICK_MS,
+  DETAIL_DEFAULT_RANGES,
+  DETAIL_PILL_HEIGHT,
+  DETAIL_PILL_RADIUS,
+  DETAIL_PILL_RADIUS_ACTIVE,
+  DETAIL_RANGE_STORAGE_PREFIX,
+  DETAIL_SEGMENT_PADDING,
+  DETAIL_SEGMENT_RADIUS,
+  DETAIL_TILE_PADDING,
+  DETAIL_TILE_RADIUS,
   DETAIL_TREND_DOWN_COLOR,
   DETAIL_TREND_HEIGHT,
   DETAIL_TREND_RADIUS,
@@ -29,6 +39,7 @@ import {
   buildCssVars,
   fillColor,
   foregroundColor,
+  inkOn,
   resolveCommonColors,
   resolveThemeColor,
   tintInk,
@@ -45,6 +56,7 @@ import {
   DETAIL_RANGE_MS,
   fetchEntitySeries,
   seriesExtremes,
+  seriesStats,
   type DetailRange,
   type EntitySeries,
   type SeriesPoint,
@@ -92,6 +104,9 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
 
   @state() private _config?: M3DetailCardConfig;
   @state() private _series?: EntitySeries;
+  /** The period picked in this card, or remembered from the last time. */
+  @state() private _picked?: DetailRange;
+  private _seriesEntity?: string;
   @state() private _chartWidth = 0;
   @state() private _now = Date.now();
 
@@ -103,6 +118,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
 
   public setConfig(config: M3DetailCardConfig): void {
     if (!config?.entity) throw new Error("m3-detail-card: `entity` is required");
+    if (config.entity !== this._config?.entity) this._picked = this._storedRange(config.entity);
     this._config = config;
   }
 
@@ -156,8 +172,44 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     return localize(key, this._language);
   }
 
+  private get _ranges(): DetailRange[] {
+    const configured = (this._config?.ranges ?? []).filter((r) => r in DETAIL_RANGE_MS);
+    return configured.length ? configured : [...DETAIL_DEFAULT_RANGES];
+  }
+
   private get _range(): DetailRange {
-    return this._config?.range ?? "24h";
+    const ranges = this._ranges;
+    const wanted = this._picked ?? this._config?.range ?? "24h";
+    return ranges.includes(wanted) ? wanted : ranges.includes("24h") ? "24h" : ranges[0];
+  }
+
+  /**
+   * The period last picked for this entity, on this device.
+   *
+   * Per entity because the useful window is a property of the reading — a
+   * battery is read over a month, a door over an hour — and per device because
+   * localStorage is. It can come back empty or throw (private windows, cleared
+   * site data), and then the configured default stands.
+   */
+  private _storedRange(entity: string): DetailRange | undefined {
+    try {
+      const v = window.localStorage.getItem(DETAIL_RANGE_STORAGE_PREFIX + entity);
+      return v && v in DETAIL_RANGE_MS ? (v as DetailRange) : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private _pick(range: DetailRange): void {
+    const entity = this._config?.entity;
+    if (range === this._range || !entity) return;
+    this._picked = range;
+    try {
+      window.localStorage.setItem(DETAIL_RANGE_STORAGE_PREFIX + entity, range);
+    } catch {
+      // Remembering is a convenience; the switch itself has happened.
+    }
+    this._maybeFetch();
   }
 
   // ---- data ------------------------------------------------------------------
@@ -169,12 +221,19 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const key = `${entity}|${this._range}`;
     if (key === this._fetchKey) return;
     this._fetchKey = key;
-    this._series = undefined;
-    // A range or entity change while a request is out must not let the older
-    // answer land on top of the newer question.
+    // Another entity's graph is not a placeholder for this one. The same
+    // entity's previous period is: it stays up, dimmed, on its own axis, until
+    // the new one lands — a range switch that blanks the graph for half a
+    // second reads as the card breaking.
+    if (entity !== this._seriesEntity) this._series = undefined;
+    // The websocket has no way to cancel a request, so "abort" means: the
+    // answer to an older question is dropped when it arrives. Identical
+    // questions from several cards are shared by ha-statistics.ts's cache.
     const seq = ++this._fetchSeq;
     void fetchEntitySeries(hass, entity, this._range).then((series) => {
-      if (seq === this._fetchSeq) this._series = series;
+      if (seq !== this._fetchSeq) return;
+      this._series = series;
+      this._seriesEntity = entity;
     });
   }
 
@@ -236,6 +295,15 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     );
   }
 
+  /**
+   * The minimum's colour: orange, unless the entity itself is orange — an
+   * energy or power reading — when two orange rings would mark the lowest and
+   * the highest point alike.
+   */
+  private _minColor(accent: string): string {
+    return accent.toLowerCase() === DETAIL_MIN_COLOR.toLowerCase() ? DETAIL_MIN_ALT_COLOR : DETAIL_MIN_COLOR;
+  }
+
   private _accent(st: HassEntity): string {
     if (this._config?.color) return resolveThemeColor(this._config.color);
     return DETAIL_DEVICE_CLASS_COLORS[String(st.attributes.device_class ?? "")] ?? DETAIL_DEFAULT_ACCENT;
@@ -270,10 +338,9 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
 
   // ---- chart -------------------------------------------------------------------
 
-  private _timeLabel(t: number): string {
+  private _timeLabel(t: number, range: DetailRange): string {
     const tf = this.hass?.locale?.time_format;
     const hour12 = tf === "12" ? true : tf === "24" ? false : undefined;
-    const range = this._range;
     const opts: Intl.DateTimeFormatOptions =
       range === "7d"
         ? { weekday: "short" }
@@ -287,15 +354,15 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
    * Where the axis labels go: three times spread over the window, rounded to
    * something a person would say, and "now" at the end.
    */
-  private _labels(t0: number, span: number): { t: number; text: string }[] {
-    const round =
-      this._range === "1h" ? 15 * 60_000 : this._range === "24h" ? 3_600_000 : 86_400_000;
+  private _labels(t0: number, range: DetailRange): { t: number; text: string }[] {
+    const span = DETAIL_RANGE_MS[range];
+    const round = range === "1h" ? 15 * 60_000 : range === "24h" ? 3_600_000 : 86_400_000;
     const out: { t: number; text: string }[] = [];
     for (let i = 0; i < 3; i++) {
       const raw = t0 + (span * i) / 3;
       // Rounded up, so the first label never falls left of the plot.
       const t = Math.ceil(raw / round) * round;
-      out.push({ t, text: this._timeLabel(t) });
+      out.push({ t, text: this._timeLabel(t, range) });
     }
     out.push({ t: t0 + span, text: this._t("detail_now") });
     return out;
@@ -308,7 +375,9 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
 
     const width = this._chartWidth;
     const height = DETAIL_CHART_HEIGHT;
-    const span = DETAIL_RANGE_MS[this._range];
+    // The series' own period, not the selected one: while the next period
+    // loads, the previous answer is still drawn to the scale it was read at.
+    const span = DETAIL_RANGE_MS[series.range];
     const t1 = this._now;
     const t0 = t1 - span;
     const points = this._pointsWithLive(series.points, st, t1);
@@ -341,7 +410,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       if (run.length) runs.push(run);
 
       const last = available ? [...points].reverse().find((p) => p.v !== null) : undefined;
-      const minColor = fillColor(this, DETAIL_MIN_COLOR);
+      const minColor = fillColor(this, this._minColor(accent));
       const lineColor = fillColor(this, accent);
       body = svg`
         <defs>
@@ -367,9 +436,10 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       `;
     }
 
-    const labels = this._labels(t0, span);
+    const labels = this._labels(t0, series.range);
+    const stale = series.range !== this._range;
     return html`
-      <div class="chart ${available ? "" : "dim"}" data-source=${series.source}>
+      <div class="chart ${available ? "" : "dim"} ${stale ? "stale" : ""}" data-source=${series.source}>
         <svg width="100%" height=${height} viewBox="0 0 ${Math.max(1, width)} ${height}" aria-hidden="true">
           ${body}
         </svg>
@@ -404,7 +474,8 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const series = this._series;
     const live = Number(st.state);
     if (!series?.points.length || MISSING.has(st.state) || !Number.isFinite(live)) return nothing;
-    const t0 = this._now - DETAIL_RANGE_MS[this._range];
+    if (series.range !== this._range) return nothing;
+    const t0 = this._now - DETAIL_RANGE_MS[series.range];
     const first = seriesExtremes(series.points.filter((p) => p.t >= t0)).first;
     if (!first) return nothing;
     const diff = live - (first.v as number);
@@ -455,6 +526,84 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     `;
   }
 
+  private _renderRanges(accent: string): unknown {
+    const ranges = this._ranges;
+    if (ranges.length < 2) return nothing;
+    const current = this._range;
+    const fill = fillColor(this, accent);
+    return html`
+      <div
+        class="segments"
+        role="radiogroup"
+        aria-label=${this._t("detail_ranges")}
+        style=${buildCssVars({ "seg-fill": fill, "seg-ink": inkOn(fill, this) })}
+      >
+        ${ranges.map(
+          (r) => html`<button
+            class="segment ${r === current ? "active" : ""}"
+            role="radio"
+            aria-checked=${r === current ? "true" : "false"}
+            @click=${() => this._pick(r)}
+          >
+            ${this._t(`detail_range_${r}` as TranslationKey)}
+          </button>`,
+        )}
+      </div>
+    `;
+  }
+
+  /** Which tiles, in which order: configured, or the default for this kind of reading. */
+  private _statKinds(st: HassEntity): DetailStat[] {
+    if (this._config?.stats?.length) return this._config.stats;
+    const meter = st.attributes.state_class === "total" || st.attributes.state_class === "total_increasing";
+    return meter ? ["min", "mean", "max", "sum"] : ["min", "mean", "max"];
+  }
+
+  private _renderStats(st: HassEntity, accent: string): unknown {
+    const series = this._series;
+    // Tiles for a period that is still loading would contradict the graph's
+    // own scale above them; they wait with it.
+    if (!series || series.source === "none" || series.range !== this._range) return nothing;
+    const t1 = this._now;
+    const stats = seriesStats(this._pointsWithLive(series.points, st, t1), t1 - DETAIL_RANGE_MS[series.range], t1);
+    if (!stats) return nothing;
+    const decimals = this._decimals(st);
+    const unit = st.attributes.unit_of_measurement as string | undefined;
+    const tiles = this._statKinds(st)
+      .map((kind) => {
+        const value =
+          kind === "sum" ? series.sum : kind === "min" ? stats.min : kind === "max" ? stats.max : stats.mean;
+        if (value === undefined) return undefined;
+        const color =
+          kind === "min"
+            ? foregroundColor(this, this._minColor(accent))
+            : kind === "max"
+              ? foregroundColor(this, accent)
+              : "var(--dc-text, var(--primary-text-color))";
+        const label: TranslationKey =
+          kind === "min" ? "detail_minimum" : kind === "max" ? "detail_maximum" : kind === "sum" ? "detail_sum" : "detail_mean";
+        // A mean of whole numbers is rarely whole; one decimal more than the
+        // reading itself says how far between two steps it sits.
+        const places = kind === "mean" ? Math.min(decimals + 1, 2) : decimals;
+        return html`<div class="tile">
+          <div class="tile-value" style="color:${color}">
+            ${this._format(value, places)}${unit ? html`<span class="tile-unit">${unit}</span>` : nothing}
+          </div>
+          <div class="tile-label">${this._t(label)}</div>
+        </div>`;
+      })
+      .filter((t) => t !== undefined);
+    if (!tiles.length) return nothing;
+    // Four tiles on a phone leave about 75px for a number; a meter reading of
+    // 1.623,56 kWh does not fit at 17px. The unit is already large above the
+    // graph, so a crowded row drops it and steps the figures down instead of
+    // cutting them off.
+    const dense = tiles.length > 3 ? "dense" : "";
+    return html`<div class="tiles ${dense}" style="grid-template-columns: repeat(${tiles.length}, minmax(0, 1fr))">
+      ${tiles}
+    </div>`;
+  }
+
   private _openSettings(): void {
     const entity = this._config?.entity;
     // Home Assistant's dialog opening on top of ours would leave two modals
@@ -479,7 +628,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       "dc-secondary": secondaryTextColorCss,
       "dc-icon-bg": tintOn(this, accent, undefined, 20),
       "dc-icon-ink": tintInk(this, accent, undefined, 20, 3),
-      "dc-button-bg": tintOn(this, "var(--primary-text-color)", undefined, 6),
+      "dc-button-bg": tintOn(this, "var(--primary-text-color)", undefined, 5),
     });
 
     return html`
@@ -503,7 +652,8 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
                 </button>`
               : nothing}
           </div>
-          ${this._renderValue(st, accent)} ${this._renderChart(st, accent, available)}
+          ${this._renderValue(st, accent)} ${this._renderRanges(accent)}
+          ${this._renderChart(st, accent, available)} ${this._renderStats(st, accent)}
         </div>
       </ha-card>
     `;
@@ -710,6 +860,90 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       }
       .tick.end {
         transform: translateX(-100%);
+      }
+
+      .chart.stale {
+        opacity: 0.4;
+      }
+
+      .segments {
+        display: flex;
+        gap: 2px;
+        padding: ${DETAIL_SEGMENT_PADDING}px;
+        border-radius: ${DETAIL_SEGMENT_RADIUS}px;
+        background: var(--dc-button-bg);
+      }
+      .segment {
+        flex: 1 1 0;
+        min-width: 0;
+        height: ${DETAIL_PILL_HEIGHT}px;
+        border: none;
+        padding: 0 6px;
+        border-radius: ${DETAIL_PILL_RADIUS}px;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        opacity: 0.7;
+        cursor: pointer;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        transition:
+          border-radius 250ms ${EASING},
+          background-color 250ms ${EASING},
+          opacity 250ms ${EASING};
+      }
+      .segment.active {
+        border-radius: ${DETAIL_PILL_RADIUS_ACTIVE}px;
+        background: var(--seg-fill);
+        color: var(--seg-ink);
+        opacity: 1;
+      }
+      .segment:active {
+        border-radius: ${DETAIL_PILL_RADIUS_ACTIVE}px;
+      }
+
+      .tiles {
+        display: grid;
+        gap: 8px;
+      }
+      .tile {
+        padding: ${DETAIL_TILE_PADDING}px;
+        border-radius: ${DETAIL_TILE_RADIUS}px;
+        background: var(--dc-button-bg);
+        text-align: center;
+        min-width: 0;
+      }
+      .tile-value {
+        font-size: 17px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .tile-unit {
+        font-size: 10px;
+        font-weight: 400;
+        margin-left: 2px;
+        opacity: 0.8;
+      }
+      .tiles.dense .tile {
+        padding: ${DETAIL_TILE_PADDING}px 4px;
+      }
+      .tiles.dense .tile-value {
+        font-size: 14px;
+      }
+      .tiles.dense .tile-unit {
+        display: none;
+      }
+      .tile-label {
+        font-size: 9px;
+        opacity: 0.42;
+        margin-top: 2px;
+        color: var(--dc-secondary);
       }
 
       .no-history {
