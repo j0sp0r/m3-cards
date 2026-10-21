@@ -522,6 +522,41 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     this._hoverTimer = window.setTimeout(() => (this._hoverT = undefined), DETAIL_TOOLTIP_LINGER_MS);
   };
 
+  /**
+   * A more-info request from the embedded control card.
+   *
+   * That card does not know it sits inside a detail view, so a tap that
+   * means "details" in it fires Home Assistant's more-info as it would on a
+   * dashboard — which, in the sheet, opened a second dialog over this one.
+   * Here it is answered by the view itself:
+   *
+   *   - the entity already on screen, in the sheet: nothing to do, this is
+   *     its detail view. On a dashboard the request goes on to Home
+   *     Assistant, which is the only place it can mean anything there.
+   *   - another entity this view has a layout for: step to it, as a tap on
+   *     a sibling does.
+   *   - anything else, a settings page included: the sheet closes first and
+   *     the request goes on, so the two dialogs never stack.
+   */
+  private _onInnerMoreInfo = (e: Event): void => {
+    const detail = (e as CustomEvent<{ entityId?: string; view?: string }>).detail ?? {};
+    const id = detail.entityId;
+    if (!id || detail.view) {
+      this.closeHandler?.();
+      return;
+    }
+    if (id === this._config?.entity) {
+      if (this.closeHandler) e.stopPropagation();
+      return;
+    }
+    if (detailKind(this.hass?.states[id]) !== undefined) {
+      e.stopPropagation();
+      this._switchTo(id);
+      return;
+    }
+    this.closeHandler?.();
+  };
+
   /** The other entities of this one's device, one row each. */
   private _renderRelated(st: HassEntity): unknown {
     if (this._config?.show_related === false || !this.hass) return nothing;
@@ -874,7 +909,9 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       case "info":
         return html`${this._renderValue(st, accent)} ${this._renderInfo(st)}`;
       case "control":
-        return html`${this._control ? html`<div class="control">${this._control}</div>` : this._renderValue(st, accent)}
+        return html`${this._control
+          ? html`<div class="control" @hass-more-info=${this._onInnerMoreInfo}>${this._control}</div>`
+          : this._renderValue(st, accent)}
         ${this._renderRanges(accent)} ${this._renderStates(st, accent)}`;
       default:
         return html`${this._renderValue(st, accent)} ${this._renderRanges(accent)} ${this._renderStates(st, accent)}`;
