@@ -21,6 +21,7 @@ import {
   radiusPresetPatch,
   cornerPresetPatch,
   renderRadiusCornerFields,
+  renderDetailModeField,
   type AppearanceState,
 } from "./shared/appearance-editor";
 import {
@@ -478,6 +479,12 @@ export class M3ButtonCardEditor
               .computeHelper=${this._computeHelper}
               @value-changed=${this._valueChanged}
             ></ha-form>
+            ${renderDetailModeField({
+              hass: this.hass,
+              language: this._language,
+              config: this._config,
+              onValueChanged: this._valueChanged,
+            })}
             ${renderRadiusCornerFields({
               hass: this.hass,
               language: this._language,

@@ -17,6 +17,7 @@ import {
   NAV_SIZE_MIN,
 } from "./const";
 import { dashboardViews, viewPath, type LovelaceViewLike } from "./shared/dashboard-views";
+import { renderDetailModeField } from "./shared/appearance-editor";
 import { localize, type TranslationKey } from "./localize";
 import {
   colorRow,
@@ -1612,6 +1613,12 @@ export class M3NavCardEditor extends LitElement implements LovelaceCardEditor {
               .computeLabel=${this._computeLabel}
               @value-changed=${this._rootChanged}
             ></ha-form>
+            ${renderDetailModeField({
+              hass: this.hass,
+              language: this._language,
+              config: cfg,
+              onValueChanged: this._rootChanged,
+            })}
             ${colorRow(this._t("editor_mode_color"), cfg.accent_color, (v) =>
               this._emit(
                 this._clean({ ...cfg, accent_color: v }) as unknown as M3NavCardConfig,

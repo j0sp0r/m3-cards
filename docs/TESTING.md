@@ -1090,6 +1090,43 @@ weg ist.
 - [ ] `action: popup` ohne konfiguriertes `popup` fällt auf More-Info zurück
       statt einen leeren Dialog zu öffnen
 
+## M3 Detail Card und `detail_mode: sheet`
+
+Zwei Prüfgegenstände: die Karte selbst und das Sheet, das sie an Stelle von
+More-info zeigt. Beim Entwickeln auf der Testinstanz gesehen wurde alles, was
+unten nicht als „ungesehen“ markiert ist. Am Handy war davon bisher nichts.
+
+- [ ] **Am Handy:** Das Sheet fährt von unten ein, Wischen am Griff schließt
+      es, und ein Wisch im Inhalt scrollt, solange der Inhalt nicht oben ist
+- [ ] **Am Handy, ungesehen:** Mit dem Finger über die Kurve fahren zeigt den
+      Tooltip, ohne dass das Sheet mitzieht. Nach dem Loslassen bleibt er
+      2,5 s stehen
+- [ ] Schließen per Griff, Hintergrund, Escape und X. Danach steht die Seite
+      dort, wo sie war (Fokus-Anker)
+- [ ] Ein Sensor **mit** Langzeitstatistik und einer **ohne** (`state_class`
+      fehlt): Beide zeichnen eine Kurve, der zweite aus der History. Ganz ohne
+      Aufzeichnung steht statt der Kurve ein Hinweis
+- [ ] Zeitraum wechseln: Der alte Verlauf bleibt gedimmt stehen, bis der neue
+      da ist. Die Wahl ist nach dem Neuladen noch da (pro Entität)
+- [ ] Zähler (`total_increasing`): Die Summen-Kachel stimmt mit dem Anstieg
+      der Kurve überein, auch über einen Reset hinweg
+- [ ] Türkontakt: Zeitleiste, Zeit offen/geschlossen, „Wechsel heute“. Ein
+      kurzer Ausfall zählt nicht als Wechsel
+- [ ] Licht (`control`): Die Lichtkarte ist eingebettet und schaltet. Ein Tap
+      in ihr, der More-info öffnen würde, bleibt im Sheet
+- [ ] **Ungesehen:** Rollo, Klima, Media, Saugroboter, Luftbefeuchter,
+      Schalter und Schloss eingebettet — jede rendert, und ihre Taps landen
+      richtig
+- [ ] „Gleiches Gerät“: Ein Tap gleitet seitlich zur Nachbar-Entität, das
+      Sheet bleibt offen und springt nach oben
+- [ ] `update`, `button`, `script`, `scene` öffnen auch bei
+      `detail_mode: sheet` weiter den HA-Dialog
+- [ ] Einstellungs-Knopf: Das Sheet schließt sich, HAs Einstellungsseite der
+      Entität öffnet sich allein
+- [ ] Editor: `detail_mode` steht im Erscheinungsbild jeder Karte, die Details
+      öffnen kann, und bei Uhr, Gauge, Heading, Suche usw. **nicht**
+- [ ] Helles Theme: Kurve, Kacheln und Zeitleiste bleiben lesbar
+
 ## Bekannte Einschränkungen
 
 Beide Punkte, die hier bis 2.0 standen — die Akzentfarben im hellen Theme und

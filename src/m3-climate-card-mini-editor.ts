@@ -22,6 +22,7 @@ import {
   radiusPresetPatch,
   cornerPresetPatch,
   renderRadiusCornerFields,
+  renderDetailModeField,
   type AppearanceState,
 } from "./shared/appearance-editor";
 
@@ -316,6 +317,12 @@ export class M3ClimateCardMiniEditor
               .computeLabel=${this._computeLabel}
               @value-changed=${this._valueChanged}
             ></ha-form>
+            ${renderDetailModeField({
+              hass: this.hass,
+              language: this._language,
+              config: this._config,
+              onValueChanged: this._valueChanged,
+            })}
             ${renderRadiusCornerFields({
               hass: this.hass,
               language: this._language,

@@ -8,6 +8,33 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **A detail view of the suite's own, `m3-detail-card`, and a sheet that can
+  stand in for more-info.** One entity, large. A number gets its value, a
+  trend chip against the start of the period, a smoothed curve with no grid
+  and no axis, and its minimum, average and maximum. A door gets a timeline,
+  a lamp its own M3 card with the timeline under it. Below all of these sit
+  the other entities of the same device; a tap steps the view sideways to one.
+
+  Home Assistant has no way for a card to replace the more-info dialog for
+  the whole frontend, so there are two doors in. **`detail_mode: sheet`**, in
+  the appearance section of every M3 editor whose card can open details,
+  makes those taps open the view as a bottom sheet. The default stays
+  `more_info`. The card itself works anywhere a card can go: a dashboard,
+  browser_mod or bubble-card popups, the suite's own `popup` with
+  `mode: custom`. Entities the view has nothing for (an `update` with its
+  release notes, a button, a script) keep opening the dialog.
+
+  History comes from long-term statistics where they exist and from the
+  History API where they do not. It is thinned to 300 points without losing
+  the spikes and breaks where the entity was unavailable. The curve is a
+  monotone cubic, so it never swings past a reading. A meter's total is read
+  from its readings, not from the statistics' `change`: on a real group of
+  meters that value carried 2,894.5 kWh for a day the meter rose by 13.
+
+  Under the hood every card now opens details through one function. Forty
+  call sites used to fire `hass-more-info` themselves, and a test now fails
+  if one goes back to doing so.
+
 - **A remote-control card, `m3-remote-card`.** One card with per-brand profiles
   rather than one card per brand, because these devices differ in what they
   call each key, not in the shape of a remote control.

@@ -1,6 +1,6 @@
 import { LitElement, html, css, nothing, svg, unsafeCSS, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import type { DetailStat, HomeAssistant, HassEntity, LovelaceCard, M3DetailCardConfig } from "./types";
+import type { DetailStat, HomeAssistant, HassEntity, LovelaceCard, LovelaceCardEditor, M3DetailCardConfig } from "./types";
 import {
   CARD_VERSION,
   DEFAULT_DETAIL_ICON,
@@ -174,6 +174,11 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     if (!config?.entity) throw new Error("m3-detail-card: `entity` is required");
     if (config.entity !== this._config?.entity) this._picked = this._storedRange(config.entity);
     this._config = config;
+  }
+
+  public static async getConfigElement(): Promise<LovelaceCardEditor> {
+    await import("./m3-detail-card-editor");
+    return document.createElement("m3-detail-card-editor") as unknown as LovelaceCardEditor;
   }
 
   public static getStubConfig(hass?: HomeAssistant): M3DetailCardConfig {

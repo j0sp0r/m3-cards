@@ -1,5 +1,5 @@
 import { html, nothing, type TemplateResult } from "lit";
-import type { HomeAssistant, CornerRadiusConfig } from "../types";
+import type { HomeAssistant, CornerRadiusConfig, DetailMode } from "../types";
 import {
   CORNER_KEYS,
   radiusPreset,
@@ -21,7 +21,9 @@ import { localize, type TranslationKey } from "../localize";
 // own @state fields and fire config-changed.
 
 export interface AppearanceConfigBase {
+  type?: string;
   glass_background?: boolean;
+  detail_mode?: DetailMode;
   radius?: number;
   corners?: CornerRadiusConfig;
 }
@@ -76,7 +78,77 @@ export function cornerPresetPatch(
 const OWN_LABELS: Record<string, TranslationKey> = {
   ...radiusLabelMap,
   glass_background: "editor_glass_background",
+  detail_mode: "editor_detail_mode",
 };
+
+/**
+ * Cards that never open an entity's details, and so have nothing for
+ * `detail_mode` to change. Listing the exceptions rather than the rule means
+ * a new card gets the option by default; appearance-editor.test.ts checks this
+ * list against the sources both ways, so it cannot go stale silently.
+ */
+export const NO_DETAIL_CARDS: ReadonlySet<string> = new Set([
+  "m3-clock-card",
+  "m3-detail-card",
+  "m3-energy-flow-card",
+  "m3-gauge-card",
+  "m3-group-card",
+  // Both run their configured action without an entity, so a more-info
+  // there has nothing to open.
+  "m3-heading-card",
+  "m3-search-card",
+  "m3-humidifier-card",
+  "m3-progress-card",
+  "m3-system-card",
+  "m3-time-card",
+  "m3-todo-card",
+]);
+
+export function supportsDetailMode(type: string | undefined): boolean {
+  const tag = (type ?? "").replace(/^custom:/, "");
+  return tag.startsWith("m3-") && !NO_DETAIL_CARDS.has(tag);
+}
+
+export interface DetailModeFieldParams {
+  hass?: HomeAssistant;
+  language: string;
+  config: AppearanceConfigBase;
+  onValueChanged: (ev: CustomEvent) => void;
+}
+
+/**
+ * "What a tap on details opens": Home Assistant's dialog, or the suite's
+ * sheet. Part of the shared appearance section; editors that build their own
+ * appearance panel (button, climate-mini, nav) and the heading card's
+ * behaviour panel call it themselves.
+ */
+export function renderDetailModeField(params: DetailModeFieldParams): TemplateResult | typeof nothing {
+  const { hass, language, config, onValueChanged } = params;
+  if (!supportsDetailMode(config.type)) return nothing;
+  return html`
+    <ha-form
+      .hass=${hass}
+      .data=${{ detail_mode: config.detail_mode ?? "more_info" }}
+      .schema=${[
+        {
+          name: "detail_mode",
+          selector: {
+            select: {
+              mode: "dropdown",
+              options: [
+                { value: "more_info", label: localize("editor_detail_mode_more_info", language) },
+                { value: "sheet", label: localize("editor_detail_mode_sheet", language) },
+              ],
+            },
+          },
+        },
+      ]}
+      .computeLabel=${(schema: SchemaEntry) => localize(OWN_LABELS[schema.name] ?? "editor_detail_mode", language)}
+      .computeHelper=${() => localize("editor_detail_mode_helper", language)}
+      @value-changed=${onValueChanged}
+    ></ha-form>
+  `;
+}
 
 function withOwnLabels(
   computeLabel: (schema: SchemaEntry) => string,
@@ -199,6 +271,7 @@ export function renderAppearanceSection(params: RadiusCornerFieldsParams): Templ
           @value-changed=${params.onValueChanged}
         ></ha-form>
         ${renderRadiusCornerFields(params)}
+        ${renderDetailModeField(params)}
       </div>
     </ha-expansion-panel>
   `;
