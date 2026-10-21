@@ -103,4 +103,11 @@ describe("buildWavePath: the second argument is a width", () => {
   it("starts where it is told to", () => {
     expect(buildWavePath(452, 18, 3, 20, 0, 10).startsWith("M452.00,")).toBe(true);
   });
+
+  it("ends on a width or step that would never finish", () => {
+    expect(buildWavePath(0, Number.POSITIVE_INFINITY, 3, 20, 0, 10)).toBe("");
+    expect(buildWavePath(0, Number.NaN, 3, 20, 0, 10)).toBe("");
+    expect(buildWavePath(0, 100, 3, 20, 0, 10, 0)).toBe("");
+    expect(letztesX(buildWavePath(0, 1e308, 3, 20, 0, 10))).toBeCloseTo(10_000, 1);
+  });
 });

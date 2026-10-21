@@ -2,6 +2,9 @@
 // this project (progress-card's indicator, the light-card's brightness and
 // color-temperature sliders).
 
+// Wider than any screen; a wave past it is drawn only this far.
+const WAVE_MAX_WIDTH_PX = 10_000;
+
 // Builds an SVG path string for a horizontal sine wave, offset by startX so
 // it can be positioned anywhere along a longer logical wave (keeps the
 // pattern continuous across active/track splits).
@@ -19,7 +22,11 @@ export function buildWavePath(
   midY: number,
   step = 4,
 ): string {
-  if (widthPx <= 0) return "";
+  // The loop below runs once per `step` pixels, so an infinite width, or a
+  // step that cannot move x, would never end — a value an entity sends
+  // (a volume of 1e308, a duration of 0) must not be able to hang the page.
+  if (!(widthPx > 0) || !Number.isFinite(widthPx) || !(step > 0)) return "";
+  widthPx = Math.min(widthPx, WAVE_MAX_WIDTH_PX);
   const k = (2 * Math.PI) / wavelength;
   const yAt = (absX: number) => midY + amplitude * Math.sin(absX * k + phase);
   const slopeAt = (absX: number) => amplitude * k * Math.cos(absX * k + phase);
