@@ -76,7 +76,7 @@ import {
   type EntitySeries,
   type SeriesPoint,
 } from "./shared/entity-history";
-import { monotoneArea, monotonePath, type XY } from "./shared/smooth-path";
+import { monotoneArea, monotonePath, niceTicks, tickDecimals, type XY } from "./shared/smooth-path";
 import { defaultControlCard, detailKind, isTwoState, type DetailKind } from "./shared/detail-kind";
 import {
   clipSegments,
@@ -877,6 +877,19 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         </div>`;
         guide = svg`<line class="guide" x1=${hx} x2=${hx} y1="0" y2=${height}></line>`;
       }
+      // A quiet scale: three or four round values, a faint dashed line each,
+      // the figure small at the left edge in the x-axis' own style. No unit —
+      // it is written large above the graph — and no frame or ticks.
+      const ticks = this._config?.y_axis === false ? [] : niceTicks(yLo, yHi, 3);
+      const tickPlaces = tickDecimals(ticks);
+      // Lines under the fill, figures over everything: under the fill the
+      // lowest figure was hidden, and under the line any figure the curve
+      // happened to cross at the left edge. A thin halo in the surface colour
+      // keeps them readable where the line runs through, with no box.
+      const grid = ticks.map((v) => svg`<line class="grid" x1="0" x2=${plotW} y1=${y(v)} y2=${y(v)}></line>`);
+      const tickLabels = ticks.map(
+        (v) => svg`<text class="ytick" x="0" y=${y(v) - 3}>${this._format(v, tickPlaces)}</text>`,
+      );
       const minColor = fillColor(this, this._minColor(accent));
       const lineColor = fillColor(this, accent);
       body = svg`
@@ -886,8 +899,10 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
             <stop offset="1" stop-color=${lineColor} stop-opacity="0"></stop>
           </linearGradient>
         </defs>
+        ${grid}
         ${runs.map((r) => svg`<path class="area" d=${monotoneArea(r, height)} fill="url(#fill)"></path>`)}
         ${runs.map((r) => svg`<path class="line" d=${monotonePath(r)} stroke=${lineColor}></path>`)}
+        ${tickLabels}
         ${lo !== hi
           ? svg`
               <circle class="ring" cx=${x(min.t)} cy=${y(lo)} r="4" stroke=${minColor}></circle>
@@ -1597,6 +1612,22 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         fill: none;
         stroke-width: 2.6;
         stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      .grid {
+        stroke: currentColor;
+        stroke-opacity: 0.08;
+        stroke-width: 1;
+        stroke-dasharray: 2 4;
+      }
+      .ytick {
+        font-size: 9px;
+        fill: currentColor;
+        fill-opacity: 0.35;
+        font-variant-numeric: tabular-nums;
+        paint-order: stroke;
+        stroke: var(--ha-card-background, var(--card-background-color, #1c1c1c));
+        stroke-width: 3px;
         stroke-linejoin: round;
       }
       .ring {

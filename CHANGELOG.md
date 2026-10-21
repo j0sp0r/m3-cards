@@ -10,8 +10,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 - **A detail view of the suite's own, `m3-detail-card`, and a sheet that can
   stand in for more-info.** One entity, large. A number gets its value, a
-  trend chip against the start of the period, a smoothed curve with no grid
-  and no axis, and its minimum, average and maximum. A door gets a timeline,
+  trend chip against the start of the period, a smoothed curve on a quiet
+  scale, and its minimum, average and maximum. A door gets a timeline,
   a lamp its own M3 card with the timeline under it. Below all of these sit
   the other entities of the same device; a tap steps the view sideways to one.
 

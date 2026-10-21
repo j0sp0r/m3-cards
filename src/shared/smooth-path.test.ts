@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { monotoneArea, monotonePath, monotoneTangents, type XY } from "./smooth-path";
+import { monotoneArea, monotonePath, monotoneTangents, niceTicks, tickDecimals, type XY } from "./smooth-path";
 
 /** Samples the cubic Bézier of segment i the way monotonePath builds it. */
 function sampleSegment(points: XY[], i: number, steps = 50): number[] {
@@ -66,5 +66,24 @@ describe("monotonePath", () => {
       20,
     );
     expect(d.endsWith("L10.00 20.00L0.00 20.00Z")).toBe(true);
+  });
+});
+
+describe("niceTicks", () => {
+  it("picks round steps inside the range", () => {
+    expect(niceTicks(-2500, 17000, 3)).toEqual([0, 5000, 10000, 15000]);
+    expect(niceTicks(18.2, 23.9, 3)).toEqual([20, 22]);
+    expect(niceTicks(0.12, 0.38, 3)).toEqual([0.2, 0.3]);
+  });
+
+  it("has nothing for a flat or broken range", () => {
+    expect(niceTicks(5, 5)).toEqual([]);
+    expect(niceTicks(Number.NaN, 4)).toEqual([]);
+  });
+
+  it("gives labels just enough decimals", () => {
+    expect(tickDecimals([0, 5000, 10000])).toBe(0);
+    expect(tickDecimals([0.2, 0.3])).toBe(1);
+    expect(tickDecimals([0.05, 0.1])).toBe(2);
   });
 });

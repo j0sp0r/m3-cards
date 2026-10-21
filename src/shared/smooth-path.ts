@@ -87,3 +87,31 @@ export function monotoneTangents(points: readonly XY[]): number[] {
   }
   return m;
 }
+
+/**
+ * Round values for a quiet vertical scale: 0, 5.000, 10.000, 15.000 rather
+ * than 0, 3.587, 7.174. Steps are 1, 2 or 5 times a power of ten, chosen so
+ * about `count` of them span [lo, hi]; only values inside the range are
+ * returned, so every label sits on the plot.
+ */
+export function niceTicks(lo: number, hi: number, count = 3): number[] {
+  const span = hi - lo;
+  if (!(span > 0) || !Number.isFinite(span)) return [];
+  const raw = span / count;
+  const magnitude = 10 ** Math.floor(Math.log10(raw));
+  const norm = raw / magnitude;
+  const step = (norm < 1.5 ? 1 : norm < 3 ? 2 : norm < 7 ? 5 : 10) * magnitude;
+  const out: number[] = [];
+  // A tolerance of a millionth of a step, so 0.1 + 0.2 still counts as 0.3.
+  for (let v = Math.ceil(lo / step) * step; v <= hi + step * 1e-6; v += step) {
+    out.push(Math.abs(v) < step * 1e-6 ? 0 : Number(v.toPrecision(12)));
+  }
+  return out;
+}
+
+/** Decimals a tick label needs to tell its neighbours apart. */
+export function tickDecimals(ticks: readonly number[]): number {
+  if (ticks.length < 2) return 0;
+  const step = Math.abs(ticks[1] - ticks[0]);
+  return step >= 1 ? 0 : Math.min(3, Math.ceil(-Math.log10(step) - 1e-9));
+}

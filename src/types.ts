@@ -3318,6 +3318,8 @@ export interface M3DetailCardConfig {
   max_related?: number;
   /** The reading under a pointer on the curve. Default true. */
   show_tooltip?: boolean;
+  /** A few round values up the side of the curve. Default true. */
+  y_axis?: boolean;
   /** For readings where rising is bad news — a green arrow on a falling value. */
   trend_inverted?: boolean;
   text_color?: string;

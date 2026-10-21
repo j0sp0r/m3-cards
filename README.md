@@ -6256,6 +6256,7 @@ The period last picked is remembered per entity on that device.
 | `stats` | list of `min` / `mean` / `max` / `sum` | min, mean, max (+ sum for a meter) | The tiles under the curve |
 | `trend_inverted` | boolean | `false` | For readings where rising is bad news |
 | `show_tooltip` | boolean | `true` | The reading under the pointer on the curve |
+| `y_axis` | boolean | `true` | Three or four round values up the side of the curve, with faint guide lines |
 | `show_related` / `max_related` | boolean / number | `true` / `5` | The device's other entities, including diagnostic ones such as battery |
 | `control_card` | `auto` \| `none` \| card config | `auto` | The card at the top of a `control` view; `[[entity]]` stands for the entity |
 | `type_overrides` | map | – | Layout per entity id or domain, see above |

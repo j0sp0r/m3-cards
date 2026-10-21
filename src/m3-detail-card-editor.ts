@@ -69,6 +69,7 @@ export class M3DetailCardEditor extends LitElement implements LovelaceCardEditor
       },
       { name: "trend_inverted", selector: { boolean: {} } },
       { name: "show_tooltip", selector: { boolean: {} } },
+      { name: "y_axis", selector: { boolean: {} } },
     ];
   }
 
@@ -119,6 +120,7 @@ export class M3DetailCardEditor extends LitElement implements LovelaceCardEditor
       stats: "editor_detail_stats",
       trend_inverted: "editor_detail_trend_inverted",
       show_tooltip: "editor_detail_show_tooltip",
+      y_axis: "editor_detail_y_axis",
       show_related: "editor_detail_show_related",
       max_related: "editor_detail_max_related",
       control_card: "editor_detail_control_card",
@@ -214,6 +216,7 @@ export class M3DetailCardEditor extends LitElement implements LovelaceCardEditor
       stats: cfg.stats ?? [],
       trend_inverted: cfg.trend_inverted ?? false,
       show_tooltip: cfg.show_tooltip ?? true,
+      y_axis: cfg.y_axis ?? true,
     };
     const behaviorData = {
       show_related: cfg.show_related ?? true,
