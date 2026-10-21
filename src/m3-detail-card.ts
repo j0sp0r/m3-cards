@@ -25,6 +25,7 @@ import {
   DETAIL_RELATED_ROW_RADIUS,
   DETAIL_SWAP_MS,
   DETAIL_ZOOM_MS,
+  DETAIL_WIPE_MS,
   DETAIL_TOOLTIP_LINGER_MS,
   DETAIL_ICON_RADIUS,
   DETAIL_ICON_SIZE,
@@ -163,6 +164,8 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
   private _hoverTimer?: number;
   /** The period the timeline on screen was read for, to zoom from on a switch. */
   private _drawnTimeline?: { entity: string; range: DetailRange };
+  /** The previous period's curve, cloned for the cross-fade. */
+  private _oldChart?: SVGSVGElement;
   private _swapTimer?: number;
   @state() private _chartWidth = 0;
   @state() private _now = Date.now();
@@ -233,6 +236,18 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     return hassChangeMatters(changed, this.hass, [this._config?.entity]);
   }
 
+  protected willUpdate(changed: PropertyValues): void {
+    super.willUpdate(changed);
+    // The curve about to be replaced by another period of the same entity is
+    // kept as a picture, to fade out under the new one (see _wipeChart). It
+    // has to be taken here: after the render it is gone.
+    const previous = changed.get("_series") as EntitySeries | undefined;
+    if (previous && this._series && previous.range !== this._series.range) {
+      const svg = this.renderRoot.querySelector<SVGSVGElement>(".chart svg");
+      this._oldChart = svg ? (svg.cloneNode(true) as SVGSVGElement) : undefined;
+    }
+  }
+
   protected updated(changed: PropertyValues): void {
     if (changed.has("hass") || changed.has("_config")) {
       this._maybeFetch();
@@ -240,6 +255,40 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     }
     this._observeChart();
     if (changed.has("_timeline")) this._zoomTimeline();
+    if (changed.has("_series")) this._wipeChart();
+  }
+
+  /**
+   * A new period's curve arrives: wipe it in.
+   *
+   * The old curve stays where it was and fades; the new one is uncovered from
+   * left to right, the way time runs, so it reads as being drawn rather than
+   * swapped. The axis labels fade in with it. The timeline zooms instead (see
+   * _zoomTimeline): a bar of stretches has an obvious place for the old period
+   * inside the new one, a curve with a new vertical scale does not.
+   */
+  private _wipeChart(): void {
+    const old = this._oldChart;
+    this._oldChart = undefined;
+    if (!old || !shouldAnimate(this._config?.animation) || isReducedMotion()) return;
+    const chart = this.renderRoot.querySelector<HTMLElement>(".chart");
+    const svg = chart?.querySelector<SVGSVGElement>("svg");
+    if (!chart || !svg?.animate) return;
+    old.classList.add("ghost");
+    chart.appendChild(old);
+    old
+      // Linear and as long as the wipe: the eased wipe uncovers most of the
+      // width early, and an eased fade had the old curve gone while the last
+      // stretch on the right was still covered, leaving it briefly empty.
+      .animate([{ opacity: 0.4 }, { opacity: 0 }], { duration: DETAIL_WIPE_MS, easing: "linear", fill: "forwards" })
+      .finished.then(() => old.remove(), () => old.remove());
+    svg.animate([{ clipPath: "inset(-12px 100% -12px -12px)" }, { clipPath: "inset(-12px -12px -12px -12px)" }], {
+      duration: DETAIL_WIPE_MS,
+      easing: STANDARD_EASING,
+    });
+    this.renderRoot
+      .querySelector<HTMLElement>(".chart + .axis")
+      ?.animate([{ opacity: 0 }, { opacity: 1 }], { duration: DETAIL_WIPE_MS * 0.6, delay: DETAIL_WIPE_MS * 0.3, easing: STANDARD_EASING, fill: "backwards" });
   }
 
   /**
@@ -1416,6 +1465,12 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       .chart svg {
         display: block;
         overflow: visible;
+      }
+      /* The old curve while it fades, laid exactly over the new one. */
+      .chart svg.ghost {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
       }
       .chart.dim {
         opacity: 0.45;
