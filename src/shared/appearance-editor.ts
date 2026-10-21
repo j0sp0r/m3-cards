@@ -99,7 +99,6 @@ export const NO_DETAIL_CARDS: ReadonlySet<string> = new Set([
   "m3-search-card",
   "m3-humidifier-card",
   "m3-progress-card",
-  "m3-system-card",
   "m3-time-card",
   "m3-todo-card",
 ]);

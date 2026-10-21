@@ -20,9 +20,19 @@ const CARDS = import.meta.glob(["../m3-*-card.ts", "../m3-climate-card-mini.ts"]
 const DETAIL_PATH = /openEntityDetail|handleAction\([^)]*,[^)]*,[^)]*,|runHaAction\(|renderChipButtons|chipButtons/;
 
 describe("detail_mode coverage", () => {
-  const cards = Object.entries(CARDS).map(([path, src]) => ({
+  // A card that extends another card inherits its taps: the system card is
+  // the NAS card with a different source, and reads as "never opens details"
+  // on its own text alone.
+  const reaches = (path: string): boolean => {
+    const src = CARDS[path];
+    if (DETAIL_PATH.test(src)) return true;
+    const parent = src.match(/extends (M3\w+)/)?.[1];
+    const from = parent && src.match(new RegExp(`import \\{[^}]*\\b${parent}\\b[^}]*\\} from "\\.\\/([^"]+)"`))?.[1];
+    return !!from && `../${from}.ts` in CARDS && reaches(`../${from}.ts`);
+  };
+  const cards = Object.keys(CARDS).map((path) => ({
     tag: path.replace(/^\.\.\//, "").replace(/\.ts$/, ""),
-    reaches: DETAIL_PATH.test(src),
+    reaches: reaches(path),
   }));
 
   it("finds the cards", () => {
