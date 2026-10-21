@@ -52,6 +52,7 @@ import {
 import { TapHoldGesture } from "./shared/gestures";
 import { openActionUrl } from "./shared/actions";
 import { SUPPORTS_CONTAINER_UNITS } from "./shared/css-support";
+import { openEntityDetail } from "./shared/entity-detail";
 
 const HOLD_DURATION_MS = 500;
 const DOUBLE_TAP_WINDOW_MS = 250;
@@ -293,14 +294,7 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
   }
 
   private _fireMoreInfo(entityId?: string): void {
-    if (!entityId) return;
-    this.dispatchEvent(
-      new CustomEvent("hass-more-info", {
-        bubbles: true,
-        composed: true,
-        detail: { entityId },
-      }),
-    );
+    openEntityDetail(this, entityId);
   }
 
   private _navigate(path: string): void {

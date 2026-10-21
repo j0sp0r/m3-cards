@@ -38,7 +38,6 @@ import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, tintInk, 
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
 import { shouldAnimate, STANDARD_EASING } from "./shared/animation";
-import { fireEvent } from "./shared/editor-helpers";
 import { captureRowRects, flipRows } from "./shared/list-row";
 import { activateOnKey } from "./shared/a11y";
 import { getEnergyDeviceEntities } from "./shared/ha-energy";
@@ -48,6 +47,7 @@ import { localize, type TranslationKey } from "./localize";
 import { formatNumber } from "./shared/formatting";
 import { discoveryChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-TOP-CONSUMERS-CARD %c v${CARD_VERSION} `,
@@ -297,7 +297,7 @@ export class M3TopConsumersCard extends TemplatedCard(LitElement) implements Lov
   }
 
   private _moreInfo(entityId: string): () => void {
-    return () => fireEvent(this, "hass-more-info", { entityId });
+    return () => openEntityDetail(this, entityId);
   }
 
   protected shouldUpdate(changed: PropertyValues): boolean {

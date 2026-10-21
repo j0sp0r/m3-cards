@@ -92,6 +92,7 @@ import {
   type DiscoveredPrinter,
   type PrinterState,
 } from "./shared/printer";
+import { openEntityDetail } from "./shared/entity-detail";
 
 /**
  * A 3D printer as one card instead of sixteen tiles.
@@ -386,14 +387,7 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
   }
 
   private _fireMoreInfo(entityId: string | undefined): void {
-    if (!entityId) return;
-    this.dispatchEvent(
-      new CustomEvent("hass-more-info", {
-        bubbles: true,
-        composed: true,
-        detail: { entityId },
-      }),
-    );
+    openEntityDetail(this, entityId);
   }
 
   /**

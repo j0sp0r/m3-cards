@@ -52,12 +52,12 @@ import {
   localHourKey,
 } from "./shared/ha-statistics";
 import { getSolarEntities, fetchSolarForecast } from "./shared/ha-energy";
-import { fireEvent } from "./shared/editor-helpers";
 import { shouldAnimate } from "./shared/animation";
 import { localize, type TranslationKey } from "./localize";
 import { formatNumber } from "./shared/formatting";
 import { hassChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-ENERGY-CARD %c v${CARD_VERSION} `,
@@ -891,7 +891,7 @@ export class M3EnergyCard extends TemplatedCard(LitElement) implements LovelaceC
             name,
             subtitle,
             onClick: this._config.entity
-              ? () => fireEvent(this, "hass-more-info", { entityId: this._config!.entity! })
+              ? () => openEntityDetail(this, this._config!.entity!)
               : undefined,
             right: html`
               <div class="current-value">

@@ -42,11 +42,11 @@ import { glassCardStyles, glassCardClass, renderMissingEntity } from "./shared/g
 import { shouldAnimate, STANDARD_EASING } from "./shared/animation";
 import { activateOnKey } from "./shared/a11y";
 import { computeBarHeights } from "./shared/bar-chart";
-import { fireEvent } from "./shared/editor-helpers";
 import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
 import { formatNumber } from "./shared/formatting";
 import { TemplatedCard } from "./shared/templated-card";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-WEATHER-CARD %c v${CARD_VERSION} `,
@@ -325,7 +325,7 @@ export class M3WeatherCard extends TemplatedCard(LitElement) implements Lovelace
   }
 
   private _fireMoreInfo(): void {
-    fireEvent(this, "hass-more-info", { entityId: this._config?.entity });
+    openEntityDetail(this, this._config?.entity);
   }
 
   private _formatNumber(value: number, decimals = 0): string {

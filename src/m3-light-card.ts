@@ -47,7 +47,6 @@ import { glassCardStyles, glassCardClass, renderMissingEntity } from "./shared/g
 import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
 import { renderListRow, listRowStyles } from "./shared/list-row";
 import { shouldAnimate, isReducedMotion, STANDARD_EASING } from "./shared/animation";
-import { fireEvent } from "./shared/editor-helpers";
 import { buildWavePath } from "./shared/wave";
 import { stopSwipe } from "./shared/swipe";
 import { hexToHs, hsToRgb, rgbToHex, rgbToHs } from "./shared/color-picker";
@@ -55,6 +54,7 @@ import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
 import { DragThrottle } from "./shared/drag-throttle";
 import { TemplatedCard } from "./shared/templated-card";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-LIGHT-CARD %c v${CARD_VERSION} `,
@@ -487,7 +487,7 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
   }
 
   private _fireMoreInfo(): void {
-    fireEvent(this, "hass-more-info", { entityId: this._config?.entity });
+    openEntityDetail(this, this._config?.entity);
   }
 
   protected render() {

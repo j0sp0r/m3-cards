@@ -27,10 +27,10 @@ import {
 import { resolveThemeColor, buildCssVars, tintOn, tintInk, foregroundOn, resolveCommonColors , foregroundVars} from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { shouldAnimate, isReducedMotion } from "./shared/animation";
-import { fireEvent } from "./shared/editor-helpers";
 import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters, listEntities } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-WASTE-CARD %c v${CARD_VERSION} `,
@@ -334,7 +334,7 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
   }
 
   private _moreInfo(entity: string): void {
-    fireEvent(this, "hass-more-info", { entityId: entity });
+    openEntityDetail(this, entity);
   }
 
   // ---- render: hero --------------------------------------------------------

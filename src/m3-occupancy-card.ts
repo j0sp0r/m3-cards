@@ -54,6 +54,7 @@ import { fetchOccupancySegments } from "./shared/occupancy-history";
 import { localize, type TranslationKey } from "./localize";
 import { discoveryChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-OCCUPANCY-CARD %c v${CARD_VERSION} `,
@@ -391,13 +392,7 @@ export class M3OccupancyCard extends TemplatedCard(LitElement) implements Lovela
 
   private _moreInfo(entityId: string): () => void {
     return () => {
-      this.dispatchEvent(
-        new CustomEvent("hass-more-info", {
-          detail: { entityId },
-          bubbles: true,
-          composed: true,
-        }),
-      );
+      openEntityDetail(this, entityId);
     };
   }
 

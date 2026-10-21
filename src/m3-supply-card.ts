@@ -58,6 +58,7 @@ import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters, listEntities } from "./shared/should-update";
 import { formatNumber } from "./shared/formatting";
 import { TemplatedCard } from "./shared/templated-card";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-SUPPLY-CARD %c v${CARD_VERSION} `,
@@ -459,13 +460,7 @@ export class M3SupplyCard extends TemplatedCard(LitElement) implements LovelaceC
   private _onRowTap(entry: SupplyEntry): () => void {
     return () => {
       if (this._config?.list_tap_action === "more-info") {
-        this.dispatchEvent(
-          new CustomEvent("hass-more-info", {
-            detail: { entityId: entry.entityId },
-            bubbles: true,
-            composed: true,
-          }),
-        );
+        openEntityDetail(this, entry.entityId);
         return;
       }
       this._heroOverride = entry.entityId;

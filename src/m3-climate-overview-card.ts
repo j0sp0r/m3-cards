@@ -46,7 +46,6 @@ import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
 import { shouldAnimate, STANDARD_EASING } from "./shared/animation";
 import { activateOnKey } from "./shared/a11y";
-import { fireEvent } from "./shared/editor-helpers";
 import {
   areaEntityIds,
   deviceEntityIds,
@@ -73,6 +72,7 @@ import { localize, type TranslationKey } from "./localize";
 import { discoveryChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
 import { CompareScaleTrack, renderCompareScale, compareScaleStyles } from "./shared/compare-scale";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-CLIMATE-OVERVIEW-CARD %c v${CARD_VERSION} `,
@@ -503,7 +503,7 @@ export class M3ClimateOverviewCard extends TemplatedCard(LitElement) implements 
   }
 
   private _moreInfo(entityId: string): () => void {
-    return () => fireEvent(this, "hass-more-info", { entityId });
+    return () => openEntityDetail(this, entityId);
   }
 
   /**
@@ -537,7 +537,7 @@ export class M3ClimateOverviewCard extends TemplatedCard(LitElement) implements 
   // room with no thermostat keeps the old behaviour rather than going dead.
   private _openThermostat(tile: ClimateOverviewTile): void {
     if (!tile.climateEntity) {
-      fireEvent(this, "hass-more-info", { entityId: tile.tapEntity });
+      openEntityDetail(this, tile.tapEntity);
       return;
     }
     window.clearTimeout(this._thermostatTimer);
@@ -634,7 +634,7 @@ export class M3ClimateOverviewCard extends TemplatedCard(LitElement) implements 
     runHaAction(this.hass, this._humidityAction(), {
       entityId: tile.humidityEntity,
       openPopup: () => this._openPopup(tile),
-      fireMoreInfo: (entityId) => fireEvent(this, "hass-more-info", { entityId }),
+      fireMoreInfo: (entityId) => openEntityDetail(this, entityId),
       navigate: (path) => navigateTo(this, path),
     });
   }
@@ -658,7 +658,7 @@ export class M3ClimateOverviewCard extends TemplatedCard(LitElement) implements 
     runHaAction(this.hass, this._resolveAction(kind), {
       entityId: tile.tapEntity,
       openPopup: () => this._openPopup(tile),
-      fireMoreInfo: (entityId) => fireEvent(this, "hass-more-info", { entityId }),
+      fireMoreInfo: (entityId) => openEntityDetail(this, entityId),
       navigate: (path) => navigateTo(this, path),
     });
   }
@@ -679,7 +679,7 @@ export class M3ClimateOverviewCard extends TemplatedCard(LitElement) implements 
     // "default-detail" isn't a card popup at all — it's HA's own more-info
     // dialog for whatever the tile taps, so the internal <dialog> never opens.
     if (this._popupMode() === "default-detail") {
-      fireEvent(this, "hass-more-info", { entityId: tile.tapEntity });
+      openEntityDetail(this, tile.tapEntity);
       return;
     }
     this._popupOpenedAt = Date.now();

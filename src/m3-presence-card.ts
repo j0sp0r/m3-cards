@@ -46,6 +46,7 @@ import { formatNumber } from "./shared/formatting";
 import { discoveryChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
 import { cssUrl } from "./shared/css-safe";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-PRESENCE-CARD %c v${CARD_VERSION} `,
@@ -317,10 +318,7 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
     runHaAction(this.hass, action, {
       entityId,
       openPopup: () => this._openPopup(entityId),
-      fireMoreInfo: (id) =>
-        this.dispatchEvent(
-          new CustomEvent("hass-more-info", { bubbles: true, composed: true, detail: { entityId: id } }),
-        ),
+      fireMoreInfo: (id) => openEntityDetail(this, id),
       navigate: (path) => {
         window.history.pushState(null, "", path);
         this.dispatchEvent(
@@ -335,9 +333,7 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
     // whole card should still do something sensible for the people it has no
     // popup for, rather than opening an empty dialog.
     if (!this._popupConfigFor(entityId)) {
-      this.dispatchEvent(
-        new CustomEvent("hass-more-info", { bubbles: true, composed: true, detail: { entityId } }),
-      );
+      openEntityDetail(this, entityId);
       return;
     }
     this._popupOpenedAt = Date.now();

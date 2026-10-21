@@ -37,10 +37,10 @@ import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, foregroun
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { activateOnKey } from "./shared/a11y";
 import { shouldAnimate } from "./shared/animation";
-import { fireEvent } from "./shared/editor-helpers";
 import { localize, type TranslationKey } from "./localize";
 import { formatNumber } from "./shared/formatting";
 import { TemplatedCard } from "./shared/templated-card";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-POWER-SUMMARY-CARD %c v${CARD_VERSION} `,
@@ -199,7 +199,7 @@ export class M3PowerSummaryCard extends TemplatedCard(LitElement) implements Lov
   }
 
   private _moreInfo(entityId: string): () => void {
-    return () => fireEvent(this, "hass-more-info", { entityId });
+    return () => openEntityDetail(this, entityId);
   }
 
   protected shouldUpdate(changed: PropertyValues): boolean {

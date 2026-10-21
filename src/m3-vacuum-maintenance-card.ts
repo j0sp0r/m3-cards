@@ -57,6 +57,7 @@ import {
   reminderStates,
   type ReminderState,
 } from "./shared/vacuum-reminders";
+import { openEntityDetail } from "./shared/entity-detail";
 
 /**
  * The other half of the vacuum pair: what is wearing out, what the dock can be
@@ -194,14 +195,7 @@ export class M3VacuumMaintenanceCard
   }
 
   private _fireMoreInfo(entityId: string | undefined): void {
-    if (!entityId) return;
-    this.dispatchEvent(
-      new CustomEvent("hass-more-info", {
-        bubbles: true,
-        composed: true,
-        detail: { entityId },
-      }),
-    );
+    openEntityDetail(this, entityId);
   }
 
   // ---- parts ------------------------------------------------------------------

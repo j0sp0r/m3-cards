@@ -120,6 +120,7 @@ import { stopSwipe } from "./shared/swipe";
 import { findStateRule, numericState } from "./shared/state-rules";
 import { TemplatedCard } from "./shared/templated-card";
 import { VisibleTicker } from "./shared/visible-ticker";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-APPLIANCE-CARD %c v${CARD_VERSION} `,
@@ -464,10 +465,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     runHaAction(this.hass, action, {
       entityId,
       openPopup: () => this._openPopup(),
-      fireMoreInfo: (id) =>
-        this.dispatchEvent(
-          new CustomEvent("hass-more-info", { bubbles: true, composed: true, detail: { entityId: id } }),
-        ),
+      fireMoreInfo: (id) => openEntityDetail(this, id),
       navigate: (path) => {
         window.history.pushState(null, "", path);
         this.dispatchEvent(
@@ -491,13 +489,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     if (!this._config?.popup) {
       // Nothing configured: fall back to more-info rather than opening an empty
       // dialog, the same as any action a card does not wire up.
-      this.dispatchEvent(
-        new CustomEvent("hass-more-info", {
-          bubbles: true,
-          composed: true,
-          detail: { entityId: this._config?.entity },
-        }),
-      );
+      openEntityDetail(this, this._config?.entity);
       return;
     }
     this._popupOpenedAt = Date.now();

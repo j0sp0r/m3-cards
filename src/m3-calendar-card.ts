@@ -86,6 +86,7 @@ import {
 import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters, listEntities } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-CALENDAR-CARD %c v${CARD_VERSION} `,
@@ -428,13 +429,7 @@ export class M3CalendarCard extends TemplatedCard(LitElement) implements Lovelac
     const action = this._config?.tap_action ?? "detail";
     if (action === "none") return;
     if (action === "more-info") {
-      this.dispatchEvent(
-        new CustomEvent("hass-more-info", {
-          detail: { entityId: event.calendarId },
-          bubbles: true,
-          composed: true,
-        }),
-      );
+      openEntityDetail(this, event.calendarId);
       return;
     }
     if (action === "navigate") {

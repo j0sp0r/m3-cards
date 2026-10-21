@@ -62,11 +62,11 @@ import { resolveThemeColor, resolveCommonColors, buildCssVars, tintOn, tintInk }
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { shouldAnimate, STANDARD_EASING } from "./shared/animation";
 import { activateOnKey } from "./shared/a11y";
-import { fireEvent } from "./shared/editor-helpers";
 import { formatNumber } from "./shared/formatting";
 import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-AQUARIUM-CARD %c v${CARD_VERSION} `,
@@ -367,7 +367,7 @@ export class M3AquariumCard extends TemplatedCard(LitElement) implements Lovelac
   }
 
   private _fireMoreInfo(entityId: string): void {
-    fireEvent(this, "hass-more-info", { entityId });
+    openEntityDetail(this, entityId);
   }
 
   private _onTilePointerDown = (tile: AquariumTile): ((e: PointerEvent) => void) => {

@@ -46,13 +46,13 @@ import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, foregroun
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
 import { shouldAnimate, STANDARD_EASING } from "./shared/animation";
-import { fireEvent } from "./shared/editor-helpers";
 import { renderListRow, captureRowRects, flipRows, listRowStyles, listRowSurface } from "./shared/list-row";
 import { discoverBatteryEntities } from "./shared/ha-registry";
 import { activateOnKey } from "./shared/a11y";
 import { localize, type TranslationKey } from "./localize";
 import { discoveryChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-BATTERY-CARD %c v${CARD_VERSION} `,
@@ -285,7 +285,7 @@ export class M3BatteryCard extends TemplatedCard(LitElement) implements Lovelace
   }
 
   private _moreInfo(entityId: string): () => void {
-    return () => fireEvent(this, "hass-more-info", { entityId });
+    return () => openEntityDetail(this, entityId);
   }
 
   private _renderRow(row: BatteryRow) {

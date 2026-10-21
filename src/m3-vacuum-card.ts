@@ -95,6 +95,7 @@ import {
   type DiscoveredVacuum,
   type VacuumActivity,
 } from "./shared/vacuum";
+import { openEntityDetail } from "./shared/entity-detail";
 
 /**
  * A Material 3 control surface for a robot vacuum.
@@ -380,14 +381,7 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
   }
 
   private _fireMoreInfo(entityId: string | undefined): void {
-    if (!entityId) return;
-    this.dispatchEvent(
-      new CustomEvent("hass-more-info", {
-        bubbles: true,
-        composed: true,
-        detail: { entityId },
-      }),
-    );
+    openEntityDetail(this, entityId);
   }
 
   // ---- state ----------------------------------------------------------------

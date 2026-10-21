@@ -25,7 +25,6 @@ import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, foregroun
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
 import { shouldAnimate } from "./shared/animation";
-import { fireEvent } from "./shared/editor-helpers";
 import { discoverLightRooms, type DiscoveredLightRoom } from "./shared/ha-registry";
 import {
   buildStatePredicate,
@@ -49,6 +48,7 @@ import type { CardTemplateTokens } from "./shared/card-template";
 import { discoveryChangeMatters } from "./shared/should-update";
 import { localize, type TranslationKey } from "./localize";
 import { TemplatedCard } from "./shared/templated-card";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-LIGHTS-OVERVIEW-CARD %c v${CARD_VERSION} `,
@@ -342,7 +342,7 @@ export class M3LightsOverviewCard extends TemplatedCard(LitElement) implements L
       entityId: tile.entities[0],
       toggle: () => this._toggleRoom(tile),
       openPopup: () => this._openPopup(tile),
-      fireMoreInfo: (entityId) => fireEvent(this, "hass-more-info", { entityId }),
+      fireMoreInfo: (entityId) => openEntityDetail(this, entityId),
       navigate: (path) => navigateTo(this, path),
     });
   }
@@ -363,7 +363,7 @@ export class M3LightsOverviewCard extends TemplatedCard(LitElement) implements L
     // "default-detail" isn't a card popup at all — it's HA's own more-info
     // dialog for the tile's first entity, so the internal <dialog> never opens.
     if (this._popupMode() === "default-detail") {
-      fireEvent(this, "hass-more-info", { entityId: tile.entities[0] });
+      openEntityDetail(this, tile.entities[0]);
       return;
     }
     this._popupOpenedAt = Date.now();

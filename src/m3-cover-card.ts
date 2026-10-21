@@ -24,11 +24,11 @@ import { resolveThemeColor, buildCssVars, tintOn, foregroundOn, resolveCommonCol
 import { glassCardStyles, glassCardClass, renderMissingEntity } from "./shared/glass-card";
 import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
 import { shouldAnimate, STANDARD_EASING } from "./shared/animation";
-import { fireEvent } from "./shared/editor-helpers";
 import { buildWavePath } from "./shared/wave";
 import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters, listEntities } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-COVER-CARD %c v${CARD_VERSION} `,
@@ -282,7 +282,7 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
   }
 
   private _moreInfo(entity: string): void {
-    fireEvent(this, "hass-more-info", { entityId: entity });
+    openEntityDetail(this, entity);
   }
 
   // ---- slider drag ---------------------------------------------------------

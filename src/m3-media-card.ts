@@ -74,11 +74,11 @@ import { shouldAnimate, STANDARD_EASING } from "./shared/animation";
 import { activateOnKey } from "./shared/a11y";
 import { buildWavePath } from "./shared/wave";
 import { stopSwipe } from "./shared/swipe";
-import { fireEvent } from "./shared/editor-helpers";
 import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
 import { cssUrl, safeImageUrl } from "./shared/css-safe";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-MEDIA-CARD %c v${CARD_VERSION} `,
@@ -833,7 +833,7 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
   }
 
   private _fireMoreInfo(): void {
-    fireEvent(this, "hass-more-info", { entityId: this._config?.entity });
+    openEntityDetail(this, this._config?.entity);
   }
 
   private _handleVolumePointerDown = (e: PointerEvent): void => {

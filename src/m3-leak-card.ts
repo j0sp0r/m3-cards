@@ -34,11 +34,11 @@ import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { shouldAnimate, isReducedMotion } from "./shared/animation";
 import { renderListRow, listRowStyles , listRowSurface} from "./shared/list-row";
 import { formatSince } from "./shared/formatting";
-import { fireEvent } from "./shared/editor-helpers";
 import { discoverLeakSensors } from "./shared/ha-registry";
 import { localize, type TranslationKey } from "./localize";
 import { discoveryChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-LEAK-CARD %c v${CARD_VERSION} `,
@@ -271,7 +271,7 @@ export class M3LeakCard extends TemplatedCard(LitElement) implements LovelaceCar
   }
 
   private _moreInfo(entity: string): void {
-    fireEvent(this, "hass-more-info", { entityId: entity });
+    openEntityDetail(this, entity);
   }
 
   private _setTestDate(): void {

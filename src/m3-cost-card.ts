@@ -38,7 +38,6 @@ import {
 import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, tintInk, fillColor , foregroundVars, tintBackground } from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { shouldAnimate, STANDARD_EASING } from "./shared/animation";
-import { fireEvent } from "./shared/editor-helpers";
 import { fetchDaySeries } from "./shared/ha-statistics";
 import {
   resolveCurrentPrice,
@@ -52,6 +51,7 @@ import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
 import { formatNumber } from "./shared/formatting";
 import { TemplatedCard } from "./shared/templated-card";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-COST-CARD %c v${CARD_VERSION} `,
@@ -305,7 +305,7 @@ export class M3CostCard extends TemplatedCard(LitElement) implements LovelaceCar
 
   private _openPriceMoreInfo(): void {
     if (!this._config?.price_entity) return;
-    fireEvent(this, "hass-more-info", { entityId: this._config.price_entity });
+    openEntityDetail(this, this._config.price_entity);
   }
 
   private _handleBarTap(index: number): void {

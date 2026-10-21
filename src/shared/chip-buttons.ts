@@ -8,6 +8,7 @@ import { runHaAction, navigateTo, type RunActionContext } from "./actions";
 import { defaultEntityAction } from "./entity-actions";
 import type { TapHoldGesture } from "./gestures";
 import { stopSwipe } from "./swipe";
+import { openEntityDetail } from "./entity-detail";
 
 // Renders a horizontal row of tappable "chip button" chips — the M3 answer to
 // Bubble Card's sub-buttons feature (see .claude/docs/NOTES.md). Lives in
@@ -21,13 +22,6 @@ export interface ChipButtonsRenderState {
   /** Owned by the consuming card; one instance shared across every chip. */
   gestures: TapHoldGesture;
   onPressChange: (key: string | undefined) => void;
-}
-
-function fireMoreInfo(host: EventTarget, entityId?: string): void {
-  if (!entityId) return;
-  host.dispatchEvent(
-    new CustomEvent("hass-more-info", { bubbles: true, composed: true, detail: { entityId } }),
-  );
 }
 
 function isActive(entity: HassEntity | undefined, domain: string): boolean {
@@ -207,7 +201,7 @@ function renderChipButton(
   const hasDoubleTap = (button.double_tap_action?.action ?? "none") !== "none";
   const ctx: RunActionContext = {
     entityId: button.entity,
-    fireMoreInfo: (entityId) => fireMoreInfo(host, entityId),
+    fireMoreInfo: (entityId) => openEntityDetail(host, entityId),
     navigate: (path) => navigateTo(host, path),
   };
   const listeners = state.gestures.listeners({

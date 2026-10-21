@@ -35,13 +35,13 @@ import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, foregroun
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
 import { shouldAnimate, STANDARD_EASING } from "./shared/animation";
-import { fireEvent } from "./shared/editor-helpers";
 import { discoverPowerEntities } from "./shared/ha-registry";
 import { renderListRow, captureRowRects, flipRows, listRowStyles } from "./shared/list-row";
 import { localize, type TranslationKey } from "./localize";
 import { formatNumber } from "./shared/formatting";
 import { discoveryChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-POWER-LIST-CARD %c v${CARD_VERSION} `,
@@ -202,7 +202,7 @@ export class M3PowerListCard extends TemplatedCard(LitElement) implements Lovela
   }
 
   private _moreInfo(entityId: string): () => void {
-    return () => fireEvent(this, "hass-more-info", { entityId });
+    return () => openEntityDetail(this, entityId);
   }
 
   private _watchedEntities(): string[] {

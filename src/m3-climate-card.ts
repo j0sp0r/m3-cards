@@ -77,6 +77,7 @@ import {
   setTargetTemperature,
   type TargetBound,
 } from "./shared/climate-target";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-CLIMATE-CARD %c v${CARD_VERSION} `,
@@ -210,13 +211,7 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
   }
 
   private _fireMoreInfo(entityId?: string): void {
-    if (!entityId) return;
-    const event = new CustomEvent("hass-more-info", {
-      bubbles: true,
-      composed: true,
-      detail: { entityId },
-    });
-    this.dispatchEvent(event);
+    openEntityDetail(this, entityId);
   }
 
   private _selectMode(mode: string, unavailable: boolean): void {

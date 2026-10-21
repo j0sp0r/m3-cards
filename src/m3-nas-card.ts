@@ -40,7 +40,6 @@ import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
 import { renderListRow, listRowStyles } from "./shared/list-row";
 import { shouldAnimate, STANDARD_EASING } from "./shared/animation";
-import { fireEvent } from "./shared/editor-helpers";
 import { localize, type TranslationKey } from "./localize";
 import { discoveryChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
@@ -54,6 +53,7 @@ import {
   type HostRegistryEntry,
   type VolumeHealth,
 } from "./shared/nas-discovery";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-NAS-CARD %c v${CARD_VERSION} `,
@@ -356,7 +356,7 @@ export class M3NasCard extends TemplatedCard(LitElement) implements LovelaceCard
   }
 
   private _moreInfo(entityId: string): () => void {
-    return () => fireEvent(this, "hass-more-info", { entityId });
+    return () => openEntityDetail(this, entityId);
   }
 
   // HA's Glances integration exposes uptime as a timestamp sensor holding the

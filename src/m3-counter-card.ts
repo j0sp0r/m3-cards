@@ -37,13 +37,13 @@ import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { activateOnKey } from "./shared/a11y";
 import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
 import { shouldAnimate } from "./shared/animation";
-import { fireEvent } from "./shared/editor-helpers";
 import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
 import { confirmDialogStyles, renderConfirmDialog, type ConfirmRequest } from "./shared/confirm-dialog";
 import { syncDialogOpenState } from "./shared/popup-card";
 import { decimalSeparator, formatNumber } from "./shared/formatting";
 import { TemplatedCard } from "./shared/templated-card";
+import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
   `%c M3-COUNTER-CARD %c v${CARD_VERSION} `,
@@ -529,7 +529,7 @@ export class M3CounterCard extends TemplatedCard(LitElement) implements Lovelace
     });
 
     const moreInfo = () =>
-      fireEvent(this, "hass-more-info", { entityId: this._config!.entity });
+      openEntityDetail(this, this._config!.entity);
 
     return html`
       <ha-card style=${`${cssVars} border-radius: ${radius};`}>

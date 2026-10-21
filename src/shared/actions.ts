@@ -1,4 +1,5 @@
 import type { HaActionConfig, HomeAssistant } from "../types";
+import { openEntityDetail } from "./entity-detail";
 
 // The tap/hold/double-tap action config every Lovelace card understands, run
 // from one place.
@@ -42,17 +43,6 @@ export function openActionUrl(raw: string | undefined, newTab: boolean): void {
   const href = safeActionUrl(raw);
   if (!href) return;
   window.open(href, newTab ? "_blank" : "_self");
-}
-
-function fireMoreInfo(source: HTMLElement, entityId?: string): void {
-  if (!entityId) return;
-  source.dispatchEvent(
-    new CustomEvent("hass-more-info", {
-      bubbles: true,
-      composed: true,
-      detail: { entityId },
-    }),
-  );
 }
 
 function navigate(source: HTMLElement, path: string): void {
@@ -112,7 +102,7 @@ export function handleAction(
       hass.callService("homeassistant", "toggle", { entity_id: entityId });
       return;
     case "more-info":
-      fireMoreInfo(source, entityId);
+      openEntityDetail(source, entityId);
       return;
     case "call-service":
     case "perform-action": {

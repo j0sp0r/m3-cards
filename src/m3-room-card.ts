@@ -83,6 +83,7 @@ import { readCollapsed, writeCollapsed, type CollapseTarget } from "./shared/col
 import { hassChangeMatters } from "./shared/should-update";
 import { createCards, updateCardsHass } from "./shared/card-helpers";
 import { TemplatedCard } from "./shared/templated-card";
+import { openEntityDetail } from "./shared/entity-detail";
 
 const EASING = unsafeCSS(STANDARD_EASING);
 
@@ -1097,14 +1098,7 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
   }
 
   private _moreInfo(entityId?: string): void {
-    if (!entityId) return;
-    this.dispatchEvent(
-      new CustomEvent("hass-more-info", {
-        bubbles: true,
-        composed: true,
-        detail: { entityId },
-      }),
-    );
+    openEntityDetail(this, entityId);
   }
 
   private _openDetail(category: Category): void {
