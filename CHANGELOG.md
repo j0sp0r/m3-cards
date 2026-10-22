@@ -31,7 +31,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   Home Assistant has no way for a card to replace the more-info dialog for
   the whole frontend, so there are two doors in. **`detail_mode: sheet`**, in
   the appearance section of every M3 editor whose card can open details,
-  makes those taps open the view as a bottom sheet. The default stays
+  makes those taps open the view as a bottom sheet, frosted like the card it
+  opened from (`glass_background: false` gives a solid one). The default stays
   `more_info`. The card itself works anywhere a card can go: a dashboard,
   browser_mod or bubble-card popups, the suite's own `popup` with
   `mode: custom`. Entities the view has nothing for (an `update` with its

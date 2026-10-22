@@ -11,7 +11,6 @@ import {
 } from "../const";
 import { STANDARD_EASING } from "./animation";
 import { M3SheetBase } from "./sheet-base";
-import { glassBackground } from "./glass-card";
 import { POPUP_GRID_COLUMNS } from "./popup-hash";
 
 // The sheet m3-popup-card opens: a header in the detail view's design — icon,
@@ -34,8 +33,6 @@ export class M3PopupSheet extends M3SheetBase {
   @property({ attribute: false }) public tint = "";
   @property({ attribute: false }) public historyLeaver?: (goBack: boolean) => Promise<void>;
   @property({ attribute: false }) public onClosed?: () => void;
-  /** Frosted glass, as every card's own `glass_background`; solid otherwise. */
-  @property({ attribute: false }) public glass = true;
   /** A resolved colour for the surface, from the popup's `card_background`. */
   @property({ attribute: false }) public background?: string;
 
@@ -43,10 +40,6 @@ export class M3PopupSheet extends M3SheetBase {
     this.present(opener, () => {
       if (this._body) this._body.scrollTop = 0;
     });
-  }
-
-  protected sheetClass(): string {
-    return this.glass ? "glass" : "";
   }
 
   protected sheetStyle(): string {
@@ -130,15 +123,6 @@ export class M3PopupSheet extends M3SheetBase {
       }
       .close:active {
         border-radius: ${DETAIL_BUTTON_RADIUS_PRESSED}px;
-      }
-
-      /* The suite's frosted surface, as on every card with
-         glass_background. The cards in it keep their own, so they stand
-         out against it rather than melting into a sheet of the same colour. */
-      .sheet.glass {
-        background: ${glassBackground};
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
       }
 
       /* Twelve columns, as in a sections view; each card's span is set on it

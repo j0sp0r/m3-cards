@@ -1,5 +1,5 @@
 import { LitElement, html, css, unsafeCSS, type CSSResultGroup, type TemplateResult } from "lit";
-import { query } from "lit/decorators.js";
+import { property, query } from "lit/decorators.js";
 import {
   DETAIL_GRIP_HEIGHT,
   DETAIL_GRIP_WIDTH,
@@ -11,6 +11,7 @@ import { STANDARD_EASING, isReducedMotion } from "./animation";
 import { anchorFocus, anchorTarget } from "./focus-anchor";
 import { POPUP_CLICK_GUARD_MS } from "./popup-card";
 import { SheetGesture } from "./sheet-gesture";
+import { glassBackground } from "./glass-card";
 
 // The bottom sheet both the detail view and the popup card open in: a modal
 // <dialog> that slides up from the bottom edge on a phone and fades in
@@ -25,6 +26,9 @@ import { SheetGesture } from "./sheet-gesture";
 const EASING = unsafeCSS(STANDARD_EASING);
 
 export abstract class M3SheetBase extends LitElement {
+  /** The suite's frosted surface, as a card's `glass_background`; solid otherwise. */
+  @property({ attribute: false }) public glass = true;
+
   @query("dialog") protected _dialog?: HTMLDialogElement;
   @query(".sheet") protected _sheetEl?: HTMLElement;
   @query(".body") protected _body?: HTMLElement;
@@ -55,7 +59,7 @@ export abstract class M3SheetBase extends LitElement {
 
   /** Extra classes and inline style for the sheet's surface. */
   protected sheetClass(): string {
-    return "";
+    return this.glass ? "glass" : "";
   }
   protected sheetStyle(): string {
     return "";
@@ -248,6 +252,15 @@ export abstract class M3SheetBase extends LitElement {
       transform: translateY(var(--sheet-offset));
       transition: transform ${DETAIL_SHEET_SLIDE_MS}ms ${EASING};
       padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    /* The frosted surface every card in the suite has by default. What is in
+       the sheet keeps its own surface or none: the detail card drops its
+       frame inside a sheet, a popup's cards keep theirs. */
+    .sheet.glass {
+      background: ${glassBackground};
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
     }
 
     .grip-zone {

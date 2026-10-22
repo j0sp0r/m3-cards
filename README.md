@@ -6144,7 +6144,9 @@ the same device, and a tap on one steps the view to it.
 
 The same view can replace Home Assistant's more-info dialog for the suite's
 own cards: set `detail_mode: sheet` on a card, and a tap that would have
-opened more-info opens this as a bottom sheet instead.
+opened more-info opens this as a bottom sheet instead. The sheet is frosted
+glass like the card it opened from; a card with `glass_background: false`
+opens a solid one.
 
 <details>
 <summary>Configuration, examples & options</summary>

@@ -49,6 +49,9 @@ function openDetailSheet(host: HTMLElement, entityId: string): boolean {
   }
   if (!sheet.isConnected) root.insertBefore(sheet, root.firstChild);
   sheet.hass = hass;
+  // Frosted like the card it opened from: a card set to a solid background
+  // opens a solid sheet.
+  sheet.glass = (host as { _config?: { glass_background?: boolean } })._config?.glass_background !== false;
   sheet.show(entityId, host);
   return true;
 }
