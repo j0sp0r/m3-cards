@@ -38,8 +38,10 @@ export class GroupChildrenController {
     cards: LovelaceCardConfig[];
     hass: unknown;
     onChange: (elements: HTMLElement[]) => void;
+    /** Called with each element and the config it was built or reconfigured from. */
+    decorate?: (el: HTMLElement, config: LovelaceCardConfig) => void;
   }): void {
-    const { cards, hass, onChange } = params;
+    const { cards, hass, onChange, decorate } = params;
     const loadHelpers = window.loadCardHelpers;
     if (!loadHelpers) {
       this._entries = [];
@@ -59,6 +61,7 @@ export class GroupChildrenController {
       if (existing && existing.type === type) {
         existing.key = key;
         existing.el.setConfig?.(config);
+        decorate?.(existing.el, config);
         return;
       }
 
@@ -71,6 +74,7 @@ export class GroupChildrenController {
         .then((helpers) => helpers.createCardElement(config) as HTMLElement & { hass?: unknown })
         .then((el) => {
           el.hass = hass;
+          decorate?.(el, config);
           this._entries[index] = { el, type, key };
           this._maybeEmit(onChange);
         })

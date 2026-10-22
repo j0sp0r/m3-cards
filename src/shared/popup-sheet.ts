@@ -10,6 +10,7 @@ import {
 } from "../const";
 import { STANDARD_EASING } from "./animation";
 import { M3SheetBase } from "./sheet-base";
+import { POPUP_GRID_COLUMNS } from "./popup-hash";
 
 // The sheet m3-popup-card opens: a header in the detail view's design — icon,
 // title, close button — over the cards the popup holds.
@@ -117,9 +118,11 @@ export class M3PopupSheet extends M3SheetBase {
         border-radius: ${DETAIL_BUTTON_RADIUS_PRESSED}px;
       }
 
+      /* Twelve columns, as in a sections view; each card's span is set on it
+         by the popup card from its grid_options. */
       .cards {
-        display: flex;
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: repeat(${POPUP_GRID_COLUMNS}, minmax(0, 1fr));
         gap: ${POPUP_CARD_GAP}px;
       }
     `,

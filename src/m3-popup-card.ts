@@ -5,7 +5,7 @@ import { CARD_VERSION, POPUP_PLACEHOLDER_RADIUS } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { buildCssVars, tintInk, tintOn } from "./shared/color-config";
 import { GroupChildrenController } from "./shared/group-children";
-import { hashMatches, normalizeHash, withoutHash } from "./shared/popup-hash";
+import { hashMatches, normalizeHash, popupCardSpan, withoutHash } from "./shared/popup-hash";
 import { TemplatedCard } from "./shared/templated-card";
 import "./shared/popup-sheet";
 import type { M3PopupSheet } from "./shared/popup-sheet";
@@ -169,6 +169,11 @@ export class M3PopupCard extends TemplatedCard(LitElement) implements LovelaceCa
       hass: this.hass,
       onChange: (elements) => {
         this._cards = elements;
+      },
+      // Twelve columns, as in a sections view: two cards at `columns: 6`
+      // share a row, which is how a Bubble pop-up laid them out.
+      decorate: (el, config) => {
+        el.style.gridColumn = `span ${popupCardSpan(config)}`;
       },
     });
   }

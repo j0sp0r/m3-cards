@@ -6303,6 +6303,10 @@ same hash and the buttons open it. Back closes it — Android's back gesture
 included — and closing it any other way takes the hash back out of the
 address. A link to the page with the hash opens the popup straight away.
 
+The cards sit on twelve columns, as in a sections view: a card with
+`grid_options: { columns: 6 }` takes half the width, so two share a row. A card
+that says nothing takes the full width.
+
 The cards inside are built the first time the popup opens, not with the
 dashboard, and kept from then on: ten popups cost nothing until used, and a
 card keeps its state between openings.
@@ -6332,7 +6336,7 @@ cards:
 | `hash` | string | – | **Required.** The hash that opens it. The leading `#` is optional |
 | `title` | string | – | Heading beside the close button |
 | `icon` | string | – | Icon before the heading, and on the edit-mode placeholder |
-| `cards` | list | `[]` | The cards in the sheet, in display order. Any Lovelace card — M3 or otherwise |
+| `cards` | list | `[]` | The cards in the sheet, in display order. Any Lovelace card — M3 or otherwise. Each one's `grid_options.columns` (of 12) sets its width |
 
 </details>
 

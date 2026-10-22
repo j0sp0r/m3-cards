@@ -14,7 +14,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   built on them keeps its buttons and swaps only the pop-up card. The sheet is
   the detail view's own: same grip, motion and close button. Back closes it,
   and closing it otherwise takes the hash back out of the address. Any card
-  can go in it. The cards are built on first opening and kept from then on.
+  can go in it, on twelve columns as in a sections view, so two cards at
+  `columns: 6` share a row. The cards are built on first opening and kept
+  from then on.
   On the dashboard the card takes no space; in edit mode it is a placeholder
   naming its hash.
 
