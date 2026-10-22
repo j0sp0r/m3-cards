@@ -6,7 +6,6 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
-### Added
 
 - **A popup card, `m3-popup-card`: other cards in a bottom sheet, opened by a
   URL hash.** A button that navigates to `#remotes` opens the popup whose
@@ -84,6 +83,37 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   place that knows, and the heuristic is now only the stopgap for the first
   render.
 
+- **Two cards for an LTE/5G router: `m3-router-card` and
+  `m3-router-diagnostics-card`.** Built against a ZTE MC801A whose values reach
+  Home Assistant through a pyscript app, and usable with a Fritzbox, a Huawei
+  or a GL.iNet — every block is optional and appears only when its entities
+  exist.
+
+  The point of both is that they **grade** rather than print. −94 dBm means
+  nothing to most people and a 24-hour plot of it means less, so the connection
+  card sorts each radio reading into one of five steps and says which, with
+  five bars to match. RSRP, RSRQ and SNR each get their own scale, because they
+  measure different things: RSRQ is a ratio living between −3 and −20, while SNR
+  is a difference that is perfectly normal at 0 and catastrophic as an RSRP.
+
+  **5G is graded about 5 dB stricter than LTE.** An NR carrier is wider, so the
+  same transmitted power is spread over more resource elements and each one
+  measures lower for an equally good connection. Judged on the LTE scale, NR
+  reads one step too generous throughout. On a 5G non-standalone link the
+  router is on an LTE anchor *and* an NR carrier at once, so the card draws
+  both rows rather than picking which half of the truth to show.
+
+  Throughput reads its unit off the entity instead of assuming one — the same
+  reading arrives as `6106 bit/s` from one integration and `0.006 Mbit/s` from
+  the next — and carries a sparkline prefilled once from the recorder, so a
+  freshly loaded dashboard shows a shape instead of growing one over the next
+  twenty minutes.
+
+  The diagnostics card carries modem temperatures, cell and band detail,
+  reachability checks and a restart button that takes two taps and disarms
+  itself after four seconds, because an armed red button left on a wall tablet
+  is a trap for whoever walks past next.
+
 ### Fixed
 
 - **The card asks every entity whether the device is on, not just one.** The
@@ -125,6 +155,24 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   Home Assistant Cast on the television. Both are faithful executions of the
   wrong idea, and both go away once power is asked of the remote.
 
+- **A monthly total is no longer mistaken for a live rate.** A Huawei publishes
+  `current_month_download` beside `current_download_rate`, and both end in a
+  word the throughput patterns want; claimed the wrong way round, the card
+  showed 580 GB as a throughput. Volumes are now matched before rates. A
+  Fritzbox's `max_connection_download_rate` is excluded by name for the same
+  reason: a line's sync rate in the live tile is a plausible-looking lie.
+
+- **Router temperature sensors are found by unit, not by name.** The obvious
+  filter — an id containing "temp" — misses `sensor.zte_pm_modem_5g`, which
+  carries "Temp" in its friendly name and nowhere in its id, so a name filter
+  drew one of the two modem temperatures and silently dropped the other. The
+  unit is also what keeps a unitless "PA sensor" reading −40 out of a
+  temperature list.
+
+- **Data volumes use the locale's decimal separator.** `toFixed` writes a
+  decimal point whatever the language, which put "580.6 GB" on a German
+  dashboard beside the card's own "2,2 dB".
+
 ### Changed
 
 - **The heading card's default colour is the theme's primary colour.** It was
@@ -141,43 +189,6 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   the honest card for that device, and better than a ring whose every press is
   swallowed. A function row with nothing usable in it disappears for the same
   reason.
-
-## [2.5.0] – 2026-10-20
-
-### Added
-
-- **Two cards for an LTE/5G router: `m3-router-card` and
-  `m3-router-diagnostics-card`.** Built against a ZTE MC801A whose values reach
-  Home Assistant through a pyscript app, and usable with a Fritzbox, a Huawei
-  or a GL.iNet — every block is optional and appears only when its entities
-  exist.
-
-  The point of both is that they **grade** rather than print. −94 dBm means
-  nothing to most people and a 24-hour plot of it means less, so the connection
-  card sorts each radio reading into one of five steps and says which, with
-  five bars to match. RSRP, RSRQ and SNR each get their own scale, because they
-  measure different things: RSRQ is a ratio living between −3 and −20, while SNR
-  is a difference that is perfectly normal at 0 and catastrophic as an RSRP.
-
-  **5G is graded about 5 dB stricter than LTE.** An NR carrier is wider, so the
-  same transmitted power is spread over more resource elements and each one
-  measures lower for an equally good connection. Judged on the LTE scale, NR
-  reads one step too generous throughout. On a 5G non-standalone link the
-  router is on an LTE anchor *and* an NR carrier at once, so the card draws
-  both rows rather than picking which half of the truth to show.
-
-  Throughput reads its unit off the entity instead of assuming one — the same
-  reading arrives as `6106 bit/s` from one integration and `0.006 Mbit/s` from
-  the next — and carries a sparkline prefilled once from the recorder, so a
-  freshly loaded dashboard shows a shape instead of growing one over the next
-  twenty minutes.
-
-  The diagnostics card carries modem temperatures, cell and band detail,
-  reachability checks and a restart button that takes two taps and disarms
-  itself after four seconds, because an armed red button left on a wall tablet
-  is a trap for whoever walks past next.
-
-### Changed
 
 - **Throttle sensors are a chip, not a graph.** They read 0 almost always, and
   a 24-hour bar chart of a value that is always zero is a picture of nothing.
@@ -203,26 +214,6 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   GB, a Fritzbox reports GB, a Huawei reports raw bytes. Binary units are
   honoured as binary: GiB is 2³⁰, not 10⁹, a 7% difference and more than enough
   to put a tariff warning on the wrong side of the line.
-
-### Fixed
-
-- **A monthly total is no longer mistaken for a live rate.** A Huawei publishes
-  `current_month_download` beside `current_download_rate`, and both end in a
-  word the throughput patterns want; claimed the wrong way round, the card
-  showed 580 GB as a throughput. Volumes are now matched before rates. A
-  Fritzbox's `max_connection_download_rate` is excluded by name for the same
-  reason: a line's sync rate in the live tile is a plausible-looking lie.
-
-- **Router temperature sensors are found by unit, not by name.** The obvious
-  filter — an id containing "temp" — misses `sensor.zte_pm_modem_5g`, which
-  carries "Temp" in its friendly name and nowhere in its id, so a name filter
-  drew one of the two modem temperatures and silently dropped the other. The
-  unit is also what keeps a unitless "PA sensor" reading −40 out of a
-  temperature list.
-
-- **Data volumes use the locale's decimal separator.** `toFixed` writes a
-  decimal point whatever the language, which put "580.6 GB" on a German
-  dashboard beside the card's own "2,2 dB".
 
 ## [2.5.0] – 2026-10-20
 
