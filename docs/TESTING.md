@@ -1138,6 +1138,22 @@ unten nicht als „ungesehen“ markiert ist. Am Handy war davon bisher nichts.
 - [ ] Temperatur: Farbe nach Wert (kalt blau, angenehm grün, heiß rot)
 - [ ] Android-Zurück schließt das Sheet, nicht die App
 
+## M3 Popup Card
+
+Pop-up mit `hash: "#test"` und zwei, drei Karten anlegen, dazu einen Button mit
+`tap_action: { action: navigate, navigation_path: "#test" }`.
+
+- [ ] Auf dem Dashboard nimmt die Karte keinen Platz ein, auch nicht als leere Zelle im Sections-Raster
+- [ ] Im Bearbeiten-Modus erscheint ein gestrichelter Platzhalter mit dem Hash
+- [ ] Button tippen: das Sheet gleitet von unten herein, die Adresse endet auf `#test`
+- [ ] Schließen per X, Hintergrund, Griff nach unten ziehen, Escape: Sheet gleitet hinaus, `#test` ist aus der Adresse verschwunden
+- [ ] Android-Zurück schließt das Pop-up, und erst der zweite Druck verlässt die Seite
+- [ ] Seite direkt mit `#test` in der Adresse laden: das Pop-up öffnet sich; Schließen entfernt den Hash, ohne die Seite zu verlassen
+- [ ] Karten im Pop-up sind bedienbar und aktualisieren sich live; Zustand bleibt beim erneuten Öffnen erhalten
+- [ ] Ein Detail-Sheet (`detail_mode: sheet`) aus einer Karte im Pop-up öffnet sich darüber; Zurück schließt zuerst das Detail, dann das Pop-up
+- [ ] Theme der Ansicht gilt auch im Pop-up
+- [ ] Desktop: zentriert, alle vier Ecken rund, blendet ein
+
 ## Bekannte Einschränkungen
 
 Beide Punkte, die hier bis 2.0 standen — die Akzentfarben im hellen Theme und

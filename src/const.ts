@@ -2698,6 +2698,15 @@ export const DETAIL_CHART_PADDING = 0.18;
 // The current-value halo's radius: the plot keeps this much clear on the right
 // so the halo is not cut in half.
 export const DETAIL_CHART_HALO = 10;
+
+// ---- Popup card -------------------------------------------------------------
+// m3-popup-card: other cards in the detail sheet, opened by a URL hash.
+// The sheet, its header buttons and its motion are the detail sheet's own.
+// Between the cards it holds: two of the suite's row gaps, the space a
+// sections view leaves between cards.
+export const POPUP_CARD_GAP = SPACING.rowGap * 2;
+// The edit-mode placeholder, which is all of the card a dashboard shows.
+export const POPUP_PLACEHOLDER_RADIUS = RADIUS.card;
 export const DETAIL_TICK_MS = 60_000;
 export const DETAIL_DEFAULT_ACCENT = PALETTE.home;
 export const DETAIL_MIN_COLOR = PALETTE.solar;

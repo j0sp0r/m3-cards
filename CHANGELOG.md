@@ -8,6 +8,16 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **A popup card, `m3-popup-card`: other cards in a bottom sheet, opened by a
+  URL hash.** A button that navigates to `#remotes` opens the popup whose
+  `hash` is `#remotes`, which is how Bubble Card's pop-ups work — a dashboard
+  built on them keeps its buttons and swaps only the pop-up card. The sheet is
+  the detail view's own: same grip, motion and close button. Back closes it,
+  and closing it otherwise takes the hash back out of the address. Any card
+  can go in it. The cards are built on first opening and kept from then on.
+  On the dashboard the card takes no space; in edit mode it is a placeholder
+  naming its hash.
+
 - **A detail view of the suite's own, `m3-detail-card`, and a sheet that can
   stand in for more-info.** One entity, large. A number gets its value, a
   trend chip against the start of the period, a smoothed curve on a quiet

@@ -2868,6 +2868,18 @@ export interface M3GroupCardConfig {
   card_version?: string;
 }
 
+// ---- m3-popup-card -------------------------------------------------------
+
+export interface M3PopupCardConfig {
+  type: string;
+  /** The URL hash that opens it, e.g. `#remotes`; the leading # is optional. */
+  hash: string;
+  title?: string;
+  icon?: string;
+  cards: LovelaceCardConfig[];
+  card_version?: string;
+}
+
 // ---- m3-appliance-card ----------------------------------------------------
 
 /** The optional progress row: a bar, and a caption for what is left of the run. */

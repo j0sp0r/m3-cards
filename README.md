@@ -7,7 +7,7 @@
 Material 3–inspired, native Lovelace cards for Home Assistant — built with
 TypeScript + [Lit](https://lit.dev), **without** any dependency on
 `button-card`, `card-mod`, `mod-card`, or `stack-in-card`. A single bundle
-(`m3-cards.js`) registers **48 cards**, all sharing one design language.
+(`m3-cards.js`) registers **49 cards**, all sharing one design language.
 
 New here? Start with the category that matches what you want to show — every
 card links to its full documentation further down.
@@ -68,6 +68,7 @@ card links to its full documentation further down.
 | [Nav](#m3-nav-card) | `m3-nav-card` | A navigation bar for the dashboard, in five variants, with a pull-up drawer |
 | [Search](#m3-search-card) | `m3-search-card` | A Material 3 search bar that opens Home Assistant's own search and Assist |
 | [Group](#m3-group-card) | `m3-group-card` | Several cards on one shared surface, so they read as a single block |
+| [Popup](#m3-popup-card) | `m3-popup-card` | Other cards in a bottom sheet, opened by a URL hash — in place of a Bubble Card pop-up |
 | [Room](#m3-room-card) | `m3-room-card` | One card per area: every device type it finds, climate readings and presence |
 | [Humidifier](#m3-humidifier-card) | `m3-humidifier-card` | Target humidity, mode, fan speed and extras — and it need not be a humidifier entity |
 | [Appliance](#m3-appliance-card) | `m3-appliance-card` | Any appliance: status, progress, sliders, programme pills, action buttons and chips |
@@ -6272,6 +6273,66 @@ And on every other M3 card that can open details:
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `detail_mode` | `more_info` \| `sheet` | `more_info` | What a tap that would open more-info opens |
+
+</details>
+
+## M3 Popup Card
+
+Other cards — M3 ones or any other — in a bottom sheet that slides up over
+the dashboard. The sheet is the one the detail view opens in
+(`detail_mode: sheet`): the same grip, the same motion, the same close
+button, and on a desktop it is centred instead of climbing out of the
+bottom edge.
+
+The card is invisible on the dashboard and takes no space there. It opens
+when the page's address ends in its hash, so anything that navigates there
+opens it:
+
+```yaml
+type: custom:m3-button-card
+name: Remotes
+icon: mdi:remote
+tap_action:
+  action: navigate
+  navigation_path: "#remotes"
+```
+
+That is how Bubble Card's pop-ups work, so a dashboard built on them keeps its
+buttons as they are: replace the `bubble-card` pop-up with this card under the
+same hash and the buttons open it. Back closes it — Android's back gesture
+included — and closing it any other way takes the hash back out of the
+address. A link to the page with the hash opens the popup straight away.
+
+The cards inside are built the first time the popup opens, not with the
+dashboard, and kept from then on: ten popups cost nothing until used, and a
+card keeps its state between openings.
+
+In edit mode the card shows as a dashed placeholder naming its hash, so it can
+be found and edited.
+
+<details>
+<summary>Configuration, examples & options</summary>
+
+```yaml
+type: custom:m3-popup-card
+hash: "#remotes"
+title: Remotes
+icon: mdi:remote
+cards:
+  - type: custom:m3-remote-card
+    entity: media_player.living_room_tv
+  - type: tile
+    entity: switch.tv_socket
+```
+
+### Configuration options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `hash` | string | – | **Required.** The hash that opens it. The leading `#` is optional |
+| `title` | string | – | Heading beside the close button |
+| `icon` | string | – | Icon before the heading, and on the edit-mode placeholder |
+| `cards` | list | `[]` | The cards in the sheet, in display order. Any Lovelace card — M3 or otherwise |
 
 </details>
 

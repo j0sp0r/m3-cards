@@ -1918,6 +1918,14 @@ const translations = {
     editor_nav_sheet_second_instance: "Auf dieser Ansicht gibt es bereits ein Sheet. Dieses hier wird normal im Kartenfluss gezeichnet statt fixiert.",
 
     // ---- Lights Overview, Chip Buttons, Group Card ----
+    editor_popup_hash: "Hash",
+    editor_popup_hash_helper: "Öffnet sich, wenn die Adresse auf diesen Hash endet. Ein Button öffnet es mit der Aktion „Navigieren“ zu z. B. #fernbedienungen.",
+    editor_popup_title: "Titel",
+    editor_popup_icon: "Symbol",
+    editor_popup_general: "Pop-up",
+    popup_placeholder: "Pop-up {hash}",
+    popup_placeholder_hint: "Auf dem Dashboard unsichtbar.",
+    popup_no_hash: "Kein Hash gesetzt",
     editor_group_cards: "Karten",
     editor_group_empty: "Noch keine Karten. Mit „Karte hinzufügen“ eine Karte in die Gruppe legen.",
     editor_group_add_card: "Karte hinzufügen",
@@ -4535,6 +4543,14 @@ const translations = {
     editor_nav_sheet_second_instance: "This view already has a sheet. This one renders inline in the card flow instead of docking.",
 
     // ---- Lights Overview, Chip Buttons, Group Card ----
+    editor_popup_hash: "Hash",
+    editor_popup_hash_helper: "Opens when the address ends in this hash. A button opens it with a navigate action to e.g. #remotes.",
+    editor_popup_title: "Title",
+    editor_popup_icon: "Icon",
+    editor_popup_general: "Popup",
+    popup_placeholder: "Popup {hash}",
+    popup_placeholder_hint: "Invisible on the dashboard.",
+    popup_no_hash: "No hash set",
     editor_group_cards: "Cards",
     editor_group_empty: "No cards yet. Use \"Add card\" to place a card in this group.",
     editor_group_add_card: "Add card",
