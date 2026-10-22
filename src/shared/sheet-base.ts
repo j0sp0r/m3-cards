@@ -25,6 +25,23 @@ import { glassBackground } from "./glass-card";
 
 const EASING = unsafeCSS(STANDARD_EASING);
 
+/**
+ * Tells Home Assistant's own cards that the finger is moving, not tapping.
+ *
+ * Their action handler learns that a touch became a scroll from a
+ * `touchmove` or `scroll` reaching `document`, and without one it reads the
+ * lifted finger as a tap: scrolling a sheet over an entities card opened the
+ * more-info of the row under the thumb. Neither arrives from in here. The
+ * gesture stops `touchmove` at the sheet, to keep swipe-navigation plugins
+ * from changing the view behind it, and the sheet's body scrolls as an
+ * element, whose `scroll` never reaches `document`. A plain `scroll` event on
+ * `document` is the signal those handlers listen for; it carries nothing and
+ * does not bubble to `window`, so nothing that scrolls the page reacts.
+ */
+function relayGestureToDocument(): void {
+  document.dispatchEvent(new Event("scroll"));
+}
+
 export abstract class M3SheetBase extends LitElement {
   /** The suite's frosted surface, as a card's `glass_background`; solid otherwise. */
   @property({ attribute: false }) public glass = true;
@@ -149,7 +166,15 @@ export abstract class M3SheetBase extends LitElement {
       reducedMotion: isReducedMotion,
     });
     if (grip) this._detach.push(this._gesture.attachHandle(grip));
-    if (body) this._detach.push(this._gesture.attachContent(body));
+    if (body) {
+      this._detach.push(this._gesture.attachContent(body));
+      body.addEventListener("touchmove", relayGestureToDocument, { passive: true });
+      body.addEventListener("scroll", relayGestureToDocument, { passive: true });
+      this._detach.push(() => {
+        body.removeEventListener("touchmove", relayGestureToDocument);
+        body.removeEventListener("scroll", relayGestureToDocument);
+      });
+    }
   }
 
   public disconnectedCallback(): void {

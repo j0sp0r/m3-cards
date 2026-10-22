@@ -19,7 +19,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   from then on. The sheet is frosted glass by default (`glass_background`,
   `card_background`), and Home Assistant's own cards in it get the M3 rim.
   On the dashboard the card takes no space; in edit mode it is a placeholder
-  naming its hash.
+  naming its hash. Scrolling over Home Assistant's own cards in a sheet no
+  longer opens the row under the thumb: their tap handler waits for a
+  `touchmove` or `scroll` on `document`, which the sheet now relays.
 
 - **A detail view of the suite's own, `m3-detail-card`, and a sheet that can
   stand in for more-info.** One entity, large. A number gets its value, a
