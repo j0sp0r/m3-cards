@@ -2877,6 +2877,9 @@ export interface M3PopupCardConfig {
   title?: string;
   icon?: string;
   cards: LovelaceCardConfig[];
+  /** Frosted glass behind the cards; default true, as on every card. */
+  glass_background?: boolean;
+  card_background?: string;
   card_version?: string;
 }
 

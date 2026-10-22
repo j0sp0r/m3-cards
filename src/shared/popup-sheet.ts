@@ -7,9 +7,11 @@ import {
   DETAIL_ICON_RADIUS,
   DETAIL_ICON_SIZE,
   POPUP_CARD_GAP,
+  POPUP_CARD_RIM,
 } from "../const";
 import { STANDARD_EASING } from "./animation";
 import { M3SheetBase } from "./sheet-base";
+import { glassBackground } from "./glass-card";
 import { POPUP_GRID_COLUMNS } from "./popup-hash";
 
 // The sheet m3-popup-card opens: a header in the detail view's design — icon,
@@ -32,11 +34,23 @@ export class M3PopupSheet extends M3SheetBase {
   @property({ attribute: false }) public tint = "";
   @property({ attribute: false }) public historyLeaver?: (goBack: boolean) => Promise<void>;
   @property({ attribute: false }) public onClosed?: () => void;
+  /** Frosted glass, as every card's own `glass_background`; solid otherwise. */
+  @property({ attribute: false }) public glass = true;
+  /** A resolved colour for the surface, from the popup's `card_background`. */
+  @property({ attribute: false }) public background?: string;
 
   public open(opener?: HTMLElement): void {
     this.present(opener, () => {
       if (this._body) this._body.scrollTop = 0;
     });
+  }
+
+  protected sheetClass(): string {
+    return this.glass ? "glass" : "";
+  }
+
+  protected sheetStyle(): string {
+    return this.background ? `background: ${this.background};` : "";
   }
 
   protected leaveHistory(goBack: boolean): Promise<void> {
@@ -118,12 +132,28 @@ export class M3PopupSheet extends M3SheetBase {
         border-radius: ${DETAIL_BUTTON_RADIUS_PRESSED}px;
       }
 
+      /* The suite's frosted surface, as on every card with
+         glass_background. The cards in it keep their own, so they stand
+         out against it rather than melting into a sheet of the same colour. */
+      .sheet.glass {
+        background: ${glassBackground};
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+      }
+
       /* Twelve columns, as in a sections view; each card's span is set on it
-         by the popup card from its grid_options. */
+         by the popup card from its grid_options.
+
+         Home Assistant's own cards draw their rim from the theme, and many
+         themes set none: on a dashboard the wallpaper outlines them, in a
+         sheet of their own colour nothing does. They get the rim every M3
+         card draws, through the variables ha-card reads. */
       .cards {
         display: grid;
         grid-template-columns: repeat(${POPUP_GRID_COLUMNS}, minmax(0, 1fr));
         gap: ${POPUP_CARD_GAP}px;
+        --ha-card-border-width: 1px;
+        --ha-card-border-color: ${unsafeCSS(POPUP_CARD_RIM)};
       }
     `,
   ];

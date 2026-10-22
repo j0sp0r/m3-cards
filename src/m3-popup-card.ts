@@ -3,7 +3,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant, LovelaceCard, LovelaceCardEditor, LovelaceGridOptions, M3PopupCardConfig } from "./types";
 import { CARD_VERSION, POPUP_PLACEHOLDER_RADIUS } from "./const";
 import { localize, type TranslationKey } from "./localize";
-import { buildCssVars, tintInk, tintOn } from "./shared/color-config";
+import { buildCssVars, resolveThemeColor, tintInk, tintOn } from "./shared/color-config";
 import { GroupChildrenController } from "./shared/group-children";
 import { hashMatches, normalizeHash, popupCardSpan, withoutHash } from "./shared/popup-hash";
 import { TemplatedCard } from "./shared/templated-card";
@@ -265,6 +265,8 @@ export class M3PopupCard extends TemplatedCard(LitElement) implements LovelaceCa
         .cards=${this._cards}
         .closeLabel=${this._t("detail_close")}
         .tint=${tint}
+        .glass=${this._config.glass_background !== false}
+        .background=${this._config.card_background ? resolveThemeColor(this._config.card_background) : undefined}
         .historyLeaver=${this._leaveHistory}
         .onClosed=${this._onSheetClosed}
       ></m3-popup-sheet>

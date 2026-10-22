@@ -2705,6 +2705,9 @@ export const DETAIL_CHART_HALO = 10;
 // Between the cards it holds: two of the suite's row gaps, the space a
 // sections view leaves between cards.
 export const POPUP_CARD_GAP = SPACING.rowGap * 2;
+// The rim Home Assistant's own cards get inside a popup: the one every M3
+// card draws round its .card-inner (shared/glass-card.ts).
+export const POPUP_CARD_RIM = "rgba(100, 100, 100, 0.25)";
 // The edit-mode placeholder, which is all of the card a dashboard shows.
 export const POPUP_PLACEHOLDER_RADIUS = RADIUS.card;
 export const DETAIL_TICK_MS = 60_000;

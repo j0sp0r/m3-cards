@@ -16,7 +16,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   and closing it otherwise takes the hash back out of the address. Any card
   can go in it, on twelve columns as in a sections view, so two cards at
   `columns: 6` share a row. The cards are built on first opening and kept
-  from then on.
+  from then on. The sheet is frosted glass by default (`glass_background`,
+  `card_background`), and Home Assistant's own cards in it get the M3 rim.
   On the dashboard the card takes no space; in edit mode it is a placeholder
   naming its hash.
 

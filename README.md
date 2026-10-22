@@ -6303,6 +6303,11 @@ same hash and the buttons open it. Back closes it — Android's back gesture
 included — and closing it any other way takes the hash back out of the
 address. A link to the page with the hash opens the popup straight away.
 
+The sheet is frosted glass by default, as every card in the suite is, and the
+cards in it keep their own surface. Home Assistant's own cards (sensor, tile,
+entities) get the thin rim the M3 cards draw, so they stay outlined even in a
+theme that gives them none.
+
 The cards sit on twelve columns, as in a sections view: a card with
 `grid_options: { columns: 6 }` takes half the width, so two share a row. A card
 that says nothing takes the full width.
@@ -6336,6 +6341,8 @@ cards:
 | `hash` | string | – | **Required.** The hash that opens it. The leading `#` is optional |
 | `title` | string | – | Heading beside the close button |
 | `icon` | string | – | Icon before the heading, and on the edit-mode placeholder |
+| `glass_background` | boolean | `true` | Frosted glass behind the cards, as on every card. `false` makes the sheet the solid card colour |
+| `card_background` | string | – | Override the sheet's background colour |
 | `cards` | list | `[]` | The cards in the sheet, in display order. Any Lovelace card — M3 or otherwise. Each one's `grid_options.columns` (of 12) sets its width |
 
 </details>

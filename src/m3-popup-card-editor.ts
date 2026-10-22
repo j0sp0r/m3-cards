@@ -2,7 +2,7 @@ import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant, LovelaceCardConfig, LovelaceCardEditor, M3PopupCardConfig } from "./types";
 import { localize, type TranslationKey } from "./localize";
-import { fireEvent, editorStyles, type SchemaEntry } from "./shared/editor-helpers";
+import { fireEvent, colorRow, editorStyles, type SchemaEntry } from "./shared/editor-helpers";
 import { renderGroupCardsListEditor, groupCardsListStyles } from "./shared/group-cards-editor";
 
 @customElement("m3-popup-card-editor")
@@ -51,6 +51,7 @@ export class M3PopupCardEditor extends LitElement implements LovelaceCardEditor<
       hash: "editor_popup_hash",
       title: "editor_popup_title",
       icon: "editor_popup_icon",
+      glass_background: "editor_glass_background",
     };
     const key = labels[schema.name];
     return key ? this._t(key) : schema.name;
@@ -58,6 +59,16 @@ export class M3PopupCardEditor extends LitElement implements LovelaceCardEditor<
 
   private _computeHelper = (schema: SchemaEntry): string | undefined =>
     schema.name === "hash" ? this._t("editor_popup_hash_helper") : undefined;
+
+  private _colorChanged(value: string): void {
+    if (!this._config) return;
+    const { card_background: _drop, ...rest } = this._config;
+    this._emit(value ? { ...rest, card_background: value } : (rest as M3PopupCardConfig));
+  }
+
+  private _appearanceSchema(): SchemaEntry[] {
+    return [{ name: "glass_background", selector: { boolean: {} } }];
+  }
 
   private _schema(): SchemaEntry[] {
     return [
@@ -83,6 +94,22 @@ export class M3PopupCardEditor extends LitElement implements LovelaceCardEditor<
               .computeHelper=${this._computeHelper}
               @value-changed=${this._valueChanged}
             ></ha-form>
+          </div>
+        </ha-expansion-panel>
+
+        <ha-expansion-panel outlined .header=${this._t("editor_appearance")}>
+          <ha-icon slot="leading-icon" icon="mdi:palette-outline"></ha-icon>
+          <div class="panel-content">
+            <ha-form
+              .hass=${this.hass}
+              .data=${{ glass_background: this._config.glass_background !== false }}
+              .schema=${this._appearanceSchema()}
+              .computeLabel=${this._computeLabel}
+              @value-changed=${this._valueChanged}
+            ></ha-form>
+            ${colorRow(this._t("editor_progress_card_background"), this._config.card_background, (v) =>
+              this._colorChanged(v),
+            )}
           </div>
         </ha-expansion-panel>
 

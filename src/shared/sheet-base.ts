@@ -53,6 +53,14 @@ export abstract class M3SheetBase extends LitElement {
   /** Called once the dialog has closed, after the slide out. */
   protected closed(): void {}
 
+  /** Extra classes and inline style for the sheet's surface. */
+  protected sheetClass(): string {
+    return "";
+  }
+  protected sheetStyle(): string {
+    return "";
+  }
+
   public get isOpen(): boolean {
     return !!this._dialog?.open && !this._closing;
   }
@@ -188,7 +196,7 @@ export abstract class M3SheetBase extends LitElement {
         <!-- showModal() focuses the first focusable thing inside, which is a
              header button, and draws a ring round it on opening. The sheet
              itself takes the focus instead; Tab still reaches every button. -->
-        <div class="sheet" role="document" tabindex="-1" autofocus>
+        <div class="sheet ${this.sheetClass()}" style=${this.sheetStyle()} role="document" tabindex="-1" autofocus>
           <div class="grip-zone"><div class="grip"></div></div>
           <div class="body">${this.renderContent()}</div>
         </div>
