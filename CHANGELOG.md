@@ -127,6 +127,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Changed
 
+- **The heading card's default colour is the theme's primary colour.** It was
+  the suite's house blue (`#85b7eb`), which put a blue icon between the green
+  ones of the button and nav cards on any theme whose primary is not blue.
+  A heading with its own `color` is unchanged; one without takes the theme's
+  primary. Set `color: "#85b7eb"` to keep the old look.
+
 - **The card omits what the device cannot do, rather than drawing dead
   buttons.** A Chromecast forced this: on the `cast` platform there is no
   remote entity, no `send_command`, no volume feature and no source list, but

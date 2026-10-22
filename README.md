@@ -3353,7 +3353,8 @@ collapse_state_entity: input_boolean.media_section_collapsed
 | `style` | string | `simple` | `simple`, `status`, `divider`, `collapsible` |
 | `title` | string | – | Required by every variant but `divider` |
 | `label` | string | – | `divider` only: the small-caps text between the rules. Without it the rule runs unbroken |
-| `icon` / `color` | string | | |
+| `icon` | string | `mdi:format-title` | |
+| `color` | string | `primary` | The icon, badge, action and arrow. Default is the theme's primary colour, as on the button and nav cards. On a `divider`, only a set colour tints the rule and label |
 | `show_icon` | boolean | `true` | Without it the title moves to the left edge |
 | `title_size` | number | `15` | 12–22 |
 | `tap_action` | action | `none` | On the whole heading. Fixed to "collapse" for `collapsible` |

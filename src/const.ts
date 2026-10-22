@@ -1492,7 +1492,10 @@ export const STATUS_NARROW_PX = 200;
 
 // ---- heading card ----------------------------------------------------------
 // Deliberately no radius or glass constants: this card draws no card at all.
-export const DEFAULT_HEADING_COLOR = PALETTE.home;
+// The theme's primary colour, as the button and nav cards it sits between. It
+// was the suite's house blue until 2.6, which put a blue icon in a row of
+// green ones on any theme whose primary is not blue.
+export const DEFAULT_HEADING_COLOR = "primary";
 export const DEFAULT_HEADING_ICON = "mdi:format-title";
 export const HEADING_ICON = 30;
 export const HEADING_ICON_RADIUS = 11;
