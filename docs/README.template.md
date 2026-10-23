@@ -1,5 +1,7 @@
 # M3 Cards
 
+![M3 Cards: Material 3 Expressive cards for Home Assistant](docs/images/hero.png)
+
 > **⚠️ Beta:** This project is new and under active development.
 > Configuration options may still change between versions — please file an
 > issue if you run into something.

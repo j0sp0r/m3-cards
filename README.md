@@ -1,5 +1,7 @@
 # M3 Cards
 
+![M3 Cards: Material 3 Expressive cards for Home Assistant](docs/images/hero.png)
+
 > **⚠️ Beta:** This project is new and under active development.
 > Configuration options may still change between versions — please file an
 > issue if you run into something.
@@ -6079,6 +6081,13 @@ apps:
 Count the positions off the bar once, including entries for devices that are
 switched off — they stay in the list and still take up a position. `delay_secs`
 below about 0.25 starts dropping presses.
+
+**In daily use this did not hold up.** On the author's set the HDMI buttons
+built this way moved a few steps from wherever the highlight happened to be and
+landed somewhere different each time. What works reliably is the plain
+`KEY_HDMI`: it steps to the next HDMI input on every press, so it cannot jump to
+a particular one, but it never lands anywhere unexpected. That is what the
+author's dashboard uses now.
 
 ## Text entry
 
