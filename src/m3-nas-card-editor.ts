@@ -145,19 +145,14 @@ export class M3NasCardEditor extends LitElement implements LovelaceCardEditor {
       if (wantSync) {
         // "paused" is a deliberate user choice, never a fault — only real
         // errors trigger. A folder can also accumulate pull errors while its
-        // state stays "idle", so the attributes are watched separately.
+        // state stays "idle", so the attributes are watched separately — as
+        // one trigger: Syncthing raises `errors` and `pull_errors` in the same
+        // update, and a trigger for each sent every message twice.
         triggers.push({ trigger: "state", entity_id: this._syncEntities, to: "error", id: "sync" });
         triggers.push({
           trigger: "numeric_state",
           entity_id: this._syncEntities,
-          attribute: "pull_errors",
-          above: 0,
-          id: "sync",
-        });
-        triggers.push({
-          trigger: "numeric_state",
-          entity_id: this._syncEntities,
-          attribute: "errors",
+          value_template: "{{ [state.attributes.errors | int(0), state.attributes.pull_errors | int(0)] | max }}",
           above: 0,
           id: "sync",
         });

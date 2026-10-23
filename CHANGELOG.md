@@ -116,6 +116,15 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **The NAS card's notification no longer arrives twice, and says what is
+  wrong.** Syncthing raises a folder's `errors` and `pull_errors` in the same
+  update, and the automation had a trigger for each, so every failed item sent
+  two messages. It now watches the larger of the two with one trigger. The
+  message named the folder's state at that moment, usually "scanning", which
+  reads like a fault in itself; it now gives the number of failed items. An
+  existing automation changes when notifications are switched off and on again
+  in the card's editor.
+
 - **The card asks every entity whether the device is on, not just one.** The
   Google TV card greyed itself out after an app restart while the box was
   plainly running: its `media_player` comes from the **Cast** integration and

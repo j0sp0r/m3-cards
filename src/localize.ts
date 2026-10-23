@@ -132,7 +132,8 @@ const translations = {
       "Pausierte Ordner lösen bewusst keine Meldung aus — das ist eine Einstellung, kein Fehler. Gemeldet werden der Zustand „error“ sowie Pull- und Scan-Fehler, die auch bei „idle“ auftreten können.",
     editor_nas_notify_alias: "NAS-Problem",
     editor_nas_notify_description: "Automatisch erstellt von der M3 NAS Card.",
-    editor_nas_notify_sync: "Sync-Problem bei {{ nas_names.get(s.entity_id, s.name) }}: {{ s.state }}",
+    editor_nas_notify_sync:
+      "{% set n = [s.attributes.errors | int(0), s.attributes.pull_errors | int(0)] | max %}Sync-Problem bei {{ nas_names.get(s.entity_id, s.name) }}: {{ (n ~ (' fehlerhaftes Element' if n == 1 else ' fehlerhafte Elemente')) if n > 0 else s.state }}",
     editor_nas_notify_disk: "{{ nas_names.get(s.entity_id, s.name) }} ist zu {{ s.state }} % belegt",
     editor_nas_notify_offline: "{{ nas_names.get(s.entity_id, s.name) }} antwortet nicht mehr",
     editor_nas_notify_success_prefix: "Automatisierung gespeichert –",
@@ -2759,7 +2760,8 @@ const translations = {
       "Paused folders deliberately never trigger — that is a setting, not a fault. The \"error\" state is reported, as are pull and scan errors, which can occur while the folder still reads \"idle\".",
     editor_nas_notify_alias: "NAS problem",
     editor_nas_notify_description: "Created automatically by the M3 NAS Card.",
-    editor_nas_notify_sync: "Sync problem on {{ nas_names.get(s.entity_id, s.name) }}: {{ s.state }}",
+    editor_nas_notify_sync:
+      "{% set n = [s.attributes.errors | int(0), s.attributes.pull_errors | int(0)] | max %}Sync problem on {{ nas_names.get(s.entity_id, s.name) }}: {{ (n ~ (' failed item' if n == 1 else ' failed items')) if n > 0 else s.state }}",
     editor_nas_notify_disk: "{{ nas_names.get(s.entity_id, s.name) }} is {{ s.state }} % full",
     editor_nas_notify_offline: "{{ nas_names.get(s.entity_id, s.name) }} stopped responding",
     editor_nas_notify_success_prefix: "Automation saved —",
