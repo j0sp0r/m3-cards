@@ -125,6 +125,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   existing automation changes when notifications are switched off and on again
   in the card's editor.
 
+- **The updates card no longer asks for the entity registry in a loop.** It
+  fetches the registry once to sort updates by integration, and took an empty
+  answer as "not fetched yet": when no `update` entity was in the registry, or
+  the request failed, it asked again on every render, and every answer caused
+  another render. It now remembers that it asked.
+
 - **The card asks every entity whether the device is on, not just one.** The
   Google TV card greyed itself out after an app restart while the box was
   plainly running: its `media_player` comes from the **Cast** integration and

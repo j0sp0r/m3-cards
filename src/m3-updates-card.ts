@@ -156,6 +156,7 @@ export class M3UpdatesCard extends TemplatedCard(LitElement) implements Lovelace
   @state() private _expandedOk = false;
   @state() private _expandedOff = false;
   @state() private _platforms: Record<string, string> = {};
+  private _platformsRequested = false;
   /** Entity whose install button is currently asking "are you sure?". */
   @state() private _confirming?: string;
   /**
@@ -208,9 +209,12 @@ export class M3UpdatesCard extends TemplatedCard(LitElement) implements Lovelace
   }
 
   // The registry is only needed for the platform → group mapping, so it's
-  // fetched once rather than on every render.
+  // fetched once rather than on every render. The flag, not the map, says
+  // whether that happened: an empty map is a valid answer, and asking again
+  // because of it re-rendered, asked again, and never stopped.
   private async _loadPlatforms(): Promise<void> {
-    if (!this.hass || Object.keys(this._platforms).length) return;
+    if (!this.hass || this._platformsRequested) return;
+    this._platformsRequested = true;
     try {
       const reg = await this.hass.callWS<Array<{ entity_id: string; platform: string }>>({
         type: "config/entity_registry/list",
@@ -224,7 +228,7 @@ export class M3UpdatesCard extends TemplatedCard(LitElement) implements Lovelace
   }
 
   protected updated(): void {
-    if (this.hass && !Object.keys(this._platforms).length) this._loadPlatforms();
+    if (this.hass && !this._platformsRequested) this._loadPlatforms();
   }
 
   private get _language(): string {
