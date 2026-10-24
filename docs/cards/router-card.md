@@ -12,6 +12,8 @@ A connection tile for an LTE or 5G router. Built against a ZTE MC801A fed by
 REST sensors, and usable with a Fritzbox, a Huawei, a GL.iNet or anything else
 that publishes the same quantities.
 
+<img src="docs/images/router-card.png" alt="M3 Router Card" width="440">
+
 Only the blocks whose entities exist are drawn, so a router that reports
 throughput but no radio values gets the header, the rates and the volume bar
 without being asked for an RSRP it does not have.

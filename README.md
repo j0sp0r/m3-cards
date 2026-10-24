@@ -5005,7 +5005,6 @@ something.
 | `status_entity` | string | discovered | The status sensor whose text the header shows. |
 | `notify_enabled`, `notify_service`, `notify_title`, `notify_message` | — | — | The error notification above. Off until switched on. |
 | `accent_color` | string | the state colour | Pins the card to one colour instead of letting the state pick it. |
-| `animation` | string | `auto` | `auto`, `on` or `off`. `off` stills the press shapes and the restart spinner. |
 | `text_color`, `secondary_text_color`, `card_background`, `glass_background`, `radius`, `corners`, `card_version` | — | — | The usual shared appearance options. |
 
 Every companion entity can also be named explicitly — `map_entity`,
@@ -5486,6 +5485,8 @@ A connection tile for an LTE or 5G router. Built against a ZTE MC801A fed by
 REST sensors, and usable with a Fritzbox, a Huawei, a GL.iNet or anything else
 that publishes the same quantities.
 
+<img src="docs/images/router-card.png" alt="M3 Router Card" width="440">
+
 Only the blocks whose entities exist are drawn, so a router that reports
 throughput but no radio values gets the header, the rates and the volume bar
 without being asked for an RSRP it does not have.
@@ -5684,7 +5685,6 @@ more than enough to put a tariff warning on the wrong side of the line.
 | `value_map` | map | — | Raw state → label, applied before the built-in vocabulary table. |
 | `tap_action` | action | `more-info` | What a tap on the header does. |
 | `accent_color`, `download_color`, `upload_color`, `online_color`, `offline_color` | string | — | Colour overrides. |
-| `animation` | string | `auto` | `auto`, `on` or `off`. `off` stills the press shapes and the restart spinner. |
 | `text_color`, `secondary_text_color`, `card_background`, `glass_background`, `radius`, `corners`, `card_version` | — | — | The usual shared appearance options. |
 
 ## What is deliberately not here
@@ -5703,6 +5703,8 @@ restart button.
 The other half of the router pair: what the modem is doing to itself, what cell
 it is on, whether the internet is actually reachable, and one button to start
 the thing again.
+
+<img src="docs/images/router-diagnostics-card.png" alt="M3 Router Diagnostics Card" width="440">
 
 ```yaml
 type: custom:m3-router-diagnostics-card
@@ -5843,6 +5845,8 @@ signal grading, the throughput and the monthly volume.
 A remote control in the suite's design system. One card with profiles rather
 than one card per brand, because these devices differ in what they call each
 key, not in the shape of a remote control.
+
+<img src="docs/images/remote-card.png" alt="M3 Remote Card" width="440">
 
 ```yaml
 type: custom:m3-remote-card
@@ -6155,6 +6159,8 @@ door gets a timeline of when it was open. A lamp gets its own M3 card
 with the timeline under it. Below all of these sit the other entities of
 the same device, and a tap on one steps the view to it.
 
+<img src="docs/images/detail-card.png" alt="M3 Detail Card in its sheet — an outdoor temperature over 24 hours" width="440">
+
 The same view can replace Home Assistant's more-info dialog for the suite's
 own cards: set `detail_mode: sheet` on a card, and a tap that would have
 opened more-info opens this as a bottom sheet instead. The sheet is frosted
@@ -6298,6 +6304,8 @@ the dashboard. The sheet is the one the detail view opens in
 (`detail_mode: sheet`): the same grip, the same motion, the same close
 button, and on a desktop it is centred instead of climbing out of the
 bottom edge.
+
+<img src="docs/images/popup-card.png" alt="M3 Popup Card — the sheet, here as the Thermometer popup" width="440">
 
 The card is invisible on the dashboard and takes no space there. It opens
 when the page's address ends in its hash, so anything that navigates there

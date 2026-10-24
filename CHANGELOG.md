@@ -6,6 +6,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.6.0] – 2026-10-24
+
+### Added
 
 - **A popup card, `m3-popup-card`: other cards in a bottom sheet, opened by a
   URL hash.** A button that navigates to `#remotes` opens the popup whose

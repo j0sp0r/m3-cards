@@ -12,6 +12,8 @@ A remote control in the suite's design system. One card with profiles rather
 than one card per brand, because these devices differ in what they call each
 key, not in the shape of a remote control.
 
+<img src="docs/images/remote-card.png" alt="M3 Remote Card" width="440">
+
 ```yaml
 type: custom:m3-remote-card
 entity: remote.samsung_q90_series_55

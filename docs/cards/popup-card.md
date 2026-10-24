@@ -14,6 +14,8 @@ the dashboard. The sheet is the one the detail view opens in
 button, and on a desktop it is centred instead of climbing out of the
 bottom edge.
 
+<img src="docs/images/popup-card.png" alt="M3 Popup Card — the sheet, here as the Thermometer popup" width="440">
+
 The card is invisible on the dashboard and takes no space there. It opens
 when the page's address ends in its hash, so anything that navigates there
 opens it:

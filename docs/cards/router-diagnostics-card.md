@@ -12,6 +12,8 @@ The other half of the router pair: what the modem is doing to itself, what cell
 it is on, whether the internet is actually reachable, and one button to start
 the thing again.
 
+<img src="docs/images/router-diagnostics-card.png" alt="M3 Router Diagnostics Card" width="440">
+
 ```yaml
 type: custom:m3-router-diagnostics-card
 entity: binary_sensor.zte_reachable
