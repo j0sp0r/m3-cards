@@ -114,6 +114,11 @@ export class M3TimeCard extends TemplatedCard(LitElement) implements LovelaceCar
 
   /** The entity value the draft was seeded from, to detect outside changes. */
   private _seed?: string;
+  /**
+   * The value the entity held when Apply was pressed, while the new one is on
+   * its way. Seeing it again in that window is the old state, not a change.
+   */
+  private _stale?: string;
   private _repeatTimer?: number;
   private _accelerateTimer?: number;
   private _morphTimer?: number;
@@ -156,6 +161,7 @@ export class M3TimeCard extends TemplatedCard(LitElement) implements LovelaceCar
     };
     this._draft = undefined;
     this._seed = undefined;
+    this._stale = undefined;
     this._external = false;
   }
 
@@ -243,11 +249,21 @@ export class M3TimeCard extends TemplatedCard(LitElement) implements LovelaceCar
       this._seed = key;
       return;
     }
+    if (key === this._stale) return;
+    this._stale = undefined;
     if (key === this._seed) return;
+    const draftKey = `${this._draft.hours}:${this._draft.minutes}`;
+    // The entity arriving at the draft is this card's own Apply landing —
+    // often before the service call has even returned — not a conflict.
+    if (draftKey === key) {
+      this._seed = key;
+      this._external = false;
+      return;
+    }
     // Edited means moved away from the value it was seeded with. Comparing
     // with the entity, as _dirty does, says yes to every outside change: the
     // entity has just moved, so it no longer matches an untouched draft.
-    if (`${this._draft.hours}:${this._draft.minutes}` !== this._seed) {
+    if (draftKey !== this._seed) {
       this._external = true;
       return;
     }
@@ -261,6 +277,7 @@ export class M3TimeCard extends TemplatedCard(LitElement) implements LovelaceCar
     if (!entity) return;
     this._draft = { hours: entity.hours, minutes: entity.minutes };
     this._seed = `${entity.hours}:${entity.minutes}`;
+    this._stale = undefined;
     this._external = false;
   };
 
@@ -328,6 +345,7 @@ export class M3TimeCard extends TemplatedCard(LitElement) implements LovelaceCar
     if (!this.hass || !cfg || !entity || !this._draft) return;
     if (!this._dirty) return;
     const seconds = cfg.keep_seconds === false ? 0 : entity.seconds;
+    const before = `${entity.hours}:${entity.minutes}`;
     try {
       await writeTime(this.hass, cfg.entity, {
         hours: this._draft.hours,
@@ -341,6 +359,9 @@ export class M3TimeCard extends TemplatedCard(LitElement) implements LovelaceCar
     }
     this._seed = `${this._draft.hours}:${this._draft.minutes}`;
     this._external = false;
+    // Unless the new state has already landed, the old one may still be seen
+    const now = this._entityTime;
+    if (now && `${now.hours}:${now.minutes}` === before) this._stale = before;
     if (!shouldAnimate(cfg.animation)) return;
     this._applyMorph = true;
     if (this._morphTimer) clearTimeout(this._morphTimer);

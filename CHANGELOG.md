@@ -142,7 +142,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   the change comes from outside, so an untouched card took every outside
   change for a conflict: it kept the old time and said "Value was changed
   elsewhere". It now compares with the value it started from, and only an
-  actual edit holds on to its time.
+  actual edit holds on to its time. Its own Apply no longer counts as an
+  outside change either, whether the new state arrives before the service
+  call returns or the old one is reported once more after it.
 
 - **One rim per card, in a popup and on a default theme.** Every card draws
   its frame round its content, and `ha-card` drew a second one from the
