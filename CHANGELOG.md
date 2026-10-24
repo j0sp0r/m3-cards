@@ -137,6 +137,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   wider column that left a square box inside a round, empty card. The whole
   card now stays at 440 px and centres.
 
+- **The time card follows a change made elsewhere.** Whether the shown time
+  had been edited was judged against the entity, which has just moved when
+  the change comes from outside, so an untouched card took every outside
+  change for a conflict: it kept the old time and said "Value was changed
+  elsewhere". It now compares with the value it started from, and only an
+  actual edit holds on to its time.
+
 - **No square frame inside the detail sheet.** The card in the sheet drops
   its own frame and corners, but Home Assistant's card border stayed: with a
   theme that leaves `ha-card` its default 1 px border, it drew a square box

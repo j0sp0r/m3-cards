@@ -244,7 +244,10 @@ export class M3TimeCard extends TemplatedCard(LitElement) implements LovelaceCar
       return;
     }
     if (key === this._seed) return;
-    if (this._dirty) {
+    // Edited means moved away from the value it was seeded with. Comparing
+    // with the entity, as _dirty does, says yes to every outside change: the
+    // entity has just moved, so it no longer matches an untouched draft.
+    if (`${this._draft.hours}:${this._draft.minutes}` !== this._seed) {
       this._external = true;
       return;
     }
