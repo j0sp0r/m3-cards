@@ -137,6 +137,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   wider column that left a square box inside a round, empty card. The whole
   card now stays at 440 px and centres.
 
+- **No square frame inside the detail sheet.** The card in the sheet drops
+  its own frame and corners, but Home Assistant's card border stayed: with a
+  theme that leaves `ha-card` its default 1 px border, it drew a square box
+  inside the rounded sheet.
+
 - **The card asks every entity whether the device is on, not just one.** The
   Google TV card greyed itself out after an app restart while the box was
   plainly running: its `media_player` comes from the **Cast** integration and
