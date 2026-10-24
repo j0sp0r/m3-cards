@@ -1216,13 +1216,19 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
     glassCardStyles,
     cardHeaderStyles,
     css`
+      /* Rounded on both: the frame is .card-inner's border, and ha-card's
+         clip alone cut it away at the corners. */
+      ha-card,
+      .card-inner {
+        border-radius: var(--m3rc-radius, 28px);
+      }
+
       /* The width limit belongs on the card, not on .card-inner: the frame
          and fill are drawn by .card-inner and the corners by ha-card's clip,
          so a narrower .card-inner showed as a square box inside a round,
          empty card. */
       ha-card {
         color: var(--m3rc-text, var(--primary-text-color));
-        border-radius: var(--m3rc-radius, 28px);
         max-width: ${REMOTE_MAX_WIDTH}px;
         margin: 0 auto;
       }

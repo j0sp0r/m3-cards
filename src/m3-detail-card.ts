@@ -1594,11 +1594,6 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         border-radius: 0 !important;
         overflow: visible;
       }
-      /* ha-card draws a 1px border of its own unless the theme turns it off,
-         and with the corners gone it was a square box inside the sheet. */
-      :host([in-sheet]) ha-card {
-        border: none;
-      }
 
       /* Everything moves together when the view steps to a sibling; the card's
          frame does not. */

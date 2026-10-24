@@ -35,11 +35,16 @@ export const glassCardStyles = css`
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* The frame is .card-inner's border. ha-card draws one of its own from
+     --ha-card-border-width, 1px unless the theme turns it off, and a popup
+     sets it on purpose for Home Assistant's cards: on an M3 card that was a
+     second rim outside the first, whose corners the clip then cut off. */
   ha-card {
     height: 100%;
     overflow: hidden;
     box-shadow: none;
     background: transparent;
+    border: none;
   }
 
   .card-inner {

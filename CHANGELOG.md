@@ -144,10 +144,15 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   elsewhere". It now compares with the value it started from, and only an
   actual edit holds on to its time.
 
-- **No square frame inside the detail sheet.** The card in the sheet drops
-  its own frame and corners, but Home Assistant's card border stayed: with a
-  theme that leaves `ha-card` its default 1 px border, it drew a square box
-  inside the rounded sheet.
+- **One rim per card, in a popup and on a default theme.** Every card draws
+  its frame round its content, and `ha-card` drew a second one from the
+  theme's `--ha-card-border-width` — 1 px unless the theme turns it off. In a
+  popup, which sets that border on purpose so Home Assistant's own cards get a
+  rim, an M3 card stood out with a double rim whose inner corners were cut
+  off; in the detail sheet the same border was a square box. `ha-card` no
+  longer draws a border on any card that has its own frame. The remote and
+  router cards also round that frame itself: they rounded only the outer
+  card, whose clip cut the frame away at the corners.
 
 - **The card asks every entity whether the device is on, not just one.** The
   Google TV card greyed itself out after an app restart while the box was

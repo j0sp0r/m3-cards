@@ -803,9 +803,15 @@ export class M3RouterCard extends TemplatedCard(LitElement) implements LovelaceC
     glassCardStyles,
     cardHeaderStyles,
     css`
+      /* Rounded on both: the frame is .card-inner's border, and ha-card's
+         clip alone cut it away at the corners. */
+      ha-card,
+      .card-inner {
+        border-radius: var(--m3r-radius, 28px);
+      }
+
       ha-card {
         color: var(--m3r-text, var(--primary-text-color));
-        border-radius: var(--m3r-radius, 28px);
       }
 
       .card-inner {
