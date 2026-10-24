@@ -131,6 +131,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   the request failed, it asked again on every render, and every answer caused
   another render. It now remembers that it asked.
 
+- **The remote card is round in a wide column.** Above 440 px it is meant to
+  centre rather than stretch, but the limit sat on the inner frame, which
+  draws the fill and border, while the corners come from the outer card. In a
+  wider column that left a square box inside a round, empty card. The whole
+  card now stays at 440 px and centres.
+
 - **The card asks every entity whether the device is on, not just one.** The
   Google TV card greyed itself out after an app restart while the box was
   plainly running: its `media_player` comes from the **Cast** integration and
