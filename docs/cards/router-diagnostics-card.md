@@ -140,6 +140,7 @@ plainly what that means.
 | `confirm_timeout` | number | `4000` | How long the armed button waits, in milliseconds. |
 | `value_map` | map | — | Raw state → label for the cell/band grid. |
 | `accent_color`, `ok_color`, `warn_color`, `hot_color` | string | — | Colour overrides. |
+| `animation` | string | `auto` | `auto`, `on` or `off`. `off` stills the press shapes and the restart spinner. |
 | `text_color`, `secondary_text_color`, `card_background`, `glass_background`, `radius`, `corners`, `card_version` | — | — | The usual shared appearance options. |
 
 Its companion, [M3 Router Card](#m3-router-card), carries the connection, the

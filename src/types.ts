@@ -2880,6 +2880,11 @@ export interface M3PopupCardConfig {
   /** Frosted glass behind the cards; default true, as on every card. */
   glass_background?: boolean;
   card_background?: string;
+  /** Set as the theme's text colours on the sheet, for every card on it. */
+  text_color?: string;
+  secondary_text_color?: string;
+  /** `off` opens and closes the sheet in place, without the slide. */
+  animation?: "auto" | "on" | "off";
   card_version?: string;
 }
 
@@ -3222,6 +3227,7 @@ export interface M3RouterDiagnosticsCardConfig extends RouterEntityOverrides, No
   text_color?: string;
   secondary_text_color?: string;
   card_background?: string;
+  animation?: "auto" | "on" | "off";
   glass_background?: boolean;
   radius?: number;
   corners?: CornerRadiusConfig;

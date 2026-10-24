@@ -5005,6 +5005,7 @@ something.
 | `status_entity` | string | discovered | The status sensor whose text the header shows. |
 | `notify_enabled`, `notify_service`, `notify_title`, `notify_message` | — | — | The error notification above. Off until switched on. |
 | `accent_color` | string | the state colour | Pins the card to one colour instead of letting the state pick it. |
+| `animation` | string | `auto` | `auto`, `on` or `off`. `off` stills the press shapes and the restart spinner. |
 | `text_color`, `secondary_text_color`, `card_background`, `glass_background`, `radius`, `corners`, `card_version` | — | — | The usual shared appearance options. |
 
 Every companion entity can also be named explicitly — `map_entity`,
@@ -5683,6 +5684,7 @@ more than enough to put a tariff warning on the wrong side of the line.
 | `value_map` | map | — | Raw state → label, applied before the built-in vocabulary table. |
 | `tap_action` | action | `more-info` | What a tap on the header does. |
 | `accent_color`, `download_color`, `upload_color`, `online_color`, `offline_color` | string | — | Colour overrides. |
+| `animation` | string | `auto` | `auto`, `on` or `off`. `off` stills the press shapes and the restart spinner. |
 | `text_color`, `secondary_text_color`, `card_background`, `glass_background`, `radius`, `corners`, `card_version` | — | — | The usual shared appearance options. |
 
 ## What is deliberately not here
@@ -5830,6 +5832,7 @@ plainly what that means.
 | `confirm_timeout` | number | `4000` | How long the armed button waits, in milliseconds. |
 | `value_map` | map | — | Raw state → label for the cell/band grid. |
 | `accent_color`, `ok_color`, `warn_color`, `hot_color` | string | — | Colour overrides. |
+| `animation` | string | `auto` | `auto`, `on` or `off`. `off` stills the press shapes and the restart spinner. |
 | `text_color`, `secondary_text_color`, `card_background`, `glass_background`, `radius`, `corners`, `card_version` | — | — | The usual shared appearance options. |
 
 Its companion, [M3 Router Card](#m3-router-card), carries the connection, the
@@ -6355,6 +6358,9 @@ cards:
 | `icon` | string | – | Icon before the heading, and on the edit-mode placeholder |
 | `glass_background` | boolean | `true` | Frosted glass behind the cards, as on every card. `false` makes the sheet the solid card colour |
 | `card_background` | string | – | Override the sheet's background colour |
+| `text_color` | string | – | Text colour on the sheet — set as the theme's text colour there, so the cards in it follow too |
+| `secondary_text_color` | string | – | Secondary text colour on the sheet, for the cards in it as well |
+| `animation` | string | `auto` | `auto`, `on` or `off`. `off` opens and closes the sheet in place, without the slide |
 | `cards` | list | `[]` | The cards in the sheet, in display order. Any Lovelace card — M3 or otherwise. Each one's `grid_options.columns` (of 12) sets its width |
 
 </details>

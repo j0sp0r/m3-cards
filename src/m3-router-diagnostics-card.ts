@@ -456,7 +456,7 @@ export class M3RouterDiagnosticsCard
 
     return html`
       <ha-card style=${vars}>
-        <div class="card-inner ${glassCardClass(cfg.glass_background)}">
+        <div class="card-inner ${glassCardClass(cfg.glass_background)} ${shouldAnimate(cfg.animation) ? "" : "no-animations"}">
           ${this._renderHeader(findings)}
           ${cfg.show_temperatures === false ? nothing : this._renderTemperatures()}
           ${cfg.show_throttle === false ? nothing : this._renderThrottle()}
@@ -674,7 +674,7 @@ export class M3RouterDiagnosticsCard
           : this._t("router_reboot");
     return html`
       <button
-        class="reboot ${phase} ${shouldAnimate(undefined) ? "" : "no-motion"}"
+        class="reboot ${phase}"
         type="button"
         aria-label=${label}
         ?disabled=${phase === "running"}
@@ -986,8 +986,13 @@ export class M3RouterDiagnosticsCard
           color 180ms ${unsafeCSS(STANDARD_EASING)};
       }
 
-      .reboot.no-motion {
+      /* animation: off, or the system asking for less motion */
+      .no-animations .temp-row,
+      .no-animations .reboot {
         transition: none;
+      }
+      .no-animations .reboot ha-icon.spin {
+        animation: none;
       }
 
       /* Armed: the tint becomes the full colour and the pill squares off, so

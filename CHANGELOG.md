@@ -17,6 +17,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   `columns: 6` share a row. The cards are built on first opening and kept
   from then on. The sheet is frosted glass by default (`glass_background`,
   `card_background`), and Home Assistant's own cards in it get the M3 rim.
+  `text_color` and `secondary_text_color` become the theme's text colours on
+  the sheet, so the cards in it follow a light background too, and
+  `animation: off` opens and closes it in place, as every card's own setting
+  does.
   On the dashboard the card takes no space; in edit mode it is a placeholder
   naming its hash. Scrolling over Home Assistant's own cards in a sheet no
   longer opens the row under the thumb: their tap handler waits for a
@@ -112,7 +116,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   The diagnostics card carries modem temperatures, cell and band detail,
   reachability checks and a restart button that takes two taps and disarms
   itself after four seconds, because an armed red button left on a wall tablet
-  is a trap for whoever walks past next.
+  is a trap for whoever walks past next. Its `animation` option stills the
+  press shapes and the restart spinner, like every other card's.
 
 ### Fixed
 

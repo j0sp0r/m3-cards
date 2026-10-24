@@ -35,6 +35,14 @@ export class M3PopupSheet extends M3SheetBase {
   @property({ attribute: false }) public onClosed?: () => void;
   /** A resolved colour for the surface, from the popup's `card_background`. */
   @property({ attribute: false }) public background?: string;
+  /**
+   * Resolved text colours, from the popup's `text_color` and
+   * `secondary_text_color`. Set as the theme's own variables on the surface,
+   * so the cards on it follow too: text chosen for a light background has to
+   * reach every card on that background, not only the heading.
+   */
+  @property({ attribute: false }) public textColor?: string;
+  @property({ attribute: false }) public secondaryTextColor?: string;
 
   public open(opener?: HTMLElement): void {
     this.present(opener, () => {
@@ -43,7 +51,11 @@ export class M3PopupSheet extends M3SheetBase {
   }
 
   protected sheetStyle(): string {
-    return this.background ? `background: ${this.background};` : "";
+    return [
+      this.background ? `background: ${this.background};` : "",
+      this.textColor ? `--primary-text-color: ${this.textColor}; color: ${this.textColor};` : "",
+      this.secondaryTextColor ? `--secondary-text-color: ${this.secondaryTextColor};` : "",
+    ].join(" ");
   }
 
   protected leaveHistory(goBack: boolean): Promise<void> {

@@ -52,6 +52,7 @@ export class M3PopupCardEditor extends LitElement implements LovelaceCardEditor<
       title: "editor_popup_title",
       icon: "editor_popup_icon",
       glass_background: "editor_glass_background",
+      animation: "editor_progress_animation",
     };
     const key = labels[schema.name];
     return key ? this._t(key) : schema.name;
@@ -60,14 +61,31 @@ export class M3PopupCardEditor extends LitElement implements LovelaceCardEditor<
   private _computeHelper = (schema: SchemaEntry): string | undefined =>
     schema.name === "hash" ? this._t("editor_popup_hash_helper") : undefined;
 
-  private _colorChanged(value: string): void {
+  private _colorChanged(key: "card_background" | "text_color" | "secondary_text_color", value: string): void {
     if (!this._config) return;
-    const { card_background: _drop, ...rest } = this._config;
-    this._emit(value ? { ...rest, card_background: value } : (rest as M3PopupCardConfig));
+    const next = { ...this._config };
+    if (value) next[key] = value;
+    else delete next[key];
+    this._emit(next);
   }
 
   private _appearanceSchema(): SchemaEntry[] {
-    return [{ name: "glass_background", selector: { boolean: {} } }];
+    return [
+      { name: "glass_background", selector: { boolean: {} } },
+      {
+        name: "animation",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "auto", label: this._t("editor_progress_animation_auto") },
+              { value: "on", label: this._t("editor_progress_animation_on") },
+              { value: "off", label: this._t("editor_progress_animation_off") },
+            ],
+          },
+        },
+      },
+    ];
   }
 
   private _schema(): SchemaEntry[] {
@@ -102,13 +120,22 @@ export class M3PopupCardEditor extends LitElement implements LovelaceCardEditor<
           <div class="panel-content">
             <ha-form
               .hass=${this.hass}
-              .data=${{ glass_background: this._config.glass_background !== false }}
+              .data=${{
+                glass_background: this._config.glass_background !== false,
+                animation: this._config.animation ?? "auto",
+              }}
               .schema=${this._appearanceSchema()}
               .computeLabel=${this._computeLabel}
               @value-changed=${this._valueChanged}
             ></ha-form>
             ${colorRow(this._t("editor_progress_card_background"), this._config.card_background, (v) =>
-              this._colorChanged(v),
+              this._colorChanged("card_background", v),
+            )}
+            ${colorRow(this._t("editor_progress_text_color"), this._config.text_color, (v) =>
+              this._colorChanged("text_color", v),
+            )}
+            ${colorRow(this._t("editor_progress_secondary_text_color"), this._config.secondary_text_color, (v) =>
+              this._colorChanged("secondary_text_color", v),
             )}
           </div>
         </ha-expansion-panel>

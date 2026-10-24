@@ -7,6 +7,7 @@ import { buildCssVars, resolveThemeColor, tintInk, tintOn } from "./shared/color
 import { GroupChildrenController } from "./shared/group-children";
 import { hashMatches, normalizeHash, popupCardSpan, withoutHash } from "./shared/popup-hash";
 import { TemplatedCard } from "./shared/templated-card";
+import { shouldAnimate } from "./shared/animation";
 import "./shared/popup-sheet";
 import type { M3PopupSheet } from "./shared/popup-sheet";
 
@@ -237,13 +238,28 @@ export class M3PopupCard extends TemplatedCard(LitElement) implements LovelaceCa
     return { columns: "full", rows: "auto" };
   }
 
+  private _resolved(key: "card_background" | "text_color" | "secondary_text_color"): string | undefined {
+    const value = this._config?.[key];
+    return value ? resolveThemeColor(value) : undefined;
+  }
+
+  private get _ownColours(): boolean {
+    return !!(this._config?.card_background || this._config?.text_color);
+  }
+
   protected render() {
     if (!this._config) return nothing;
     const hash = this._hash;
     const tint = buildCssVars({
       "pp-icon-bg": tintOn(this, "var(--primary-color)", undefined, 20),
       "pp-icon-ink": tintInk(this, "var(--primary-color)", undefined, 20, 3),
-      "pp-button-bg": tintOn(this, "var(--primary-text-color)", undefined, 5),
+      "pp-button-bg": this._ownColours
+        ? // tintOn reads the dashboard's surface and text, which a popup with
+          // colours of its own has replaced: mix the button from those instead
+          `color-mix(in srgb, ${this._resolved("text_color") ?? "var(--primary-text-color)"} 8%, ${
+            this._resolved("card_background") ?? "var(--ha-card-background, var(--card-background-color))"
+          })`
+        : tintOn(this, "var(--primary-text-color)", undefined, 5),
     });
     return html`
       ${this._visible
@@ -266,7 +282,10 @@ export class M3PopupCard extends TemplatedCard(LitElement) implements LovelaceCa
         .closeLabel=${this._t("detail_close")}
         .tint=${tint}
         .glass=${this._config.glass_background !== false}
-        .background=${this._config.card_background ? resolveThemeColor(this._config.card_background) : undefined}
+        .background=${this._resolved("card_background")}
+        .textColor=${this._resolved("text_color")}
+        .secondaryTextColor=${this._resolved("secondary_text_color")}
+        .animated=${shouldAnimate(this._config.animation)}
         .historyLeaver=${this._leaveHistory}
         .onClosed=${this._onSheetClosed}
       ></m3-popup-sheet>

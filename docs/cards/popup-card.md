@@ -73,6 +73,9 @@ cards:
 | `icon` | string | – | Icon before the heading, and on the edit-mode placeholder |
 | `glass_background` | boolean | `true` | Frosted glass behind the cards, as on every card. `false` makes the sheet the solid card colour |
 | `card_background` | string | – | Override the sheet's background colour |
+| `text_color` | string | – | Text colour on the sheet — set as the theme's text colour there, so the cards in it follow too |
+| `secondary_text_color` | string | – | Secondary text colour on the sheet, for the cards in it as well |
+| `animation` | string | `auto` | `auto`, `on` or `off`. `off` opens and closes the sheet in place, without the slide |
 | `cards` | list | `[]` | The cards in the sheet, in display order. Any Lovelace card — M3 or otherwise. Each one's `grid_options.columns` (of 12) sets its width |
 
 </details>

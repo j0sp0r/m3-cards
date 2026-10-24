@@ -1,4 +1,12 @@
-import { LitElement, html, css, unsafeCSS, type CSSResultGroup, type TemplateResult } from "lit";
+import {
+  LitElement,
+  html,
+  css,
+  unsafeCSS,
+  type CSSResultGroup,
+  type PropertyValues,
+  type TemplateResult,
+} from "lit";
 import { property, query } from "lit/decorators.js";
 import {
   DETAIL_GRIP_HEIGHT,
@@ -45,6 +53,11 @@ function relayGestureToDocument(): void {
 export abstract class M3SheetBase extends LitElement {
   /** The suite's frosted surface, as a card's `glass_background`; solid otherwise. */
   @property({ attribute: false }) public glass = true;
+  /**
+   * False for a card set to `animation: off`: the sheet then opens and closes
+   * in place, as it already does when the system asks for reduced motion.
+   */
+  @property({ attribute: false }) public animated = true;
 
   @query("dialog") protected _dialog?: HTMLDialogElement;
   @query(".sheet") protected _sheetEl?: HTMLElement;
@@ -141,13 +154,17 @@ export abstract class M3SheetBase extends LitElement {
       if (dialog.open) dialog.close();
       this.closed();
     };
-    if (immediate || isReducedMotion()) {
+    if (immediate || this._still()) {
       done();
       return history;
     }
     this._place(0, true);
     this._closeTimer = window.setTimeout(done, DETAIL_SHEET_SLIDE_MS);
     return history;
+  }
+
+  protected willUpdate(changed: PropertyValues): void {
+    if (changed.has("animated")) this.toggleAttribute("still", !this.animated);
   }
 
   protected firstUpdated(): void {
@@ -163,7 +180,7 @@ export abstract class M3SheetBase extends LitElement {
       onDrag: (f) => this._place(f, false),
       onSettle: (f) => (f <= 0 ? this.dismiss() : this._place(1, true)),
       onTap: () => undefined,
-      reducedMotion: isReducedMotion,
+      reducedMotion: this._still,
     });
     if (grip) this._detach.push(this._gesture.attachHandle(grip));
     if (body) {
@@ -198,12 +215,14 @@ export abstract class M3SheetBase extends LitElement {
   private _place(fraction: number, animated: boolean): void {
     const el = this._sheetEl;
     if (!el) return;
-    el.style.transition = animated && !isReducedMotion() ? "" : "none";
+    el.style.transition = animated && !this._still() ? "" : "none";
     el.style.setProperty("--sheet-offset", `${(1 - fraction) * 100}%`);
     el.style.setProperty("--sheet-open", String(fraction));
   }
 
   protected _close = (): Promise<void> => this.dismiss();
+
+  private _still = (): boolean => !this.animated || isReducedMotion();
 
   private _onBackdrop(e: MouseEvent): void {
     if (e.target !== e.currentTarget) return;
@@ -254,6 +273,10 @@ export abstract class M3SheetBase extends LitElement {
     dialog:focus-visible,
     .sheet:focus {
       outline: none;
+    }
+
+    :host([still]) dialog::backdrop {
+      transition: none;
     }
 
     dialog::backdrop {

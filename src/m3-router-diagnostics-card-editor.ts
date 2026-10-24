@@ -172,6 +172,7 @@ export class M3RouterDiagnosticsCardEditor extends LitElement implements Lovelac
       confirm_timeout: "editor_router_confirm_timeout",
       reboot_action: "editor_router_reboot_action",
       glass_background: "editor_glass_background",
+      animation: "editor_progress_animation",
       ...radiusLabelMap,
     };
     const key = map[schema.name];
@@ -460,6 +461,33 @@ export class M3RouterDiagnosticsCardEditor extends LitElement implements Lovelac
             ${colorRow(this._t("editor_progress_text_color"), cfg.text_color, (v) => this._colorChanged("text_color", v))}
             ${colorRow(this._t("editor_progress_secondary_text_color"), cfg.secondary_text_color, (v) => this._colorChanged("secondary_text_color", v))}
             ${colorRow(this._t("editor_progress_card_background"), cfg.card_background, (v) => this._colorChanged("card_background", v))}
+          </div>
+        </ha-expansion-panel>
+
+        <ha-expansion-panel outlined .header=${this._t("editor_progress_animation")}>
+          <ha-icon slot="leading-icon" icon="mdi:wave"></ha-icon>
+          <div class="panel-content">
+            <ha-form
+              .hass=${this.hass}
+              .data=${{ animation: cfg.animation ?? "auto" }}
+              .schema=${[
+                {
+                  name: "animation",
+                  selector: {
+                    select: {
+                      mode: "dropdown",
+                      options: [
+                        { value: "auto", label: this._t("editor_progress_animation_auto") },
+                        { value: "on", label: this._t("editor_progress_animation_on") },
+                        { value: "off", label: this._t("editor_progress_animation_off") },
+                      ],
+                    },
+                  },
+                },
+              ]}
+              .computeLabel=${this._computeLabel}
+              @value-changed=${this._valueChanged}
+            ></ha-form>
           </div>
         </ha-expansion-panel>
 
