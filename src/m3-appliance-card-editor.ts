@@ -9,7 +9,7 @@ import type {
   M3ApplianceCardConfig,
   StatusRule,
 } from "./types";
-import { DEFAULT_APPLIANCE_RADIUS } from "./const";
+import { DEFAULT_APPLIANCE_RADIUS, DEFAULT_DONE_STATES } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import {
   colorRow,
@@ -25,6 +25,18 @@ import {
   renderAppearanceSection,
   type AppearanceState,
 } from "./shared/appearance-editor";
+import {
+  notifyActions,
+  notifyMessageSchema,
+  notifyServiceSchema,
+  notifyStyles,
+  notifyTitleSchema,
+  notifyTokenHint,
+  renderNotifyControls,
+  resolveAutomationId,
+  saveNotifyAutomation,
+  setAutomationEnabled,
+} from "./shared/notify-editor";
 
 /** The four repeatable list sections, which all behave identically. */
 type ListField = "sliders" | "selects" | "buttons" | "chips";
@@ -68,6 +80,115 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
     showCorners: false,
     cornerCustom: {},
   };
+  @state() private _notifyBusy = false;
+  @state() private _notifyStatus: "idle" | "success" | "error" = "idle";
+  @state() private _notifyDetail = "";
+
+  // ---- notification -----------------------------------------------------------
+
+  private get _cardName(): string {
+    const entity = this._config?.entity;
+    return (
+      this._config?.name ||
+      (entity ? (this.hass?.states?.[entity]?.attributes?.friendly_name ?? entity) : "")
+    );
+  }
+
+  /** A state trigger compares verbatim; the card does not. Emit the usual casings. */
+  private _stateVariants(values: string[]): string[] {
+    const out = new Set<string>();
+    for (const raw of values) {
+      const value = raw.trim();
+      if (!value) continue;
+      const lower = value.toLowerCase();
+      out.add(value);
+      out.add(lower);
+      out.add(lower.charAt(0).toUpperCase() + lower.slice(1));
+    }
+    return [...out];
+  }
+
+  /** On creates the automation if needed and enables it; off pauses it, so nothing is lost. */
+  private async _toggleNotify(enabled: boolean): Promise<void> {
+    if (!this._config || !this.hass) return;
+    this._emit({ ...this._config, notify_enabled: enabled });
+    if (enabled) {
+      await this._setupNotify();
+      return;
+    }
+    const id = this._config.notify_automation_id;
+    if (id) await setAutomationEnabled(this.hass, id, false);
+  }
+
+  /**
+   * "Finished" has two witnesses, and the automation listens to both: the
+   * status reaching a done state, and the progress reaching 100%. A dryer
+   * needs the second — Home Connect holds it at `run` through the anti-crease
+   * phase until someone opens the door — and a machine that reports both
+   * would announce itself twice, so a run that already notified in the last
+   * half hour stays quiet.
+   */
+  private async _setupNotify(): Promise<void> {
+    const cfg = this._config;
+    if (!this.hass || !cfg) return;
+    const targets = cfg.notify_service ?? [];
+    if (targets.length === 0) {
+      this._notifyStatus = "error";
+      this._notifyDetail = this._t("editor_notify_missing");
+      return;
+    }
+    this._notifyBusy = true;
+    this._notifyStatus = "idle";
+    this._notifyDetail = "";
+    try {
+      const done = this._stateVariants(cfg.done_states ?? DEFAULT_DONE_STATES);
+      const cardName = this._cardName;
+      const automationId = resolveAutomationId("appliance_done", cfg.notify_automation_id);
+      const message = this._t("editor_progress_notify_message").replace("{name}", cardName);
+      const triggers: Record<string, unknown>[] = [
+        // not_from leaves out a restart or an entity coming back: only a run
+        // that ends is announced.
+        { trigger: "state", entity_id: cfg.entity, to: done, not_from: ["unavailable", "unknown", ...done] },
+      ];
+      if (cfg.progress?.percentage_entity) {
+        triggers.push({ trigger: "numeric_state", entity_id: cfg.progress.percentage_entity, above: 99 });
+      }
+      await saveNotifyAutomation(this.hass, {
+        id: automationId,
+        alias: `${cardName}: ${this._t("editor_progress_notify_alias")}`,
+        description: this._t("editor_appliance_notify_description"),
+        mode: "single",
+        triggers,
+        conditions: [
+          {
+            condition: "template",
+            value_template:
+              "{{ this.attributes.last_triggered is none or " +
+              "(now() - this.attributes.last_triggered).total_seconds() > 1800 }}",
+          },
+        ],
+        actions: notifyActions(targets, cardName, message, {
+          title: cfg.notify_title,
+          message: cfg.notify_message,
+          tokens: { geraet: cardName },
+        }),
+      });
+      if (cfg.notify_automation_id !== automationId) {
+        this._emit({ ...cfg, notify_automation_id: automationId });
+      }
+      await setAutomationEnabled(this.hass, automationId, true);
+      this._notifyStatus = "success";
+    } catch (e) {
+      this._notifyStatus = "error";
+      this._notifyDetail = e instanceof Error ? e.message : String(e);
+    } finally {
+      this._notifyBusy = false;
+    }
+  }
+
+  private _notifySchema(): SchemaEntry[] {
+    return [notifyServiceSchema(this.hass), notifyTitleSchema("notify_title"), notifyMessageSchema("notify_message")];
+  }
 
   public setConfig(config: M3ApplianceCardConfig): void {
     this._config = config;
@@ -490,6 +611,9 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
       style: "editor_appliance_select_style",
       show_state: "editor_appliance_chip_show_state",
       layout: "editor_appliance_layout",
+      notify_service: "editor_notify_service",
+      notify_title: "editor_notify_title",
+      notify_message: "editor_notify_message",
       collapsible: "editor_vacuum_collapsible",
       collapse_blocks: "editor_vacuum_collapse_blocks",
       default_collapsed: "editor_vacuum_default_collapsed",
@@ -706,6 +830,37 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
           </div>
         </ha-expansion-panel>
 
+        <ha-expansion-panel outlined .header=${this._t("editor_notify")}>
+          <ha-icon slot="leading-icon" icon="mdi:bell-outline"></ha-icon>
+          <div class="panel-content">
+            <div class="hint">${this._t("editor_appliance_notify_hint")}</div>
+            <ha-form
+              .hass=${this.hass}
+              .data=${{
+                notify_service: cfg.notify_service ?? [],
+                notify_title: cfg.notify_title ?? "",
+                notify_message: cfg.notify_message ?? "",
+              }}
+              .schema=${this._notifySchema()}
+              .computeLabel=${this._computeLabel}
+              @value-changed=${this._valueChanged}
+            ></ha-form>
+            <div class="hint">${notifyTokenHint(this._language, ["geraet"])}</div>
+            ${renderNotifyControls({
+              hass: this.hass,
+              enabled: cfg.notify_enabled ?? false,
+              automationId: cfg.notify_automation_id,
+              blockedReason: cfg.notify_service?.length ? undefined : this._t("editor_notify_missing"),
+              language: this._language,
+              busy: this._notifyBusy,
+              status: this._notifyStatus,
+              detail: this._notifyDetail,
+              onToggle: (on) => this._toggleNotify(on),
+              onSetup: () => this._setupNotify(),
+            })}
+          </div>
+        </ha-expansion-panel>
+
         <ha-expansion-panel outlined .header=${this._t("editor_progress_colors")}>
           <ha-icon slot="leading-icon" icon="mdi:palette-outline"></ha-icon>
           <div class="panel-content">
@@ -759,6 +914,7 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
 
   static styles = [
     editorStyles,
+    notifyStyles,
     css`
       .entry-block,
       .rule-block {

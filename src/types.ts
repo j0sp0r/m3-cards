@@ -2969,7 +2969,7 @@ export interface AppliancePopupConfig {
   content: Record<string, unknown>;
 }
 
-export interface M3ApplianceCardConfig {
+export interface M3ApplianceCardConfig extends NotifyConfigBase {
   type: string;
   /**
    * The entity that says what the appliance is doing. Usually a `sensor`
@@ -2983,6 +2983,12 @@ export interface M3ApplianceCardConfig {
   attribute?: string;
   /** First match wins; a rule with no condition is the catch-all. */
   states?: StatusRule[];
+  /**
+   * The states that mean "finished", for the notification. Left out, the
+   * suite's defaults — `finished`, `finish`, `end`, `beenden` — which cover
+   * Home Connect and SmartThings.
+   */
+  done_states?: string[];
 
   progress?: ApplianceProgressConfig;
   sliders?: ApplianceSliderConfig[];

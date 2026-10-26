@@ -133,6 +133,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   that is mostly read, where the figures are the point. The default stays
   the row of pills.
 
+- **The appliance card can notify when the machine is done**, as the
+  progress card already could: a "Notification" section in its editor sets
+  up the automation. It listens for the state reaching a finished value and
+  for the progress reaching 100% — a dryer that keeps tumbling against
+  creases is done all the same — and stays quiet the second time for one run.
+  `done_states` overrides which states count as finished.
+
 ### Fixed
 
 - **The NAS card's notification no longer arrives twice, and says what is

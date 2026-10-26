@@ -2129,6 +2129,9 @@ const translations = {
     editor_appliance_chip_label: "Fester Text statt Name und Zustand",
     editor_appliance_chip_states: "Statustexte für diesen Chip",
     editor_appliance_layout: "Sichtbare Blöcke",
+    editor_appliance_notify_hint:
+      "Benachrichtigt, wenn das Gerät fertig ist: sobald der Zustand einen Fertig-Wert erreicht oder der Fortschritt 100 % — ein Trockner im Knitterschutz ist trotzdem fertig. Pro Durchlauf nur einmal.",
+    editor_appliance_notify_description: "Von der M3 Appliance Card angelegt: benachrichtigt, wenn das Gerät fertig ist.",
     editor_appliance_collapse_state_entity: "Faltung in einem Helfer speichern (optional)",
     editor_appliance_collapse_blocks_hint:
       "Ausklappbar lässt Name, Zustand und Restzeit stehen und klappt den Rest weg. Leer gelassen faltet „Was mitfaltet“ alle Blöcke; wähle einzelne, um etwa den Fortschritt sichtbar zu halten.",
@@ -4757,6 +4760,9 @@ const translations = {
     editor_appliance_chip_label: "Fixed text instead of name and state",
     editor_appliance_chip_states: "Status texts for this chip",
     editor_appliance_layout: "Visible blocks",
+    editor_appliance_notify_hint:
+      "Sends a message when the appliance finishes: when its state reaches a finished value, or its progress reaches 100% — a dryer that keeps tumbling against creases is done all the same. Not twice for one run.",
+    editor_appliance_notify_description: "Created by the M3 Appliance Card: notifies when the appliance has finished.",
     editor_appliance_collapse_state_entity: "Keep the fold in a helper (optional)",
     editor_appliance_collapse_blocks_hint:
       "Collapsible keeps the name, state and remaining time and folds the rest away. Left empty, \"What folds away\" takes every block; pick some to keep, say, the progress in view.",
