@@ -187,20 +187,28 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
       if (cfg.notify_on_start) {
         triggers.push({ trigger: "state", id: "start", entity_id: cfg.entity, from: idle, not_to: ["unavailable", "unknown", ...idle] });
         // The end, when the card knows it: a completion time is printed as is,
-        // minutes left are added to now.
-        const end = remaining
+        // minutes left are added to now. `t` is set once, up front, so both the
+        // built-in sentence and a custom text's {ende} can use it.
+        const prelude = remaining
           ? `{% set r = states('${remaining}') %}` +
             `{% set t = as_timestamp(r, none) if not is_number(r) else (now().timestamp() + r | float * 60) %}` +
-            `{% if t and t > now().timestamp() + 60 %} ${this._t("editor_appliance_notify_start_until")} {{ t | timestamp_custom('%H:%M') }}.{% endif %}`
-          : "";
-        const startMessage = this._t("editor_appliance_notify_start_message").replace("{name}", cardName) + end;
+            `{% set t = t if t and t > now().timestamp() + 60 else none %}`
+          : "{% set t = none %}";
+        const startMessage =
+          this._t("editor_appliance_notify_start_message").replace("{name}", cardName) +
+          `{% if t %} ${this._t("editor_appliance_notify_start_until")} {{ t | timestamp_custom('%H:%M') }}.{% endif %}`;
         choose.push({
           conditions: [{ condition: "trigger", id: "start" }],
           sequence: [
             // A machine knows its end only once it has weighed the load, so the
             // message waits for it rather than announcing "done around now".
             ...(remaining ? [{ delay: { seconds: 90 } }] : []),
-            ...notifyActions(targets, cardName, startMessage, { title: cfg.notify_title, tokens: { geraet: cardName } }),
+            ...notifyActions(targets, cardName, startMessage, {
+              title: cfg.notify_title,
+              message: cfg.notify_start_message,
+              prelude,
+              tokens: { geraet: cardName, ende: "{{ t | timestamp_custom('%H:%M') if t else '–' }}" },
+            }),
           ],
         });
       }
@@ -226,6 +234,16 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
       this._notifyBusy = false;
     }
   }
+
+  /** Typed text is kept in the config; "Update" writes it into the automation. */
+  private _startTextChanged = (ev: CustomEvent): void => {
+    if (!this._config) return;
+    const text = (ev.detail.value as { notify_start_message?: string }).notify_start_message ?? "";
+    const next = { ...this._config };
+    if (text.trim()) next.notify_start_message = text;
+    else delete next.notify_start_message;
+    this._emit(next);
+  };
 
   /** The start switch rebuilds the automation straight away when it is on. */
   private _startChanged = async (ev: CustomEvent): Promise<void> => {
@@ -904,6 +922,17 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
               .computeLabel=${() => this._t("editor_appliance_notify_on_start")}
               @value-changed=${this._startChanged}
             ></ha-form>
+            ${cfg.notify_on_start
+              ? html`<ha-form
+                    .hass=${this.hass}
+                    .data=${{ notify_start_message: cfg.notify_start_message ?? "" }}
+                    .schema=${[{ name: "notify_start_message", selector: { text: { multiline: true } } }]}
+                    .computeLabel=${() => this._t("editor_appliance_notify_start_text")}
+                    @value-changed=${this._startTextChanged}
+                  ></ha-form>
+                  <div class="hint">${notifyTokenHint(this._language, ["geraet", "ende"])}
+                    ${this._t("editor_appliance_notify_start_text_hint")}</div>`
+              : nothing}
             <div class="hint">${notifyTokenHint(this._language, ["geraet"])}</div>
             ${renderNotifyControls({
               hass: this.hass,

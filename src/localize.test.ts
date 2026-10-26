@@ -64,6 +64,7 @@ const SUBSTITUTED_ELSEWHERE = new Map<string, string>([
 const LITERAL_BRACES = new Map<string, string>([
   ["editor_progress_status_text_running_helper", "documents {remaining} to the user"],
   ["editor_climate_max_visible_helper", "quotes the «{n} weitere» label"],
+  ["editor_appliance_notify_start_text_hint", "documents {ende} to the user"],
 ]);
 
 const ALLOWED = new Map([...SUBSTITUTED_ELSEWHERE, ...LITERAL_BRACES]);

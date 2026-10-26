@@ -2992,6 +2992,11 @@ export interface M3ApplianceCardConfig extends NotifyConfigBase {
   /** Also notify when a run starts, with its expected end when the card knows it. */
   notify_on_start?: boolean;
   /**
+   * The start message, in place of the built-in one. `{geraet}` is the card's
+   * name and `{ende}` the expected end as a time, or "–" while it is unknown.
+   */
+  notify_start_message?: string;
+  /**
    * The states that mean "not running", for the start notification: a run
    * starts when the state leaves one of these. Left out, the suite's defaults,
    * which cover Home Connect (`ready`, `inactive`) and SmartThings (`none`).
