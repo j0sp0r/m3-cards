@@ -143,7 +143,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   run begins, with its expected end — "Waschmaschine läuft. Fertig gegen
   18:02." — once the machine has settled it; `notify_start_message` replaces
   that text, with `{geraet}` and `{ende}` (the expected end) as placeholders,
-  and `idle_states` overrides which states count as not running.
+  and `idle_states` overrides which states count as not running. The editor
+  shows every text prefilled with what is sent, to edit rather than to
+  write from nothing; a text left as it was keeps following the language.
 
 - **A card's notification can be filed under a category.** Wherever a card
   sets up a notification, its editor now offers the automation's category,

@@ -235,15 +235,47 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
     }
   }
 
-  /** Typed text is kept in the config; "Update" writes it into the automation. */
-  private _startTextChanged = (ev: CustomEvent): void => {
+  /**
+   * What the texts say when nobody changed them, written out with the
+   * placeholders so the fields can show them: someone editing a message starts
+   * from the one they get, rather than from an empty box.
+   */
+  private _defaultText(key: "notify_title" | "notify_message" | "notify_start_message"): string {
+    switch (key) {
+      case "notify_title":
+        return "{geraet}";
+      case "notify_message":
+        return this._t("editor_progress_notify_message").replace("{name}", "{geraet}");
+      default:
+        return `${this._t("editor_appliance_notify_start_message").replace("{name}", "{geraet}")} ${this._t(
+          "editor_appliance_notify_start_until",
+        )} {ende}.`;
+    }
+  }
+
+  /**
+   * A text left as prefilled, or emptied, leaves the config, so the built-in
+   * one applies: it follows the language and drops "done around" while the
+   * end is unknown, which a stored copy of it would not. "Update" writes a
+   * changed text into the automation.
+   */
+  private _notifyTextChanged = (ev: CustomEvent): void => {
     if (!this._config) return;
-    const text = (ev.detail.value as { notify_start_message?: string }).notify_start_message ?? "";
-    const next = { ...this._config };
-    if (text.trim()) next.notify_start_message = text;
-    else delete next.notify_start_message;
+    const next = { ...this._config, ...(ev.detail.value as Partial<M3ApplianceCardConfig>) };
+    for (const key of ["notify_title", "notify_message", "notify_start_message"] as const) {
+      if (!(key in (ev.detail.value as object))) continue;
+      const text = (next[key] ?? "").trim();
+      if (!text || text === this._defaultText(key)) delete next[key];
+    }
     this._emit(next);
   };
+
+  private _notifyLabel = (schema: SchemaEntry): string =>
+    schema.name === "notify_title"
+      ? this._t("editor_appliance_notify_title")
+      : schema.name === "notify_message"
+        ? this._t("editor_appliance_notify_done_text")
+        : this._computeLabel(schema);
 
   /** The start switch rebuilds the automation straight away when it is on. */
   private _startChanged = async (ev: CustomEvent): Promise<void> => {
@@ -908,12 +940,12 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
               .hass=${this.hass}
               .data=${{
                 notify_service: cfg.notify_service ?? [],
-                notify_title: cfg.notify_title ?? "",
-                notify_message: cfg.notify_message ?? "",
+                notify_title: cfg.notify_title ?? this._defaultText("notify_title"),
+                notify_message: cfg.notify_message ?? this._defaultText("notify_message"),
               }}
               .schema=${this._notifySchema()}
-              .computeLabel=${this._computeLabel}
-              @value-changed=${this._valueChanged}
+              .computeLabel=${this._notifyLabel}
+              @value-changed=${this._notifyTextChanged}
             ></ha-form>
             <ha-form
               .hass=${this.hass}
@@ -925,13 +957,12 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
             ${cfg.notify_on_start
               ? html`<ha-form
                     .hass=${this.hass}
-                    .data=${{ notify_start_message: cfg.notify_start_message ?? "" }}
+                    .data=${{ notify_start_message: cfg.notify_start_message ?? this._defaultText("notify_start_message") }}
                     .schema=${[{ name: "notify_start_message", selector: { text: { multiline: true } } }]}
                     .computeLabel=${() => this._t("editor_appliance_notify_start_text")}
-                    @value-changed=${this._startTextChanged}
+                    @value-changed=${this._notifyTextChanged}
                   ></ha-form>
-                  <div class="hint">${notifyTokenHint(this._language, ["geraet", "ende"])}
-                    ${this._t("editor_appliance_notify_start_text_hint")}</div>`
+                  <div class="hint">${this._t("editor_appliance_notify_start_text_hint")}</div>`
               : nothing}
             <div class="hint">${notifyTokenHint(this._language, ["geraet"])}</div>
             ${renderNotifyControls({
