@@ -139,6 +139,16 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   the request failed, it asked again on every render, and every answer caused
   another render. It now remembers that it asked.
 
+- **The progress card understands a completion time, and Home Connect's
+  states.** It read the remaining time with `parseFloat`, so an appliance that
+  reports *when* it will be done — Home Connect does, as a timestamp — showed
+  "2026 min remaining", and a duration in seconds was shown as minutes. It now
+  reads the remaining time the way the appliance card does: minutes, seconds,
+  hours, a clock string or a completion time, which it counts down by itself.
+  Home Connect's `run` and `finished` join the default running and done states,
+  so a Bosch or Siemens appliance works, and its "finished" notification
+  fires, without listing them.
+
 - **The remote card is round in a wide column.** Above 440 px it is meant to
   centre rather than stretch, but the limit sat on the inner frame, which
   draws the fill and border, while the corners come from the outer card. In a

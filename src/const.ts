@@ -365,6 +365,8 @@ export const SLIDER_DOMAINS = new Set([
 
 export const DEFAULT_PROGRESS_RADIUS = RADIUS.card;
 
+// The first six are Samsung's words, the last of each list Home Connect's
+// operation state (Bosch, Siemens, Neff, Gaggenau): `run` and `finished`.
 export const DEFAULT_RUNNING_STATES = [
   "wash",
   "waschen",
@@ -372,9 +374,10 @@ export const DEFAULT_RUNNING_STATES = [
   "schleudern",
   "rinse",
   "spülen",
+  "run",
 ];
 export const DEFAULT_PREPARING_STATES = ["beladungserkennung"];
-export const DEFAULT_DONE_STATES = ["end", "beenden"];
+export const DEFAULT_DONE_STATES = ["end", "beenden", "finished"];
 
 export const DEFAULT_PROGRESS_ACCENT = PALETTE.home;
 

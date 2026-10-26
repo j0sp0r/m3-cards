@@ -29,6 +29,8 @@ import { buildWavePath } from "./shared/wave";
 import { resolveCommonColors, tintOn, foregroundOn , tintBackground , resolveThemeColor } from "./shared/color-config";
 import { glassCardStyles, glassCardClass, renderMissingEntity } from "./shared/glass-card";
 import { TemplatedCard } from "./shared/templated-card";
+import { remainingMinutes } from "./shared/appliance";
+import { VisibleTicker } from "./shared/visible-ticker";
 
 console.info(
   `%c M3-PROGRESS-CARD %c v${CARD_VERSION} `,
@@ -47,6 +49,9 @@ export class M3ProgressCard extends TemplatedCard(LitElement) implements Lovelac
   @property({ attribute: false }) public hass?: HomeAssistant;
 
   @state() private _config?: M3ProgressCardConfig;
+  /** The clock a completion timestamp counts down against; see _onTick. */
+  @state() private _now = Date.now();
+  private readonly _ticker = new VisibleTicker(this, (now) => this._onTick(now));
 
   @state() private _phase = 0;
   @state() private _displayAmplitude = WAVE_AMPLITUDE;
@@ -122,6 +127,7 @@ export class M3ProgressCard extends TemplatedCard(LitElement) implements Lovelac
       this.requestUpdate();
     });
     this._intersectionObserver.observe(this);
+    this._ticker.connect();
   }
 
   public disconnectedCallback(): void {
@@ -131,6 +137,7 @@ export class M3ProgressCard extends TemplatedCard(LitElement) implements Lovelac
       this._handleVisibilityChange,
     );
     this._intersectionObserver?.disconnect();
+    this._ticker.disconnect();
     this._resizeObserver?.disconnect();
     this._stopAnimationLoop();
   }
@@ -187,15 +194,41 @@ export class M3ProgressCard extends TemplatedCard(LitElement) implements Lovelac
     return "ready";
   }
 
+  /**
+   * Minutes left, read the way the appliance card reads them: a number in
+   * whatever unit the entity gives, a clock string, or a completion
+   * timestamp. Home Connect gives the last, and parseFloat read
+   * "2026-10-26T15:42:00+00:00" as 2026 minutes.
+   */
+  private _remainingAt(now: number): number | undefined {
+    const id = this._config?.remaining_entity;
+    const st = id ? this.hass?.states[id] : undefined;
+    if (!st || st.state === "unavailable" || st.state === "unknown") return undefined;
+    return remainingMinutes(st.state, st.attributes, now);
+  }
+
+  /**
+   * A completion timestamp counts down with nothing changing in `hass`, so the
+   * card needs a clock of its own; a plain number is pushed by the integration
+   * and needs none. Only a change in the shown minute renders.
+   */
+  private _onTick(now: number): void {
+    const before = this._remainingAt(this._now);
+    const after = this._remainingAt(now);
+    if (before === undefined && after === undefined) return;
+    if (before !== undefined && after !== undefined && Math.round(before) === Math.round(after)) return;
+    this._now = now;
+  }
+
   private _statusText(
     category: StatusCategory,
-    remainingRaw: string | undefined,
+    remaining: string | undefined,
   ): string {
     if (category === "running") {
-      if (remainingRaw !== undefined) {
+      if (remaining !== undefined) {
         const template =
           this._config?.status_text_running ?? this._t("progress_status_running");
-        return template.replace("{remaining}", remainingRaw);
+        return template.replace("{remaining}", remaining);
       }
       return this._t("progress_status_running_no_remaining");
     }
@@ -309,22 +342,14 @@ export class M3ProgressCard extends TemplatedCard(LitElement) implements Lovelac
       ? Math.min(100, Math.max(0, rawPercent))
       : undefined;
 
-    const remainingEntity = this._config.remaining_entity
-      ? this.hass.states[this._config.remaining_entity]
-      : undefined;
-    const remainingRaw = remainingEntity?.state;
-    const hasRemaining =
-      remainingRaw !== undefined &&
-      remainingRaw !== "unavailable" &&
-      remainingRaw !== "unknown" &&
-      !isNaN(parseFloat(remainingRaw));
+    const remaining = this._remainingAt(this._now);
 
     const name =
       this._config.name || entity.attributes.friendly_name || this._config.entity;
     const icon = this._config.icon || "mdi:washing-machine";
     const statusText = this._statusText(
       category,
-      hasRemaining ? remainingRaw : undefined,
+      remaining === undefined ? undefined : String(Math.round(remaining)),
     );
 
     const showBar = category !== "ready";
