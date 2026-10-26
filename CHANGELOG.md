@@ -149,6 +149,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   so a Bosch or Siemens appliance works, and its "finished" notification
   fires, without listing them.
 
+- **The appliance card speaks Home Assistant's words.** A state without a rule
+  and a select option without a configured name were tidied from the raw
+  value, so Home Connect's `laundry_care_dryer_program_cotton` became
+  "Laundry care dryer program cotton" and `run` became "Run". They now take
+  the integration's own translation — "Baumwolle", "In Betrieb" — and fall
+  back to the tidied value only when there is none.
+
 - **The remote card is round in a wide column.** Above 440 px it is meant to
   centre rather than stretch, but the limit sat on the inner frame, which
   draws the fill and border, while the corners come from the outer card. In a

@@ -404,10 +404,23 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     return this._config?.layout?.length ? this._config.layout : DEFAULT_LAYOUT;
   }
 
+  /**
+   * Home Assistant's own word for a value of this entity — its translation of
+   * an enum state or select option ("laundry_care_dryer_program_cotton" is
+   * "Baumwolle") — or undefined when it has none and would hand the raw value
+   * straight back.
+   */
+  private _translated(st: HassEntity | undefined, value: string): string | undefined {
+    const format = this.hass?.formatEntityState;
+    if (!st || !format) return undefined;
+    const text = format({ ...st, state: value });
+    return text && text !== value ? text : undefined;
+  }
+
   /** A state nobody wrote a rule for, tidied up rather than shown as `heavy_duty`. */
   private _stateText(st: HassEntity | undefined, raw: string): string {
     const numeric = numericState(raw);
-    if (numeric === undefined) return prettifyState(raw);
+    if (numeric === undefined) return this._translated(st, raw) ?? prettifyState(raw);
     const unit = st?.attributes?.unit_of_measurement as string | undefined;
     const decimals = Math.min(2, (raw.split(/[.,]/)[1] ?? "").length);
     const value = formatNumber(this._language, numeric, {
@@ -998,7 +1011,8 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
         ? "dropdown"
         : (cfg.style ?? "icon_label");
 
-    const nameFor = (option: string): string => cfg.names?.[option] ?? prettifyOption(option);
+    const nameFor = (option: string): string =>
+      cfg.names?.[option] ?? this._translated(st, option) ?? prettifyOption(option);
     const select = (option: string): void =>
       this._call(domain, "select_option", { option }, cfg.entity);
 
