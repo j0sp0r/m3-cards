@@ -2129,6 +2129,9 @@ const translations = {
     editor_appliance_chip_label: "Fester Text statt Name und Zustand",
     editor_appliance_chip_states: "Statustexte für diesen Chip",
     editor_appliance_layout: "Sichtbare Blöcke",
+    editor_appliance_collapse_state_entity: "Faltung in einem Helfer speichern (optional)",
+    editor_appliance_collapse_blocks_hint:
+      "Ausklappbar lässt Name, Zustand und Restzeit stehen und klappt den Rest weg. Leer gelassen faltet „Was mitfaltet“ alle Blöcke; wähle einzelne, um etwa den Fortschritt sichtbar zu halten.",
     editor_appliance_layout_hint:
       "Bestimmt zugleich die Reihenfolge. Was hier fehlt, zeichnet die Karte nicht.",
     editor_appliance_block_progress: "Fortschritt",
@@ -4754,6 +4757,9 @@ const translations = {
     editor_appliance_chip_label: "Fixed text instead of name and state",
     editor_appliance_chip_states: "Status texts for this chip",
     editor_appliance_layout: "Visible blocks",
+    editor_appliance_collapse_state_entity: "Keep the fold in a helper (optional)",
+    editor_appliance_collapse_blocks_hint:
+      "Collapsible keeps the name, state and remaining time and folds the rest away. Left empty, \"What folds away\" takes every block; pick some to keep, say, the progress in view.",
     editor_appliance_layout_hint:
       "This is the order as well. Anything left out is not drawn at all.",
     editor_appliance_block_progress: "Progress",

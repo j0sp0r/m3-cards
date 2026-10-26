@@ -122,6 +122,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   is a trap for whoever walks past next. Its `animation` option stills the
   press shapes and the restart spinner, like every other card's.
 
+- **The appliance card folds**, like the vacuum and printer cards:
+  `collapsible` keeps the header — name, state and remaining time — and folds
+  the blocks below it away behind the suite's chevron. `collapse_blocks`
+  narrows what folds, `default_collapsed`, `collapse_memory` and
+  `collapse_state_entity` work as on the other cards.
+
 ### Fixed
 
 - **The NAS card's notification no longer arrives twice, and says what is
@@ -155,6 +161,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   "Laundry care dryer program cotton" and `run` became "Run". They now take
   the integration's own translation — "Baumwolle", "In Betrieb" — and fall
   back to the tidied value only when there is none.
+
+- **A dryer in its anti-crease phase reads as done.** Home Connect keeps a
+  dryer at `run` for as long as nobody opens the door after the programme,
+  at 100% and with its finish time behind it, so the progress card went on
+  saying "0 min remaining" with its wave still travelling. Running at 100%
+  with no time left now counts as done.
 
 - **The remote card is round in a wide column.** Above 440 px it is meant to
   centre rather than stretch, but the limit sat on the inner frame, which

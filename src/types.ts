@@ -3003,6 +3003,18 @@ export interface M3ApplianceCardConfig {
    */
   wave_style?: WaveStyle;
 
+  /**
+   * Folds the blocks away, leaving the header — name, state and remaining
+   * time — in view. The same four keys and the same storage as the vacuum and
+   * printer cards.
+   */
+  collapsible?: boolean;
+  /** Which blocks the fold hides; left out, all of them. */
+  collapse_blocks?: ApplianceBlock[];
+  default_collapsed?: boolean;
+  collapse_state_entity?: string;
+  collapse_memory?: CollapseMemory;
+
   tap_action?: HaActionConfig;
   popup?: AppliancePopupConfig;
   accent_color?: string;

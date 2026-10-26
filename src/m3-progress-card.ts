@@ -323,7 +323,7 @@ export class M3ProgressCard extends TemplatedCard(LitElement) implements Lovelac
       return renderMissingEntity(this._config.entity);
     }
 
-    const category = this._classifyStatus(entity.state ?? "");
+    let category = this._classifyStatus(entity.state ?? "");
 
     if (category === "ready" && this._config.hide_when_ready) {
       return nothing;
@@ -343,6 +343,14 @@ export class M3ProgressCard extends TemplatedCard(LitElement) implements Lovelac
       : undefined;
 
     const remaining = this._remainingAt(this._now);
+
+    // Done in all but name: a dryer in its anti-crease phase reports `run` for
+    // as long as nobody opens the door, at 100% and with its finish time
+    // behind it. The programme is over, so the card says so, and the wave
+    // stops travelling.
+    if (category === "running" && percentage !== undefined && percentage >= 100 && (remaining ?? 0) < 1) {
+      category = "done";
+    }
 
     const name =
       this._config.name || entity.attributes.friendly_name || this._config.entity;

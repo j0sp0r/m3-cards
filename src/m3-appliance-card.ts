@@ -115,6 +115,8 @@ import {
 import { formatNumber } from "./shared/formatting";
 import { glassCardClass, glassCardStyles, renderMissingEntity } from "./shared/glass-card";
 import { cardHeaderStyles, renderCardHeader } from "./shared/card-header";
+import { foldHides, readCollapsed, writeCollapsed, type CollapseTarget } from "./shared/collapse-state";
+import { foldArrowStyles, renderFoldArrow } from "./shared/fold-arrow";
 import { hassChangeMatters } from "./shared/should-update";
 import { stopSwipe } from "./shared/swipe";
 import { findStateRule, numericState } from "./shared/state-rules";
@@ -159,6 +161,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
 
   @state() private _config?: M3ApplianceCardConfig;
   @state() private _popupOpen = false;
+  @state() private _folded = false;
   @state() private _popupCardEl?: HTMLElement & PopupCardHandle;
 
   private _popupOpenedAt = 0;
@@ -260,7 +263,24 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       }
     }
     this._config = { glass_background: true, animation: "auto", ...config };
+    this._folded = config.collapsible ? readCollapsed(this.hass, this._foldTarget) : false;
   }
+
+  /** Same keys and storage as the vacuum and printer cards, so the suite folds one way. */
+  private get _foldTarget(): CollapseTarget {
+    return {
+      entity: this._config?.collapse_state_entity,
+      storageKey: `m3-appliance-folded:${location.pathname}:${this._config?.entity ?? ""}`,
+      defaultCollapsed: this._config?.default_collapsed,
+      memory: this._config?.collapse_memory,
+    };
+  }
+
+  private _toggleFold = (e: Event): void => {
+    e.stopPropagation();
+    this._folded = !this._folded;
+    writeCollapsed(this.hass, this._foldTarget, this._folded);
+  };
 
   public getCardSize(): number {
     const cfg = this._config;
@@ -295,6 +315,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       ...(c.selects ?? []).map((x) => x.entity),
       ...(c.buttons ?? []).map((x) => x.entity),
       ...(c.chips ?? []).map((x) => x.entity),
+      c.collapse_state_entity,
     ].filter((e): e is string => !!e);
   }
 
@@ -319,6 +340,12 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
 
   protected updated(changed: PropertyValues): void {
     super.updated(changed);
+    // An entity-backed fold can be changed elsewhere, so it is re-read rather
+    // than only written on a tap.
+    if (this._config?.collapsible) {
+      const wanted = readCollapsed(this.hass, this._foldTarget);
+      if (wanted !== this._folded) this._folded = wanted;
+    }
     const el = this.renderRoot.querySelector(".wave-host") as HTMLElement | null;
     if (el && this._blockObserver) {
       this._blockObserver.disconnect();
@@ -603,6 +630,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       : (rule?.label ?? this._stateText(this._main, this._raw));
 
     const progress = this._progress();
+    const folded = !!cfg.collapsible && this._folded;
     const remaining = progress?.remaining;
 
     // Decide how the wave behaves this render, before anything draws one.
@@ -656,16 +684,33 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
                 }
               : undefined,
             right:
-              remaining === undefined
+              remaining === undefined && !cfg.collapsible
                 ? undefined
                 : html`
-                    <div class="reading">
-                      <div class="reading-value">${this._duration(remaining)}</div>
-                      <div class="reading-caption">${this._t("appliance_remaining")}</div>
+                    <div class="header-trailing">
+                      ${remaining === undefined
+                        ? nothing
+                        : html`
+                            <div class="reading">
+                              <div class="reading-value">${this._duration(remaining)}</div>
+                              <div class="reading-caption">${this._t("appliance_remaining")}</div>
+                            </div>
+                          `}
+                      ${cfg.collapsible
+                        ? renderFoldArrow({
+                            folded,
+                            accent: "var(--m3a-accent)",
+                            host: this,
+                            label: cfg.name ?? this._t("appliance_default_name"),
+                            onToggle: this._toggleFold,
+                          })
+                        : nothing}
                     </div>
                   `,
           })}
-          ${this._layout.map((block) => this._renderBlock(block, progress))}
+          ${this._layout
+            .filter((block) => !foldHides(block, folded, cfg.collapse_blocks))
+            .map((block) => this._renderBlock(block, progress))}
         </div>
       </ha-card>
       ${this._renderPopup()}
@@ -1206,6 +1251,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     ${glassCardStyles}
     ${cardHeaderStyles}
     ${popupCardStyles}
+    ${foldArrowStyles}
 
     ha-card {
       color: var(--m3p-text, var(--primary-text-color));
@@ -1220,6 +1266,14 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     }
 
     /* ---- header right-hand reading ---- */
+    /* The remaining time and the fold chevron share the header's trailing
+       slot, centred on each other as on the printer card. */
+    .header-trailing {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
     .reading {
       margin-left: auto;
       text-align: right;

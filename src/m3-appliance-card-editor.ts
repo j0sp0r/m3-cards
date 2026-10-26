@@ -93,6 +93,16 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
     this._emit(pruned({ ...this._config, ...patch }) as M3ApplianceCardConfig);
   }
 
+  /** An empty block list or helper leaves the config rather than staying as `[]` or "". */
+  private _foldChanged = (ev: CustomEvent): void => {
+    if (!this._config) return;
+    const next = { ...this._config, ...(ev.detail.value as Partial<M3ApplianceCardConfig>) };
+    if (!next.collapse_blocks?.length) delete next.collapse_blocks;
+    if (!next.collapse_state_entity) delete next.collapse_state_entity;
+    if (!next.collapsible) delete next.collapsible;
+    this._emit(next);
+  };
+
   private _colorChanged(
     field: "accent_color" | "text_color" | "secondary_text_color" | "card_background",
     value: string,
@@ -395,6 +405,42 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
     ];
   }
 
+  private _foldSchema(): SchemaEntry[] {
+    return [
+      { name: "collapsible", selector: { boolean: {} } },
+      {
+        name: "collapse_blocks",
+        selector: {
+          select: {
+            multiple: true,
+            mode: "list",
+            options: [
+              { value: "progress", label: this._t("editor_appliance_block_progress") },
+              { value: "sliders", label: this._t("editor_appliance_block_sliders") },
+              { value: "selects", label: this._t("editor_appliance_block_selects") },
+              { value: "buttons", label: this._t("editor_appliance_block_buttons") },
+              { value: "chips", label: this._t("editor_appliance_block_chips") },
+            ],
+          },
+        },
+      },
+      { name: "default_collapsed", selector: { boolean: {} } },
+      {
+        name: "collapse_memory",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "device", label: this._t("editor_vacuum_collapse_device") },
+              { value: "session", label: this._t("editor_vacuum_collapse_session") },
+            ],
+          },
+        },
+      },
+      { name: "collapse_state_entity", selector: { entity: { domain: "input_boolean" } } },
+    ];
+  }
+
   private _animationSchema(): SchemaEntry[] {
     return [
       {
@@ -444,6 +490,11 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
       style: "editor_appliance_select_style",
       show_state: "editor_appliance_chip_show_state",
       layout: "editor_appliance_layout",
+      collapsible: "editor_vacuum_collapsible",
+      collapse_blocks: "editor_vacuum_collapse_blocks",
+      default_collapsed: "editor_vacuum_default_collapsed",
+      collapse_memory: "editor_vacuum_collapse_memory",
+      collapse_state_entity: "editor_appliance_collapse_state_entity",
       animation: "editor_progress_animation",
       wave_style: "editor_appliance_wave_style",
       value: "editor_status_rule_value",
@@ -638,6 +689,20 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
               @value-changed=${this._valueChanged}
             ></ha-form>
             <div class="hint">${this._t("editor_appliance_layout_hint")}</div>
+            <ha-form
+              .hass=${this.hass}
+              .data=${{
+                collapsible: cfg.collapsible ?? false,
+                collapse_blocks: cfg.collapse_blocks ?? [],
+                default_collapsed: cfg.default_collapsed ?? false,
+                collapse_memory: cfg.collapse_memory ?? "device",
+                collapse_state_entity: cfg.collapse_state_entity ?? "",
+              }}
+              .schema=${this._foldSchema()}
+              .computeLabel=${this._computeLabel}
+              @value-changed=${this._foldChanged}
+            ></ha-form>
+            <div class="hint">${this._t("editor_appliance_collapse_blocks_hint")}</div>
           </div>
         </ha-expansion-panel>
 
