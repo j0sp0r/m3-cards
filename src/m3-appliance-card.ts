@@ -67,6 +67,7 @@ import {
   APPLIANCE_VALUE_SIZE,
   CARD_VERSION,
   DEFAULT_APPLIANCE_ACCENT,
+  DEFAULT_DONE_STATES,
   DEFAULT_APPLIANCE_ICON,
   DEFAULT_APPLIANCE_RADIUS,
   resolveCornerRadius,
@@ -414,7 +415,16 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
   }
 
   private get _rule(): StatusRule | undefined {
-    return findStateRule(this._config?.states, this._raw, numericState(this._raw));
+    const states = this._config?.states;
+    // Done in all but name: a dryer in its anti-crease phase keeps reporting
+    // `run` at 100% with its finish time behind it. When the card has a rule
+    // for a finished state, that is the one that describes the machine.
+    const progress = this._config?.progress ? this._progress() : undefined;
+    if ((progress?.percent ?? 0) >= 100 && (progress?.remaining ?? 0) < 1) {
+      const done = states?.find((r) => r.value && DEFAULT_DONE_STATES.includes(r.value.toLowerCase()));
+      if (done) return done;
+    }
+    return findStateRule(states, this._raw, numericState(this._raw));
   }
 
   private get _unavailable(): boolean {

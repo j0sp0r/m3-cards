@@ -151,7 +151,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   "2026 min remaining", and a duration in seconds was shown as minutes. It now
   reads the remaining time the way the appliance card does: minutes, seconds,
   hours, a clock string or a completion time, which it counts down by itself.
-  Home Connect's `run` and `finished` join the default running and done states,
+  Home Connect's `run` and `finished`, and SmartThings' `finish`, join the
+  default running and done states,
   so a Bosch or Siemens appliance works, and its "finished" notification
   fires, without listing them.
 
@@ -166,7 +167,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   dryer at `run` for as long as nobody opens the door after the programme,
   at 100% and with its finish time behind it, so the progress card went on
   saying "0 min remaining" with its wave still travelling. Running at 100%
-  with no time left now counts as done.
+  with no time left now counts as done — on the appliance card too, which
+  then shows its rule for a finished state.
 
 - **The remote card is round in a wide column.** Above 440 px it is meant to
   centre rather than stretch, but the limit sat on the inner frame, which
