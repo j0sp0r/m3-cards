@@ -200,7 +200,7 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   reports an idle machine's job state as `none`, which the card counted as a
   missing entity, so it dimmed the whole card and said "Unavailable". Only
   `unavailable`, `unknown` and no state at all mean that now; `none` reads
-  "Off", and an idle machine's "0 min left" is no longer shown.
+  "Off", and an idle machine shows neither a progress bar nor "0 min left".
 - **The appliance card's remaining time leaves room for the name.** "1 Std.
   58 Min." in one size took the header from a card's name, which lost all
   but four letters to an ellipsis. The figures stay large and the units are

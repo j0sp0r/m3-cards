@@ -666,11 +666,12 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       ? this._t("appliance_unavailable")
       : (rule?.label ?? (raw === "none" ? this._t("appliance_idle") : this._stateText(this._main, this._raw)));
 
-    const progress = this._progress();
+    // An idle machine has no programme to show the progress of. A Samsung
+    // keeps reporting 0 % and 0 minutes left while it is off, which drew an
+    // empty bar and "0 Min. verbleibend" on a machine that is doing nothing.
+    const progress = idle ? undefined : this._progress();
     const folded = !!cfg.collapsible && this._folded;
-    // An idle Samsung keeps reporting 0 minutes left; "0 Min. verbleibend" on a
-    // machine that is off is a reading of nothing.
-    const remaining = idle ? undefined : progress?.remaining;
+    const remaining = progress?.remaining;
 
     // Decide how the wave behaves this render, before anything draws one.
     //
