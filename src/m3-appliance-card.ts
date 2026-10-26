@@ -72,6 +72,7 @@ import {
   CARD_VERSION,
   DEFAULT_APPLIANCE_ACCENT,
   DEFAULT_DONE_STATES,
+  DEFAULT_IDLE_STATES,
   DEFAULT_APPLIANCE_ICON,
   DEFAULT_APPLIANCE_RADIUS,
   resolveCornerRadius,
@@ -431,8 +432,15 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     return findStateRule(states, this._raw, numericState(this._raw));
   }
 
+  /**
+   * Whether the machine itself cannot be reached. Narrower than
+   * `isMissingState`: SmartThings reports an idle washer's job state as
+   * `none`, which is a reading (one of the idle states), not a missing one —
+   * counting it greyed out every idle Samsung as unavailable.
+   */
   private get _unavailable(): boolean {
-    return isMissingState(this._raw);
+    const raw = this._raw.toLowerCase();
+    return raw === "" || raw === "unavailable" || raw === "unknown";
   }
 
   private get _accent(): string {
@@ -650,13 +658,19 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       "m3p-secondary-text": secondaryTextColorCss,
     });
 
+    // SmartThings' idle job state is `none`, which Home Assistant translates
+    // as "Kein" — a word, but not one that says the machine is off.
+    const raw = this._raw.toLowerCase();
+    const idle = (cfg.idle_states ?? DEFAULT_IDLE_STATES).some((s) => s.toLowerCase() === raw);
     const subtitle = unavailable
       ? this._t("appliance_unavailable")
-      : (rule?.label ?? this._stateText(this._main, this._raw));
+      : (rule?.label ?? (raw === "none" ? this._t("appliance_idle") : this._stateText(this._main, this._raw)));
 
     const progress = this._progress();
     const folded = !!cfg.collapsible && this._folded;
-    const remaining = progress?.remaining;
+    // An idle Samsung keeps reporting 0 minutes left; "0 Min. verbleibend" on a
+    // machine that is off is a reading of nothing.
+    const remaining = idle ? undefined : progress?.remaining;
 
     // Decide how the wave behaves this render, before anything draws one.
     //
