@@ -196,6 +196,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   with no time left now counts as done — on the appliance card too, which
   then shows its rule for a finished state.
 
+- **The appliance card's chips keep their colour when the state changes.**
+  They took the colour of the current state rule, so on an idle machine whose
+  rule is grey every tile went grey with it. The state now colours the icon,
+  the subtitle and the bar; a chip uses its own `color` or rule, else the
+  card's `accent_color`, else the theme's primary colour.
 - **An idle Samsung washer no longer greys out as unavailable.** SmartThings
   reports an idle machine's job state as `none`, which the card counted as a
   missing entity, so it dimmed the whole card and said "Unavailable". Only

@@ -1244,7 +1244,10 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       cfg.show_state === false ? undefined : (rule?.label ?? this._stateText(st, raw));
     const text = cfg.label ?? ([name, valueText].filter(Boolean).join(" ") || cfg.entity);
 
-    const color = resolveThemeColor(rule?.color ?? cfg.color ?? this._accent);
+    // A tile is a reading, not the machine's state: it keeps the card's base
+    // colour while the state rules recolour the header and the bar. Following
+    // the state turned every tile grey whenever the machine stood idle.
+    const color = resolveThemeColor(rule?.color ?? cfg.color ?? this._config?.accent_color ?? "primary");
     const tint = tintOn(this, color, undefined, APPLIANCE_CHIP_TINT);
     const icon = rule?.icon ?? cfg.icon;
     const vars = buildCssVars({
