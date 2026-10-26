@@ -128,6 +128,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   narrows what folds, `default_collapsed`, `collapse_memory` and
   `collapse_state_entity` work as on the other cards.
 
+- **The appliance card's chips can be tiles.** `chip_style: tile` draws each
+  chip as a tile in a grid, its name small above a larger value — for a card
+  that is mostly read, where the figures are the point. The default stays
+  the row of pills.
+
 ### Fixed
 
 - **The NAS card's notification no longer arrives twice, and says what is
@@ -169,6 +174,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   saying "0 min remaining" with its wave still travelling. Running at 100%
   with no time left now counts as done — on the appliance card too, which
   then shows its rule for a finished state.
+
+- **The appliance card's remaining time leaves room for the name.** "1 Std.
+  58 Min." in one size took the header from a card's name, which lost all
+  but four letters to an ellipsis. The figures stay large and the units are
+  set small.
 
 - **The remote card is round in a wide column.** Above 440 px it is meant to
   centre rather than stretch, but the limit sat on the inner frame, which

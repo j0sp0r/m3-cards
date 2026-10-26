@@ -2177,6 +2177,14 @@ export const APPLIANCE_CHIP_HEIGHT = HUMIDIFIER_CHIP_HEIGHT;
 export const APPLIANCE_CHIP_RADIUS = HUMIDIFIER_CHIP_RADIUS;
 export const APPLIANCE_CHIP_RADIUS_ACTIVE = HUMIDIFIER_CHIP_RADIUS_ACTIVE;
 export const APPLIANCE_CHIP_GAP = HUMIDIFIER_CHIP_GAP;
+/**
+ * chip_style: tile — a tile per figure, two to a row on a phone. A standard
+ * row's height and its radius, with the list-row icon's box.
+ */
+export const APPLIANCE_TILE_MIN_WIDTH = 140;
+export const APPLIANCE_TILE_HEIGHT = HEIGHT.rowStandard;
+export const APPLIANCE_TILE_RADIUS = RADIUS.row;
+export const APPLIANCE_TILE_ICON = 32;
 export const APPLIANCE_CHIP_TINT = HUMIDIFIER_CHIP_TINT;
 
 /** Below this the option pills drop their labels and the button row wraps. */

@@ -42,6 +42,10 @@ import {
   APPLIANCE_BUTTON_TINT,
   APPLIANCE_CAPTION_SIZE,
   APPLIANCE_CHIP_GAP,
+  APPLIANCE_TILE_HEIGHT,
+  APPLIANCE_TILE_ICON,
+  APPLIANCE_TILE_MIN_WIDTH,
+  APPLIANCE_TILE_RADIUS,
   APPLIANCE_CHIP_HEIGHT,
   APPLIANCE_CHIP_RADIUS,
   APPLIANCE_CHIP_RADIUS_ACTIVE,
@@ -467,11 +471,22 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     return unit ? `${value} ${unit}` : value;
   }
 
-  private _duration(totalMinutes: number): string {
+  /**
+   * The remaining time with the figures large and the units small. Set in one
+   * size, "1 Std. 58 Min." took the header's width from the name, which a
+   * card with a long name lost to an ellipsis after four letters.
+   */
+  private _durationParts(totalMinutes: number): TemplateResult {
     const { hours, minutes } = splitDuration(totalMinutes);
-    return hours > 0
-      ? this._t("appliance_duration_hm").replace("{h}", String(hours)).replace("{m}", String(minutes))
-      : this._t("appliance_duration_m").replace("{m}", String(minutes));
+    const template = hours > 0 ? this._t("appliance_duration_hm") : this._t("appliance_duration_m");
+    const parts = template.split(/(\{h\}|\{m\})/).filter((p) => p !== "");
+    return html`${parts.map((p) =>
+      p === "{h}"
+        ? html`<span>${hours}</span>`
+        : p === "{m}"
+          ? html`<span>${minutes}</span>`
+          : html`<span class="reading-unit">${p}</span>`,
+    )}`;
   }
 
   // ---- progress -------------------------------------------------------------
@@ -702,7 +717,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
                         ? nothing
                         : html`
                             <div class="reading">
-                              <div class="reading-value">${this._duration(remaining)}</div>
+                              <div class="reading-value">${this._durationParts(remaining)}</div>
                               <div class="reading-caption">${this._t("appliance_remaining")}</div>
                             </div>
                           `}
@@ -1198,7 +1213,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       .map((chip) => this._renderChip(chip))
       .filter((c): c is TemplateResult => c !== undefined);
     if (chips.length === 0) return nothing;
-    return html`<div class="chip-row">${chips}</div>`;
+    return html`<div class="chip-row ${this._config?.chip_style === "tile" ? "tiles" : ""}">${chips}</div>`;
   }
 
   private _renderChip(cfg: ApplianceChipConfig): TemplateResult | undefined {
@@ -1226,10 +1241,19 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       "m3a-chip-text": foregroundColor(this, color),
       "m3a-chip-ink": inkOn(color, this),
     });
-    const body = html`${icon ? html`<ha-icon icon=${icon}></ha-icon>` : nothing}<span>${text}</span>`;
+    const tile = this._config?.chip_style === "tile";
+    const body = tile
+      ? html`
+          ${icon ? html`<span class="tile-icon"><ha-icon icon=${icon}></ha-icon></span>` : nothing}
+          <span class="tile-text">
+            ${name ? html`<span class="tile-name">${name}</span>` : nothing}
+            <span class="tile-value">${cfg.label ?? valueText ?? cfg.entity}</span>
+          </span>
+        `
+      : html`${icon ? html`<ha-icon icon=${icon}></ha-icon>` : nothing}<span>${text}</span>`;
 
     if (!cfg.tap_action || !isActionable(cfg.tap_action)) {
-      return html`<span class="chip" style=${vars}>${body}</span>`;
+      return html`<span class="chip ${tile ? "tile" : ""}" style=${vars}>${body}</span>`;
     }
 
     // Only a chip that actually switches something reports a pressed state.
@@ -1244,7 +1268,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     };
     return html`
       <button
-        class="chip control ${on ? "active" : ""}"
+        class="chip control ${tile ? "tile" : ""} ${on ? "active" : ""}"
         type="button"
         style=${vars}
         aria-label=${text}
@@ -1296,6 +1320,12 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       color: var(--m3a-accent);
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
+    }
+
+    .reading-unit {
+      font-size: ${APPLIANCE_CAPTION_SIZE + 2}px;
+      font-weight: 600;
+      opacity: 0.8;
     }
 
     .reading-caption {
@@ -1607,6 +1637,68 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       display: flex;
       flex-wrap: wrap;
       gap: ${APPLIANCE_CHIP_GAP}px;
+    }
+
+    /* chip_style: tile — the figures as tiles: name small, value large, in a
+       grid that gives two columns on a phone and more on a wide card. */
+    .chip-row.tiles {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(${APPLIANCE_TILE_MIN_WIDTH}px, 1fr));
+    }
+
+    .chip.tile {
+      height: auto;
+      min-height: ${APPLIANCE_TILE_HEIGHT}px;
+      padding: 8px 12px 8px 8px;
+      gap: 10px;
+      border-radius: ${APPLIANCE_TILE_RADIUS}px;
+      justify-content: flex-start;
+      text-align: left;
+      min-width: 0;
+      border-color: transparent;
+      background: color-mix(in srgb, var(--m3a-chip, var(--m3p-secondary-text)) 10%, transparent);
+    }
+
+    .tile-icon {
+      flex: none;
+      width: ${APPLIANCE_TILE_ICON}px;
+      height: ${APPLIANCE_TILE_ICON}px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: color-mix(in srgb, var(--m3a-chip, var(--m3p-secondary-text)) 18%, transparent);
+      color: var(--m3a-chip-text, var(--m3p-secondary-text));
+    }
+
+    .tile-icon ha-icon {
+      --mdc-icon-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    .tile-text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      gap: 1px;
+    }
+
+    .tile-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--m3p-secondary-text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .tile-value {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--m3p-text, var(--primary-text-color));
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     /* Filled means it can be pressed; outlined means it is telling you

@@ -2989,6 +2989,12 @@ export interface M3ApplianceCardConfig {
   selects?: ApplianceSelectConfig[];
   buttons?: ApplianceButtonConfig[];
   chips?: ApplianceChipConfig[];
+  /**
+   * How the chips are drawn: `pill` (the default) is a row of small pills,
+   * `tile` a grid of tiles with the name above a larger value — for a card
+   * that is mostly read, where the figures are the point.
+   */
+  chip_style?: "pill" | "tile";
 
   /**
    * Which blocks to draw and in what order. Leaving a block out hides it, so

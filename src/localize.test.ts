@@ -47,6 +47,8 @@ const SUBSTITUTED_ELSEWHERE = new Map<string, string>([
   ["occupancy_days", "formatSince()"],
   ["printer_remaining_hm", "the printer card's duration formatter"],
   ["printer_remaining_m", "the printer card's duration formatter"],
+  ["appliance_duration_hm", "the appliance card's _durationParts, which splits on the placeholders"],
+  ["appliance_duration_m", "the appliance card's _durationParts, which splits on the placeholders"],
   // The replace is chained onto the parenthesised ternary around it, so both
   // branches get it.
   ["climate_overview_subtitle_one", "the .replace on the enclosing ternary"],
