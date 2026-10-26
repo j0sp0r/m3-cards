@@ -140,6 +140,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   creases is done all the same — and stays quiet the second time for one run.
   `done_states` overrides which states count as finished.
 
+- **A card's notification can be filed under a category.** Wherever a card
+  sets up a notification, its editor now offers the automation's category,
+  from the categories Home Assistant already has for automations. The choice
+  is kept where Home Assistant keeps it, on the automation's registry entry,
+  so setting the notification up again leaves it alone and a category
+  changed in Home Assistant's own list shows in the card too.
+
 ### Fixed
 
 - **The NAS card's notification no longer arrives twice, and says what is

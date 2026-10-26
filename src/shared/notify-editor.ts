@@ -1,4 +1,5 @@
-import { html, css, nothing, type TemplateResult } from "lit";
+import { LitElement, html, css, nothing, type PropertyValues, type TemplateResult } from "lit";
+import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant, HassEntity } from "../types";
 import type { SchemaEntry } from "./editor-helpers";
 import { localize, type TranslationKey } from "../localize";
@@ -452,6 +453,13 @@ export function renderNotifyControls(options: NotifyControlsOptions): TemplateRe
             <ha-icon icon="mdi:refresh"></ha-icon>
             ${t(live === "missing" ? "editor_notify_button" : "editor_notify_update")}
           </button>
+          ${live === "missing"
+            ? nothing
+            : html`<m3-notify-category
+                .hass=${options.hass}
+                .automationId=${options.automationId}
+                .language=${options.language}
+              ></m3-notify-category>`}
         `
       : nothing}
     ${options.status === "success"
@@ -462,4 +470,133 @@ export function renderNotifyControls(options: NotifyControlsOptions): TemplateRe
         ? html`<div class="notify-status error">${t("editor_notify_error")} ${options.detail ?? ""}</div>`
         : nothing}
   `;
+}
+
+
+// ---- the automation's category --------------------------------------------
+
+interface AutomationCategory {
+  category_id: string;
+  name: string;
+}
+
+/**
+ * Picks the category of the automation a card created — "Benachrichtigungen",
+ * "Haushalt" or whatever the person sorts their automations by.
+ *
+ * Home Assistant keeps an automation's category in its entity registry entry,
+ * not in the automation's config, so that is where this reads and writes it:
+ * nothing is stored in the card, setting the notification up again leaves the
+ * category alone, and a category changed in Home Assistant's own list shows
+ * here too. Every card with a notification gets this from
+ * `renderNotifyControls`, so none of them has to wire it.
+ */
+@customElement("m3-notify-category")
+export class M3NotifyCategory extends LitElement {
+  @property({ attribute: false }) public hass?: HomeAssistant;
+  @property({ attribute: false }) public automationId?: string;
+  @property({ attribute: false }) public language = "en";
+
+  @state() private _categories?: AutomationCategory[];
+  @state() private _current = "";
+  @state() private _error = "";
+  private _loadedFor?: string;
+
+  private get _entityId(): string | undefined {
+    return automationEntityId(this.hass, this.automationId ?? "");
+  }
+
+  protected updated(changed: PropertyValues): void {
+    if (!changed.has("hass") && !changed.has("automationId")) return;
+    const entityId = this._entityId;
+    if (!this.hass || !entityId || this._loadedFor === entityId) return;
+    this._loadedFor = entityId;
+    void this._load(entityId);
+  }
+
+  private async _load(entityId: string): Promise<void> {
+    if (!this.hass) return;
+    try {
+      const [categories, entry] = await Promise.all([
+        this.hass.callWS<AutomationCategory[]>({ type: "config/category_registry/list", scope: "automation" }),
+        this.hass.callWS<{ categories?: Record<string, string | null> }>({
+          type: "config/entity_registry/get",
+          entity_id: entityId,
+        }),
+      ]);
+      this._categories = [...categories].sort((a, b) => a.name.localeCompare(b.name));
+      this._current = entry.categories?.automation ?? "";
+      this._error = "";
+    } catch (e) {
+      this._error = e instanceof Error ? e.message : String(e);
+    }
+  }
+
+  private async _changed(ev: CustomEvent): Promise<void> {
+    const entityId = this._entityId;
+    const value = (ev.detail.value as { category?: string }).category ?? "";
+    if (!this.hass || !entityId || value === this._current) return;
+    try {
+      await this.hass.callWS({
+        type: "config/entity_registry/update",
+        entity_id: entityId,
+        categories: { automation: value || null },
+      });
+      this._current = value;
+      this._error = "";
+    } catch (e) {
+      this._error = e instanceof Error ? e.message : String(e);
+    }
+  }
+
+  protected render() {
+    if (!this._categories && !this._error) return nothing;
+    const t = (key: TranslationKey) => localize(key, this.language);
+    const categories = this._categories ?? [];
+    return html`
+      ${categories.length
+        ? html`<ha-form
+            .hass=${this.hass}
+            .data=${{ category: this._current }}
+            .schema=${[
+              {
+                name: "category",
+                selector: {
+                  select: {
+                    mode: "dropdown",
+                    options: [
+                      { value: "", label: t("editor_notify_category_none") },
+                      ...categories.map((c) => ({ value: c.category_id, label: c.name })),
+                    ],
+                  },
+                },
+              },
+            ]}
+            .computeLabel=${() => t("editor_notify_category")}
+            @value-changed=${this._changed}
+          ></ha-form>`
+        : html`<div class="hint">${t("editor_notify_category_empty")}</div>`}
+      ${this._error ? html`<div class="hint error">${this._error}</div>` : nothing}
+    `;
+  }
+
+  static styles = css`
+    :host {
+      display: block;
+      margin-top: 8px;
+    }
+    .hint {
+      font-size: 12px;
+      color: var(--secondary-text-color);
+    }
+    .hint.error {
+      color: var(--error-color);
+    }
+  `;
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    "m3-notify-category": M3NotifyCategory;
+  }
 }
