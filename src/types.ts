@@ -2989,6 +2989,14 @@ export interface M3ApplianceCardConfig extends NotifyConfigBase {
    * Home Connect and SmartThings.
    */
   done_states?: string[];
+  /** Also notify when a run starts, with its expected end when the card knows it. */
+  notify_on_start?: boolean;
+  /**
+   * The states that mean "not running", for the start notification: a run
+   * starts when the state leaves one of these. Left out, the suite's defaults,
+   * which cover Home Connect (`ready`, `inactive`) and SmartThings (`none`).
+   */
+  idle_states?: string[];
 
   progress?: ApplianceProgressConfig;
   sliders?: ApplianceSliderConfig[];

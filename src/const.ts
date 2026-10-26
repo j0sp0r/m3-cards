@@ -379,6 +379,9 @@ export const DEFAULT_RUNNING_STATES = [
 ];
 export const DEFAULT_PREPARING_STATES = ["beladungserkennung"];
 export const DEFAULT_DONE_STATES = ["end", "beenden", "finish", "finished"];
+// Not running: a run starts when the state leaves one of these. Samsung's
+// `none`, Home Connect's `ready` and `inactive`, and the usual off words.
+export const DEFAULT_IDLE_STATES = ["none", "ready", "inactive", "off", "stop", "standby", "idle"];
 
 export const DEFAULT_PROGRESS_ACCENT = PALETTE.home;
 

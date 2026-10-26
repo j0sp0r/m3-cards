@@ -2132,6 +2132,9 @@ const translations = {
     editor_appliance_chip_label: "Fester Text statt Name und Zustand",
     editor_appliance_chip_states: "Statustexte für diesen Chip",
     editor_appliance_layout: "Sichtbare Blöcke",
+    editor_appliance_notify_on_start: "Auch beim Start benachrichtigen",
+    editor_appliance_notify_start_message: "{name} läuft.",
+    editor_appliance_notify_start_until: "Fertig gegen",
     editor_appliance_notify_hint:
       "Benachrichtigt, wenn das Gerät fertig ist: sobald der Zustand einen Fertig-Wert erreicht oder der Fortschritt 100 % — ein Trockner im Knitterschutz ist trotzdem fertig. Pro Durchlauf nur einmal.",
     editor_appliance_notify_description: "Von der M3 Appliance Card angelegt: benachrichtigt, wenn das Gerät fertig ist.",
@@ -4766,6 +4769,9 @@ const translations = {
     editor_appliance_chip_label: "Fixed text instead of name and state",
     editor_appliance_chip_states: "Status texts for this chip",
     editor_appliance_layout: "Visible blocks",
+    editor_appliance_notify_on_start: "Also notify when it starts",
+    editor_appliance_notify_start_message: "{name} has started.",
+    editor_appliance_notify_start_until: "Done around",
     editor_appliance_notify_hint:
       "Sends a message when the appliance finishes: when its state reaches a finished value, or its progress reaches 100% — a dryer that keeps tumbling against creases is done all the same. Not twice for one run.",
     editor_appliance_notify_description: "Created by the M3 Appliance Card: notifies when the appliance has finished.",

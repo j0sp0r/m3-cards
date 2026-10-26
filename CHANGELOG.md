@@ -137,8 +137,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   progress card already could: a "Notification" section in its editor sets
   up the automation. It listens for the state reaching a finished value and
   for the progress reaching 100% — a dryer that keeps tumbling against
-  creases is done all the same — and stays quiet the second time for one run.
-  `done_states` overrides which states count as finished.
+  creases is done all the same — and each stays quiet once the other has
+  spoken, however far apart they arrive. `done_states` overrides which states
+  count as finished. **"Also notify when it starts"** adds a message when a
+  run begins, with its expected end — "Waschmaschine läuft. Fertig gegen
+  18:02." — once the machine has settled it; `idle_states` overrides which
+  states count as not running.
 
 - **A card's notification can be filed under a category.** Wherever a card
   sets up a notification, its editor now offers the automation's category,

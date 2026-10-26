@@ -9,7 +9,7 @@ import type {
   M3ApplianceCardConfig,
   StatusRule,
 } from "./types";
-import { DEFAULT_APPLIANCE_RADIUS, DEFAULT_DONE_STATES } from "./const";
+import { DEFAULT_APPLIANCE_RADIUS, DEFAULT_DONE_STATES, DEFAULT_IDLE_STATES } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import {
   colorRow,
@@ -124,9 +124,16 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
    * "Finished" has two witnesses, and the automation listens to both: the
    * status reaching a done state, and the progress reaching 100%. A dryer
    * needs the second — Home Connect holds it at `run` through the anti-crease
-   * phase until someone opens the door — and a machine that reports both
-   * would announce itself twice, so a run that already notified in the last
-   * half hour stays quiet.
+   * phase, sometimes for hours, until someone opens the door. Each witness
+   * stays quiet when the other has already spoken: the state only while the
+   * progress is still short of 100%, the progress only while the state does
+   * not yet say done. That holds however far apart the two arrive, which a
+   * time window did not.
+   *
+   * With `notify_on_start` a third trigger announces the run beginning: the
+   * state leaving an idle value for anything that is not idle or unknown. Its
+   * message waits a minute and a half for the machine to settle its end time,
+   * and leaves the time out if it is not yet in the future.
    */
   private async _setupNotify(): Promise<void> {
     const cfg = this._config;
@@ -142,36 +149,70 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
     this._notifyDetail = "";
     try {
       const done = this._stateVariants(cfg.done_states ?? DEFAULT_DONE_STATES);
+      const idle = this._stateVariants(cfg.idle_states ?? DEFAULT_IDLE_STATES);
+      const percent = cfg.progress?.percentage_entity;
+      const remaining = cfg.progress?.remaining_entity;
       const cardName = this._cardName;
       const automationId = resolveAutomationId("appliance_done", cfg.notify_automation_id);
-      const message = this._t("editor_progress_notify_message").replace("{name}", cardName);
+      const doneMessage = this._t("editor_progress_notify_message").replace("{name}", cardName);
+      const texts = { title: cfg.notify_title, message: cfg.notify_message, tokens: { geraet: cardName } };
+      const doneActions = notifyActions(targets, cardName, doneMessage, texts);
+
       const triggers: Record<string, unknown>[] = [
         // not_from leaves out a restart or an entity coming back: only a run
         // that ends is announced.
-        { trigger: "state", entity_id: cfg.entity, to: done, not_from: ["unavailable", "unknown", ...done] },
+        { trigger: "state", id: "done_state", entity_id: cfg.entity, to: done, not_from: ["unavailable", "unknown", ...done] },
       ];
-      if (cfg.progress?.percentage_entity) {
-        triggers.push({ trigger: "numeric_state", entity_id: cfg.progress.percentage_entity, above: 99 });
+      const choose: Record<string, unknown>[] = [
+        {
+          conditions: [
+            { condition: "trigger", id: "done_state" },
+            ...(percent
+              ? [{ condition: "template", value_template: `{{ not is_number(states('${percent}')) or states('${percent}') | float < 99 }}` }]
+              : []),
+          ],
+          sequence: doneActions,
+        },
+      ];
+      if (percent) {
+        triggers.push({ trigger: "numeric_state", id: "done_progress", entity_id: percent, above: 99 });
+        choose.push({
+          conditions: [
+            { condition: "trigger", id: "done_progress" },
+            { condition: "not", conditions: [{ condition: "state", entity_id: cfg.entity, state: done }] },
+          ],
+          sequence: doneActions,
+        });
       }
+      if (cfg.notify_on_start) {
+        triggers.push({ trigger: "state", id: "start", entity_id: cfg.entity, from: idle, not_to: ["unavailable", "unknown", ...idle] });
+        // The end, when the card knows it: a completion time is printed as is,
+        // minutes left are added to now.
+        const end = remaining
+          ? `{% set r = states('${remaining}') %}` +
+            `{% set t = as_timestamp(r, none) if not is_number(r) else (now().timestamp() + r | float * 60) %}` +
+            `{% if t and t > now().timestamp() + 60 %} ${this._t("editor_appliance_notify_start_until")} {{ t | timestamp_custom('%H:%M') }}.{% endif %}`
+          : "";
+        const startMessage = this._t("editor_appliance_notify_start_message").replace("{name}", cardName) + end;
+        choose.push({
+          conditions: [{ condition: "trigger", id: "start" }],
+          sequence: [
+            // A machine knows its end only once it has weighed the load, so the
+            // message waits for it rather than announcing "done around now".
+            ...(remaining ? [{ delay: { seconds: 90 } }] : []),
+            ...notifyActions(targets, cardName, startMessage, { title: cfg.notify_title, tokens: { geraet: cardName } }),
+          ],
+        });
+      }
+
       await saveNotifyAutomation(this.hass, {
         id: automationId,
         alias: `${cardName}: ${this._t("editor_progress_notify_alias")}`,
         description: this._t("editor_appliance_notify_description"),
-        mode: "single",
+        mode: "queued",
         triggers,
-        conditions: [
-          {
-            condition: "template",
-            value_template:
-              "{{ this.attributes.last_triggered is none or " +
-              "(now() - this.attributes.last_triggered).total_seconds() > 1800 }}",
-          },
-        ],
-        actions: notifyActions(targets, cardName, message, {
-          title: cfg.notify_title,
-          message: cfg.notify_message,
-          tokens: { geraet: cardName },
-        }),
+        conditions: [],
+        actions: [{ choose }],
       });
       if (cfg.notify_automation_id !== automationId) {
         this._emit({ ...cfg, notify_automation_id: automationId });
@@ -185,6 +226,17 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
       this._notifyBusy = false;
     }
   }
+
+  /** The start switch rebuilds the automation straight away when it is on. */
+  private _startChanged = async (ev: CustomEvent): Promise<void> => {
+    if (!this._config) return;
+    const on = !!(ev.detail.value as { notify_on_start?: boolean }).notify_on_start;
+    const next = { ...this._config };
+    if (on) next.notify_on_start = true;
+    else delete next.notify_on_start;
+    this._emit(next);
+    if (next.notify_enabled) await this._setupNotify();
+  };
 
   private _notifySchema(): SchemaEntry[] {
     return [notifyServiceSchema(this.hass), notifyTitleSchema("notify_title"), notifyMessageSchema("notify_message")];
@@ -844,6 +896,13 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
               .schema=${this._notifySchema()}
               .computeLabel=${this._computeLabel}
               @value-changed=${this._valueChanged}
+            ></ha-form>
+            <ha-form
+              .hass=${this.hass}
+              .data=${{ notify_on_start: cfg.notify_on_start ?? false }}
+              .schema=${[{ name: "notify_on_start", selector: { boolean: {} } }]}
+              .computeLabel=${() => this._t("editor_appliance_notify_on_start")}
+              @value-changed=${this._startChanged}
             ></ha-form>
             <div class="hint">${notifyTokenHint(this._language, ["geraet"])}</div>
             ${renderNotifyControls({
