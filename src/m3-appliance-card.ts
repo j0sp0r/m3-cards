@@ -1686,6 +1686,10 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       border-radius: ${APPLIANCE_TILE_RADIUS}px;
       justify-content: flex-start;
       text-align: left;
+      /* A read-only tile is a span and inherits the card's line height; a
+         tile with an action is a button, which does not. Set once, so the two
+         are the same height side by side. */
+      line-height: 1.2;
       min-width: 0;
       border-color: transparent;
       background: color-mix(in srgb, var(--m3a-chip, var(--m3p-secondary-text)) 10%, transparent);

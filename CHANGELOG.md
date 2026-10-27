@@ -196,6 +196,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   with no time left now counts as done — on the appliance card too, which
   then shows its rule for a finished state.
 
+- **A tile is the same height with or without an action.** A read-only tile
+  inherited the card's line height and stood 10 px taller than one with a
+  `tap_action`, which is a button and does not.
 - **A switched-on tile can be read.** A chip with a `tap_action` on an entity
   that is on fills with its colour; as a tile it kept its light name and
   value on that light fill. Name, value and icon now take the fill's ink.
