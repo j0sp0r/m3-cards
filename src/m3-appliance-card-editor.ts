@@ -179,6 +179,12 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
         choose.push({
           conditions: [
             { condition: "trigger", id: "done_progress" },
+            // The progress witness gets the same rule as the state's not_from:
+            // a crossing counts only from a real reading. A Home Connect dryer
+            // that keeps losing Wi-Fi in its anti-crease phase came back as
+            // unavailable → 100 five times in half an hour, and each return
+            // was announced as the run finishing.
+            { condition: "template", value_template: "{{ trigger.from_state is not none and is_number(trigger.from_state.state) }}" },
             { condition: "not", conditions: [{ condition: "state", entity_id: cfg.entity, state: done }] },
           ],
           sequence: doneActions,

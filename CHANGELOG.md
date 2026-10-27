@@ -226,6 +226,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   rule is grey every tile went grey with it. The state now colours the icon,
   the subtitle and the bar; a chip uses its own `color` or rule, else the
   card's accent colour.
+- **A dryer that drops off Wi-Fi is announced as done once.** The appliance
+  card's "finished" notification counted the progress reaching 100 % even
+  when it came back from `unavailable`, so a Home Connect dryer losing its
+  connection in the anti-crease phase sent the message on every return —
+  five times in half an hour. Only a crossing from a real reading counts now,
+  the rule the state witness already followed. Switch the notification off
+  and on in the card's editor to update an existing automation.
 - **An idle Samsung washer no longer greys out as unavailable.** SmartThings
   reports an idle machine's job state as `none`, which the card counted as a
   missing entity, so it dimmed the whole card and said "Unavailable". Only
