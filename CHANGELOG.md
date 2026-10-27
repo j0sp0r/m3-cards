@@ -163,6 +163,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   tap" in the appearance section, or `haptics: false`, turns it off for a
   card; Home Assistant's "Vibrate" profile setting turns it off for a device.
 
+- **An appliance on a smart plug, documented.** The appliance card's docs
+  gain a worked example for a machine with no integration, only a plug that
+  measures power: three template sensors that derive a status, a progress and
+  the minutes left from the power draw — refined by the last heating phase on
+  a dishwasher — plus the card and a tablet-counting automation, with a table
+  of what to read off a machine's own history first.
+
 ### Fixed
 
 - **The NAS card's notification no longer arrives twice, and says what is

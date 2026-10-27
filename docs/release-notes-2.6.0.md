@@ -166,6 +166,12 @@ waste and the rest — now lets you file the automation under a category from
 Home Assistant's own list. The choice is stored where Home Assistant keeps it,
 so a category changed there shows in the card too.
 
+A machine with no integration at all — a dishwasher on a plug that measures
+power — gets the same card. The appliance card's documentation now carries the
+three template sensors that turn a plug's power draw into a status, a
+progress and the minutes left, with a table of what to read off your own
+machine's history first.
+
 The progress card reads a remaining time the way the appliance card does:
 minutes, seconds, a clock string or a completion timestamp. Home Connect
 reports the last of these, which the card used to show as "2026 min

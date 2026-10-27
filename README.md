@@ -3897,6 +3897,199 @@ chips:
   - { entity: binary_sensor.freezer_door, name: Freezer door, icon: mdi:door }
 ```
 
+### Example: an appliance on a smart plug
+
+Most dishwashers, and plenty of washers and dryers, have no integration at all
+— only a plug that measures power. The card does not mind where its status and
+progress come from, so three template sensors in Home Assistant are enough to
+give such a machine the same card as a connected one: a status, a progress in
+percent and the minutes left.
+
+**First, read your machine's numbers off its power history** (the plug's power
+sensor, a week of it, in the history panel):
+
+| What to look for | Typical dishwasher | Used for |
+| --- | --- | --- |
+| Standby draw | under 5 W | below this the machine is idle |
+| Draw at the start of a run | 10–50 W | above this for 2 min, a run has started |
+| Longest pause inside a run | 3 min | quiet for longer than this (10 min here) means done |
+| Length of a run, per programme | 110 / 140 min | the estimate before anything better is known |
+| Heater | over 1000 W | the last heating phase starts a fixed time before the end |
+
+A dishwasher heats twice: once early, for the wash, and once late, for the
+final rinse, which starts about 20 minutes before the end on most machines.
+The minutes left are therefore estimated from the programme's usual length
+until the second heating starts, and counted down from that point after it —
+which is what keeps the estimate honest on a programme that runs long. Two
+programmes can often be told apart early by when the first heating starts; on
+the machine below it is minute 9–10 for the short one and minute 13 for the
+long one.
+
+```yaml
+# configuration.yaml — replace the three plug entities and the numbers
+template:
+  - triggers:
+      - trigger: numeric_state
+        entity_id: sensor.dishwasher_plug_power
+        above: 8
+        for: "00:02:00"
+        id: active
+      - trigger: numeric_state
+        entity_id: sensor.dishwasher_plug_power
+        above: 1000
+        id: heat
+      - trigger: numeric_state
+        entity_id: sensor.dishwasher_plug_power
+        below: 5
+        for: "00:10:00"
+        id: quiet
+      - trigger: numeric_state
+        entity_id: sensor.dishwasher_plug_power
+        below: 5
+        for: "03:00:00"
+        id: emptied
+      - trigger: state
+        entity_id: switch.dishwasher_plug
+        id: plug
+      # After a restart the "for" timers are gone; this notices a run that
+      # ended in the meantime.
+      - trigger: time_pattern
+        minutes: "/5"
+        id: tick
+    actions:
+      - variables:
+          # The state before this trigger, read by name: inside `variables`,
+          # `this` belongs to none of the sensors below.
+          prev: >
+            {% set s = states('sensor.dishwasher_status') %}
+            {{ s if s in ['off', 'idle', 'run', 'finished'] else 'idle' }}
+          started: "{{ state_attr('sensor.dishwasher_status', 'started') }}"
+          mins: >
+            {{ ((now() - as_datetime(started)).total_seconds() / 60) | round(1)
+               if started else 0 }}
+          power: "{{ states('sensor.dishwasher_plug_power') | float(0) }}"
+          quiet_for: >
+            {{ (now() - states.sensor.dishwasher_plug_power.last_changed).total_seconds() / 60
+               if states.sensor.dishwasher_plug_power is not none else 0 }}
+          ended: >
+            {{ prev == 'run' and (trigger.id == 'quiet'
+               or (trigger.id == 'tick' and power < 5 and quiet_for >= 10)) }}
+          begun: "{{ trigger.id == 'active' and prev != 'run' }}"
+          new: >
+            {% if states('switch.dishwasher_plug') == 'off' %}off
+            {% elif trigger.id == 'active' %}run
+            {% elif ended %}{{ 'finished' if mins >= 30 else 'idle' }}
+            {% elif trigger.id == 'emptied' and prev == 'finished' %}idle
+            {% elif prev == 'off' %}idle
+            {% else %}{{ prev }}{% endif %}
+    sensor:
+      - name: "Dishwasher status"
+        unique_id: dishwasher_status
+        icon: mdi:dishwasher
+        state: "{{ new | trim }}"
+        attributes:
+          started: >
+            {% if begun %}{{ (now() - timedelta(minutes=2)).isoformat() }}
+            {% elif (new | trim) in ['off', 'idle'] %}{{ none }}
+            {% else %}{{ started }}{% endif %}
+          first_heat: >
+            {% if begun or (new | trim) in ['off', 'idle'] %}{{ none }}
+            {% elif trigger.id == 'heat' and prev == 'run' and state_attr('sensor.dishwasher_status', 'first_heat') is none %}{{ mins | round(0) | int }}
+            {% else %}{{ state_attr('sensor.dishwasher_status', 'first_heat') }}{% endif %}
+          final_heat: >
+            {% if begun or (new | trim) in ['off', 'idle'] %}{{ none }}
+            {% elif trigger.id == 'heat' and prev == 'run' and mins >= 60 and state_attr('sensor.dishwasher_status', 'final_heat') is none %}{{ now().isoformat() }}
+            {% else %}{{ state_attr('sensor.dishwasher_status', 'final_heat') }}{% endif %}
+
+  - sensor:
+      - name: "Dishwasher minutes left"
+        unique_id: dishwasher_minutes_left
+        icon: mdi:timer-outline
+        unit_of_measurement: "min"
+        state: >
+          {% set a = states.sensor.dishwasher_status.attributes if states.sensor.dishwasher_status is not none else {} %}
+          {% if states('sensor.dishwasher_status') != 'run' or not a.get('started') %}0
+          {% else %}
+            {% set mins = (now() - as_datetime(a.started)).total_seconds() / 60 %}
+            {% if a.get('final_heat') %}
+              {{ [20 - (now() - as_datetime(a.final_heat)).total_seconds() / 60, 1] | max | round(0) | int }}
+            {% else %}
+              {% set fh = a.get('first_heat') %}
+              {% set expected = 125 if fh is none else (140 if fh | int >= 12 else 112) %}
+              {{ [expected - mins, 20] | max | round(0) | int }}
+            {% endif %}
+          {% endif %}
+
+      - name: "Dishwasher progress"
+        unique_id: dishwasher_progress
+        icon: mdi:progress-clock
+        unit_of_measurement: "%"
+        state: >
+          {% set s = states('sensor.dishwasher_status') %}
+          {% set a = states.sensor.dishwasher_status.attributes if states.sensor.dishwasher_status is not none else {} %}
+          {% if s == 'finished' %}100
+          {% elif s != 'run' or not a.get('started') %}0
+          {% else %}
+            {% set mins = (now() - as_datetime(a.started)).total_seconds() / 60 %}
+            {% set left = states('sensor.dishwasher_minutes_left') | float(0) %}
+            {{ [(mins / (mins + left) * 100) if (mins + left) > 0 else 0, 99] | min | round(0) | int }}
+          {% endif %}
+```
+
+The numbers to change are the thresholds in the triggers (8 W, 1000 W, 5 W),
+the 10 minutes of quiet, and in *minutes left* the programme lengths (112 and
+140, 125 while unknown), the minute that separates them (12) and the 20
+minutes after the last heating. A machine with one programme can drop the
+`first_heat` attribute and use one length. One without a heater worth the name
+— most dryers heat throughout — can drop `final_heat` and live with the
+estimate.
+
+A restart of Home Assistant does not start a run: the status is restored, and
+a run needs 2 minutes of real draw. The `finished` state clears itself after 3
+hours of standby, or when the plug is switched off.
+
+The card then reads these like any other appliance. `none`, `idle` and `off`
+are idle states and `finished` a done state by default, so the bar, the
+remaining time and the notifications work without rules for them:
+
+```yaml
+type: custom:m3-appliance-card
+entity: sensor.dishwasher_status
+name: Dishwasher
+icon: mdi:dishwasher
+chip_style: tile
+collapsible: true
+layout: [progress, chips]
+states:
+  - { value: run, label: Washing, color: "#85b7eb" }
+  - { value: finished, label: Done, color: "#81c784" }
+  - { value: idle, label: Ready, color: primary }
+  - { value: "off", label: Plug off, color: primary }
+progress:
+  percentage_entity: sensor.dishwasher_progress
+  remaining_entity: sensor.dishwasher_minutes_left
+chips:
+  - { entity: sensor.dishwasher_plug_power, name: Power, icon: mdi:flash, tap_action: { action: more-info } }
+  - { entity: sensor.dishwasher_plug_energy, name: Meter, icon: mdi:counter, tap_action: { action: more-info } }
+```
+
+To count tablets down with the [supply card](#m3-supply-card), one automation
+takes one off at the start of each run:
+
+```yaml
+alias: Dishwasher — one tablet per run
+triggers:
+  - trigger: state
+    entity_id: sensor.dishwasher_status
+    from: [idle, finished]
+    to: run
+actions:
+  - action: counter.decrement
+    target:
+      entity_id: counter.dishwasher_tabs
+mode: single
+```
+
 ### Buttons
 
 A button with no `tap_action` of its own gets the one its domain implies —
