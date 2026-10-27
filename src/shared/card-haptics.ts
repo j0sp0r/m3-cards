@@ -66,6 +66,10 @@ export function attachCardHaptics(host: HTMLElement, enabled: () => boolean): ()
     if (!enabled() || !clickHitsControl(ev, host)) return;
     fireHaptic(host, "light");
   };
-  host.addEventListener("click", onClick);
-  return () => host.removeEventListener("click", onClick);
+  // Capture, not bubble: the suite's handlers stop propagation all the time —
+  // a fold arrow inside a tappable header has to, or the tap would also run the
+  // header's action — and a bubbling listener on the card never heard those
+  // clicks. Capture on the host runs before any of them.
+  host.addEventListener("click", onClick, { capture: true });
+  return () => host.removeEventListener("click", onClick, { capture: true });
 }
