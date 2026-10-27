@@ -702,6 +702,14 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       cfg.tap_action ?? (cfg.popup ? { action: "popup" as const } : { action: "more-info" as const });
     const headerInteractive = isActionable(headerAction);
 
+    // Each block once, unfolded, so the arrow can be left out when folding
+    // would hide nothing — a dryer that drops off Wi-Fi takes every chip with
+    // it, and an arrow that toggles an empty body reads as a broken one.
+    const blocks = this._layout.map((block) => ({ block, body: this._renderBlock(block, progress) }));
+    const foldable =
+      !!cfg.collapsible &&
+      blocks.some(({ block, body }) => foldHides(block, true, cfg.collapse_blocks) && this._blockShows(block, body));
+
     return html`
       <ha-card style=${`${cssVars} border-radius: ${radius};`}>
         <div
@@ -724,7 +732,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
                 }
               : undefined,
             right:
-              remaining === undefined && !cfg.collapsible
+              remaining === undefined && !foldable
                 ? undefined
                 : html`
                     <div class="header-trailing">
@@ -736,7 +744,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
                               <div class="reading-caption">${this._t("appliance_remaining")}</div>
                             </div>
                           `}
-                      ${cfg.collapsible
+                      ${foldable
                         ? renderFoldArrow({
                             folded,
                             accent: "var(--m3a-accent)",
@@ -748,13 +756,19 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
                     </div>
                   `,
           })}
-          ${this._layout
-            .filter((block) => !foldHides(block, folded, cfg.collapse_blocks))
-            .map((block) => this._renderBlock(block, progress))}
+          ${blocks.filter(({ block }) => !foldHides(block, folded && foldable, cfg.collapse_blocks)).map(({ body }) => body)}
         </div>
       </ha-card>
       ${this._renderPopup()}
     `;
+  }
+
+  /** Whether a rendered block draws anything; sliders and selects map a list, which may be empty. */
+  private _blockShows(block: ApplianceBlock, body: unknown): boolean {
+    if (body === nothing) return false;
+    if (block === "sliders") return (this._config?.sliders?.length ?? 0) > 0;
+    if (block === "selects") return (this._config?.selects?.length ?? 0) > 0;
+    return true;
   }
 
   private _renderBlock(

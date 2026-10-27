@@ -196,6 +196,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   with no time left now counts as done — on the appliance card too, which
   then shows its rule for a finished state.
 
+- **The appliance card shows its fold arrow only when there is something to
+  fold.** A dryer that drops off Wi-Fi takes every chip with it, and the arrow
+  then toggled an empty body, which looked like a broken arrow.
 - **The appliance card's chips keep their colour when the state changes.**
   They took the colour of the current state rule, so on an idle machine whose
   rule is grey every tile went grey with it. The state now colours the icon,
