@@ -307,15 +307,15 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 - **Every card's own colour is the theme's primary colour.** Each card used
   to bring an accent of its own — a house blue for the appliance, progress,
   counter, status, clock and time cards, a sun orange for weather and cost,
-  lamp yellow for the light cards, purple for media, teal for to-do and the
-  aquarium, green for energy and supplies — which put a second and third
-  accent next to the theme's on any theme whose primary is something else.
-  They all take the theme's primary colour now, as the heading, room, nav and
-  button cards already did. The remote card's per-brand accents go the same
-  way. Colours that carry a meaning keep their own: battery levels, heating
-  and cooling, grid, solar and feed-in, signal grades, update and NAS status,
-  a supply running low. `accent_color` (or `on_color` / `ok_color`) on a card
-  still sets any colour.
+  purple for media, teal for to-do and the aquarium, green for energy and
+  supplies — which put a second and third accent next to the theme's on any
+  theme whose primary is something else. They all take the theme's primary
+  colour now, as the heading, room, nav and button cards already did. The
+  remote card's per-brand accents go the same way. Colours that carry a
+  meaning keep their own: battery levels, heating and cooling, grid, solar and
+  feed-in, signal grades, update and NAS status, a supply running low — and
+  the light cards' yellow, which says a lamp is on. `accent_color` (or
+  `ok_color`) on a card still sets any colour.
 
 - **The heading card's default colour is the theme's primary colour.** It was
   the suite's house blue (`#85b7eb`), which put a blue icon between the green

@@ -197,7 +197,7 @@ export const CLIMATE_STEPPER_UNIT_EM = 0.62;
 // own colour is a choice the theme should make: a house blue, a sun orange or a
 // lamp yellow sat next to a green theme's green as a second accent nobody
 // picked. Colours that carry a meaning — a battery running low, heating versus
-// cooling, grid versus solar, a weak signal — keep their own. An
+// cooling, grid versus solar, a weak signal, a lamp that is on — keep their own. An
 // `accent_color` in the card still wins.
 export const THEME_PRIMARY = "var(--primary-color)";
 
@@ -601,7 +601,9 @@ export const COST_REFRESH_MS = 15 * 60 * 1000;
 
 export const DEFAULT_LIGHT_RADIUS = RADIUS.card;
 export const DEFAULT_LIGHT_ICON = "mdi:lightbulb";
-export const DEFAULT_LIGHT_ACCENT = THEME_PRIMARY;
+// Yellow means "on" for a lamp, not decoration, so the light cards keep it
+// rather than taking the theme's primary colour like the rest.
+export const DEFAULT_LIGHT_ACCENT = "#ffc773";
 export const LIGHT_OFF_COLOR = PALETTE.off;
 export const LIGHT_POWER_BTN_SIZE = 44;
 export const LIGHT_POWER_BTN_RADIUS_ON = 22;
@@ -2113,7 +2115,7 @@ export const LIGHTS_OVERVIEW_GRID_MIN_COL = CLIMATE_OVERVIEW_GRID_MIN_COL;
 // their names, not a room's summary.
 export const LIGHTS_OVERVIEW_ENTITY_GRID_MIN_COL = 140;
 export const LIGHTS_OVERVIEW_TILE_RADIUS = CLIMATE_OVERVIEW_TILE_RADIUS;
-export const LIGHTS_OVERVIEW_COLOR_ON = THEME_PRIMARY;
+export const LIGHTS_OVERVIEW_COLOR_ON = PALETTE.light;
 export const LIGHTS_OVERVIEW_COLOR_OFF = PALETTE.off;
 
 export const DEFAULT_GROUP_RADIUS = RADIUS.card;

@@ -13,13 +13,14 @@ for, and the first is a reversal rather than an addition:
   between the green ones of the button and nav cards on any theme whose primary
   is not blue. `color: "#85b7eb"` keeps the old look.
 - **So does every other card's own colour.** The appliance, progress, counter,
-  status, clock, time, energy, cost, power-list, top-consumers, weather, light,
-  lights-overview, media, to-do, aquarium, occupancy, cover, leak, supply, NAS,
-  router, detail and remote cards each brought an accent of their own — blue,
-  orange, yellow, purple, teal or green. They take the theme's primary colour
-  now. Colours that mean something stay as they were: a battery running low,
-  heating and cooling, grid and solar, signal grades, update status. Set
-  `accent_color` on a card to get its old colour back.
+  status, clock, time, energy, cost, power-list, top-consumers, weather,
+  media, to-do, aquarium, occupancy, cover, leak, supply, NAS, router, detail
+  and remote cards each brought an accent of their own — blue, orange,
+  purple, teal or green. They take the theme's primary colour now. Colours
+  that mean something stay as they were: a battery running low, heating and
+  cooling, grid and solar, signal grades, update status, and the light cards'
+  yellow, which says a lamp is on. Set `accent_color` on a card to get its
+  old colour back.
 - **Every card has exactly one rim.** On a theme that leaves Home Assistant's
   own card border switched on — the default theme does — an M3 card drew its
   frame *and* that border, a double rim. It is one rim now, whatever the theme.
