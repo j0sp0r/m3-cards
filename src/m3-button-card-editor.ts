@@ -23,6 +23,7 @@ import {
   renderRadiusCornerFields,
   renderDetailModeField,
   type AppearanceState,
+  renderHapticsField,
 } from "./shared/appearance-editor";
 import {
   chipButtonLabelMap,
@@ -480,6 +481,12 @@ export class M3ButtonCardEditor
               @value-changed=${this._valueChanged}
             ></ha-form>
             ${renderDetailModeField({
+              hass: this.hass,
+              language: this._language,
+              config: this._config,
+              onValueChanged: this._valueChanged,
+            })}
+            ${renderHapticsField({
               hass: this.hass,
               language: this._language,
               config: this._config,

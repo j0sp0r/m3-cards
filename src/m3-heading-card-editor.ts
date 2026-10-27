@@ -1,4 +1,5 @@
 import { LitElement, html, css, nothing } from "lit";
+import { renderHapticsField } from "./shared/appearance-editor";
 import { customElement, property, state } from "lit/decorators.js";
 import type {
   HomeAssistant,
@@ -218,6 +219,12 @@ export class M3HeadingCardEditor extends LitElement implements LovelaceCardEdito
               @value-changed=${this._valueChanged}
             ></ha-form>
             ${colorRow(this._t("editor_mode_color"), cfg.color, (v) => this._colorChanged(v))}
+            ${renderHapticsField({
+              hass: this.hass,
+              language: this._language,
+              config: this._config,
+              onValueChanged: this._valueChanged,
+            })}
           </div>
         </ha-expansion-panel>
 

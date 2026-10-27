@@ -5,13 +5,16 @@
 <p align="center"><sub>The full tour, with sound, is attached below: <code>m3-cards-tour.mp4</code> (landscape) and <code>m3-cards-tour-phone.mp4</code> (portrait), plus the 20-second cut as <code>m3-cards-tour-20s.mp4</code>.</sub></p>
 
 **Upgrading:** no option was removed or renamed, so existing configs load
-unchanged. Four things look or behave differently without having been asked
+unchanged. Five things look or behave differently without having been asked
 for, and the first is a reversal rather than an addition:
 
 - **The heading card takes the theme's primary colour** when it has no `color`
   of its own. It used the suite's house blue (`#85b7eb`), which put a blue icon
   between the green ones of the button and nav cards on any theme whose primary
   is not blue. `color: "#85b7eb"` keeps the old look.
+- **Cards vibrate on tap in the companion app**, as Home Assistant's own
+  toggles do. `haptics: false` on a card, or Home Assistant's "Vibrate"
+  profile setting, turns it off.
 - **Every card has exactly one rim.** On a theme that leaves Home Assistant's
   own card border switched on — the default theme does — an M3 card drew its
   frame *and* that border, a double rim. It is one rim now, whatever the theme.
@@ -167,6 +170,15 @@ The progress card reads a remaining time the way the appliance card does:
 minutes, seconds, a clock string or a completion timestamp. Home Connect
 reports the last of these, which the card used to show as "2026 min
 remaining".
+
+## A tap you can feel
+
+In the companion app, every card now gives the short vibration Home
+Assistant's own toggles give when one of its controls is used — a button, a
+switch, a slider, a chip that does something. A tap on the card's empty
+surface stays silent. "Vibrate on tap" in a card's appearance section, or
+`haptics: false`, turns it off for that card, and Home Assistant's "Vibrate"
+profile setting for the whole device.
 
 ## Also fixed
 

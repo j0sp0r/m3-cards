@@ -24,6 +24,7 @@ export interface AppearanceConfigBase {
   type?: string;
   glass_background?: boolean;
   detail_mode?: DetailMode;
+  haptics?: boolean;
   radius?: number;
   corners?: CornerRadiusConfig;
 }
@@ -79,6 +80,7 @@ const OWN_LABELS: Record<string, TranslationKey> = {
   ...radiusLabelMap,
   glass_background: "editor_glass_background",
   detail_mode: "editor_detail_mode",
+  haptics: "editor_haptics",
 };
 
 /**
@@ -146,6 +148,39 @@ export function renderDetailModeField(params: DetailModeFieldParams): TemplateRe
       ]}
       .computeLabel=${(schema: SchemaEntry) => localize(OWN_LABELS[schema.name] ?? "editor_detail_mode", language)}
       .computeHelper=${() => localize("editor_detail_mode_helper", language)}
+      @value-changed=${onValueChanged}
+    ></ha-form>
+  `;
+}
+
+/**
+ * Cards that do not take the shared haptics switch: the nav and remote cards
+ * have their own, tuned per control, and a popup or group only holds other
+ * cards, each of which vibrates by itself.
+ */
+export const NO_HAPTICS_FIELD_CARDS: ReadonlySet<string> = new Set([
+  "m3-nav-card",
+  "m3-remote-card",
+  "m3-popup-card",
+  "m3-group-card",
+]);
+
+export function supportsHapticsField(type: string | undefined): boolean {
+  const tag = (type ?? "").replace(/^custom:/, "");
+  return tag.startsWith("m3-") && !NO_HAPTICS_FIELD_CARDS.has(tag);
+}
+
+/** "Vibrate on tap", on by default, as the card's shared tap haptic is. */
+export function renderHapticsField(params: DetailModeFieldParams): TemplateResult | typeof nothing {
+  const { hass, language, config, onValueChanged } = params;
+  if (!supportsHapticsField(config.type)) return nothing;
+  return html`
+    <ha-form
+      .hass=${hass}
+      .data=${{ haptics: config.haptics ?? true }}
+      .schema=${[{ name: "haptics", selector: { boolean: {} } }]}
+      .computeLabel=${() => localize("editor_haptics", language)}
+      .computeHelper=${() => localize("editor_haptics_helper", language)}
       @value-changed=${onValueChanged}
     ></ha-form>
   `;
@@ -273,6 +308,7 @@ export function renderAppearanceSection(params: RadiusCornerFieldsParams): Templ
         ></ha-form>
         ${renderRadiusCornerFields(params)}
         ${renderDetailModeField(params)}
+        ${renderHapticsField(params)}
       </div>
     </ha-expansion-panel>
   `;

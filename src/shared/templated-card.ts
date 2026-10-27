@@ -2,6 +2,7 @@ import type { LitElement, PropertyDeclaration, PropertyValues } from "lit";
 import { ConfigTemplateResolver } from "./config-templates";
 import type { HomeAssistant } from "../types";
 import { closeSheetOf, forwardHassToSheet } from "./entity-detail";
+import { attachCardHaptics } from "./card-haptics";
 
 // Jinja2 in a card's own config, for every card at once.
 //
@@ -67,6 +68,7 @@ export const TemplatedCard = <T extends Constructor<LitElement>>(
 ): T & Constructor<TemplatedCardMixin> =>
   class TemplatedCardElement extends Base {
     private readonly _templates = new ConfigTemplateResolver(() => this.requestUpdate());
+    private _detachHaptics?: () => void;
 
     public get rawConfig(): unknown {
       return this._templates.rawConfig;
@@ -79,10 +81,21 @@ export const TemplatedCard = <T extends Constructor<LitElement>>(
       // without this nothing would ask for the update that reopens the
       // subscriptions closed on the way out.
       if (this._templates.active) this.requestUpdate();
+      // A light vibration on every tap on a control (shared/card-haptics.ts).
+      // `haptics: false` turns it off per card; a card that fires its own
+      // haptics sets `ownHaptics` so a tap does not vibrate twice.
+      if (!(this.constructor as { ownHaptics?: boolean }).ownHaptics) {
+        this._detachHaptics ??= attachCardHaptics(
+          this,
+          () => ((this as unknown as TemplatedCardHost)._config as { haptics?: boolean } | undefined)?.haptics !== false,
+        );
+      }
     }
 
     public disconnectedCallback(): void {
       this._templates.close();
+      this._detachHaptics?.();
+      this._detachHaptics = undefined;
       closeSheetOf(this);
       super.disconnectedCallback();
     }

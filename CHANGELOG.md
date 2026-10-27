@@ -154,6 +154,15 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   so setting the notification up again leaves it alone and a category
   changed in Home Assistant's own list shows in the card too.
 
+- **Cards vibrate when they are used.** A tap on a button, a switch, a slider
+  or any other control on a card fires Home Assistant's haptic event, so the
+  companion app gives the same short vibration its own toggles do. Only the
+  nav and remote cards did this before. It is one listener in the shared card
+  base rather than a call in each handler, and it asks the element whether it
+  is a control — a tap on a card's empty surface stays silent. "Vibrate on
+  tap" in the appearance section, or `haptics: false`, turns it off for a
+  card; Home Assistant's "Vibrate" profile setting turns it off for a device.
+
 ### Fixed
 
 - **The NAS card's notification no longer arrives twice, and says what is

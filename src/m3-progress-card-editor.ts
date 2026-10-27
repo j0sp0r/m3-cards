@@ -25,6 +25,7 @@ import {
   cornerPresetPatch,
   renderRadiusCornerFields,
   type AppearanceState,
+  renderHapticsField,
 } from "./shared/appearance-editor";
 import {
   notifyServiceSchema,
@@ -637,6 +638,12 @@ export class M3ProgressCardEditor
               @value-changed=${this._valueChanged}
             ></ha-form>
             <div class="hint">${this._t("editor_progress_hide_when_ready_helper")}</div>
+            ${renderHapticsField({
+              hass: this.hass,
+              language: this._language,
+              config: this._config,
+              onValueChanged: this._valueChanged,
+            })}
             ${renderRadiusCornerFields({
               hass: this.hass,
               language: this._language,

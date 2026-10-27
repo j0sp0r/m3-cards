@@ -146,6 +146,9 @@ function appColor(name: string, explicit?: string): string | undefined {
 
 @customElement("m3-remote-card")
 export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceCard {
+  /** Fires its own haptics, tuned per key; the shared tap haptic stays out. */
+  public static ownHaptics = true;
+
   @property({ attribute: false }) public hass?: HomeAssistant;
 
   @state() protected _config?: M3RemoteCardConfig;

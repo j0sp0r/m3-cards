@@ -56,6 +56,9 @@ the image — everything else is live data.</sub>
   (Tab/Enter/Space) with a visible focus ring and `aria-label`
 - Respects `prefers-reduced-motion` throughout, additionally overridable
   per card via `animation: auto | on | off`
+- A short vibration in the companion app when a control on a card is tapped,
+  as Home Assistant's own toggles do; `haptics: false` turns it off per card,
+  and Home Assistant's "Vibrate" profile setting turns it off for the device
 - Old configs (e.g. `animations: true/false`) are migrated to the current
   schema automatically on load — no manual dashboard edits needed
 - [Jinja2 templates](#templates) in every card's own string fields, live over

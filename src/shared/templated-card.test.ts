@@ -5,10 +5,13 @@ import { TemplatedCard } from "./templated-card";
 // A stand-in for a card. These suites run in Vitest's Node environment, where
 // there is no DOM to define a custom element in, and the mixin needs none of
 // one: it hooks `willUpdate`, `connectedCallback` and `disconnectedCallback`,
-// which are called here by hand in the order Lit calls them.
+// which are called here by hand in the order Lit calls them. The listener pair
+// is for the tap haptics the mixin attaches on connect.
 class FakeCard {
   /** Counts the renders the mixin asks for. */
   public updates = 0;
+  public addEventListener(): void {}
+  public removeEventListener(): void {}
   public connectedCallback(): void {}
   public disconnectedCallback(): void {}
   protected willUpdate(_changed: PropertyValues): void {}

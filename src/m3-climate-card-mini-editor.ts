@@ -24,6 +24,7 @@ import {
   renderRadiusCornerFields,
   renderDetailModeField,
   type AppearanceState,
+  renderHapticsField,
 } from "./shared/appearance-editor";
 
 const MODE_KEYS: (keyof ModeColorOverrides)[] = [
@@ -318,6 +319,12 @@ export class M3ClimateCardMiniEditor
               @value-changed=${this._valueChanged}
             ></ha-form>
             ${renderDetailModeField({
+              hass: this.hass,
+              language: this._language,
+              config: this._config,
+              onValueChanged: this._valueChanged,
+            })}
+            ${renderHapticsField({
               hass: this.hass,
               language: this._language,
               config: this._config,
