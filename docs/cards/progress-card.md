@@ -35,9 +35,9 @@ categories, each with its own status text:
 
 | Category | Default status values | Default status text | Bar |
 |---|---|---|---|
-| Running | `wash`, `spin`, `rinse` | "{remaining} min. remaining" | animated wave |
+| Running | `wash`, `spin`, `rinse`, `run` (and their German names) | "{remaining} min. remaining" | animated wave |
 | Preparing | `detecting_load` | "Detecting load…" | animated wave (even without a percentage value: an "indeterminate" segment sweeps across the track) |
-| Done | `end`, `finished` | "Done! Laundry is clean." | bar at 100%, wave settles into a straight line |
+| Done | `end`, `finish`, `finished`, `beenden` | "Done! Laundry is clean." | bar at 100%, wave settles into a straight line |
 | Ready (all other values) | – | "Ready" | hidden, card collapses to header height |
 
 The status-value lists are freely configurable via `running_states` /
@@ -47,13 +47,18 @@ only the minutes part is dropped, no crash). `percentage_entity`/
 `remaining_entity` are optional — without `percentage_entity`, the bar runs
 as an indeterminate animation in the "preparing" state.
 
+The defaults cover Samsung SmartThings (`wash`, `finish`) and Home Connect
+(`run`, `finished`), whose remaining time arrives as a completion timestamp. A
+run at 100 % with under a minute left counts as done even while the state still
+reads `run`, which is how a Bosch dryer reports its anti-crease phase.
+
 ### Configuration options
 
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `entity` | string | **Required** | Status sensor |
 | `percentage_entity` | string | – | Sensor with progress in percent (0–100) |
-| `remaining_entity` | string | – | Sensor with remaining time in minutes |
+| `remaining_entity` | string | – | Remaining time: minutes, seconds, `1:24:00`, or a completion timestamp, which the card counts down by itself |
 | `name` | string | entity `friendly_name` | Displayed name |
 | `icon` | string | `mdi:washing-machine` | Icon in the icon tile |
 | `status_text_running` / `_preparing` / `_done` / `_ready` | string | see table above | Status text per category; `{remaining}` as a placeholder in `status_text_running` |

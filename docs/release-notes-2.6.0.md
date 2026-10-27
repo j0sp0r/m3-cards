@@ -14,11 +14,18 @@ for, and the first is a reversal rather than an addition:
 - **The NAS card's sync notification changed shape** (one message per error,
   naming the failed items). An automation the card created earlier keeps the
   old shape until notifications are switched off and on again in its editor.
+- **The appliance card's chips keep one colour.** They took the colour of the
+  current state rule, so a grey "Ready" rule turned every reading grey. They
+  now use their own `color`, else the card's `accent_color`, else the theme's
+  primary colour; the state still colours the icon, the status line and the
+  bar. An idle machine also no longer shows a progress bar at 0 %.
 
 This release is about the parts of a dashboard that are not a card on a grid:
 the details behind a tap, the pop-up behind a button, the remote on the sofa
 and the router in the hallway cupboard. Five new cards, and the existing ones
-learned to open the first of them.
+learned to open the first of them. And the machines in the utility room: the
+appliance card learned to fold, to draw its readings as tiles and to say when
+a run has started and when it is done.
 
 The suite registers 49 cards.
 
@@ -95,6 +102,52 @@ sparkline from the recorder, and monthly volume honours binary units.
 The diagnostics card carries modem temperatures, cell and band, reachability
 checks and a restart button that takes two taps and disarms itself after four
 seconds — an armed red button on a wall tablet is a trap for whoever walks past.
+
+## The utility room
+
+A washer and a dryer side by side are two cards that are mostly read: what is
+running, how long is left, what it used. The appliance card now serves that
+page as well as the one with the buttons.
+
+**`chip_style: tile`** draws the readings as tiles — the name small, the value
+large, two to a row on a phone — instead of a row of small pills.
+**`collapsible: true`** folds everything but the header, the way the vacuum and
+printer cards fold, and the chevron is left out while there is nothing to fold:
+a dryer that is off reports its door and child lock as unavailable, and an
+arrow toggling an empty card reads as a broken one.
+
+The card now tells idle, running and done apart without rules for each. An
+idle machine — SmartThings' `none`, Home Connect's `ready` and `inactive` —
+shows no bar. A run at 100 % with under a minute left is done even while the
+state still says `run`, which is how a Bosch dryer reports the anti-crease
+phase that follows the drying. Only an unavailable entity greys the card out;
+it used to take a Samsung's idle `none` for one.
+
+### Done, and started
+
+The editor's **Notification** section sets up the automation that says the
+laundry is ready. It listens for the two ways a machine says so — the state
+turning to a finished value, and the progress reaching 100 % — and sends one
+message per run, whichever arrives first, however far apart they are.
+
+**Also on start** adds a message when a run begins, with its expected end:
+
+> Washing machine has started. Done around 18:02.
+
+It waits 90 seconds, because most machines know their completion time only
+once they have weighed the load. Both texts come prefilled in the editor, to
+edit rather than to write from nothing, with `{geraet}` for the card's name and
+`{ende}` for the expected end.
+
+Every card that sets up a notification — appliance, progress, NAS, updates,
+waste and the rest — now lets you file the automation under a category from
+Home Assistant's own list. The choice is stored where Home Assistant keeps it,
+so a category changed there shows in the card too.
+
+The progress card reads a remaining time the way the appliance card does:
+minutes, seconds, a clock string or a completion timestamp. Home Connect
+reports the last of these, which the card used to show as "2026 min
+remaining".
 
 ## Also fixed
 

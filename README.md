@@ -736,9 +736,9 @@ categories, each with its own status text:
 
 | Category | Default status values | Default status text | Bar |
 |---|---|---|---|
-| Running | `wash`, `spin`, `rinse` | "{remaining} min. remaining" | animated wave |
+| Running | `wash`, `spin`, `rinse`, `run` (and their German names) | "{remaining} min. remaining" | animated wave |
 | Preparing | `detecting_load` | "Detecting load…" | animated wave (even without a percentage value: an "indeterminate" segment sweeps across the track) |
-| Done | `end`, `finished` | "Done! Laundry is clean." | bar at 100%, wave settles into a straight line |
+| Done | `end`, `finish`, `finished`, `beenden` | "Done! Laundry is clean." | bar at 100%, wave settles into a straight line |
 | Ready (all other values) | – | "Ready" | hidden, card collapses to header height |
 
 The status-value lists are freely configurable via `running_states` /
@@ -748,13 +748,18 @@ only the minutes part is dropped, no crash). `percentage_entity`/
 `remaining_entity` are optional — without `percentage_entity`, the bar runs
 as an indeterminate animation in the "preparing" state.
 
+The defaults cover Samsung SmartThings (`wash`, `finish`) and Home Connect
+(`run`, `finished`), whose remaining time arrives as a completion timestamp. A
+run at 100 % with under a minute left counts as done even while the state still
+reads `run`, which is how a Bosch dryer reports its anti-crease phase.
+
 ### Configuration options
 
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `entity` | string | **Required** | Status sensor |
 | `percentage_entity` | string | – | Sensor with progress in percent (0–100) |
-| `remaining_entity` | string | – | Sensor with remaining time in minutes |
+| `remaining_entity` | string | – | Remaining time: minutes, seconds, `1:24:00`, or a completion timestamp, which the card counts down by itself |
 | `name` | string | entity `friendly_name` | Displayed name |
 | `icon` | string | `mdi:washing-machine` | Icon in the icon tile |
 | `status_text_running` / `_preparing` / `_done` / `_ready` | string | see table above | Status text per category; `{remaining}` as a placeholder in `status_text_running` |
@@ -3897,6 +3902,85 @@ Each chip carries its own colour, icon and optional `states` rules, and a chip
 whose entity is unavailable is left out rather than dimmed — a row of "—" says
 nothing and pushes the ones that do say something off the edge.
 
+A chip keeps its colour whatever the machine is doing. The state rules colour
+the header icon, the status line and the bar; a chip uses its own `color` or
+rule, else the card's `accent_color`, else the theme's primary colour. Taking
+the state's colour turned every reading grey whenever the machine stood idle.
+
+On a card that is mostly read — the power draw, today's energy, the meter, the
+water — small pills undersell the figures. `chip_style: tile` draws each chip
+as a tile instead: the name small, the value large, in a grid of two columns on
+a phone and more on a wide card.
+
+```yaml
+chip_style: tile   # pill (default) | tile
+```
+
+### Folding it away
+
+`collapsible: true` gives the header a chevron that folds the blocks away. What
+stays is the header — name, state and remaining time — which is the part worth
+keeping in view on a page with several machines. `collapse_blocks` narrows what
+disappears:
+
+```yaml
+collapsible: true
+default_collapsed: true
+collapse_blocks: [chips]   # the bar stays, the readings fold
+```
+
+The fold is remembered the same way as on the vacuum and printer cards: per
+device by default, per session with `collapse_memory: session`, or in an
+`input_boolean` via `collapse_state_entity`. The chevron is left out while
+folding would hide nothing — a dryer that drops off Wi-Fi takes every chip with
+it, and an arrow that toggles an empty body reads as a broken one.
+
+### Idle, running, done
+
+The card knows three things about a run without being told:
+
+- **Idle.** While the state is one of `idle_states` there is no programme to
+  show the progress of, so the bar and the remaining time are left out. A
+  Samsung keeps reporting 0 % and 0 minutes while it is off. The defaults are
+  `none`, `ready`, `inactive`, `off`, `stop`, `standby` and `idle`, which cover
+  SmartThings and Home Connect.
+- **Done.** A state in `done_states` — by default `finished`, `finish`, `end`
+  and `beenden` — is a finished run. So is a run at 100 % with under a minute
+  left: a Home Connect dryer keeps reporting `run` through its anti-crease
+  phase, long after the laundry is dry, and a matching rule for the done state
+  is then used for the status line.
+- **Unavailable.** Only `unavailable`, `unknown` or no state at all dim the
+  card. SmartThings' idle `none` is a reading, not a missing entity.
+
+### Notifications
+
+The editor's **Notification** section sets up an automation that pushes to the
+devices you pick when the machine is done. There are two ways a machine can say
+so, and the automation listens for both: the state turning to one of
+`done_states`, or the progress reaching 100 %. Each run sends one message,
+whichever comes first, so a dryer's anti-crease phase does not send a second.
+
+**Also on start** (`notify_on_start`) sends a message when the state leaves an
+idle state, with the expected end when the card has a remaining time:
+
+> Washing machine has started. Done around 18:02.
+
+It waits 90 seconds before sending, because most machines report a completion
+time only once they have weighed the load.
+
+Both texts come prefilled in the editor and can be changed there. `{geraet}` is
+the card's name and, in the start text, `{ende}` the expected end as a time.
+Every card that creates a notification lets you file the automation under a
+category, picked in the same section.
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `notify_enabled` | `false` | Master switch |
+| `notify_service` | — | The notify targets, e.g. `[notify.mobile_app_pixel]` |
+| `notify_title` / `notify_message` | `{geraet}` / `{geraet} is done.` | Title and finished text |
+| `notify_on_start` | `false` | Also notify when a run starts |
+| `notify_start_message` | `{geraet} has started. Done around {ende}.` | The start text |
+
 ### The popup
 
 The card is a summary: a state, a progress bar, a few buttons. The full set of
@@ -3950,10 +4034,18 @@ empty dialog.
 | `selects[]` | — | `entity`, `label`, `options`, `icons`, `names`, `style`, `color` |
 | `buttons[]` | — | `entity`, `name`, `icon`, `color`, `tap_action` |
 | `chips[]` | — | `entity`, `name`, `icon`, `label`, `show_state`, `states`, `color`, `tap_action` |
+| `chip_style` | `pill` | `pill` or `tile` |
 | `layout` | all five | Which blocks, in which order |
+| `collapsible` | `false` | A chevron in the header that folds the blocks away |
+| `collapse_blocks` | all | Which blocks the fold hides |
+| `default_collapsed` | `false` | Start folded |
+| `collapse_state_entity` | — | An `input_boolean` holding the fold |
+| `collapse_memory` | `device` | `device` or `session`, without a helper entity |
+| `idle_states` | see above | States that mean "not running": no bar, and the start of a run |
+| `done_states` | see above | States that mean "finished" |
 | `tap_action` | `more-info`, or `popup` when one is configured | What a tap on the header does. Adds a `popup` action kind |
 | `popup` | — | The card's own popup: `title`, `size` (`normal`/`wide`/`fullscreen`) and a `content` card |
-| `accent_color` | `#85b7eb` | Overridden by a matched rule's own `color` |
+| `accent_color` | `#85b7eb` | Overridden by a matched rule's own `color`. Chips without a colour of their own use it, or the theme's primary colour when it is unset |
 | `text_color` / `secondary_text_color` / `card_background` | theme | The usual colour overrides |
 | `glass_background` | `true` | Frosted card surface |
 | `animation` | `auto` | `auto`, `on`, `off` — also honours `prefers-reduced-motion` |
@@ -3969,7 +4061,7 @@ A slider or an option row whose entity is unavailable is not drawn: a dead
 track invites a drag that goes nowhere, and pills with no options are not a
 row. A button whose entity is unavailable stays visible but dimmed and
 unclickable, because it is part of the card's layout. Chips are dropped. The
-card as a whole dims when its own status entity is unreachable.
+card as a whole dims when its own status entity is unavailable or unknown.
 
 </details>
 
