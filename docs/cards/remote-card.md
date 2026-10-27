@@ -48,8 +48,9 @@ button and the arrows all keep their proportions.
 
 ## Profiles
 
-`profile` sets the defaults for key names, which blocks appear, and the accent
-colour. Every one of them stays overridable.
+`profile` sets the defaults for key names and which blocks appear. Every one of
+them stays overridable. The accent is the theme's primary colour on every
+profile; `accent_color` changes it.
 
 | | samsung | google_tv | lg_webos | appletv | kodi | generic |
 | --- | --- | --- | --- | --- | --- | --- |

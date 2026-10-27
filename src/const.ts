@@ -193,6 +193,14 @@ export const CLIMATE_STEPPER_UNIT_EM = 0.62;
 
 // Curated HA/tile-card-style color tokens. Anything not found here is used
 // verbatim as a CSS color (hex, rgb(), CSS name, var(...), ...).
+// The theme's primary colour, as every card's default identity accent. A card's
+// own colour is a choice the theme should make: a house blue, a sun orange or a
+// lamp yellow sat next to a green theme's green as a second accent nobody
+// picked. Colours that carry a meaning — a battery running low, heating versus
+// cooling, grid versus solar, a weak signal — keep their own. An
+// `accent_color` in the card still wins.
+export const THEME_PRIMARY = "var(--primary-color)";
+
 export const THEME_COLOR_TOKENS: Record<string, string> = {
   primary: "var(--primary-color)",
   accent: "var(--accent-color)",
@@ -383,7 +391,7 @@ export const DEFAULT_DONE_STATES = ["end", "beenden", "finish", "finished"];
 // `none`, Home Connect's `ready` and `inactive`, and the usual off words.
 export const DEFAULT_IDLE_STATES = ["none", "ready", "inactive", "off", "stop", "standby", "idle"];
 
-export const DEFAULT_PROGRESS_ACCENT = PALETTE.home;
+export const DEFAULT_PROGRESS_ACCENT = THEME_PRIMARY;
 
 // M3 Expressive wavy progress indicator geometry/timing.
 export const WAVE_AMPLITUDE = 3.5;
@@ -395,7 +403,7 @@ export const INDETERMINATE_SEGMENT_FRACTION = 0.3;
 export const INDETERMINATE_CYCLE_MS = 3000;
 
 export const DEFAULT_ENERGY_RADIUS = RADIUS.card;
-export const DEFAULT_ENERGY_ACCENT = PALETTE.ok;
+export const DEFAULT_ENERGY_ACCENT = THEME_PRIMARY;
 export const DEFAULT_ENERGY_ICON = "mdi:lightning-bolt";
 // `mode: consumption` isn't electricity-specific — a gas or water meter
 // entity works just as well. Picks a sensible default icon from the
@@ -475,7 +483,7 @@ export const GAUGE_BOX_HEIGHT = 140;
 
 export const DEFAULT_COUNTER_RADIUS = RADIUS.card;
 export const DEFAULT_COUNTER_ICON = "mdi:counter";
-export const DEFAULT_COUNTER_ACCENT = PALETTE.home;
+export const DEFAULT_COUNTER_ACCENT = THEME_PRIMARY;
 export const DEFAULT_COUNTER_DECIMALS = 2;
 export const DEFAULT_COUNTER_MIN_DIGITS = 5;
 export const COUNTER_CELL_WIDTH = 34;
@@ -493,7 +501,7 @@ export const COUNTER_POWER_CHIP_COLOR = PALETTE.ok;
 
 export const DEFAULT_POWER_LIST_RADIUS = RADIUS.card;
 export const DEFAULT_POWER_LIST_ICON = "mdi:power-socket-de";
-export const DEFAULT_POWER_LIST_ACCENT = PALETTE.home;
+export const DEFAULT_POWER_LIST_ACCENT = THEME_PRIMARY;
 export const DEFAULT_POWER_LIST_PRODUCER_COLOR = PALETTE.solar;
 export const DEFAULT_POWER_LIST_THRESHOLD = 1;
 export const DEFAULT_POWER_LIST_NOTIFY_THRESHOLD = 10;
@@ -533,7 +541,7 @@ export const SUMMARY_VALUE_LERP_MS = DURATION_MS.flip;
 
 export const DEFAULT_TOP_CONSUMERS_RADIUS = RADIUS.card;
 export const DEFAULT_TOP_CONSUMERS_ICON = "mdi:trophy-outline";
-export const DEFAULT_TOP_CONSUMERS_ACCENT = PALETTE.home;
+export const DEFAULT_TOP_CONSUMERS_ACCENT = THEME_PRIMARY;
 export const DEFAULT_TOP_CONSUMERS_COUNT = 3;
 export const TOP_CONSUMERS_MIN_COUNT = 3;
 export const TOP_CONSUMERS_MAX_COUNT = 15;
@@ -564,7 +572,7 @@ export const DEFAULT_TOP_CONSUMERS_PALETTE = [
 
 export const DEFAULT_COST_RADIUS = RADIUS.card;
 export const DEFAULT_COST_ICON = "mdi:cash-multiple";
-export const DEFAULT_COST_ACCENT = PALETTE.solar;
+export const DEFAULT_COST_ACCENT = THEME_PRIMARY;
 export const DEFAULT_COST_CURRENCY = "EUR";
 // Warn at 90 % of the budget: early enough to still react, late enough not to
 // cry wolf every month.
@@ -593,7 +601,7 @@ export const COST_REFRESH_MS = 15 * 60 * 1000;
 
 export const DEFAULT_LIGHT_RADIUS = RADIUS.card;
 export const DEFAULT_LIGHT_ICON = "mdi:lightbulb";
-export const DEFAULT_LIGHT_ACCENT = "#ffc773";
+export const DEFAULT_LIGHT_ACCENT = THEME_PRIMARY;
 export const LIGHT_OFF_COLOR = PALETTE.off;
 export const LIGHT_POWER_BTN_SIZE = 44;
 export const LIGHT_POWER_BTN_RADIUS_ON = 22;
@@ -672,7 +680,7 @@ export const DEFAULT_BATTERY_NAME_STRIP = [
 export const DEFAULT_WEATHER_RADIUS = RADIUS.card;
 export const DEFAULT_WEATHER_HOURS = 12;
 export const DEFAULT_WEATHER_DAYS = 0;
-export const DEFAULT_WEATHER_ACCENT = PALETTE.solar;
+export const DEFAULT_WEATHER_ACCENT = THEME_PRIMARY;
 export const DEFAULT_WEATHER_PRECIPITATION_COLOR = "#6ba7dc";
 export const DEFAULT_WEATHER_CHIPS: WeatherChipType[] = [
   "apparent_temperature",
@@ -756,7 +764,7 @@ export const CLIMATE_OVERVIEW_MOLD_TEMP_THRESHOLD = 18;
 
 // ---- Media card -----------------------------------------------------------
 export const DEFAULT_MEDIA_RADIUS = RADIUS.card;
-export const DEFAULT_MEDIA_ACCENT = PALETTE.media;
+export const DEFAULT_MEDIA_ACCENT = THEME_PRIMARY;
 export const MEDIA_ARTWORK_SIZE = 88;
 export const MEDIA_ARTWORK_RADIUS = 24;
 // Transport bar. The play/pause button is the row's state indicator: a
@@ -859,7 +867,7 @@ export const MEDIA_ACCENT_MIN_CONTRAST = 3.2;
 // ---- Aquarium card ----------------------------------------------------------
 export const DEFAULT_AQUARIUM_RADIUS = RADIUS.card;
 export const DEFAULT_AQUARIUM_ICON = "mdi:fishbowl-outline";
-export const DEFAULT_AQUARIUM_ACCENT = PALETTE.dryAuto;
+export const DEFAULT_AQUARIUM_ACCENT = THEME_PRIMARY;
 export const DEFAULT_AQUARIUM_TARGET_RANGE: [number, number] = [24, 26];
 export const DEFAULT_AQUARIUM_CLEANING_INTERVAL_DAYS = 14;
 export const DEFAULT_AQUARIUM_CAMERA_REFRESH_S = 10;
@@ -962,7 +970,7 @@ export const NAS_COLOR_OK = "#81c784";
 export const NAS_COLOR_WARN = "#f0a24a";
 export const NAS_COLOR_CRITICAL = "#e57368";
 export const NAS_COLOR_OFFLINE = "#8fa3b8";
-export const NAS_COLOR_ACCENT = "#85b7eb";
+export const NAS_COLOR_ACCENT = THEME_PRIMARY;
 
 export const NAS_ROW_HEIGHT = 52;
 export const NAS_ROW_RADIUS = 18;
@@ -1027,7 +1035,7 @@ export const SUPPLY_REFILL_RADIUS = 11;
 export const SUPPLY_REFILL_RADIUS_ACTIVE = 22;
 export const SUPPLY_REFILL_MORPH_MS = 400;
 export const SUPPLY_REPEAT_MS = 300;
-export const SUPPLY_COLOR_OK = PALETTE.home;
+export const SUPPLY_COLOR_OK = THEME_PRIMARY;
 export const SUPPLY_COLOR_LOW = PALETTE.solar;
 export const SUPPLY_COLOR_CRITICAL = PALETTE.heat;
 export const SUPPLY_COLOR_UNAVAILABLE = PALETTE.off;
@@ -1057,7 +1065,7 @@ export const SUPPLY_CHIP_RADIUS = RADIUS.chip;
 // ---- Todo card ------------------------------------------------------------
 export const DEFAULT_TODO_RADIUS = RADIUS.card;
 export const DEFAULT_TODO_ICON = "mdi:cart-outline";
-export const DEFAULT_TODO_ACCENT = PALETTE.dryAuto;
+export const DEFAULT_TODO_ACCENT = THEME_PRIMARY;
 export const TODO_HEADER_ICON_SIZE = 46;
 export const TODO_HEADER_ICON_RADIUS = 17;
 export const TODO_COUNT_CHIP_SIZE = 30;
@@ -1097,7 +1105,7 @@ export const TODO_LONG_PRESS_MS = 500;
 // ---- Time card ------------------------------------------------------------
 export const DEFAULT_TIME_RADIUS = RADIUS.card;
 export const DEFAULT_TIME_ICON = "mdi:clock-outline";
-export const DEFAULT_TIME_ACCENT = PALETTE.home;
+export const DEFAULT_TIME_ACCENT = THEME_PRIMARY;
 export const DEFAULT_TIME_MINUTE_STEP = 5;
 export const TIME_MINUTE_STEPS = [1, 5, 10, 15, 30] as const;
 export const TIME_HEADER_ICON_SIZE = 42;
@@ -1161,7 +1169,7 @@ export const COUNTER_ADJUST_RADIUS = 14;
 // ---- Occupancy card -------------------------------------------------------
 export const DEFAULT_OCCUPANCY_RADIUS = RADIUS.card;
 export const DEFAULT_OCCUPANCY_ICON = "mdi:motion-sensor";
-export const DEFAULT_OCCUPANCY_ACCENT = PALETTE.dryAuto;
+export const DEFAULT_OCCUPANCY_ACCENT = THEME_PRIMARY;
 // A dead presence sensor is worth more attention than a quiet room, so these
 // strip patterns only tidy the common vendor prefixes/suffixes.
 export const DEFAULT_OCCUPANCY_NAME_STRIP = [
@@ -1211,7 +1219,7 @@ export const OCCUPANCY_TICK_MS = 60000;
 
 // ---- Cover card -----------------------------------------------------------
 export const DEFAULT_COVER_RADIUS = RADIUS.card;
-export const DEFAULT_COVER_ACCENT = PALETTE.cover;
+export const DEFAULT_COVER_ACCENT = THEME_PRIMARY;
 export const COVER_TILT_STEP = 15;
 export const COVER_POSITION_THROTTLE_MS = 200;
 export const COVER_DRAG_SETTLE_MS = 600;
@@ -1244,7 +1252,7 @@ export const DEFAULT_COVER_ICON = "mdi:window-shutter";
 
 // ---- Leak card ------------------------------------------------------------
 export const DEFAULT_LEAK_RADIUS = RADIUS.card;
-export const DEFAULT_LEAK_ACCENT = PALETTE.ok;
+export const DEFAULT_LEAK_ACCENT = THEME_PRIMARY;
 export const LEAK_ALARM_COLOR = PALETTE.heat;
 export const LEAK_STALE_COLOR = PALETTE.solar;
 export const DEFAULT_LEAK_STALE_HOURS = 6;
@@ -1330,8 +1338,8 @@ export const WASTE_COLOR_RULES: Array<[RegExp, string]> = [
 // ---------------------------------------------------------------------------
 
 export const DEFAULT_CLOCK_RADIUS = RADIUS.card;
-/** Blue, matching the reference designs' hour tiles. */
-export const DEFAULT_CLOCK_ACCENT = PALETTE.home;
+/** The theme's primary colour, like every other card's identity accent. */
+export const DEFAULT_CLOCK_ACCENT = THEME_PRIMARY;
 /** Warm amber for the minute pair, the second colour in the reference. */
 export const DEFAULT_CLOCK_SECONDARY = PALETTE.light;
 
@@ -1436,7 +1444,7 @@ export const CLOCK_PROGRESS_TINT = 9;
 
 // ---- status card -----------------------------------------------------------
 export const DEFAULT_STATUS_RADIUS = RADIUS.card;
-export const DEFAULT_STATUS_ACCENT = PALETTE.home;
+export const DEFAULT_STATUS_ACCENT = THEME_PRIMARY;
 export const DEFAULT_STATUS_ICON = "mdi:information-outline";
 
 /** Semantic colours the built-in presets map onto. */
@@ -2105,7 +2113,7 @@ export const LIGHTS_OVERVIEW_GRID_MIN_COL = CLIMATE_OVERVIEW_GRID_MIN_COL;
 // their names, not a room's summary.
 export const LIGHTS_OVERVIEW_ENTITY_GRID_MIN_COL = 140;
 export const LIGHTS_OVERVIEW_TILE_RADIUS = CLIMATE_OVERVIEW_TILE_RADIUS;
-export const LIGHTS_OVERVIEW_COLOR_ON = PALETTE.light;
+export const LIGHTS_OVERVIEW_COLOR_ON = THEME_PRIMARY;
 export const LIGHTS_OVERVIEW_COLOR_OFF = PALETTE.off;
 
 export const DEFAULT_GROUP_RADIUS = RADIUS.card;
@@ -2126,7 +2134,7 @@ export const WEATHER_NICE_HOUR_STRIDES = [1, 2, 3, 4, 6, 8, 12, 24];
 
 export const DEFAULT_APPLIANCE_RADIUS = RADIUS.card;
 export const DEFAULT_APPLIANCE_ICON = "mdi:washing-machine";
-export const DEFAULT_APPLIANCE_ACCENT = PALETTE.home;
+export const DEFAULT_APPLIANCE_ACCENT = THEME_PRIMARY;
 export const APPLIANCE_ICON_TINT = HUMIDIFIER_ICON_TINT;
 export const APPLIANCE_LABEL_SIZE = HUMIDIFIER_LABEL_SIZE;
 export const APPLIANCE_VALUE_SIZE = 22;
@@ -2529,7 +2537,7 @@ export const ROUTER_COLOR_BAD = PALETTE.heat;
 export const ROUTER_COLOR_OFFLINE = "#8fa3b8";
 export const ROUTER_COLOR_DOWNLOAD = PALETTE.home; // #85b7eb
 export const ROUTER_COLOR_UPLOAD = PALETTE.light; // #f0c46e
-export const ROUTER_COLOR_ACCENT = PALETTE.grid; // #8f79e0 — the volume total
+export const ROUTER_COLOR_ACCENT = THEME_PRIMARY;
 
 export const ROUTER_HEADER_ICON_SIZE = 46;
 export const ROUTER_HEADER_ICON_RADIUS = 17;
@@ -2729,7 +2737,7 @@ export const POPUP_CARD_RIM = "rgba(100, 100, 100, 0.25)";
 // The edit-mode placeholder, which is all of the card a dashboard shows.
 export const POPUP_PLACEHOLDER_RADIUS = RADIUS.card;
 export const DETAIL_TICK_MS = 60_000;
-export const DETAIL_DEFAULT_ACCENT = PALETTE.home;
+export const DETAIL_DEFAULT_ACCENT = THEME_PRIMARY;
 export const DETAIL_MIN_COLOR = PALETTE.solar;
 export const DETAIL_MIN_ALT_COLOR = PALETTE.cool;
 export const DETAIL_TREND_UP_COLOR = PALETTE.ok;

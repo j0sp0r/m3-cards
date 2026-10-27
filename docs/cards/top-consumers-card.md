@@ -86,7 +86,7 @@ overflow row appear in `currency`.
 | `name` | string | "Top Consumers" | Displayed name |
 | `icon` | string | `mdi:trophy-outline` | Icon in the icon tile |
 | `subtitle` | string | "{period} · {n} devices" | Subtitle override |
-| `accent_color` | string | `#85b7eb` | Color of the header total |
+| `accent_color` | string | theme primary | Color of the header total |
 | `palette` | string[] | see above | Cyclically assigned device colors |
 | `text_color` / `secondary_text_color` | string | theme default | Name / subtitle & percentage row |
 | `card_background` | string | glass/solid background | Card background |

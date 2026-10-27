@@ -50,6 +50,7 @@ import {
   ROUTER_TEMP_ROW_RADIUS,
   ROUTER_TEMP_ROW_TINT,
   resolveCornerRadius,
+  THEME_PRIMARY,
 } from "./const";
 import {
   buildCssVars,
@@ -435,7 +436,7 @@ export class M3RouterDiagnosticsCard
     const hotCss = resolveThemeColor(cfg.hot_color ?? ROUTER_COLOR_WEAK);
     const findings = this._findings();
     const verdictCss = findings === 0 ? okCss : findings > 1 ? hotCss : warnCss;
-    const accentCss = resolveThemeColor(cfg.accent_color ?? "#85b7eb");
+    const accentCss = resolveThemeColor(cfg.accent_color ?? THEME_PRIMARY);
 
     const vars = buildCssVars({
       "m3r-text": common.textColorCss,

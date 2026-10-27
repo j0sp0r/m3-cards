@@ -65,7 +65,7 @@ name: Electricity Meter
 | `show_ticker` | boolean | `false` | Show the "+X today" line (needs `daily_entity`) |
 | `adjustable` | boolean | `false` | Offers a pencil for correcting the reading. See below — it needs somewhere to write |
 | `adjust_entity` | string | `entity` | Where the correction goes when the displayed entity cannot take it |
-| `accent_color` | string | `#85b7eb` | Color of the decimal-digit cells |
+| `accent_color` | string | theme primary | Color of the decimal-digit cells |
 | `cell_background` | string | 8% `--primary-text-color` | Background of the integer-digit cells |
 | `power_chip_color` | string | `#81c784` | Default power-chip color |
 | `power_thresholds` | `{ above, color }[]` | – | Chip color change above the given power |

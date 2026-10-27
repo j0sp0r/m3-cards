@@ -411,7 +411,6 @@ describe("profile tables", () => {
   it("gives every profile a full set of defaults", () => {
     for (const [name, d] of Object.entries(PROFILE_DEFAULTS)) {
       expect(d.functionKeys.length, name).toBe(5);
-      expect(d.accent, name).toMatch(/^#[0-9a-f]{6}$/i);
     }
   });
 

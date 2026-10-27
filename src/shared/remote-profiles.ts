@@ -237,7 +237,6 @@ export type RightColumn = "auto" | "channel" | "assistant" | "custom" | "none";
 
 export interface ProfileDefaults {
   icon: string;
-  accent: string;
   rightColumn: Exclude<RightColumn, "auto" | "custom">;
   showNowPlaying: boolean;
   showTransport: boolean;
@@ -250,7 +249,6 @@ export interface ProfileDefaults {
 export const PROFILE_DEFAULTS: Record<RemoteProfile, ProfileDefaults> = {
   generic: {
     icon: "mdi:television",
-    accent: "#85b7eb",
     rightColumn: "none",
     showNowPlaying: true,
     showTransport: true,
@@ -260,7 +258,6 @@ export const PROFILE_DEFAULTS: Record<RemoteProfile, ProfileDefaults> = {
   },
   samsung: {
     icon: "mdi:television",
-    accent: "#f0c46e",
     rightColumn: "channel",
     // A TV is watched, not browsed: the title of what is on a broadcast
     // channel is not something the integration knows, so the bar would be a
@@ -273,7 +270,6 @@ export const PROFILE_DEFAULTS: Record<RemoteProfile, ProfileDefaults> = {
   },
   google_tv: {
     icon: "mdi:android",
-    accent: "#85b7eb",
     rightColumn: "assistant",
     showNowPlaying: true,
     // Transport lives in the now-playing bar on a device that always knows
@@ -285,7 +281,6 @@ export const PROFILE_DEFAULTS: Record<RemoteProfile, ProfileDefaults> = {
   },
   lg_webos: {
     icon: "mdi:television",
-    accent: "#e57368",
     rightColumn: "channel",
     showNowPlaying: false,
     showTransport: true,
@@ -295,7 +290,6 @@ export const PROFILE_DEFAULTS: Record<RemoteProfile, ProfileDefaults> = {
   },
   appletv: {
     icon: "mdi:apple",
-    accent: "#b8c4c9",
     rightColumn: "none",
     showNowPlaying: true,
     showTransport: false,
@@ -305,7 +299,6 @@ export const PROFILE_DEFAULTS: Record<RemoteProfile, ProfileDefaults> = {
   },
   kodi: {
     icon: "mdi:play-box-outline",
-    accent: "#5dcaa5",
     rightColumn: "none",
     showNowPlaying: true,
     showTransport: true,

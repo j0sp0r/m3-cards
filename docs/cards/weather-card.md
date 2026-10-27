@@ -64,7 +64,7 @@ daily list collapses by default and expands via a button.
 | `show_hourly_temperatures` | boolean | `true` | Temperature per shown hour |
 | `show_hour_labels` | boolean | `true` | The hour under each column. Without it the temperatures say nothing about when they apply |
 | `show_temp_axis` | boolean | `false` | Min/mid/max temperature marks along the curve |
-| `accent_color` | string | solar yellow | Curve color |
+| `accent_color` | string | theme primary | Curve color |
 | `precipitation_color` | string | `#6ba7dc` | Precipitation bar color |
 | `gradient_color` | string | same as `accent_color` | Gradient fill under the curve |
 | `text_color` / `secondary_text_color` | string | theme default | Temperature/title vs. chips/secondary values |

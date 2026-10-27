@@ -194,7 +194,7 @@ glass_background: true
 | `name` | string | entity `friendly_name` | Displayed name |
 | `icon` | string | `mdi:solar-power` (`mdi:solar-power-variant` for `mode: solar`) | Icon in the icon tile |
 | `subtitle` | string | "Last {days} days" / "Today · last {hours} hours" / "Per month · {months} months" / "Today · day timeline" | Subtitle override |
-| `accent_color` | string | `#81c784` | Accent color (current bar, current value, icon, outline forecast/projection) |
+| `accent_color` | string | theme primary | Accent color (current bar, current value, icon, outline forecast/projection) |
 | `bar_tint_color` | string | 28% accent color (30% for `mode: solar`) | Color of past bars |
 | `text_color` / `secondary_text_color` | string | theme default | Name / axis labels |
 | `card_background` | string | glass/solid background | Card background |

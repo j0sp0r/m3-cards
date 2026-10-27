@@ -351,7 +351,7 @@ empty dialog.
 | `done_states` | see above | States that mean "finished" |
 | `tap_action` | `more-info`, or `popup` when one is configured | What a tap on the header does. Adds a `popup` action kind |
 | `popup` | — | The card's own popup: `title`, `size` (`normal`/`wide`/`fullscreen`) and a `content` card |
-| `accent_color` | `#85b7eb` | Overridden by a matched rule's own `color`. Chips without a colour of their own use it, or the theme's primary colour when it is unset |
+| `accent_color` | theme primary | Overridden by a matched rule's own `color`. Chips without a colour of their own use it |
 | `text_color` / `secondary_text_color` / `card_background` | theme | The usual colour overrides |
 | `glass_background` | `true` | Frosted card surface |
 | `animation` | `auto` | `auto`, `on`, `off` — also honours `prefers-reduced-motion` |

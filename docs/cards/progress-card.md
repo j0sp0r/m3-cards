@@ -79,7 +79,7 @@ needed.
 
 | Option | Default | Description |
 |---|---|---|
-| `accent_color` | `#85b7eb` | Wave, percentage, icon |
+| `accent_color` | theme primary | Wave, percentage, icon |
 | `track_color` | 12% `--primary-text-color` | Flat track |
 | `dot_color` | 70% `--primary-text-color` | End-point dot |
 | `icon_color` | accent color | Icon color |

@@ -63,7 +63,7 @@ name: Smart Plugs
 | `name` | string | "Smart Plugs" | Displayed name |
 | `icon` | string | `mdi:power-socket-de` | Icon in the icon tile |
 | `subtitle` | string | "{active} of {total} active" | Subtitle override |
-| `accent_color` | string | `#85b7eb` | Color of consumer icons/values |
+| `accent_color` | string | theme primary | Color of consumer icons/values |
 | `producer_color` | string | `#f0a24a` | Producer-section color |
 | `bar_tint_color` | string | accent color | Share-bar color |
 | `text_color` / `secondary_text_color` | string | theme default | Name / subtitle & total |

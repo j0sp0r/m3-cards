@@ -64,6 +64,7 @@ import {
   REMOTE_TILE_RADIUS,
   REMOTE_TILE_RADIUS_PRESSED,
   resolveCornerRadius,
+  THEME_PRIMARY,
 } from "./const";
 import {
   buildCssVars,
@@ -442,7 +443,7 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
     }
 
     const common = resolveCommonColors(cfg);
-    const accentCss = resolveThemeColor(cfg.accent_color ?? this._defaults.accent);
+    const accentCss = resolveThemeColor(cfg.accent_color ?? THEME_PRIMARY);
     const on = this._isOn;
     const unavailable = this._unavailable;
 

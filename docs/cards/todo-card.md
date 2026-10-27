@@ -69,7 +69,7 @@ stored as "Fruit: apples" reads as "apples" beneath a "Fruit" heading.
 | `show_clear_completed` | boolean | `true` | Offer "clear completed" |
 | `group_by_category` | boolean | `false` | Group by `Category:` prefix |
 | `reorderable` | boolean | `false` | Drag handle for reordering |
-| `accent_color` | string | `#5dcaa5` | Accent for icon, chip and checkmarks |
+| `accent_color` | string | theme primary | Accent for icon, chip and checkmarks |
 | `accent_opacity` | number | `18` | Tint strength |
 | `text_color` / `secondary_text_color` | string | theme default | Name / secondary text |
 | `card_background` | string | glass/solid background | Card background |

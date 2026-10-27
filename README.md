@@ -790,7 +790,7 @@ needed.
 
 | Option | Default | Description |
 |---|---|---|
-| `accent_color` | `#85b7eb` | Wave, percentage, icon |
+| `accent_color` | theme primary | Wave, percentage, icon |
 | `track_color` | 12% `--primary-text-color` | Flat track |
 | `dot_color` | 70% `--primary-text-color` | End-point dot |
 | `icon_color` | accent color | Icon color |
@@ -999,7 +999,7 @@ glass_background: true
 | `name` | string | entity `friendly_name` | Displayed name |
 | `icon` | string | `mdi:solar-power` (`mdi:solar-power-variant` for `mode: solar`) | Icon in the icon tile |
 | `subtitle` | string | "Last {days} days" / "Today · last {hours} hours" / "Per month · {months} months" / "Today · day timeline" | Subtitle override |
-| `accent_color` | string | `#81c784` | Accent color (current bar, current value, icon, outline forecast/projection) |
+| `accent_color` | string | theme primary | Accent color (current bar, current value, icon, outline forecast/projection) |
 | `bar_tint_color` | string | 28% accent color (30% for `mode: solar`) | Color of past bars |
 | `text_color` / `secondary_text_color` | string | theme default | Name / axis labels |
 | `card_background` | string | glass/solid background | Card background |
@@ -1184,7 +1184,7 @@ name: Electricity Meter
 | `show_ticker` | boolean | `false` | Show the "+X today" line (needs `daily_entity`) |
 | `adjustable` | boolean | `false` | Offers a pencil for correcting the reading. See below — it needs somewhere to write |
 | `adjust_entity` | string | `entity` | Where the correction goes when the displayed entity cannot take it |
-| `accent_color` | string | `#85b7eb` | Color of the decimal-digit cells |
+| `accent_color` | string | theme primary | Color of the decimal-digit cells |
 | `cell_background` | string | 8% `--primary-text-color` | Background of the integer-digit cells |
 | `power_chip_color` | string | `#81c784` | Default power-chip color |
 | `power_thresholds` | `{ above, color }[]` | – | Chip color change above the given power |
@@ -1292,7 +1292,7 @@ name: Smart Plugs
 | `name` | string | "Smart Plugs" | Displayed name |
 | `icon` | string | `mdi:power-socket-de` | Icon in the icon tile |
 | `subtitle` | string | "{active} of {total} active" | Subtitle override |
-| `accent_color` | string | `#85b7eb` | Color of consumer icons/values |
+| `accent_color` | string | theme primary | Color of consumer icons/values |
 | `producer_color` | string | `#f0a24a` | Producer-section color |
 | `bar_tint_color` | string | accent color | Share-bar color |
 | `text_color` / `secondary_text_color` | string | theme default | Name / subtitle & total |
@@ -1464,7 +1464,7 @@ overflow row appear in `currency`.
 | `name` | string | "Top Consumers" | Displayed name |
 | `icon` | string | `mdi:trophy-outline` | Icon in the icon tile |
 | `subtitle` | string | "{period} · {n} devices" | Subtitle override |
-| `accent_color` | string | `#85b7eb` | Color of the header total |
+| `accent_color` | string | theme primary | Color of the header total |
 | `palette` | string[] | see above | Cyclically assigned device colors |
 | `text_color` / `secondary_text_color` | string | theme default | Name / subtitle & percentage row |
 | `card_background` | string | glass/solid background | Card background |
@@ -1556,7 +1556,7 @@ The "next" arrow is disabled once the current (running) period is reached.
 | `name` | string | "Cost" | Displayed name |
 | `icon` | string | `mdi:cash-multiple` | Icon in the icon tile |
 | `subtitle` | string | "Cost in {month}" (period-dependent) | Subtitle override |
-| `accent_color` | string | `#f0a24a` | Accent color |
+| `accent_color` | string | theme primary | Accent color |
 | `text_color` / `secondary_text_color` | string | theme default | Amount / label & footer |
 | `card_background` | string | glass/solid background | Card background |
 | `animation` | `auto` \| `on` \| `off` | `auto` | Bar/value animation; `auto`/`on` respect `prefers-reduced-motion` |
@@ -1780,7 +1780,7 @@ daily list collapses by default and expands via a button.
 | `show_hourly_temperatures` | boolean | `true` | Temperature per shown hour |
 | `show_hour_labels` | boolean | `true` | The hour under each column. Without it the temperatures say nothing about when they apply |
 | `show_temp_axis` | boolean | `false` | Min/mid/max temperature marks along the curve |
-| `accent_color` | string | solar yellow | Curve color |
+| `accent_color` | string | theme primary | Curve color |
 | `precipitation_color` | string | `#6ba7dc` | Precipitation bar color |
 | `gradient_color` | string | same as `accent_color` | Gradient fill under the curve |
 | `text_color` / `secondary_text_color` | string | theme default | Temperature/title vs. chips/secondary values |
@@ -2005,7 +2005,7 @@ level, and rendering them all locks the frame.
 | `default_tab` | `queue` \| `library` | `library` | Which tab opens first, where both exist |
 | `browse_height` | number | `190` | Max height of the browse list in px |
 | `use_artwork_color` | boolean | `true` | Extract the accent color from the artwork instead of `accent_color` |
-| `accent_color` | string | purple (media palette) | Progress/volume color when `use_artwork_color: false` |
+| `accent_color` | string | theme primary | Progress/volume color when `use_artwork_color: false` |
 | `text_color` / `secondary_text_color` | string | theme default | Title vs. artist/album |
 | `card_background` | string | glass/solid background | Card background |
 | `animation` | `auto` \| `on` \| `off` | `auto` | Progress/volume animation; `auto`/`on` respect `prefers-reduced-motion` |
@@ -2869,7 +2869,7 @@ stored as "Fruit: apples" reads as "apples" beneath a "Fruit" heading.
 | `show_clear_completed` | boolean | `true` | Offer "clear completed" |
 | `group_by_category` | boolean | `false` | Group by `Category:` prefix |
 | `reorderable` | boolean | `false` | Drag handle for reordering |
-| `accent_color` | string | `#5dcaa5` | Accent for icon, chip and checkmarks |
+| `accent_color` | string | theme primary | Accent for icon, chip and checkmarks |
 | `accent_opacity` | number | `18` | Tint strength |
 | `text_color` / `secondary_text_color` | string | theme default | Name / secondary text |
 | `card_background` | string | glass/solid background | Card background |
@@ -4055,7 +4055,7 @@ empty dialog.
 | `done_states` | see above | States that mean "finished" |
 | `tap_action` | `more-info`, or `popup` when one is configured | What a tap on the header does. Adds a `popup` action kind |
 | `popup` | — | The card's own popup: `title`, `size` (`normal`/`wide`/`fullscreen`) and a `content` card |
-| `accent_color` | `#85b7eb` | Overridden by a matched rule's own `color`. Chips without a colour of their own use it, or the theme's primary colour when it is unset |
+| `accent_color` | theme primary | Overridden by a matched rule's own `color`. Chips without a colour of their own use it |
 | `text_color` / `secondary_text_color` / `card_background` | theme | The usual colour overrides |
 | `glass_background` | `true` | Frosted card surface |
 | `animation` | `auto` | `auto`, `on`, `off` — also honours `prefers-reduced-motion` |
@@ -5984,8 +5984,9 @@ button and the arrows all keep their proportions.
 
 ## Profiles
 
-`profile` sets the defaults for key names, which blocks appear, and the accent
-colour. Every one of them stays overridable.
+`profile` sets the defaults for key names and which blocks appear. Every one of
+them stays overridable. The accent is the theme's primary colour on every
+profile; `accent_color` changes it.
 
 | | samsung | google_tv | lg_webos | appletv | kodi | generic |
 | --- | --- | --- | --- | --- | --- | --- |
