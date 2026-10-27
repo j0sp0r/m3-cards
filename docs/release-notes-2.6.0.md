@@ -1,7 +1,11 @@
 # M3 Cards 2.6.0
 
+<p align="center"><img src="https://raw.githubusercontent.com/j0sp0r/m3-cards/v2.6.0/docs/images/tour.gif" alt="A 20-second tour of M3 Cards" width="880"></p>
+
+<p align="center"><sub>The full tour, with sound, is attached below: <code>m3-cards-tour.mp4</code> (landscape) and <code>m3-cards-tour-phone.mp4</code> (portrait), plus the 20-second cut as <code>m3-cards-tour-20s.mp4</code>.</sub></p>
+
 **Upgrading:** no option was removed or renamed, so existing configs load
-unchanged. Three things look or behave differently without having been asked
+unchanged. Four things look or behave differently without having been asked
 for, and the first is a reversal rather than an addition:
 
 - **The heading card takes the theme's primary colour** when it has no `color`
@@ -31,6 +35,8 @@ The suite registers 49 cards.
 
 ## A detail view of its own
 
+<p align="center"><img src="https://raw.githubusercontent.com/j0sp0r/m3-cards/v2.6.0/docs/images/detail-card.png" alt="The detail view: a value, its curve and its statistics" width="440"></p>
+
 `m3-detail-card` is one entity, large. A number gets its value, a trend chip
 against the start of the period, a smoothed curve on a quiet scale and its
 minimum, average and maximum. A door gets a timeline. A lamp gets its own M3
@@ -57,6 +63,8 @@ back to doing so.
 
 ## Pop-ups without a second card library
 
+<p align="center"><img src="https://raw.githubusercontent.com/j0sp0r/m3-cards/v2.6.0/docs/images/popup-card.png" alt="A popup holding several cards in a bottom sheet" width="440"></p>
+
 `m3-popup-card` holds other cards — M3 or any other — in a bottom sheet that a
 URL hash opens. A button that navigates to `#remotes` opens the popup whose
 `hash` is `#remotes`, which is how Bubble Card's pop-ups work, so a dashboard
@@ -70,6 +78,8 @@ on the sheet, so every card on a light sheet follows — and `animation: off`
 opens it in place.
 
 ## A remote with a ring
+
+<p align="center"><img src="https://raw.githubusercontent.com/j0sp0r/m3-cards/v2.6.0/docs/images/remote-card.png" alt="The remote card with its ring-shaped directional pad" width="440"></p>
 
 `m3-remote-card` is one card with per-brand profiles rather than one card per
 brand: these devices differ in what they call each key, not in the shape of a
@@ -86,6 +96,8 @@ a phone keyboard. What a device cannot do is left out rather than drawn as dead
 buttons, and power always goes through the remote entity when there is one.
 
 ## A router, graded rather than printed
+
+<p align="center"><img src="https://raw.githubusercontent.com/j0sp0r/m3-cards/v2.6.0/docs/images/router-card.png" alt="The router card" width="400"> <img src="https://raw.githubusercontent.com/j0sp0r/m3-cards/v2.6.0/docs/images/router-diagnostics-card.png" alt="The router diagnostics card" width="400"></p>
 
 `m3-router-card` and `m3-router-diagnostics-card` were built against a ZTE
 MC801A and work with a Fritzbox, a Huawei or a GL.iNet; every block appears

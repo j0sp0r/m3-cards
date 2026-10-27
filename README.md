@@ -11,6 +11,16 @@ TypeScript + [Lit](https://lit.dev), **without** any dependency on
 `button-card`, `card-mod`, `mod-card`, or `stack-in-card`. A single bundle
 (`m3-cards.js`) registers **49 cards**, all sharing one design language.
 
+<p align="center">
+  <img src="docs/images/tour.gif" alt="A 20-second tour: wave sliders, tactile controls, shape-shifting buttons, rolling digits and the live energy flow" width="880">
+</p>
+
+<p align="center"><sub>
+  The full tour with sound, as a video:
+  <a href="https://github.com/j0sp0r/m3-cards/releases/download/v2.6.0/m3-cards-tour.mp4">landscape</a> ·
+  <a href="https://github.com/j0sp0r/m3-cards/releases/download/v2.6.0/m3-cards-tour-phone.mp4">phone</a>
+</sub></p>
+
 New here? Start with the category that matches what you want to show — every
 card links to its full documentation further down.
 
