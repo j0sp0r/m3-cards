@@ -196,6 +196,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   with no time left now counts as done — on the appliance card too, which
   then shows its rule for a finished state.
 
+- **A switched-on tile can be read.** A chip with a `tap_action` on an entity
+  that is on fills with its colour; as a tile it kept its light name and
+  value on that light fill. Name, value and icon now take the fill's ink.
 - **The appliance card shows its fold arrow only when there is something to
   fold.** A dryer that drops off Wi-Fi takes every chip with it, and the arrow
   then toggled an empty body, which looked like a broken arrow.

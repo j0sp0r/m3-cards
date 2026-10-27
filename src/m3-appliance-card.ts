@@ -1780,6 +1780,23 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       color: var(--m3a-chip-ink);
     }
 
+    /* A tile sets its name, value and icon colours itself, so the fill's ink
+       has to reach them too: a switched-on tile kept light text on its light
+       fill and could not be read. */
+    .chip.tile.control.active .tile-name,
+    .chip.tile.control.active .tile-value,
+    .chip.tile.control.active .tile-icon {
+      color: var(--m3a-chip-ink);
+    }
+
+    .chip.tile.control.active .tile-name {
+      opacity: 0.8;
+    }
+
+    .chip.tile.control.active .tile-icon {
+      background: color-mix(in srgb, var(--m3a-chip-ink) 12%, transparent);
+    }
+
     .option-pill:focus-visible,
     .action-btn:focus-visible,
     .chip.control:focus-visible {
