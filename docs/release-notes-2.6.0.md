@@ -5,22 +5,13 @@
 <p align="center"><sub>The full tour, with sound, is attached below: <code>m3-cards-tour.mp4</code> (landscape) and <code>m3-cards-tour-phone.mp4</code> (portrait), plus the 20-second cut as <code>m3-cards-tour-20s.mp4</code>.</sub></p>
 
 **Upgrading:** no option was removed or renamed, so existing configs load
-unchanged. Five things look or behave differently without having been asked
+unchanged. Four things look or behave differently without having been asked
 for, and the first is a reversal rather than an addition:
 
 - **The heading card takes the theme's primary colour** when it has no `color`
   of its own. It used the suite's house blue (`#85b7eb`), which put a blue icon
   between the green ones of the button and nav cards on any theme whose primary
   is not blue. `color: "#85b7eb"` keeps the old look.
-- **So does every other card's own colour.** The appliance, progress, counter,
-  status, clock, time, energy, cost, power-list, top-consumers, weather,
-  media, to-do, aquarium, occupancy, cover, leak, supply, NAS, router, detail
-  and remote cards each brought an accent of their own — blue, orange,
-  purple, teal or green. They take the theme's primary colour now. Colours
-  that mean something stay as they were: a battery running low, heating and
-  cooling, grid and solar, signal grades, update status, and the light cards'
-  yellow, which says a lamp is on. Set `accent_color` on a card to get its
-  old colour back.
 - **Every card has exactly one rim.** On a theme that leaves Home Assistant's
   own card border switched on — the default theme does — an M3 card drew its
   frame *and* that border, a double rim. It is one rim now, whatever the theme.
@@ -29,9 +20,16 @@ for, and the first is a reversal rather than an addition:
   old shape until notifications are switched off and on again in its editor.
 - **The appliance card's chips keep one colour.** They took the colour of the
   current state rule, so a grey "Ready" rule turned every reading grey. They
-  now use their own `color`, else the card's `accent_color`, else the theme's
-  primary colour; the state still colours the icon, the status line and the
-  bar. An idle machine also no longer shows a progress bar at 0 %.
+  now use their own `color`, else the card's accent colour; the state still
+  colours the icon, the status line and the bar. An idle machine also no
+  longer shows a progress bar at 0 %.
+
+A card added from the card picker now starts in the theme's primary colour:
+the appliance, progress, counter, status, clock, time, energy, cost,
+power-list, top-consumers, weather, media, to-do, aquarium, occupancy, cover,
+leak and supply cards arrive with `accent_color: primary` in their config.
+The cards already on a dashboard have no such line and keep the colour they
+had.
 
 This release is about the parts of a dashboard that are not a card on a grid:
 the details behind a tap, the pop-up behind a button, the remote on the sofa

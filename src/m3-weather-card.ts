@@ -36,6 +36,7 @@ import {
   WEATHER_DAYS_TOGGLE_RADIUS,
   WEATHER_DAYS_TOGGLE_RADIUS_OPEN,
   resolveCornerRadius,
+  NEW_CARD_ACCENT,
 } from "./const";
 import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, tintInk, foregroundOn , foregroundVars} from "./shared/color-config";
 import { glassCardStyles, glassCardClass, renderMissingEntity } from "./shared/glass-card";
@@ -186,6 +187,7 @@ export class M3WeatherCard extends TemplatedCard(LitElement) implements Lovelace
       type: "custom:m3-weather-card",
       entity: entities[0] ?? "",
       glass_background: true,
+      accent_color: NEW_CARD_ACCENT,
     };
   }
 

@@ -43,6 +43,7 @@ import {
   TODO_DEFAULT_MAX_QUICK_ADD,
   TODO_LONG_PRESS_MS,
   resolveCornerRadius,
+  NEW_CARD_ACCENT,
 } from "./const";
 import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn , foregroundVars} from "./shared/color-config";
 import { glassCardStyles, glassCardClass, renderMissingEntity } from "./shared/glass-card";
@@ -111,7 +112,7 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
 
   public static getStubConfig(hass: HomeAssistant): M3TodoCardConfig {
     const entity = Object.keys(hass?.states ?? {}).find((e) => e.startsWith("todo.")) ?? "";
-    return { type: "custom:m3-todo-card", entity };
+    return { type: "custom:m3-todo-card", entity, accent_color: NEW_CARD_ACCENT };
   }
 
   public setConfig(config: M3TodoCardConfig): void {

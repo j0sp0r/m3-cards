@@ -35,6 +35,7 @@ import {
   ENERGY_MONTH_BAR_GAP,
   ENERGY_MONTH_BAR_RADIUS,
   resolveCornerRadius,
+  NEW_CARD_ACCENT,
 } from "./const";
 import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, tintInk, foregroundOn, fillColor, foregroundVars } from "./shared/color-config";
 import { glassCardStyles, glassCardClass, renderMissingEntity } from "./shared/glass-card";
@@ -128,6 +129,7 @@ export class M3EnergyCard extends TemplatedCard(LitElement) implements LovelaceC
       type: "custom:m3-energy-card",
       entity: preferred ?? entities[0] ?? "",
       glass_background: true,
+      accent_color: NEW_CARD_ACCENT,
     };
   }
 

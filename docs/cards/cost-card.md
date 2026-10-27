@@ -88,7 +88,7 @@ The "next" arrow is disabled once the current (running) period is reached.
 | `name` | string | "Cost" | Displayed name |
 | `icon` | string | `mdi:cash-multiple` | Icon in the icon tile |
 | `subtitle` | string | "Cost in {month}" (period-dependent) | Subtitle override |
-| `accent_color` | string | theme primary | Accent color |
+| `accent_color` | string | `#f0a24a`; `primary` on a card added from the card picker | Accent color |
 | `text_color` / `secondary_text_color` | string | theme default | Amount / label & footer |
 | `card_background` | string | glass/solid background | Card background |
 | `animation` | `auto` \| `on` \| `off` | `auto` | Bar/value animation; `auto`/`on` respect `prefers-reduced-motion` |

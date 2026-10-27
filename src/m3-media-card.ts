@@ -67,6 +67,7 @@ import {
   MEDIA_BROWSE_MAX_ROWS,
   DEFAULT_MEDIA_BROWSE_HEIGHT,
   resolveCornerRadius,
+  NEW_CARD_ACCENT,
 } from "./const";
 import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, foregroundOn , foregroundVars} from "./shared/color-config";
 import { glassCardStyles, glassCardClass, renderMissingEntity } from "./shared/glass-card";
@@ -521,6 +522,7 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
       type: "custom:m3-media-card",
       entity: entities[0] ?? "",
       glass_background: true,
+      accent_color: NEW_CARD_ACCENT,
     };
   }
 

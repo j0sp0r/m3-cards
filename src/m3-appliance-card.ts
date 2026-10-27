@@ -76,6 +76,7 @@ import {
   DEFAULT_APPLIANCE_ICON,
   DEFAULT_APPLIANCE_RADIUS,
   resolveCornerRadius,
+  NEW_CARD_ACCENT,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { activateOnKey } from "./shared/a11y";
@@ -257,6 +258,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       type: "custom:m3-appliance-card",
       entity: guess,
       glass_background: true,
+      accent_color: NEW_CARD_ACCENT,
     };
   }
 
@@ -1261,7 +1263,9 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     // A tile is a reading, not the machine's state: it keeps the card's base
     // colour while the state rules recolour the header and the bar. Following
     // the state turned every tile grey whenever the machine stood idle.
-    const color = resolveThemeColor(rule?.color ?? cfg.color ?? this._config?.accent_color ?? "primary");
+    const color = resolveThemeColor(
+      rule?.color ?? cfg.color ?? this._config?.accent_color ?? DEFAULT_APPLIANCE_ACCENT,
+    );
     const tint = tintOn(this, color, undefined, APPLIANCE_CHIP_TINT);
     const icon = rule?.icon ?? cfg.icon;
     const vars = buildCssVars({

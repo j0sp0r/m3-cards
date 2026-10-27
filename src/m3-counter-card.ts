@@ -31,6 +31,7 @@ import {
   COUNTER_ADJUST_HEIGHT,
   COUNTER_ADJUST_RADIUS,
   resolveCornerRadius,
+  NEW_CARD_ACCENT,
 } from "./const";
 import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, tintInk, foregroundOn , foregroundVars, tintBackground } from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
@@ -93,6 +94,7 @@ export class M3CounterCard extends TemplatedCard(LitElement) implements Lovelace
       type: "custom:m3-counter-card",
       entity,
       glass_background: true,
+      accent_color: NEW_CARD_ACCENT,
     };
   }
 

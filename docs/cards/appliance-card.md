@@ -210,7 +210,7 @@ nothing and pushes the ones that do say something off the edge.
 
 A chip keeps its colour whatever the machine is doing. The state rules colour
 the header icon, the status line and the bar; a chip uses its own `color` or
-rule, else the card's `accent_color`, else the theme's primary colour. Taking
+rule, else the card's `accent_color` or its default. Taking
 the state's colour turned every reading grey whenever the machine stood idle.
 
 On a card that is mostly read — the power draw, today's energy, the meter, the
@@ -351,7 +351,7 @@ empty dialog.
 | `done_states` | see above | States that mean "finished" |
 | `tap_action` | `more-info`, or `popup` when one is configured | What a tap on the header does. Adds a `popup` action kind |
 | `popup` | — | The card's own popup: `title`, `size` (`normal`/`wide`/`fullscreen`) and a `content` card |
-| `accent_color` | theme primary | Overridden by a matched rule's own `color`. Chips without a colour of their own use it |
+| `accent_color` | `#85b7eb`; `primary` on a card added from the card picker | Overridden by a matched rule's own `color`. Chips without a colour of their own use it |
 | `text_color` / `secondary_text_color` / `card_background` | theme | The usual colour overrides |
 | `glass_background` | `true` | Frosted card surface |
 | `animation` | `auto` | `auto`, `on`, `off` — also honours `prefers-reduced-motion` |

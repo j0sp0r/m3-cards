@@ -33,6 +33,7 @@ import {
   TOP_CONSUMERS_FLIP_DURATION_MS,
   TOP_CONSUMERS_REFRESH_MS,
   resolveCornerRadius,
+  NEW_CARD_ACCENT,
 } from "./const";
 import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, tintInk, foregroundOn , foregroundVars} from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
@@ -135,6 +136,7 @@ export class M3TopConsumersCard extends TemplatedCard(LitElement) implements Lov
       type: "custom:m3-top-consumers-card",
       source: "energy",
       glass_background: true,
+      accent_color: NEW_CARD_ACCENT,
     };
   }
 

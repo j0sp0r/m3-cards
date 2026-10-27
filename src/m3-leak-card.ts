@@ -28,6 +28,7 @@ import {
   LEAK_TICK_MS,
   LEAK_ARM_TIMEOUT_MS,
   resolveCornerRadius,
+  NEW_CARD_ACCENT,
 } from "./const";
 import { resolveThemeColor, buildCssVars, resolveCommonColors , tintOn, foregroundOn, foregroundVars, tintBackground } from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
@@ -86,7 +87,12 @@ export class M3LeakCard extends TemplatedCard(LitElement) implements LovelaceCar
   }
 
   public static getStubConfig(): M3LeakCardConfig {
-    return { type: "custom:m3-leak-card", auto_discover: true, glass_background: true };
+    return {
+      type: "custom:m3-leak-card",
+      auto_discover: true,
+      glass_background: true,
+      accent_color: NEW_CARD_ACCENT,
+    };
   }
 
   public getCardSize(): number {

@@ -52,6 +52,7 @@ import {
   TIME_DIGIT_BUFFER_MS,
   TIME_INSTANT_DEBOUNCE_MS,
   resolveCornerRadius,
+  NEW_CARD_ACCENT,
 } from "./const";
 import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, tintInk , foregroundVars} from "./shared/color-config";
 import { glassCardStyles, glassCardClass, renderMissingEntity } from "./shared/glass-card";
@@ -140,7 +141,7 @@ export class M3TimeCard extends TemplatedCard(LitElement) implements LovelaceCar
       Object.keys(hass?.states ?? {}).find(
         (e) => e.startsWith("input_datetime.") && hass.states[e].attributes.has_time === true,
       ) ?? "";
-    return { type: "custom:m3-time-card", entity };
+    return { type: "custom:m3-time-card", entity, accent_color: NEW_CARD_ACCENT };
   }
 
   protected shouldUpdate(changed: PropertyValues): boolean {

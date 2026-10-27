@@ -22,6 +22,7 @@ import {
   INDETERMINATE_SEGMENT_FRACTION,
   INDETERMINATE_CYCLE_MS,
   resolveCornerRadius,
+  NEW_CARD_ACCENT,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
@@ -82,6 +83,7 @@ export class M3ProgressCard extends TemplatedCard(LitElement) implements Lovelac
       type: "custom:m3-progress-card",
       entity: statusEntity,
       glass_background: true,
+      accent_color: NEW_CARD_ACCENT,
     };
   }
 

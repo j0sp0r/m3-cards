@@ -45,6 +45,7 @@ import {
   SUPPLY_CHIP_RADIUS,
   SUPPLY_RATE_REFRESH_MS,
   resolveCornerRadius,
+  NEW_CARD_ACCENT,
 } from "./const";
 import { supplyPackSize, supplyLimits } from "./shared/supply-thresholds";
 import { fetchConsumptionRates, type ConsumptionRate } from "./shared/supply-history";
@@ -123,6 +124,7 @@ export class M3SupplyCard extends TemplatedCard(LitElement) implements LovelaceC
     return {
       type: "custom:m3-supply-card",
       items: helper ? [{ entity: helper }] : [],
+      ok_color: NEW_CARD_ACCENT,
     };
   }
 

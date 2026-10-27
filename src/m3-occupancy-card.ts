@@ -42,6 +42,7 @@ import {
   OCCUPANCY_SEGMENT_GAP,
   OCCUPANCY_SEGMENT_FADED_OPACITY,
   resolveCornerRadius,
+  NEW_CARD_ACCENT,
 } from "./const";
 import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn , foregroundVars} from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
@@ -103,7 +104,7 @@ export class M3OccupancyCard extends TemplatedCard(LitElement) implements Lovela
   }
 
   public static getStubConfig(): M3OccupancyCardConfig {
-    return { type: "custom:m3-occupancy-card", auto_discover: true };
+    return { type: "custom:m3-occupancy-card", auto_discover: true, accent_color: NEW_CARD_ACCENT };
   }
 
   public setConfig(config: M3OccupancyCardConfig): void {

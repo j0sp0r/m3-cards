@@ -55,6 +55,7 @@ import {
   STATUS_VALUE_SIZE_NUMBER,
   STATUS_VALUE_SIZE_TEXT,
   resolveCornerRadius,
+  NEW_CARD_ACCENT,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { STANDARD_EASING, shouldAnimate } from "./shared/animation";
@@ -191,6 +192,7 @@ export class M3StatusCard extends TemplatedCard(LitElement) implements LovelaceC
       layout: "auto",
       items: entity ? [{ entity }] : [],
       glass_background: true,
+      accent_color: NEW_CARD_ACCENT,
     };
   }
 

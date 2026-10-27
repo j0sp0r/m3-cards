@@ -19,6 +19,7 @@ import {
   COVER_DRAG_SETTLE_MS,
   COVER_MIN_FEEDBACK_MS,
   resolveCornerRadius,
+  NEW_CARD_ACCENT,
 } from "./const";
 import { resolveThemeColor, buildCssVars, tintOn, foregroundOn, resolveCommonColors } from "./shared/color-config";
 import { glassCardStyles, glassCardClass, renderMissingEntity } from "./shared/glass-card";
@@ -112,6 +113,7 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
       mode: "single",
       entity: covers[0] ?? "",
       glass_background: true,
+      accent_color: NEW_CARD_ACCENT,
     };
   }
 

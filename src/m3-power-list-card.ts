@@ -30,6 +30,7 @@ import {
   POWER_LIST_ROW_GAP,
   POWER_LIST_FLIP_DURATION_MS,
   resolveCornerRadius,
+  NEW_CARD_ACCENT,
 } from "./const";
 import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, foregroundOn , foregroundVars, tintBackground } from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
@@ -86,6 +87,7 @@ export class M3PowerListCard extends TemplatedCard(LitElement) implements Lovela
       auto_discover: true,
       glass_background: true,
       max_visible: 3,
+      accent_color: NEW_CARD_ACCENT,
     };
   }
 

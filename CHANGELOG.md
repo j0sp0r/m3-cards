@@ -209,7 +209,7 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   They took the colour of the current state rule, so on an idle machine whose
   rule is grey every tile went grey with it. The state now colours the icon,
   the subtitle and the bar; a chip uses its own `color` or rule, else the
-  card's `accent_color`, else the theme's primary colour.
+  card's accent colour.
 - **An idle Samsung washer no longer greys out as unavailable.** SmartThings
   reports an idle machine's job state as `none`, which the card counted as a
   missing entity, so it dimmed the whole card and said "Unavailable". Only
@@ -304,18 +304,18 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Changed
 
-- **Every card's own colour is the theme's primary colour.** Each card used
-  to bring an accent of its own — a house blue for the appliance, progress,
-  counter, status, clock and time cards, a sun orange for weather and cost,
-  purple for media, teal for to-do and the aquarium, green for energy and
-  supplies — which put a second and third accent next to the theme's on any
-  theme whose primary is something else. They all take the theme's primary
-  colour now, as the heading, room, nav and button cards already did. The
-  remote card's per-brand accents go the same way. Colours that carry a
-  meaning keep their own: battery levels, heating and cooling, grid, solar and
-  feed-in, signal grades, update and NAS status, a supply running low — and
-  the light cards' yellow, which says a lamp is on. `accent_color` (or
-  `ok_color`) on a card still sets any colour.
+- **A new card starts in the theme's primary colour; an existing one keeps
+  its colour.** Eighteen cards bring an accent of their own — a house blue,
+  a sun orange, purple, teal or green — which sits next to the theme's own as
+  a second accent on any theme whose primary is something else. Added from
+  the card picker, they now arrive with `accent_color: primary` (`ok_color`
+  on the supply card) in their config, as the heading, room, nav and button
+  cards already default to. A card already on a dashboard has no
+  `accent_color` and keeps the colour it had, so the update recolours nobody's
+  dashboard. The cards new in this release — detail, remote, router and
+  router diagnostics — default to the theme's primary colour outright; the
+  remote's per-brand accents are gone. Colours that carry a meaning were never
+  accents and keep their own.
 
 - **The heading card's default colour is the theme's primary colour.** It was
   the suite's house blue (`#85b7eb`), which put a blue icon between the green

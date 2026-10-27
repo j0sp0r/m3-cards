@@ -71,7 +71,7 @@ level, and rendering them all locks the frame.
 | `default_tab` | `queue` \| `library` | `library` | Which tab opens first, where both exist |
 | `browse_height` | number | `190` | Max height of the browse list in px |
 | `use_artwork_color` | boolean | `true` | Extract the accent color from the artwork instead of `accent_color` |
-| `accent_color` | string | theme primary | Progress/volume color when `use_artwork_color: false` |
+| `accent_color` | string | purple (media palette); `primary` on a card added from the card picker | Progress/volume color when `use_artwork_color: false` |
 | `text_color` / `secondary_text_color` | string | theme default | Title vs. artist/album |
 | `card_background` | string | glass/solid background | Card background |
 | `animation` | `auto` \| `on` \| `off` | `auto` | Progress/volume animation; `auto`/`on` respect `prefers-reduced-motion` |

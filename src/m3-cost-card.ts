@@ -34,6 +34,7 @@ import {
   COST_STEPPER_RADIUS_INNER,
   COST_REFRESH_MS,
   resolveCornerRadius,
+  NEW_CARD_ACCENT,
 } from "./const";
 import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, tintInk, fillColor , foregroundVars, tintBackground } from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
@@ -155,6 +156,7 @@ export class M3CostCard extends TemplatedCard(LitElement) implements LovelaceCar
       type: "custom:m3-cost-card",
       price_source: "energy_dashboard",
       glass_background: true,
+      accent_color: NEW_CARD_ACCENT,
     };
   }
 

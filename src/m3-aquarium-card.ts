@@ -57,6 +57,7 @@ import {
   AQUARIUM_CHIP_MAX,
   ACTIVE_STATES,
   resolveCornerRadius,
+  NEW_CARD_ACCENT,
 } from "./const";
 import { resolveThemeColor, resolveCommonColors, buildCssVars, tintOn, tintInk } from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
@@ -259,6 +260,7 @@ export class M3AquariumCard extends TemplatedCard(LitElement) implements Lovelac
     const lightDomains = ["light", "switch"];
     return {
       type: "custom:m3-aquarium-card",
+      accent_color: NEW_CARD_ACCENT,
       name: "Aquarium",
       water_temperature_entity: waterTemp,
       light_day: pickAll(lightDomains, ["licht", "tag"]),

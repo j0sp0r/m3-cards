@@ -80,6 +80,7 @@ import {
   DEFAULT_CLOCK_RADIUS,
   DEFAULT_CLOCK_SECONDARY,
   resolveCornerRadius,
+  NEW_CARD_ACCENT,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { STANDARD_EASING, isReducedMotion, shouldAnimate } from "./shared/animation";
@@ -159,7 +160,7 @@ export class M3ClockCard extends TemplatedCard(LitElement) implements LovelaceCa
   }
 
   public static getStubConfig(): Partial<M3ClockCardConfig> {
-    return { style: "tiles", show_seconds: true, show_date: true };
+    return { style: "tiles", show_seconds: true, show_date: true, accent_color: NEW_CARD_ACCENT };
   }
 
   public setConfig(config: M3ClockCardConfig): void {
