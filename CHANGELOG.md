@@ -226,6 +226,14 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   rule is grey every tile went grey with it. The state now colours the icon,
   the subtitle and the bar; a chip uses its own `color` or rule, else the
   card's accent colour.
+- **A machine whose status and progress change together is announced as
+  done.** The "finished" notification's two witnesses each stayed quiet when
+  the other had already spoken. A progress derived from the status — a
+  dishwasher on a smart plug — reaches 100 % in the same second the status
+  turns done, so each saw the other as already announced and nothing was
+  sent. A witness that changed within the last 15 seconds now counts as the
+  same event, the message waits those 15 seconds, and the automation runs in
+  single mode, so the twin is dropped rather than sent twice.
 - **A dryer that drops off Wi-Fi is announced as done once.** The appliance
   card's "finished" notification counted the progress reaching 100 % even
   when it came back from `unavailable`, so a Home Connect dryer losing its

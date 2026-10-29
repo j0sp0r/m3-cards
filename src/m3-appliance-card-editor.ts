@@ -38,6 +38,9 @@ import {
   setAutomationEnabled,
 } from "./shared/notify-editor";
 
+/** Seconds within which the two "finished" witnesses are one event. */
+const TWIN_WINDOW_S = 15;
+
 /** The four repeatable list sections, which all behave identically. */
 type ListField = "sliders" | "selects" | "buttons" | "chips";
 
@@ -156,7 +159,13 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
       const automationId = resolveAutomationId("appliance_done", cfg.notify_automation_id);
       const doneMessage = this._t("editor_progress_notify_message").replace("{name}", cardName);
       const texts = { title: cfg.notify_title, message: cfg.notify_message, tokens: { geraet: cardName } };
-      const doneActions = notifyActions(targets, cardName, doneMessage, texts);
+      // Two witnesses can arrive in the same second — a progress derived from
+      // the status by a template jumps to 100 the moment the status says done
+      // — and each must then count the other as the same event, not as one
+      // already announced. "Just changed" is that test, and the wait before
+      // sending, with the automation in single mode, swallows the twin.
+      const doneActions = [{ delay: { seconds: TWIN_WINDOW_S } }, ...notifyActions(targets, cardName, doneMessage, texts)];
+      const doneList = JSON.stringify(done);
 
       const triggers: Record<string, unknown>[] = [
         // not_from leaves out a restart or an entity coming back: only a run
@@ -168,7 +177,14 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
           conditions: [
             { condition: "trigger", id: "done_state" },
             ...(percent
-              ? [{ condition: "template", value_template: `{{ not is_number(states('${percent}')) or states('${percent}') | float < 99 }}` }]
+              ? [
+                  {
+                    condition: "template",
+                    value_template:
+                      `{{ not is_number(states('${percent}')) or states('${percent}') | float < 99` +
+                      ` or (now() - states.${percent}.last_changed).total_seconds() < ${TWIN_WINDOW_S} }}`,
+                  },
+                ]
               : []),
           ],
           sequence: doneActions,
@@ -185,7 +201,12 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
             // unavailable → 100 five times in half an hour, and each return
             // was announced as the run finishing.
             { condition: "template", value_template: "{{ trigger.from_state is not none and is_number(trigger.from_state.state) }}" },
-            { condition: "not", conditions: [{ condition: "state", entity_id: cfg.entity, state: done }] },
+            {
+              condition: "template",
+              value_template:
+                `{{ states('${cfg.entity}') not in ${doneList}` +
+                ` or (now() - states.${cfg.entity}.last_changed).total_seconds() < ${TWIN_WINDOW_S} }}`,
+            },
           ],
           sequence: doneActions,
         });
@@ -223,7 +244,10 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
         id: automationId,
         alias: `${cardName}: ${this._t("editor_progress_notify_alias")}`,
         description: this._t("editor_appliance_notify_description"),
-        mode: "queued",
+        // Single, not queued: a done witness waits TWIN_WINDOW_S before it
+        // sends, and its twin arriving meanwhile is dropped, silently.
+        mode: "single",
+        max_exceeded: "silent",
         triggers,
         conditions: [],
         actions: [{ choose }],

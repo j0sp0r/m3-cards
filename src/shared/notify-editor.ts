@@ -290,6 +290,8 @@ export interface NotifyAutomationSpec {
   description: string;
   /** HA automation run mode — "single" unless a card needs queueing. */
   mode?: "single" | "restart" | "queued" | "parallel";
+  /** What a trigger does while a single-mode run is still going; "silent" drops it without a log warning. */
+  max_exceeded?: "silent" | "critical" | "error" | "warning" | "info" | "debug";
   variables?: Record<string, string>;
   triggers: Record<string, unknown>[];
   conditions?: Record<string, unknown>[];
