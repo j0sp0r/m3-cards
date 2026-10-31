@@ -1059,6 +1059,10 @@ export const SUPPLY_MIN_EVENTS = 3;
 // dividing by minutes yields a rate of hundreds per day. An estimate needs to
 // have watched for at least this long before it means anything.
 export const SUPPLY_MIN_SPAN_DAYS = 2;
+// The largest drop that still counts as use. A tablet, a pod or a filter goes
+// one or two at a time; a counter set from 46 to 25 by hand is a correction,
+// and counting it as 21 used at once promised a fresh pack of 60 "5 days".
+export const SUPPLY_MAX_USE_STEP = 2;
 // Consumption shifts over days, not minutes; the counter value itself already
 // updates live via hass, so re-reading history hourly is more than enough.
 export const SUPPLY_RATE_REFRESH_MS = 60 * 60 * 1000;

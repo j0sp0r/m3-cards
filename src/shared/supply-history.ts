@@ -1,4 +1,5 @@
 import type { HomeAssistant } from "../types";
+import { SUPPLY_MAX_USE_STEP } from "../const";
 
 // Consumption rate for the supply card.
 //
@@ -58,12 +59,13 @@ export async function fetchConsumptionRates(
   }
 
   for (const id of entityIds) {
-    out.set(id, summarize(response[id] ?? [], startMs, nowMs, minEvents, minSpanDays));
+    out.set(id, summarizeConsumption(response[id] ?? [], startMs, nowMs, minEvents, minSpanDays));
   }
   return out;
 }
 
-function summarize(
+/** The rate from one entity's history. Exported for its tests. */
+export function summarizeConsumption(
   points: HistoryPoint[],
   startMs: number,
   nowMs: number,
@@ -80,9 +82,10 @@ function summarize(
   let events = 0;
   for (let i = 1; i < usable.length; i++) {
     const delta = usable[i].v - usable[i - 1].v;
-    // Only decreases are consumption; a refill or a correction upward is not
-    // negative usage and must not cancel out real consumption.
-    if (delta < 0) {
+    // Only small decreases are consumption. A refill or a correction upward is
+    // not negative usage and must not cancel out real consumption; a large
+    // drop is someone setting the count by hand, not a pack used in a minute.
+    if (delta < 0 && -delta <= SUPPLY_MAX_USE_STEP) {
       consumed += -delta;
       events++;
     }

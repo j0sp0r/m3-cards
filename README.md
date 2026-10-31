@@ -2731,7 +2731,9 @@ a `binary_sensor` going `off`.
 ### Range estimation
 
 The subtitle shows how long a supply will last, derived from its own history:
-every decrease counts as consumption, refills are ignored. Two conditions
+a decrease of one or two counts as consumption; refills are ignored, and so
+is a larger drop, which is someone correcting the count by hand rather than a
+pack used up in a minute. Two conditions
 must hold before an estimate appears — at least 3 decreases, and at least 2
 days of observation. A handful of taps while setting the card up would
 otherwise extrapolate to hundreds per day.

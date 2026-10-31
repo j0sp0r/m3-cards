@@ -226,6 +226,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   rule is grey every tile went grey with it. The state now colours the icon,
   the subtitle and the bar; a chip uses its own `color` or rule, else the
   card's accent colour.
+- **The supply card's range ignores corrections made by hand.** Every drop
+  in the counter counted as use, so setting it from 46 to 25 read as 21
+  tablets used at once, and a fresh pack of 60 was promised to last 5 days.
+  Only drops of one or two count now; a larger one is a correction.
 - **A machine whose status and progress change together is announced as
   done.** The "finished" notification's two witnesses each stayed quiet when
   the other had already spoken. A progress derived from the status — a
