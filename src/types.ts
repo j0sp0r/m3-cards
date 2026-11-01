@@ -1073,7 +1073,7 @@ export interface PrinterAmsSlotConfig {
 
 export type PrinterSecondaryAction = "stop" | "files" | "filament" | "preheat";
 
-export interface M3PrinterCardConfig {
+export interface M3PrinterCardConfig extends NotifyConfigBase {
   /**
    * The entity whose state drives the layout — a status or stage sensor. Any
    * domain is accepted, because integrations disagree about which one holds
@@ -1120,6 +1120,12 @@ export interface M3PrinterCardConfig {
   chips?: (ApplianceChipConfig | InfoChipHeading)[];
   /** `pill` (the default) or `tile`, as on the appliance card. */
   chip_style?: "pill" | "tile";
+  /** `wavy` (the default) or `flat`, as on the appliance card. */
+  wave_style?: WaveStyle;
+  /** Also announce a job starting, as the appliance card can. */
+  notify_on_start?: boolean;
+  /** Custom start text; `{geraet}` and `{ende}` as on the appliance card. */
+  notify_start_message?: string;
 
   show_camera?: boolean;
   camera_refresh?: number;

@@ -148,6 +148,8 @@ number their slots 1–4, and merging them would quietly hide half the filament.
 | `optimistic_timeout` | number | `35000` | How long a tapped state is shown before the card stops waiting for confirmation. |
 | `show_camera`, `camera_entity`, `camera_live`, `camera_refresh`, `light_entity` | — | — | The chamber view. A still by default — see below. |
 | `show_progress`, `show_temps`, `show_speed`, `show_ams`, `show_details` | boolean | `true` | The blocks. Each also disappears on its own when its entities are missing. |
+| `wave_style` | string | `wavy` | `wavy` or `flat`: the progress as a wave or a plain line, as on the appliance card. |
+| `notify_enabled`, `notify_service`, `notify_title`, `notify_message`, `notify_on_start`, `notify_start_message` | — | — | Set in the editor's Notifications panel — see below. |
 | `collapsible` | boolean | `false` | Folds the card to its header and controls, with the chevron the vacuum cards use. |
 | `collapse_blocks` | list | all | Which blocks the fold takes: `camera`, `progress`, `temps`, `speed`, `ams`, `details`, `chips`. |
 | `default_collapsed`, `collapse_state_entity`, `collapse_memory` | — | — | Same keys as the vacuum, room and heading cards: start folded, keep the state in an `input_boolean`, or remember it per device or per session. |
@@ -234,6 +236,31 @@ This replaces the details block's own drawer. It used to open and close with a
 chevron of its own, a second fold inside a card the suite folds from its header
 — two gestures for the same thing. It is a block like the others now.
 
+The chevron only appears when folding would take something. An idle printer
+with no camera and every remaining block left out of `collapse_blocks` has
+nothing to fold, and a chevron that does nothing reads as broken.
+
+## Notifications
+
+The editor's **Notifications** panel writes an automation, as the appliance
+card's does: a message to every chosen phone when a print **finishes** and when
+it **fails**, and — with "Also notify when it starts" — when one begins, with
+the expected end time once the slicer's estimate has arrived. The end comes
+from the printer's end-time sensor, or else from the time left, read in the
+unit that sensor states (Bambu gives hours, others minutes or seconds).
+
+The automation compares the raw status, since an automation cannot run the
+card's own reading of it. It listens for every value the card counts as
+finished, error or printing — the built-in table plus your `state_map`. A
+value the card only recognises by its substring rules is not covered, so a
+status your printer reports and the card has to guess at belongs in
+`state_map`.
+
+A printer coming back online, or Home Assistant restarting, is not announced:
+the "finished" message needs the status to *change* to finished, not to have
+been there already. Titles and texts can be changed in the panel, with
+`{geraet}` and, in the start text, `{ende}`.
+
 ## Stop and power-off ask first
 
 A stop throws away hours of work and a spool's worth of filament, and the
@@ -308,6 +335,7 @@ Anything else worth reading beside the printer — the enclosure, the AMS's own
 humidity, a filament dryer, the sockets — goes in `chips`, the same option the
 appliance card has. They sit at the foot of the card, as small pills or, with
 `chip_style: tile`, as a grid of tiles: the name small, the value large.
+The editor's **Status chips** panel edits them, dividers and order included.
 
 An entry with a `heading` and no `entity` is a divider across the full width,
 so readings from several devices stay apart in one list. A heading whose

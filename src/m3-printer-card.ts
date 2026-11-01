@@ -571,7 +571,9 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
 
     // The wave flattens when paused: the shape says "stopped" before the word
     // does, and a wave that keeps rolling on a paused printer is a lie.
-    this._waveTarget = state === "paused" ? 0 : PRINTER_WAVE_AMPLITUDE;
+    // `wave_style: flat` holds it flat for good, as on the appliance card.
+    const flat = this._config?.wave_style === "flat";
+    this._waveTarget = state === "paused" || flat ? 0 : PRINTER_WAVE_AMPLITUDE;
     // The first paint takes the target at once. Easing there would make a card
     // that loads on a paused printer visibly settle, for no reason anyone asked.
     if (!this._waveDrawn || isReducedMotion()) this._waveAmplitude = this._waveTarget;
@@ -1135,12 +1137,32 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
     // Cleared before the blocks draw, so a folded or finished progress block
     // leaves no geometry behind for the frame loop to keep animating.
     this._waveGeom = undefined;
-    const folded = !!this._config.collapsible && this._folded;
     // The chips are held open too: a socket given as a tile, with the details
     // block switched off, is the same way back as the accessory row was.
     const pinned: PrinterBlock[] = state === "offline" ? ["details", "chips"] : [];
+    // Every block is drawn first and the fold decides afterwards, so the card
+    // knows whether folding would take anything at all. A chevron over a card
+    // whose foldable blocks are all empty — an idle printer with no camera —
+    // looked broken, the same fault the appliance card had on a dryer.
+    const bodies: [PrinterBlock, unknown][] = [
+      ["camera", this._renderCamera(state)],
+      ["progress", this._renderProgress(state)],
+      ["temps", this._renderTemps()],
+      ["speed", this._renderSpeed(state)],
+      ["ams", this._renderAms()],
+      ["details", this._renderDetails(state)],
+      ["chips", this._renderChips()],
+    ];
+    const foldable =
+      !!this._config.collapsible &&
+      bodies.some(([block, body]) => body !== nothing && foldHides(block, true, this._config!.collapse_blocks, pinned));
+    const folded = foldable && this._folded;
     const hidden = (block: PrinterBlock): boolean =>
       foldHides(block, folded, this._config!.collapse_blocks, pinned);
+    // A folded progress block leaves no geometry behind for the frame loop.
+    if (hidden("progress")) this._waveGeom = undefined;
+    const body = (block: PrinterBlock): unknown =>
+      hidden(block) ? nothing : bodies.find(([b]) => b === block)![1];
 
     return html`
       <ha-card
@@ -1160,15 +1182,15 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
             colors.cardBackgroundCss ? ` background: ${colors.cardBackgroundCss};` : ""
           }`}
         >
-          ${hidden("camera") ? nothing : this._renderCamera(state)}
-          ${this._renderHeader(state)}
-          ${hidden("progress") ? nothing : this._renderProgress(state)}
-          ${hidden("temps") ? nothing : this._renderTemps()}
+          ${body("camera")}
+          ${this._renderHeader(state, foldable)}
+          ${body("progress")}
+          ${body("temps")}
           ${this._renderControls(state, pending)}
-          ${hidden("speed") ? nothing : this._renderSpeed(state)}
-          ${hidden("ams") ? nothing : this._renderAms()}
-          ${hidden("details") ? nothing : this._renderDetails(state)}
-          ${hidden("chips") ? nothing : this._renderChips()}
+          ${body("speed")}
+          ${body("ams")}
+          ${body("details")}
+          ${body("chips")}
         </div>
       </ha-card>
       <!-- Outside the card, not inside it: a modal dialog is painted in the
@@ -1184,7 +1206,7 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
     `;
   }
 
-  private _renderHeader(state: PrinterState) {
+  private _renderHeader(state: PrinterState, foldable: boolean) {
     const cfg = this._config!;
     const running = isRunning(state);
 
@@ -1223,7 +1245,7 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
         : nothing;
     // The suite's own chevron, where the vacuum cards put theirs: at the end of
     // the header, after whatever figure the card shows there.
-    const arrow = cfg.collapsible
+    const arrow = foldable
       ? renderFoldArrow({
           folded: this._folded,
           accent: "var(--m3pr-accent)",

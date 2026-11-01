@@ -26,3 +26,12 @@ describe("chipStateText", () => {
     expect(chipStateText(undefined, "de", st("heavy_duty"), "heavy_duty")).toBe("Heavy duty");
   });
 });
+
+describe("moveChip", () => {
+  it("swaps with the neighbour and refuses to leave the list", async () => {
+    const { moveChip } = await import("./info-chips-editor");
+    expect(moveChip(["a", "b", "c"], 1, -1)).toEqual(["b", "a", "c"]);
+    expect(moveChip(["a", "b", "c"], 2, 1)).toBeUndefined();
+    expect(moveChip(["a", "b", "c"], 0, -1)).toBeUndefined();
+  });
+});

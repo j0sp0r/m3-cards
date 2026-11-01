@@ -18,6 +18,7 @@ import {
   listRow,
   type SchemaEntry,
 } from "./shared/editor-helpers";
+import { chipsEditorStyles, renderChipsEditor } from "./shared/info-chips-editor";
 import {
   initAppearanceState,
   radiusPresetPatch,
@@ -931,7 +932,22 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
 
         <ha-expansion-panel outlined .header=${this._t("editor_appliance_chips")}>
           <ha-icon slot="leading-icon" icon="mdi:card-text-outline"></ha-icon>
-          <div class="panel-content">${this._renderList("chips")}</div>
+          <div class="panel-content">
+            ${renderChipsEditor({
+              hass: this.hass,
+              chips: cfg.chips,
+              style: cfg.chip_style,
+              t: (k) => this._t(k),
+              computeLabel: this._computeLabel,
+              onChange: (chips) => this._setList("chips", (chips ?? []) as ListEntry[]),
+              onStyleChange: (style) => {
+                if (!this._config) return;
+                const { chip_style: _drop, ...rest } = this._config;
+                this._emit((style ? { ...rest, chip_style: style } : rest) as M3ApplianceCardConfig);
+              },
+              renderRules: (rules, set) => this._renderRules(rules, set),
+            })}
+          </div>
         </ha-expansion-panel>
 
         <ha-expansion-panel outlined .header=${this._t("editor_appliance_layout")}>
@@ -1064,6 +1080,7 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
   static styles = [
     editorStyles,
     notifyStyles,
+    chipsEditorStyles,
     css`
       .entry-block,
       .rule-block {

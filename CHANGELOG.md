@@ -10,6 +10,17 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **The printer card notifies, as the appliance card does.** Its editor has
+  the same Notifications panel: a message to every chosen phone when a print
+  finishes or fails, and optionally when one starts, with the expected end
+  time. The automation listens for every raw status the card reads as
+  finished, error or printing — the built-in table plus `state_map` — and a
+  printer coming back online is not announced as a finished print.
+- **The printer card takes `wave_style`**, `wavy` or `flat`, as the appliance
+  card does.
+- **Both cards edit their chips the same way.** One shared editor panel, with
+  the pill/tile choice, dividers, and arrows to reorder; the appliance card
+  keeps its per-chip state rules in it.
 - **The printer card takes `chips`, as the appliance card does, and both
   take dividers.** Further readings — the enclosure, the AMS, a filament
   dryer, the sockets — sit at the foot of the printer card as pills or, with
@@ -185,6 +196,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **The printer card's fold chevron only shows when it folds something.**
+  The appliance card got this for the dryer; on the printer, a chevron over an
+  idle card with nothing left to fold did nothing, too.
 - **The printer, vacuum and vacuum maintenance cards no longer print a
   version number at their foot.** It showed whenever the visual editor had
   saved the card, because the editor stamps `card_version` into the config to

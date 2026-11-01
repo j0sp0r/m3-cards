@@ -417,7 +417,9 @@ chip_style: tile   # pill (default) | tile
 
 An entry with a `heading` and no `entity` is a divider: a small label across
 the full width, for a list that gathers readings from more than one device.
-It is set in YAML, and left out when none of the readings under it can be read.
+The editor adds one with "Add divider"; it is left out when none of the
+readings under it can be read. Entries move up and down with the arrows on
+each.
 
 ```yaml
 chips:

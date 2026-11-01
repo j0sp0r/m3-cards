@@ -9,6 +9,20 @@ import {
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { colorRow, editorStyles, fireEvent, type SchemaEntry } from "./shared/editor-helpers";
+import { chipsEditorStyles, renderChipsEditor } from "./shared/info-chips-editor";
+import {
+  notifyMessageSchema,
+  notifyServiceSchema,
+  notifyStyles,
+  notifyTitleSchema,
+  notifyTokenHint,
+  renderNotifyControls,
+  resolveAutomationId,
+  saveNotifyAutomation,
+  setAutomationEnabled,
+} from "./shared/notify-editor";
+import { buildPrinterNotifyAutomation } from "./shared/printer-notify";
+import { discoverPrinter } from "./shared/printer";
 import { radiusLabelMap } from "./shared/radius-editor";
 import {
   initAppearanceState,
@@ -23,6 +37,9 @@ export class M3PrinterCardEditor extends LitElement implements LovelaceCardEdito
   @property({ attribute: false }) public hass?: HomeAssistant;
 
   @state() private _config?: M3PrinterCardConfig;
+  @state() private _notifyBusy = false;
+  @state() private _notifyStatus: "idle" | "success" | "error" = "idle";
+  @state() private _notifyDetail = "";
   @state() private _appearance: AppearanceState = {
     showCustomRadius: false,
     showCorners: false,
@@ -45,6 +62,176 @@ export class M3PrinterCardEditor extends LitElement implements LovelaceCardEdito
   private _emit(config: M3PrinterCardConfig): void {
     this._config = config;
     fireEvent(this, "config-changed", { config });
+  }
+
+  // ---- notifications -----------------------------------------------------------
+
+  private get _cardName(): string {
+    const entity = this._config?.entity;
+    return (
+      this._config?.name ||
+      (entity ? ((this.hass?.states?.[entity]?.attributes?.friendly_name as string | undefined) ?? entity) : "")
+    );
+  }
+
+  /** On creates the automation if needed and enables it; off pauses it, so nothing is lost. */
+  private async _toggleNotify(enabled: boolean): Promise<void> {
+    if (!this._config || !this.hass) return;
+    this._emit({ ...this._config, notify_enabled: enabled });
+    if (enabled) {
+      await this._setupNotify();
+      return;
+    }
+    const id = this._config.notify_automation_id;
+    if (id) await setAutomationEnabled(this.hass, id, false);
+  }
+
+  /** Writes the automation from the card's config — see shared/printer-notify.ts. */
+  private async _setupNotify(): Promise<void> {
+    const cfg = this._config;
+    if (!this.hass || !cfg) return;
+    const targets = cfg.notify_service ?? [];
+    if (targets.length === 0) {
+      this._notifyStatus = "error";
+      this._notifyDetail = this._t("editor_notify_missing");
+      return;
+    }
+    this._notifyBusy = true;
+    this._notifyStatus = "idle";
+    this._notifyDetail = "";
+    try {
+      const name = this._cardName;
+      const found = discoverPrinter(this.hass, cfg.entity);
+      const automationId = resolveAutomationId("printer_done", cfg.notify_automation_id);
+      const body = buildPrinterNotifyAutomation({
+        entity: cfg.entity,
+        stateMap: cfg.state_map,
+        targets,
+        name,
+        doneMessage: this._t("editor_progress_notify_message").replace("{name}", name),
+        failedMessage: this._t("editor_printer_notify_failed").replace("{name}", name),
+        startMessage: this._t("editor_printer_notify_start_message").replace("{name}", name),
+        untilText: this._t("editor_appliance_notify_start_until"),
+        title: cfg.notify_title,
+        message: cfg.notify_message,
+        startText: cfg.notify_start_message,
+        onStart: cfg.notify_on_start,
+        endEntity: cfg.end_time_entity || found.endTime,
+        remainingEntity: cfg.remaining_entity || found.remaining,
+      });
+      await saveNotifyAutomation(this.hass, {
+        id: automationId,
+        alias: `${name}: ${this._t("editor_progress_notify_alias")}`,
+        description: this._t("editor_printer_notify_description"),
+        ...body,
+      });
+      if (cfg.notify_automation_id !== automationId) {
+        this._emit({ ...cfg, notify_automation_id: automationId });
+      }
+      await setAutomationEnabled(this.hass, automationId, true);
+      this._notifyStatus = "success";
+    } catch (e) {
+      this._notifyStatus = "error";
+      this._notifyDetail = e instanceof Error ? e.message : String(e);
+    } finally {
+      this._notifyBusy = false;
+    }
+  }
+
+  /** The texts as they read when unchanged, with placeholders, so editing starts from them. */
+  private _defaultText(key: "notify_title" | "notify_message" | "notify_start_message"): string {
+    switch (key) {
+      case "notify_title":
+        return "{geraet}";
+      case "notify_message":
+        return this._t("editor_progress_notify_message").replace("{name}", "{geraet}");
+      default:
+        return `${this._t("editor_printer_notify_start_message").replace("{name}", "{geraet}")} ${this._t(
+          "editor_appliance_notify_start_until",
+        )} {ende}.`;
+    }
+  }
+
+  /** A text left as prefilled, or emptied, leaves the config, so the built-in one applies. */
+  private _notifyTextChanged = (ev: CustomEvent): void => {
+    if (!this._config) return;
+    const next = { ...this._config, ...(ev.detail.value as Partial<M3PrinterCardConfig>) };
+    for (const key of ["notify_title", "notify_message", "notify_start_message"] as const) {
+      if (!(key in (ev.detail.value as object))) continue;
+      const text = (next[key] ?? "").trim();
+      if (!text || text === this._defaultText(key)) delete next[key];
+    }
+    this._emit(next);
+  };
+
+  private _startChanged = async (ev: CustomEvent): Promise<void> => {
+    if (!this._config) return;
+    const on = !!(ev.detail.value as { notify_on_start?: boolean }).notify_on_start;
+    const next = { ...this._config };
+    if (on) next.notify_on_start = true;
+    else delete next.notify_on_start;
+    this._emit(next);
+    if (next.notify_enabled) await this._setupNotify();
+  };
+
+  private _notifyLabel = (schema: SchemaEntry): string =>
+    schema.name === "notify_title"
+      ? this._t("editor_appliance_notify_title")
+      : schema.name === "notify_message"
+        ? this._t("editor_appliance_notify_done_text")
+        : this._computeLabel(schema);
+
+  private _renderNotify() {
+    const cfg = this._config!;
+    return html`
+      <ha-expansion-panel outlined .header=${this._t("editor_notify")}>
+        <ha-icon slot="leading-icon" icon="mdi:bell-outline"></ha-icon>
+        <div class="panel-content">
+          <div class="hint">${this._t("editor_printer_notify_hint")}</div>
+          <ha-form
+            .hass=${this.hass}
+            .data=${{
+              notify_service: cfg.notify_service ?? [],
+              notify_title: cfg.notify_title ?? this._defaultText("notify_title"),
+              notify_message: cfg.notify_message ?? this._defaultText("notify_message"),
+            }}
+            .schema=${[notifyServiceSchema(this.hass), notifyTitleSchema("notify_title"), notifyMessageSchema("notify_message")]}
+            .computeLabel=${this._notifyLabel}
+            @value-changed=${this._notifyTextChanged}
+          ></ha-form>
+          <ha-form
+            .hass=${this.hass}
+            .data=${{ notify_on_start: cfg.notify_on_start ?? false }}
+            .schema=${[{ name: "notify_on_start", selector: { boolean: {} } }]}
+            .computeLabel=${() => this._t("editor_appliance_notify_on_start")}
+            @value-changed=${this._startChanged}
+          ></ha-form>
+          ${cfg.notify_on_start
+            ? html`<ha-form
+                  .hass=${this.hass}
+                  .data=${{ notify_start_message: cfg.notify_start_message ?? this._defaultText("notify_start_message") }}
+                  .schema=${[{ name: "notify_start_message", selector: { text: { multiline: true } } }]}
+                  .computeLabel=${() => this._t("editor_appliance_notify_start_text")}
+                  @value-changed=${this._notifyTextChanged}
+                ></ha-form>
+                <div class="hint">${this._t("editor_appliance_notify_start_text_hint")}</div>`
+            : nothing}
+          <div class="hint">${notifyTokenHint(this._language, ["geraet"])}</div>
+          ${renderNotifyControls({
+            hass: this.hass,
+            enabled: cfg.notify_enabled ?? false,
+            automationId: cfg.notify_automation_id,
+            blockedReason: cfg.notify_service?.length ? undefined : this._t("editor_notify_missing"),
+            language: this._language,
+            busy: this._notifyBusy,
+            status: this._notifyStatus,
+            detail: this._notifyDetail,
+            onToggle: (on) => this._toggleNotify(on),
+            onSetup: () => this._setupNotify(),
+          })}
+        </div>
+      </ha-expansion-panel>
+    `;
   }
 
   private _deviceSchema(): SchemaEntry[] {
@@ -76,6 +263,18 @@ export class M3PrinterCardEditor extends LitElement implements LovelaceCardEdito
       { name: "show_speed", selector: { boolean: {} } },
       { name: "show_ams", selector: { boolean: {} } },
       { name: "show_details", selector: { boolean: {} } },
+      {
+        name: "wave_style",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "wavy", label: this._t("editor_appliance_wave_style_wavy") },
+              { value: "flat", label: this._t("editor_appliance_wave_style_flat") },
+            ],
+          },
+        },
+      },
       { name: "strip_extension", selector: { boolean: {} } },
       { name: "confirm_stop", selector: { boolean: {} } },
       { name: "confirm_power_off", selector: { boolean: {} } },
@@ -185,6 +384,17 @@ export class M3PrinterCardEditor extends LitElement implements LovelaceCardEdito
     this._emit({ ...this._config, accessories: list });
   }
 
+  /** Sets a key, or removes it when the value is empty, so the default applies. */
+  private _setOptional<K extends keyof M3PrinterCardConfig>(key: K, value: M3PrinterCardConfig[K] | undefined): void {
+    if (!this._config) return;
+    if (value === undefined) {
+      const { [key]: _drop, ...rest } = this._config;
+      this._emit(rest as M3PrinterCardConfig);
+      return;
+    }
+    this._emit({ ...this._config, [key]: value });
+  }
+
   private _addAccessory(): void {
     if (!this._config) return;
     this._emit({
@@ -236,6 +446,7 @@ export class M3PrinterCardEditor extends LitElement implements LovelaceCardEdito
       show_speed: "editor_printer_show_speed",
       show_ams: "editor_printer_show_ams",
       show_details: "editor_printer_show_details",
+      wave_style: "editor_appliance_wave_style",
       collapsible: "editor_printer_collapsible",
       collapse_blocks: "editor_printer_collapse_blocks",
       default_collapsed: "editor_printer_default_collapsed",
@@ -350,6 +561,7 @@ export class M3PrinterCardEditor extends LitElement implements LovelaceCardEdito
       show_speed: cfg.show_speed ?? true,
       show_ams: cfg.show_ams ?? true,
       show_details: cfg.show_details ?? true,
+      wave_style: cfg.wave_style ?? "wavy",
       strip_extension: cfg.strip_extension ?? true,
       confirm_stop: cfg.confirm_stop ?? true,
       confirm_power_off: cfg.confirm_power_off ?? true,
@@ -430,6 +642,23 @@ export class M3PrinterCardEditor extends LitElement implements LovelaceCardEdito
           </div>
         </ha-expansion-panel>
 
+        <ha-expansion-panel outlined .header=${this._t("editor_appliance_chips")}>
+          <ha-icon slot="leading-icon" icon="mdi:card-text-outline"></ha-icon>
+          <div class="panel-content">
+            ${renderChipsEditor({
+              hass: this.hass,
+              chips: cfg.chips,
+              style: cfg.chip_style,
+              t: (k) => this._t(k),
+              computeLabel: this._computeLabel,
+              onChange: (chips) => this._setOptional("chips", chips),
+              onStyleChange: (style) => this._setOptional("chip_style", style),
+            })}
+          </div>
+        </ha-expansion-panel>
+
+        ${this._renderNotify()}
+
         <ha-expansion-panel outlined .header=${this._t("editor_printer_states")}>
           <ha-icon slot="leading-icon" icon="mdi:swap-horizontal"></ha-icon>
           <div class="panel-content">
@@ -476,7 +705,7 @@ export class M3PrinterCardEditor extends LitElement implements LovelaceCardEdito
     `;
   }
 
-  static styles = editorStyles;
+  static styles = [editorStyles, notifyStyles, chipsEditorStyles];
 }
 
 declare global {
