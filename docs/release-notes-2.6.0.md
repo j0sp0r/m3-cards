@@ -153,7 +153,11 @@ instead of a row of small pills. A tile is drawn the way a button card draws
 itself — the same height, rim, corner and round icon well, the name bold with
 the reading under it — so it sits beside a room's buttons as one design. A
 switch's well is grey while off; on, the well and the tile square their
-corners, as a button card with `shape_by_state` does. An entry with a
+corners, as a button card with `shape_by_state` does. Binary sensors — a door, a
+child lock, a leak — show on and off the same way. **`tile_appearance:
+active`** draws every reading squared and filled too, so a card of figures
+looks like a room of switched-on buttons, while switches and sensors keep
+following their state; a tile's own `appearance` overrides it. An entry with a
 `heading` and no `entity` is a divider across the full width, for a list that
 gathers readings from more than one device. The editor edits all of it:
 pill or tile, dividers, and arrows to reorder.
@@ -270,7 +274,10 @@ A dashboard is read as a whole, so the cards were gone over as one. Every
 content card now has the same frame: 12px padding (following a group card's
 setting), 12px between blocks, a 44px header with a 44px icon. Two cards in a
 row stand equally tall, and a block with nothing to show takes no space —
-the printer card used to draw an empty controls row that still took its gap.
+the printer card used to draw an empty controls row that still took its gap. Folding eases now: the appliance, printer and vacuum cards grow or
+shrink into their new height instead of jumping, as the room card already did,
+and the vacuum card can fold its main buttons too (`controls`), so a folded
+vacuum is one line like every other folded card.
 The hero cards (room, aquarium, weather, cost, supply, waste) keep their
 larger header by design.
 

@@ -9,7 +9,7 @@
 Material 3–inspired, native Lovelace cards for Home Assistant — built with
 TypeScript + [Lit](https://lit.dev), **without** any dependency on
 `button-card`, `card-mod`, `mod-card`, or `stack-in-card`. A single bundle
-(`m3-cards.js`) registers **49 cards**, all sharing one design language.
+(`m3-cards.js`) registers **50 cards**, all sharing one design language.
 
 <p align="center">
   <img src="docs/images/tour.gif" alt="A 20-second tour: wave sliders, tactile controls, shape-shifting buttons, rolling digits and the live energy flow" width="880">
@@ -64,6 +64,7 @@ card links to its full documentation further down.
 | [Presence](#m3-presence-card) | `m3-presence-card` | Who's home — avatar grid for `person`/`device_tracker` |
 | [Occupancy](#m3-occupancy-card) | `m3-occupancy-card` | Room-by-room presence with an activity timeline |
 | [Leak](#m3-leak-card) | `m3-leak-card` | Water-sensor overview with a quiet OK state and a loud alarm + shut-off |
+| [Check-in](#m3-check-in-card) | `m3-checkin-card` | Checked in or out — one element that shows the state and switches it |
 
 ### 🧺 Household & planning
 
@@ -3537,8 +3538,8 @@ them, and both quietly do nothing without one. Point them at a tile's
 `categories[].tap_action` instead, which does have an entity behind it.
 
 A tap cannot both fold the card and open a view, so `tap_action` takes the
-header over from the fold. The card still folds from its pill — "4 on ⌄",
-filled while anything is on, "Off ⌄" when not — and the stored state is still
+header over from the fold. The card still folds from its pill — "4 on ⌄" or
+"Off ⌄", drawn as the appliance cards' pill — and the stored state is still
 read and applied, so `collapse_state_entity` and an automation can fold it
 too. `show_active_names: true` names what is on under the room's name —
 "Kaffeemaschine, Radio" — instead of counting it, using the names the nested
@@ -4143,7 +4144,13 @@ as a tile instead, in a grid of two columns on a phone and more on a wide
 card. A tile is drawn as a button card is — same height, rim, corner and
 round icon well, the name bold with the reading under it — so it sits beside
 a room's buttons as one design. A switch's well is grey while off and a filled
-rounded square while on.
+rounded square while on — binary sensors too, so a door or a leak sensor
+reads as open or wet at a glance. `appearance` pins a tile either way —
+`active` for a reading that should stand out, `inactive` to keep a switch
+quiet; `auto` is the default. `tile_appearance` on the card sets it for every
+tile without one of its own: `active` draws the readings squared and filled
+while switches and binary sensors keep following their state, `inactive`
+draws them all round.
 
 ```yaml
 chip_style: tile   # pill (default) | tile
@@ -4333,6 +4340,7 @@ empty dialog.
 | `buttons[]` | — | `entity`, `name`, `icon`, `color`, `tap_action` |
 | `chips[]` | — | `entity`, `name`, `icon`, `label`, `show_state`, `states`, `color`, `tap_action` |
 | `chip_style` | `pill` | `pill` or `tile` |
+| `tile_appearance` | `auto` | `active` draws readings squared and filled, `inactive` every tile round; switches follow their state otherwise |
 | `finish_action` | — | The "Emptied" button on a finished machine; without it there is none |
 | `finish_label` | "Emptied" | The button's text |
 | `show_end_time` | `true` | "done at HH:MM" under the remaining time |
@@ -6858,6 +6866,82 @@ cards:
 | `secondary_text_color` | string | – | Secondary text colour on the sheet, for the cards in it as well |
 | `animation` | string | `auto` | `auto`, `on` or `off`. `off` opens and closes the sheet in place, without the slide |
 | `cards` | list | `[]` | The cards in the sheet, in display order. Any Lovelace card — M3 or otherwise. Each one's `grid_options.columns` (of 12) sets its width |
+
+</details>
+
+## M3 Check-in Card
+
+Check-in and check-out as **one** element that shows whether someone is
+checked in and switches it, on a card that tints itself by the state.
+
+Two separate buttons, "check in" and "check out", say nothing about which is
+true — and a subtitle "on" under one of them reads as if that button were on.
+This card says which, and its control names **states** ("Checked in",
+"Checked out"), never verbs, so it cannot be read the other way round.
+
+<details>
+<summary>Configuration, examples & options</summary>
+
+### The simple case
+
+```yaml
+type: custom:m3-checkin-card
+entity: input_boolean.garden_presence
+name: Garden
+icon: mdi:shovel
+icon_off: mdi:shovel-off
+```
+
+An `input_boolean` (or a `switch`) is switched with its own turn_on/turn_off.
+The card switches *to* a state rather than toggling, so a second tap on
+"Checked in" cannot check anyone out.
+
+### With actions of your own
+
+```yaml
+type: custom:m3-checkin-card
+entity: input_boolean.garden_presence
+checkout_action:
+  action: perform-action
+  perform_action: script.leave_garden   # turns the light and the watering off too
+```
+
+`checkin_action` and `checkout_action` take the full Home Assistant action
+syntax. A `binary_sensor`, `person` or `device_tracker` without actions is
+shown, not switched; a person or tracker is checked in while in `home_state`
+(default `home`).
+
+### What it shows
+
+- **The card** takes the state's colour as a tint over the glass: the accent
+  (`color`, default green) while checked in, a neutral grey (`color_off`)
+  while out, so out never reads as a fault. Its rim is the suite's own.
+- **The status line** says how long: "Checked in for 2 h 14 min", "Checked out
+  · 6 min ago". `since_entity` (an input_datetime or a timestamp sensor) takes
+  the place of the entity's `last_changed`; a time in the future is left out.
+  `status_in` / `status_out` take `{duration}` and `{time}`.
+- **The control** (style `segmented`, the default) is two halves, concentric
+  with their track; the active one is filled. A tap moves it at once; if Home
+  Assistant has not confirmed within `optimistic_timeout` (default 5000 ms) it
+  goes back and says so.
+- Unavailable dims the card; below 280px the halves show icons only.
+
+### Options
+
+| Option | Default | Description |
+| --- | --- | --- |
+| `entity` | — | **Required.** input_boolean, switch, binary_sensor, person or device_tracker |
+| `style` | `segmented` | The control. `status` and `swipe` are planned |
+| `name`, `icon`, `icon_off` | entity name, `mdi:account-check`, `mdi:account-off` | Header |
+| `state_on`, `home_state` | `on`, `home` | What counts as checked in |
+| `checkin_action`, `checkout_action` | turn_on / turn_off | Any action |
+| `since_entity` | — | Where "since" comes from instead of `last_changed` |
+| `label_in`, `label_out`, `icon_in`, `icon_out` | "Checked in", "Checked out", `mdi:login`, `mdi:logout` | The halves |
+| `status_in`, `status_out` | see above | Status templates with `{duration}`, `{time}` |
+| `color`, `color_off` | `#81c784`, `#8b909b` | Checked in / out |
+| `optimistic_timeout` | `5000` | Milliseconds to wait for confirmation |
+| `tap_action` | `more-info` | A tap on the header |
+| `animation`, `haptics`, `glass_background`, `radius` | — | The usual shared options |
 
 </details>
 
