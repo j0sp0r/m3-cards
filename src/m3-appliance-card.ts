@@ -664,7 +664,11 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     // empty bar and "0 Min. verbleibend" on a machine that is doing nothing.
     const progress = idle ? undefined : this._progress();
     const folded = !!cfg.collapsible && this._folded;
-    const remaining = progress?.remaining;
+    // A finished machine has no time left to count: "Done" beside "0 min
+    // left" says the same thing twice, and a remaining sensor that stalled
+    // at a minute or two before the end would say something else.
+    const done = (cfg.done_states ?? DEFAULT_DONE_STATES).some((s) => s.toLowerCase() === raw);
+    const remaining = done ? undefined : progress?.remaining;
 
     // Decide how the wave behaves this render, before anything draws one.
     //

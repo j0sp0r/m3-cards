@@ -198,6 +198,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **A finished appliance no longer shows "0 min left".** The remaining time
+  is left out once the status is a done state: beside "Done" it said the same
+  thing twice, and a remaining sensor stalled a minute short of the end said
+  something else.
 - **The printer card's fold chevron only shows when it folds something.**
   The appliance card got this for the dryer; on the printer, a chevron over an
   idle card with nothing left to fold did nothing, too.
