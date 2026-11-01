@@ -6926,17 +6926,34 @@ shown, not switched; a person or tracker is checked in while in `home_state`
   goes back and says so.
 - Unavailable dims the card; below 280px the halves show icons only.
 
+### Style `status`
+
+```yaml
+type: custom:m3-checkin-card
+entity: input_boolean.garden_presence
+style: status
+```
+
+Leads with **how long**: the running time large, in tabular figures ("14 min",
+"2:05 h", "3 days"), kept current every ten seconds while the card is on
+screen. The subtitle says since when ("Checked in since 14:02"), and a dot on
+the icon pulses while checked in. Below, **one** button that names the action
+— "Check in" filled with the accent, "Check out" tonal and quiet — because
+here pressing it does exactly what it says. It squares from a pill to 18px
+under the finger. `button_label_in` / `button_label_out` rename it.
+
 ### Options
 
 | Option | Default | Description |
 | --- | --- | --- |
 | `entity` | — | **Required.** input_boolean, switch, binary_sensor, person or device_tracker |
-| `style` | `segmented` | The control. `status` and `swipe` are planned |
+| `style` | `segmented` | The control: `segmented` or `status`; `swipe` is planned |
 | `name`, `icon`, `icon_off` | entity name, `mdi:account-check`, `mdi:account-off` | Header |
 | `state_on`, `home_state` | `on`, `home` | What counts as checked in |
 | `checkin_action`, `checkout_action` | turn_on / turn_off | Any action |
 | `since_entity` | — | Where "since" comes from instead of `last_changed` |
 | `label_in`, `label_out`, `icon_in`, `icon_out` | "Checked in", "Checked out", `mdi:login`, `mdi:logout` | The halves |
+| `button_label_in`, `button_label_out` | "Check in", "Check out" | Style `status`: the button |
 | `status_in`, `status_out` | see above | Status templates with `{duration}`, `{time}` |
 | `color`, `color_off` | `#81c784`, `#8b909b` | Checked in / out |
 | `optimistic_timeout` | `5000` | Milliseconds to wait for confirmation |

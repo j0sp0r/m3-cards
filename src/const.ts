@@ -2983,4 +2983,17 @@ export const CHECKIN_SEGMENT_RADIUS_OFF = CHECKIN_SEGMENT_RADIUS - CHECKIN_SEGME
 export const CHECKIN_SEGMENT_RADIUS_PRESSED = 12;
 /** Below this the segment labels give way to their icons. */
 export const CHECKIN_NARROW_PX = 280;
+/**
+ * The status style: one full-width button that names the action. 52px tall,
+ * as tall as the segmented track, so the two styles stand equally high side
+ * by side; a pill at rest that squares to 18 under the finger.
+ */
+export const CHECKIN_BUTTON_HEIGHT = CHECKIN_SEGMENT_HEIGHT + 2 * CHECKIN_SEGMENT_PAD;
+export const CHECKIN_BUTTON_RADIUS = CHECKIN_BUTTON_HEIGHT / 2;
+export const CHECKIN_BUTTON_RADIUS_PRESSED = 18;
+/** The running time: 26px bold in tabular figures, so it does not jitter. */
+export const CHECKIN_RUNNING_SIZE = 26;
+/** The live dot on the header icon while checked in, and its pulse. */
+export const CHECKIN_DOT_SIZE = 10;
+export const CHECKIN_PULSE_MS = 2000;
 export const DEFAULT_CHECKIN_RADIUS = RADIUS.card;

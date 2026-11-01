@@ -11,8 +11,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 - **A new card: `m3-checkin-card` (work in progress).** Check-in and
   check-out as one element that shows the state and switches it, on a card
   tinted by the state — the accent while in, a neutral grey while out. The
-  `segmented` style is done; `status` and `swipe`, people and confirmation
-  modes are planned. Not yet in the 2.6 release notes.
+  `segmented` and `status` styles are done (`status`: the running time
+  large, a pulsing dot while in, one button that names the action); `swipe`,
+  people and confirmation modes are planned. Not yet in the 2.6 release notes.
 
 ## [2.6.0] – 2026-10-27
 

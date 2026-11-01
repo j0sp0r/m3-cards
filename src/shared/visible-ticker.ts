@@ -11,6 +11,9 @@
 // use:
 //   "frame"  — every animation frame. Only for something that moves smoothly.
 //   "second" — on each second boundary.
+//   "ten-seconds" — on each ten-second boundary. For a running duration that
+//              counts from an arbitrary moment: it changes off the clock's
+//              minute, and ten seconds keeps it close without ticking a second.
 //   "minute" — on each minute boundary. A clock with no seconds and no moving
 //              shape needs nothing more, and this is by far the cheapest.
 //
@@ -19,7 +22,7 @@
 // second at most. Compare what will actually be *shown* and only then assign —
 // the same mistake cost the power-summary card 352 renders in 20 seconds.
 
-export type TickCadence = "frame" | "second" | "minute";
+export type TickCadence = "frame" | "second" | "ten-seconds" | "minute";
 
 export class VisibleTicker {
   private _host: HTMLElement;
@@ -129,7 +132,7 @@ export class VisibleTicker {
    * further from it with every tick.
    */
   private _scheduleBoundary(): void {
-    const period = this._cadence === "second" ? 1000 : 60_000;
+    const period = this._cadence === "second" ? 1000 : this._cadence === "ten-seconds" ? 10_000 : 60_000;
     const now = Date.now();
     // +20ms so the callback lands just after the boundary, never a hair before
     // it, which would show the previous second.

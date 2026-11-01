@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkinAction, checkinSince, checkinState, durationParts, fillStatus } from "./checkin";
+import { checkinAction, checkinSince, checkinState, durationParts, fillStatus, runningTime } from "./checkin";
 import type { HassEntity } from "../types";
 
 const st = (state: string, last_changed = "2026-11-01T12:00:00Z"): HassEntity =>
@@ -64,5 +64,30 @@ describe("durationParts and fillStatus", () => {
   });
   it("fills both placeholders", () => {
     expect(fillStatus("Eingecheckt seit {duration} ({time})", "2 Std.", "14:34")).toBe("Eingecheckt seit 2 Std. (14:34)");
+  });
+});
+
+describe("runningTime", () => {
+  const t0 = Date.parse("2026-11-01T12:00:00Z");
+  const after = (min: number) => runningTime(t0, t0 + min * 60000 + 30000);
+
+  it("counts minutes under an hour", () => {
+    expect(after(0)).toEqual({ value: "0", unit: "m" });
+    expect(after(59)).toEqual({ value: "59", unit: "m" });
+  });
+
+  it("reads hours as a clock face up to two days", () => {
+    expect(after(60)).toEqual({ value: "1:00", unit: "h" });
+    expect(after(125)).toEqual({ value: "2:05", unit: "h" });
+    expect(after(47 * 60 + 59)).toEqual({ value: "47:59", unit: "h" });
+  });
+
+  it("falls back to whole days", () => {
+    expect(after(48 * 60)).toEqual({ value: "2", unit: "d" });
+    expect(after(80 * 60)).toEqual({ value: "3", unit: "d" });
+  });
+
+  it("never runs backwards", () => {
+    expect(runningTime(t0, t0 - 120000)).toEqual({ value: "0", unit: "m" });
   });
 });

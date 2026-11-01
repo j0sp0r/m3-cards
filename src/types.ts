@@ -2925,6 +2925,9 @@ export interface M3CheckinCardConfig {
   label_out?: string;
   icon_in?: string;
   icon_out?: string;
+  /** Style `status`: the button names the action — "Check in" / "Check out". */
+  button_label_in?: string;
+  button_label_out?: string;
   /** Status templates; `{duration}` and `{time}`. */
   status_in?: string;
   status_out?: string;

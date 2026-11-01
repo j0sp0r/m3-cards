@@ -48,3 +48,28 @@ describe("VisibleTicker at frame cadence", () => {
     expect(frames.length).toBe(0);
   });
 });
+
+describe("VisibleTicker at ten-second cadence", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-11-01T12:00:03Z"));
+    vi.stubGlobal("document", { hidden: false, addEventListener: () => {}, removeEventListener: () => {} });
+    vi.stubGlobal("window", globalThis);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("ticks on each ten-second boundary", () => {
+    const at: number[] = [];
+    const ticker = new VisibleTicker({} as HTMLElement, (now) => at.push(now));
+    ticker.setCadence("ten-seconds");
+    ticker.connect();
+    at.length = 0; // the tick on connect
+    vi.advanceTimersByTime(30_000);
+    expect(at.map((t) => Math.floor((t % 60_000) / 1000))).toEqual([10, 20, 30]);
+    ticker.disconnect();
+  });
+});

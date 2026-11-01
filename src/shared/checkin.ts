@@ -89,3 +89,17 @@ export function durationParts(since: number, now: number): { h: number; m: numbe
 export function fillStatus(template: string, duration: string, time: string): string {
   return template.replace(/\{duration\}/g, duration).replace(/\{time\}/g, time);
 }
+
+/**
+ * The status style's big running time: a value set in tabular figures and the
+ * unit beside it. Minutes under an hour ("14" min), hours and minutes as a
+ * clock face up to two days ("2:05" h), whole days beyond — a stopwatch reading
+ * of 73:40 says less than "3 days".
+ */
+export function runningTime(since: number, now: number): { value: string; unit: "m" | "h" | "d" } {
+  const minutes = Math.max(0, Math.floor((now - since) / 60000));
+  if (minutes < 60) return { value: String(minutes), unit: "m" };
+  const h = Math.floor(minutes / 60);
+  if (h < 48) return { value: `${h}:${String(minutes % 60).padStart(2, "0")}`, unit: "h" };
+  return { value: String(Math.floor(h / 24)), unit: "d" };
+}
