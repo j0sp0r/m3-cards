@@ -41,6 +41,8 @@ export interface InfoChipContext {
   hass: HomeAssistant | undefined;
   language: string;
   style?: InfoChipStyle;
+  /** The card's `tile_appearance`: how tiles without one of their own show. */
+  tileAppearance?: "auto" | "active" | "inactive";
   /** The colour a chip takes when neither it nor a rule names one. */
   accent: string;
   run: (action: HaActionConfig | undefined, entityId: string) => void;
@@ -150,9 +152,18 @@ function renderInfoChip(cfg: InfoChipConfig, ctx: InfoChipContext): TemplateResu
   // were drawn as plain readings, round and tinted, whatever they said.
   const domain = cfg.entity.split(".")[0];
   const switchy = TOGGLE_DOMAINS.has(domain) || ON_OFF_DOMAINS.has(domain) || cfg.tap_action?.action === "toggle";
-  const appearance = cfg.appearance ?? "auto";
-  const power =
-    appearance === "active" ? "on" : appearance === "inactive" ? "off" : switchy ? (isOnState(raw) ? "on" : "off") : "";
+  // The tile's own appearance wins; then the card's. A switch follows its
+  // state unless something says inactive; a reading is round unless the card
+  // or the tile says active.
+  const own = cfg.appearance && cfg.appearance !== "auto" ? cfg.appearance : undefined;
+  const card = ctx.tileAppearance ?? "auto";
+  const power = own
+    ? own === "active" ? "on" : "off"
+    : card === "inactive"
+      ? "off"
+      : switchy
+        ? isOnState(raw) ? "on" : "off"
+        : card === "active" ? "on" : "";
   const body = tile
     ? html`
         ${icon ? html`<span class="tile-icon"><ha-icon icon=${icon}></ha-icon></span>` : nothing}

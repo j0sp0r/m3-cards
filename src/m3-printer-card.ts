@@ -1121,6 +1121,7 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
       hass: this.hass,
       language: this._language,
       style: this._config?.chip_style,
+      tileAppearance: this._config?.tile_appearance,
       accent: this._config?.accent_color ?? NEW_CARD_ACCENT,
       run: (action, entityId) => this._run(action, undefined, entityId),
     });

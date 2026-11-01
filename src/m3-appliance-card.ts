@@ -1511,6 +1511,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       hass: this.hass,
       language: this._language,
       style: this._config?.chip_style,
+      tileAppearance: this._config?.tile_appearance,
       accent: this._config?.accent_color ?? DEFAULT_APPLIANCE_ACCENT,
       run: (action, entityId) => this._run(action, entityId),
     });

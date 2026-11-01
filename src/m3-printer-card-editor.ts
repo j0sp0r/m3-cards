@@ -686,6 +686,8 @@ export class M3PrinterCardEditor extends LitElement implements LovelaceCardEdito
               computeLabel: this._computeLabel,
               onChange: (chips) => this._setOptional("chips", chips),
               onStyleChange: (style) => this._setOptional("chip_style", style),
+              tileAppearance: cfg.tile_appearance,
+              onTileAppearanceChange: (value) => this._setOptional("tile_appearance", value),
             })}
           </div>
         </ha-expansion-panel>

@@ -20,6 +20,9 @@ export interface ChipsEditorParams {
   computeLabel: (schema: SchemaEntry) => string;
   onChange: (chips: ChipEntry[] | undefined) => void;
   onStyleChange: (style: InfoChipStyle | undefined) => void;
+  /** The card's `tile_appearance`; the field shows only with tiles. */
+  tileAppearance?: "auto" | "active" | "inactive";
+  onTileAppearanceChange?: (value: "active" | "inactive" | undefined) => void;
   /** Per-chip state rules, for a card that has a rule editor of its own. */
   renderRules?: (rules: StatusRule[], set: (rules: StatusRule[]) => void) => TemplateResult;
 }
@@ -143,6 +146,32 @@ export function renderChipsEditor(p: ChipsEditorParams): TemplateResult {
         p.onStyleChange(v === "pill" ? undefined : v);
       }}
     ></ha-form>
+    ${p.style === "tile" && p.onTileAppearanceChange
+      ? html`<ha-form
+          .hass=${p.hass}
+          .data=${{ tile_appearance: p.tileAppearance ?? "auto" }}
+          .schema=${[
+            {
+              name: "tile_appearance",
+              selector: {
+                select: {
+                  mode: "dropdown",
+                  options: [
+                    { value: "auto", label: p.t("editor_tiles_appearance_auto") },
+                    { value: "active", label: p.t("editor_tiles_appearance_active") },
+                    { value: "inactive", label: p.t("editor_tiles_appearance_inactive") },
+                  ],
+                },
+              },
+            },
+          ]}
+          .computeLabel=${() => p.t("editor_tiles_appearance")}
+          @value-changed=${(ev: CustomEvent) => {
+            const v = (ev.detail.value as { tile_appearance?: string }).tile_appearance;
+            p.onTileAppearanceChange!(v === "active" || v === "inactive" ? v : undefined);
+          }}
+        ></ha-form>`
+      : nothing}
     <div class="hint">${p.t("editor_appliance_chips_hint")}</div>
     ${list.map((entry, index) => {
       const heading = isChipHeading(entry);

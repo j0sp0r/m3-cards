@@ -429,7 +429,10 @@ a room's buttons as one design. A switch's well is grey while off and a filled
 rounded square while on — binary sensors too, so a door or a leak sensor
 reads as open or wet at a glance. `appearance` pins a tile either way —
 `active` for a reading that should stand out, `inactive` to keep a switch
-quiet; `auto` is the default.
+quiet; `auto` is the default. `tile_appearance` on the card sets it for every
+tile without one of its own: `active` draws the readings squared and filled
+while switches and binary sensors keep following their state, `inactive`
+draws them all round.
 
 ```yaml
 chip_style: tile   # pill (default) | tile
@@ -619,6 +622,7 @@ empty dialog.
 | `buttons[]` | — | `entity`, `name`, `icon`, `color`, `tap_action` |
 | `chips[]` | — | `entity`, `name`, `icon`, `label`, `show_state`, `states`, `color`, `tap_action` |
 | `chip_style` | `pill` | `pill` or `tile` |
+| `tile_appearance` | `auto` | `active` draws readings squared and filled, `inactive` every tile round; switches follow their state otherwise |
 | `finish_action` | — | The "Emptied" button on a finished machine; without it there is none |
 | `finish_label` | "Emptied" | The button's text |
 | `show_end_time` | `true` | "done at HH:MM" under the remaining time |

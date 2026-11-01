@@ -986,6 +986,12 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
                 const { chip_style: _drop, ...rest } = this._config;
                 this._emit((style ? { ...rest, chip_style: style } : rest) as M3ApplianceCardConfig);
               },
+              tileAppearance: cfg.tile_appearance,
+              onTileAppearanceChange: (value) => {
+                if (!this._config) return;
+                const { tile_appearance: _drop, ...rest } = this._config;
+                this._emit((value ? { ...rest, tile_appearance: value } : rest) as M3ApplianceCardConfig);
+              },
               renderRules: (rules, set) => this._renderRules(rules, set),
             })}
           </div>

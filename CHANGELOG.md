@@ -489,7 +489,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   button cards show it — active squared, its well filled and the icon
   inverted; inactive round. `auto`, the default, follows an on/off entity's
   state; `active` or `inactive` pins a tile, so a reading such as a tablet
-  count can stand out. In the chips editor as "Tile appearance".
+  count can stand out. In the chips editor as "Tile appearance". The card's
+  `tile_appearance` sets it for all its tiles at once — `active` draws every
+  reading squared and filled while switches and binary sensors keep following
+  their state — as "Tiles" above the list.
 - **Binary sensors on chip tiles show on and off.** A door, a child lock, a
   leak sensor were drawn as plain readings, round and tinted whatever they
   said. They now take the switch's shapes: a grey round well while off, and

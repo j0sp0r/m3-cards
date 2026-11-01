@@ -1125,6 +1125,8 @@ export interface M3PrinterCardConfig extends NotifyConfigBase {
   chip_style?: "pill" | "tile";
   /** `wavy` (the default) or `flat`, as on the appliance card. */
   wave_style?: WaveStyle;
+  /** How the tiles show themselves; see the appliance card's `tile_appearance`. */
+  tile_appearance?: "auto" | "active" | "inactive";
   /** Also announce a job starting, as the appliance card can. */
   notify_on_start?: boolean;
   /** Custom start text; `{geraet}` and `{ende}` as on the appliance card. */
@@ -3105,6 +3107,14 @@ export interface M3ApplianceCardConfig extends NotifyConfigBase {
    * that is mostly read, where the figures are the point.
    */
   chip_style?: "pill" | "tile";
+  /**
+   * How the tiles show themselves, as a room's button cards: `active` draws
+   * the readings squared and filled, `inactive` draws every tile round, and
+   * `auto` (the default) leaves readings round. Switches and binary sensors
+   * follow their state under `auto` and `active`. A tile's own `appearance`
+   * wins.
+   */
+  tile_appearance?: "auto" | "active" | "inactive";
   /**
    * The full-width button a finished machine shows — "Emptied". Any action:
    * a script, an input_boolean, an input_button that resets a derived status.
