@@ -60,3 +60,12 @@ describe("endTimePrelude", () => {
     expect(endTimePrelude()).toBe("{% set t = none %}");
   });
 });
+
+describe("Bambu's own status list", () => {
+  it("covers every value ha-bambulab can report", () => {
+    const rest = printerRawValues(["idle", "finished", "error"]);
+    const work = printerRawValues(["printing"]);
+    for (const v of ["failed", "finish", "idle", "init"]) expect(rest).toContain(v);
+    for (const v of ["prepare", "running", "slicing"]) expect(work).toContain(v);
+  });
+});

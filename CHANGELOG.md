@@ -15,7 +15,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   finishes or fails, and optionally when one starts, with the expected end
   time. The automation listens for every raw status the card reads as
   finished, error or printing — the built-in table plus `state_map` — and a
-  printer coming back online is not announced as a finished print.
+  printer coming back online is not announced as a finished print. Bambu's
+  `init` joins the state table as idle, so a job starting from it is announced
+  too; the card read it as idle already.
 - **The printer card takes `wave_style`**, `wavy` or `flat`, as the appliance
   card does.
 - **Both cards edit their chips the same way.** One shared editor panel, with

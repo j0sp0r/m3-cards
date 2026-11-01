@@ -49,6 +49,9 @@ export const DEFAULT_PRINTER_STATE_MAP: Readonly<Record<string, PrinterState>> =
   paused: "paused",
   pause: "paused",
   idle: "idle",
+  // Listed although the fallback below reads it as idle anyway: the
+  // notification automation only knows the values in this table.
+  init: "idle",
   standby: "idle",
   finish: "finished",
   finished: "finished",
