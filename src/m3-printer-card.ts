@@ -1442,7 +1442,7 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
       .card-inner {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: var(--m3-card-gap, 12px);
         /* The suite's card padding, as the appliance card has it, so the two
            fold to the same height side by side. */
         padding: var(--m3-group-padding, 12px);

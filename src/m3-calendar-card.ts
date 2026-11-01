@@ -833,7 +833,7 @@ export class M3CalendarCard extends TemplatedCard(LitElement) implements Lovelac
     }
 
     .card-inner {
-      gap: 10px;
+      gap: var(--m3-card-gap, 12px);
       position: relative;
     }
 

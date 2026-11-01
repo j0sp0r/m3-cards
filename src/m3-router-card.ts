@@ -815,7 +815,7 @@ export class M3RouterCard extends TemplatedCard(LitElement) implements LovelaceC
       }
 
       .card-inner {
-        gap: 10px;
+        gap: var(--m3-card-gap, 12px);
       }
 
       /* Offline: the radio and the rate are stale, the month's volume is not.

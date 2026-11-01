@@ -746,7 +746,7 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
 
       .card-inner {
         border-radius: var(--m3t-radius);
-        gap: 10px;
+        gap: var(--m3-card-gap, 12px);
       }
 
       .hint,

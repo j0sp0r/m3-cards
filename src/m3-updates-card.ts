@@ -797,10 +797,10 @@ export class M3UpdatesCard extends TemplatedCard(LitElement) implements Lovelace
       }
 
       .card-inner {
-        padding: 12px;
+        padding: var(--m3-group-padding, 12px);
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: var(--m3-card-gap, 12px);
         min-width: 0;
       }
 

@@ -1032,7 +1032,7 @@ export class M3ClockCard extends TemplatedCard(LitElement) implements LovelaceCa
     .card-inner {
       align-items: center;
       justify-content: center;
-      gap: 10px;
+      gap: var(--m3-card-gap, 12px);
       /* Width-based breakpoints only, so this can stay inline-size: a size
          container would need a definite height and collapses to zero without
          one in a masonry column. */

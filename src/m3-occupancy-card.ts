@@ -523,7 +523,7 @@ export class M3OccupancyCard extends TemplatedCard(LitElement) implements Lovela
 
       .card-inner {
         border-radius: var(--m3o-radius);
-        gap: 10px;
+        gap: var(--m3-card-gap, 12px);
       }
 
       .empty {

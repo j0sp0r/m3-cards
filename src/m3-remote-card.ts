@@ -1238,7 +1238,7 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
       }
 
       .card-inner {
-        gap: 12px;
+        gap: var(--m3-card-gap, 12px);
       }
 
       .card-inner:focus-visible {

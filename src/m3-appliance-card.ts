@@ -1257,7 +1257,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     }
 
     .card-inner {
-      gap: 14px;
+      gap: var(--m3-card-gap, 12px);
     }
 
     .card-inner.off {

@@ -703,7 +703,7 @@ export class M3RouterDiagnosticsCard
       }
 
       .card-inner {
-        gap: 10px;
+        gap: var(--m3-card-gap, 12px);
       }
 
       .diag-swatch {

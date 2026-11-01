@@ -1593,8 +1593,10 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
       .card-inner {
         display: flex;
         flex-direction: column;
-        gap: 12px;
-        padding: 14px;
+        gap: var(--m3-card-gap, 12px);
+        /* The suite's card padding, so a folded card stands as tall as the
+           appliance and printer cards beside it. */
+        padding: var(--m3-group-padding, 12px);
         box-sizing: border-box;
         height: 100%;
       }

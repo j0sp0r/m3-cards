@@ -769,7 +769,7 @@ export class M3StatusCard extends TemplatedCard(LitElement) implements LovelaceC
     glassCardStyles,
     css`
       .card-inner {
-        gap: 10px;
+        gap: var(--m3-card-gap, 12px);
       }
 
       .card-inner.tappable {

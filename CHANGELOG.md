@@ -404,6 +404,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Changed
 
+- **One frame for every card.** Cards side by side stood at different
+  heights because each set its own padding (12 or 14px) and its own gap
+  between blocks (10 to 16px). Every content card now uses the suite's
+  padding and a 12px gap, both following a group card's settings, and the
+  router, remote and climate headers take the 44px icon the others have, so
+  a folded card is 70px tall wherever it sits. The hero cards — room,
+  aquarium, weather, cost, supply, waste — keep their larger headers.
 - **Chip tiles look like button cards.** `chip_style: tile` on the
   appliance and printer cards drew a tinted box with a small icon, the
   reading large and the name small — a second design beside the button cards

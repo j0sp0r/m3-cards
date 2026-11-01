@@ -2576,8 +2576,9 @@ export const ROUTER_COLOR_DOWNLOAD = PALETTE.home; // #85b7eb
 export const ROUTER_COLOR_UPLOAD = PALETTE.light; // #f0c46e
 export const ROUTER_COLOR_ACCENT = THEME_PRIMARY;
 
-export const ROUTER_HEADER_ICON_SIZE = 46;
-export const ROUTER_HEADER_ICON_RADIUS = 17;
+// The suite's header icon: 44px, so the header is as tall as every other card's.
+export const ROUTER_HEADER_ICON_SIZE = 44;
+export const ROUTER_HEADER_ICON_RADIUS = RADIUS.squircle44;
 
 /** The signal well: padding and radius from the design, tint share below. */
 export const ROUTER_SIGNAL_PADDING = 13;
@@ -2666,12 +2667,13 @@ export const DEFAULT_ROUTER_RADIUS = RADIUS.card;
 // here is a radius. The pattern throughout: a resting radius that morphs to a
 // smaller one on press, which is the suite's press feedback everywhere else.
 
-export const REMOTE_HEADER_ICON_SIZE = 46;
-export const REMOTE_HEADER_ICON_RADIUS = 17;
+// The suite's header icon: 44px, so the header is as tall as every other card's.
+export const REMOTE_HEADER_ICON_SIZE = 44;
+export const REMOTE_HEADER_ICON_RADIUS = RADIUS.squircle44;
 /** The power button: a squircle while on, a full circle while off. */
-export const REMOTE_POWER_SIZE = 46;
+export const REMOTE_POWER_SIZE = 44;
 export const REMOTE_POWER_RADIUS_ON = 16;
-export const REMOTE_POWER_RADIUS_OFF = 23;
+export const REMOTE_POWER_RADIUS_OFF = 22;
 
 export const REMOTE_NOW_PLAYING_HEIGHT = 52;
 export const REMOTE_NOW_PLAYING_RADIUS = 18;

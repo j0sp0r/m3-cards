@@ -1,3 +1,4 @@
+import { RADIUS } from "./shared/tokens";
 import {
   LitElement,
   html,
@@ -1208,7 +1209,7 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
     /* .card-inner's glass/solid background and border come from
        glassCardStyles. Only the layout this card differs on is set here. */
     .card-inner {
-      gap: 10px;
+      gap: var(--m3-card-gap, 12px);
       border-radius: 32px;
     }
 
@@ -1234,11 +1235,13 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
       border-radius: 8px;
     }
 
+    /* The suite's header icon, 44px, so the header is as tall as every
+       other card's. */
     .icon-container {
       flex-shrink: 0;
-      width: 48px;
-      height: 48px;
-      border-radius: 17px;
+      width: 44px;
+      height: 44px;
+      border-radius: ${unsafeCSS(RADIUS.squircle44)}px;
       display: flex;
       align-items: center;
       justify-content: center;

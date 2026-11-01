@@ -926,7 +926,7 @@ export class M3TimeCard extends TemplatedCard(LitElement) implements LovelaceCar
 
       .card-inner {
         border-radius: var(--m3ti-radius);
-        gap: 12px;
+        gap: var(--m3-card-gap, 12px);
       }
 
       .card-inner.dimmed {

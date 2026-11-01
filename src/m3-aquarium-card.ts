@@ -1100,7 +1100,7 @@ export class M3AquariumCard extends TemplatedCard(LitElement) implements Lovelac
       }
 
       .card-inner {
-        gap: 14px;
+        gap: var(--m3-card-gap, 12px);
         min-width: 0;
       }
 

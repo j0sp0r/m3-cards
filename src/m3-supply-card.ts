@@ -694,7 +694,7 @@ export class M3SupplyCard extends TemplatedCard(LitElement) implements LovelaceC
 
       .card-inner {
         border-radius: var(--m3s-radius);
-        gap: 10px;
+        gap: var(--m3-card-gap, 12px);
       }
 
       .empty {

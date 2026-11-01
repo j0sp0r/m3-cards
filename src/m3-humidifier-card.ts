@@ -1105,7 +1105,7 @@ export class M3HumidifierCard extends TemplatedCard(LitElement) implements Lovel
        from glassCardStyles. Only the two things this card actually differs on
        are set here. */
     .card-inner {
-      gap: 14px;
+      gap: var(--m3-card-gap, 12px);
     }
 
     .card-inner.off {
