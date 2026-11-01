@@ -10,7 +10,6 @@ import type {
   VacuumMaintenanceBlock,
 } from "./types";
 import {
-  CARD_VERSION,
   DEFAULT_VACUUM_MAINT_ICON,
   DEFAULT_VACUUM_RADIUS,
   VACUUM_PART_ALERT_BELOW,
@@ -332,7 +331,6 @@ export class M3VacuumMaintenanceCard
           ${hidden("station") ? nothing : this._renderStation()}
           ${hidden("stats") ? nothing : this._renderStats()}
           ${hidden("settings") ? nothing : this._renderSettings()}
-          ${this._config.card_version ? html`<div class="version">${CARD_VERSION}</div>` : nothing}
         </div>
       </ha-card>
       <!-- Outside the card, not inside it: the question must not inherit the
@@ -980,11 +978,6 @@ export class M3VacuumMaintenanceCard
         color: var(--m3vm-accent);
       }
 
-      .version {
-        font-size: 10px;
-        opacity: 0.4;
-        text-align: right;
-      }
 
       @media (prefers-reduced-motion: reduce) {
         .fold,

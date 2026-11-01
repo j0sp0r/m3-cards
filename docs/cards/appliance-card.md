@@ -415,6 +415,17 @@ a phone and more on a wide card.
 chip_style: tile   # pill (default) | tile
 ```
 
+An entry with a `heading` and no `entity` is a divider: a small label across
+the full width, for a list that gathers readings from more than one device.
+It is set in YAML, and left out when none of the readings under it can be read.
+
+```yaml
+chips:
+  - heading: Dryer
+    icon: mdi:tumble-dryer
+  - entity: sensor.dryer_power
+```
+
 ### Folding it away
 
 `collapsible: true` gives the header a chevron that folds the blocks away. What

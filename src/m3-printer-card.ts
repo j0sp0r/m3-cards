@@ -10,7 +10,7 @@ import type {
   PrinterSecondaryAction,
 } from "./types";
 import {
-  CARD_VERSION,
+  NEW_CARD_ACCENT,
   DEFAULT_PRINTER_ICON,
   DEFAULT_PRINTER_RADIUS,
   PRINTER_BUTTON_HEIGHT,
@@ -79,6 +79,7 @@ import { syncDialogOpenState } from "./shared/popup-card";
 import { foldHides, readCollapsed, writeCollapsed, type CollapseTarget } from "./shared/collapse-state";
 import { foldArrowStyles, renderFoldArrow } from "./shared/fold-arrow";
 import { hassChangeMatters } from "./shared/should-update";
+import { infoChipStyles, renderInfoChips } from "./shared/info-chips";
 import { TemplatedCard } from "./shared/templated-card";
 import {
   discoverPrinter,
@@ -276,6 +277,7 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
       this._entity("end_time_entity", "endTime"),
       d?.online,
       d?.error,
+      ...(cfg?.chips ?? []).map((c) => ("entity" in c ? c.entity : undefined)),
       ...(d?.amsSlots ?? []).flatMap((slot) => [
         slot.entity,
         slot.type,
@@ -363,7 +365,7 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
 
   // ---- actions ----------------------------------------------------------------
 
-  private _run(action: HaActionConfig | undefined, fallback?: () => void): void {
+  private _run(action: HaActionConfig | undefined, fallback?: () => void, entityId?: string): void {
     if (!action) {
       fallback?.();
       return;
@@ -371,7 +373,7 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
     if (!isActionable(action) || !this.hass) return;
     runHaAction(this.hass, action, {
       source: this,
-      entityId: this._config!.entity,
+      entityId: entityId ?? this._config!.entity,
       openPopup: () => this._fireMoreInfo(this._config?.entity),
       fireMoreInfo: (id) => this._fireMoreInfo(id),
       navigate: (path) => {
@@ -1099,6 +1101,19 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
     };
   }
 
+  /** Further readings at the foot of the card, as on the appliance card. */
+  private _renderChips() {
+    const chips = renderInfoChips(this._config?.chips, {
+      host: this,
+      hass: this.hass,
+      language: this._language,
+      style: this._config?.chip_style,
+      accent: this._config?.accent_color ?? NEW_CARD_ACCENT,
+      run: (action, entityId) => this._run(action, undefined, entityId),
+    });
+    return chips === nothing ? nothing : html`<div class="chips">${chips}</div>`;
+  }
+
   // ---- render -----------------------------------------------------------------
 
   protected render() {
@@ -1151,7 +1166,7 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
           ${hidden("speed") ? nothing : this._renderSpeed(state)}
           ${hidden("ams") ? nothing : this._renderAms()}
           ${hidden("details") ? nothing : this._renderDetails(state)}
-          ${this._config.card_version ? html`<div class="version">${CARD_VERSION}</div>` : nothing}
+          ${hidden("chips") ? nothing : this._renderChips()}
         </div>
       </ha-card>
       <!-- Outside the card, not inside it: a modal dialog is painted in the
@@ -1373,6 +1388,7 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
     cardHeaderStyles,
     confirmDialogStyles,
     foldArrowStyles,
+    infoChipStyles,
     css`
       ha-card {
         color: var(--m3p-text, var(--primary-text-color));
@@ -1972,12 +1988,6 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
       .accessory.on .accessory-value {
         opacity: 1;
         color: var(--m3pr-acc, var(--m3pr-accent));
-      }
-
-      .version {
-        font-size: 10px;
-        opacity: 0.4;
-        text-align: right;
       }
 
       @media (prefers-reduced-motion: reduce) {

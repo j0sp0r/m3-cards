@@ -148,11 +148,13 @@ number their slots 1–4, and merging them would quietly hide half the filament.
 | `show_camera`, `camera_entity`, `camera_live`, `camera_refresh`, `light_entity` | — | — | The chamber view. A still by default — see below. |
 | `show_progress`, `show_temps`, `show_speed`, `show_ams`, `show_details` | boolean | `true` | The blocks. Each also disappears on its own when its entities are missing. |
 | `collapsible` | boolean | `false` | Folds the card to its header and controls, with the chevron the vacuum cards use. |
-| `collapse_blocks` | list | all | Which blocks the fold takes: `camera`, `progress`, `temps`, `speed`, `ams`, `details`. |
+| `collapse_blocks` | list | all | Which blocks the fold takes: `camera`, `progress`, `temps`, `speed`, `ams`, `details`, `chips`. |
 | `default_collapsed`, `collapse_state_entity`, `collapse_memory` | — | — | Same keys as the vacuum, room and heading cards: start folded, keep the state in an `input_boolean`, or remember it per device or per session. |
 | `filament_warn` | number | `40` | Percent below which a tray's bar turns amber. |
 | `ams_slots` | list | discovered | Per tray: `type_entity`, `color_entity`, `remaining_entity`. One entity carrying all three as attributes also works — see below. |
 | `accessories` | list | — | Switches beside the printer: `entity`, `name`, `icon`, `color`, `power_entity`. |
+| `chips` | list | — | Further readings as pills or tiles, with `heading` entries as dividers — see below. Same keys as the appliance card's `chips`. |
+| `chip_style` | string | `pill` | `pill` or `tile` |
 | `nozzle_temp_entity`, `nozzle_target_entity`, `bed_temp_entity`, `bed_target_entity`, `chamber_temp_entity`, `speed_entity`, `speed_state_entity`, `start_time_entity`, `end_time_entity`, `power_entity`, `camera_entity`, `light_entity` | string | discovered | Override any lookup that got it wrong. |
 | `accent_color`, `text_color`, `card_background`, `glass_background`, `radius`, `corners`, `card_version` | — | — | The usual shared appearance options. |
 
@@ -299,9 +301,42 @@ entity registry's translation key first, the entity id second, a device class
 third. That last one is what finds OctoPrint's temperatures, which carry no
 recognisable name but do say what they are.
 
-## Environment sensors belong elsewhere
+## Further readings: `chips`
 
-Enclosure temperature, filament dryer, AMS humidity — those are climate
-readings, and the suite already has a card that draws climate readings well.
-Put them in [M3 Climate Overview Card](#m3-climate-overview-card) rather than
-here; this card is about the job.
+Anything else worth reading beside the printer — the enclosure, the AMS's own
+humidity, a filament dryer, the sockets — goes in `chips`, the same option the
+appliance card has. They sit at the foot of the card, as small pills or, with
+`chip_style: tile`, as a grid of tiles: the name small, the value large.
+
+An entry with a `heading` and no `entity` is a divider across the full width,
+so readings from several devices stay apart in one list. A heading whose
+readings are all unavailable is left out with them.
+
+```yaml
+chip_style: tile
+show_details: false        # the tiles take the place of the details block
+chips:
+  - entity: sensor.drucker_druckfortschritt
+    name: Fortschritt
+    icon: mdi:percent
+  - entity: switch.drucker_steckdose
+    name: Steckdose
+    icon: mdi:power-plug
+    tap_action:
+      action: more-info
+  - heading: AMS
+    icon: mdi:printer-3d-nozzle
+  - entity: sensor.ams_temperatur
+    name: Temperatur
+    icon: mdi:thermometer
+  - entity: sensor.ams_feuchtigkeit
+    name: Feuchtigkeit
+    icon: mdi:water-percent
+```
+
+A tile keeps the card's accent colour — `primary` unless `accent_color` says
+otherwise — rather than the printer's state colour, so the readings do not turn
+grey with the machine. A chip is read-only until it has a `tap_action`. A
+socket as a tile does not ask before switching off, as an accessory does; give
+it `more-info` rather than `toggle` when that matters. `chips` is also a fold
+block, for `collapse_blocks`.

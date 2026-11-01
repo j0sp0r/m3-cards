@@ -131,6 +131,7 @@ export class M3PrinterCardEditor extends LitElement implements LovelaceCardEdito
               { value: "speed", label: this._t("editor_printer_show_speed") },
               { value: "ams", label: this._t("editor_printer_show_ams") },
               { value: "details", label: this._t("editor_printer_show_details") },
+              { value: "chips", label: this._t("editor_appliance_block_chips") },
             ],
           },
         },

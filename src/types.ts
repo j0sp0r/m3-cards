@@ -1051,7 +1051,7 @@ export type VacuumSecondaryAction = "return_to_base" | "locate" | "rooms" | "sto
  * the list: like the vacuum's state and Start/Pause, they are what the card is
  * for at a glance and never fold.
  */
-export type PrinterBlock = "camera" | "progress" | "temps" | "speed" | "ams" | "details";
+export type PrinterBlock = "camera" | "progress" | "temps" | "speed" | "ams" | "details" | "chips";
 
 /** Raw status value → one of the six printer states. */
 export type PrinterStateMap = Record<string, import("./shared/printer").PrinterState>;
@@ -1112,6 +1112,14 @@ export interface M3PrinterCardConfig {
 
   ams_slots?: PrinterAmsSlotConfig[];
   accessories?: PrinterAccessoryConfig[];
+  /**
+   * Further readings, as on the appliance card: any entity as a pill or a
+   * tile, drawn at the foot of the card. Same keys as the appliance card's
+   * `chips`.
+   */
+  chips?: (ApplianceChipConfig | InfoChipHeading)[];
+  /** `pill` (the default) or `tile`, as on the appliance card. */
+  chip_style?: "pill" | "tile";
 
   show_camera?: boolean;
   camera_refresh?: number;
@@ -2944,6 +2952,16 @@ export interface ApplianceButtonConfig {
 }
 
 /** A small status pill. Read-only unless it is given a `tap_action`. */
+/**
+ * A divider between groups of chips: a small heading across the full width,
+ * so readings from several devices — a printer, its AMS, a filament dryer —
+ * stay apart in one list.
+ */
+export interface InfoChipHeading {
+  heading: string;
+  icon?: string;
+}
+
 export interface ApplianceChipConfig {
   entity: string;
   name?: string;
@@ -3010,7 +3028,7 @@ export interface M3ApplianceCardConfig extends NotifyConfigBase {
   sliders?: ApplianceSliderConfig[];
   selects?: ApplianceSelectConfig[];
   buttons?: ApplianceButtonConfig[];
-  chips?: ApplianceChipConfig[];
+  chips?: (ApplianceChipConfig | InfoChipHeading)[];
   /**
    * How the chips are drawn: `pill` (the default) is a row of small pills,
    * `tile` a grid of tiles with the name above a larger value — for a card

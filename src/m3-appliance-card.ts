@@ -13,7 +13,6 @@ import { customElement, property, state } from "lit/decorators.js";
 import type {
   ApplianceBlock,
   ApplianceButtonConfig,
-  ApplianceChipConfig,
   ApplianceSelectConfig,
   ApplianceSliderConfig,
   HaActionConfig,
@@ -41,15 +40,6 @@ import {
   APPLIANCE_BUTTON_RADIUS_ACTIVE,
   APPLIANCE_BUTTON_TINT,
   APPLIANCE_CAPTION_SIZE,
-  APPLIANCE_CHIP_GAP,
-  APPLIANCE_TILE_HEIGHT,
-  APPLIANCE_TILE_ICON,
-  APPLIANCE_TILE_MIN_WIDTH,
-  APPLIANCE_TILE_RADIUS,
-  APPLIANCE_CHIP_HEIGHT,
-  APPLIANCE_CHIP_RADIUS,
-  APPLIANCE_CHIP_RADIUS_ACTIVE,
-  APPLIANCE_CHIP_TINT,
   APPLIANCE_DRAG_SETTLE_MS,
   APPLIANCE_HANDLE_HEIGHT,
   APPLIANCE_HANDLE_RADIUS,
@@ -104,7 +94,6 @@ import {
 import { buildWavePath, lerpStep } from "./shared/wave";
 import {
   buildCssVars,
-  foregroundColor,
   foregroundOn,
   inkOn,
   resolveCommonColors,
@@ -127,6 +116,7 @@ import { foldArrowStyles, renderFoldArrow } from "./shared/fold-arrow";
 import { hassChangeMatters } from "./shared/should-update";
 import { stopSwipe } from "./shared/swipe";
 import { findStateRule, numericState } from "./shared/state-rules";
+import { infoChipStyles, renderInfoChips } from "./shared/info-chips";
 import { TemplatedCard } from "./shared/templated-card";
 import { VisibleTicker } from "./shared/visible-ticker";
 import { openEntityDetail } from "./shared/entity-detail";
@@ -322,7 +312,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       ...(c.sliders ?? []).map((x) => x.entity),
       ...(c.selects ?? []).map((x) => x.entity),
       ...(c.buttons ?? []).map((x) => x.entity),
-      ...(c.chips ?? []).map((x) => x.entity),
+      ...(c.chips ?? []).map((x) => ("entity" in x ? x.entity : undefined)),
       c.collapse_state_entity,
     ].filter((e): e is string => !!e);
   }
@@ -1241,85 +1231,19 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
   // ---- chip block -----------------------------------------------------------
 
   private _renderChips(): TemplateResult | typeof nothing {
-    const chips = (this._config?.chips ?? [])
-      .map((chip) => this._renderChip(chip))
-      .filter((c): c is TemplateResult => c !== undefined);
-    if (chips.length === 0) return nothing;
-    return html`<div class="chip-row ${this._config?.chip_style === "tile" ? "tiles" : ""}">${chips}</div>`;
-  }
-
-  private _renderChip(cfg: ApplianceChipConfig): TemplateResult | undefined {
-    const st = this._state(cfg.entity);
-    // An unreadable chip is left out rather than dimmed: a row of "—" says
-    // nothing and pushes the ones that do say something off the edge.
-    if (!st || isMissingState(st.state)) return undefined;
-
-    const raw = st.state;
-    const rule = findStateRule(cfg.states, raw, numericState(raw));
-    const name = cfg.name ?? (st.attributes?.friendly_name as string | undefined);
-    const valueText =
-      cfg.show_state === false ? undefined : (rule?.label ?? this._stateText(st, raw));
-    const text = cfg.label ?? ([name, valueText].filter(Boolean).join(" ") || cfg.entity);
-
-    // A tile is a reading, not the machine's state: it keeps the card's base
-    // colour while the state rules recolour the header and the bar. Following
-    // the state turned every tile grey whenever the machine stood idle.
-    const color = resolveThemeColor(
-      rule?.color ?? cfg.color ?? this._config?.accent_color ?? DEFAULT_APPLIANCE_ACCENT,
-    );
-    const tint = tintOn(this, color, undefined, APPLIANCE_CHIP_TINT);
-    const icon = rule?.icon ?? cfg.icon;
-    const vars = buildCssVars({
-      "m3a-chip": color,
-      "m3a-chip-tint": tint,
-      "m3a-chip-fg": foregroundOn(color, tint, 4.5, this),
-      // An information chip has no fill, so its text sits on the card itself —
-      // checked against that, not against a tint that is no longer drawn.
-      "m3a-chip-text": foregroundColor(this, color),
-      "m3a-chip-ink": inkOn(color, this),
+    return renderInfoChips(this._config?.chips, {
+      host: this,
+      hass: this.hass,
+      language: this._language,
+      style: this._config?.chip_style,
+      accent: this._config?.accent_color ?? DEFAULT_APPLIANCE_ACCENT,
+      run: (action, entityId) => this._run(action, entityId),
     });
-    const tile = this._config?.chip_style === "tile";
-    const body = tile
-      ? html`
-          ${icon ? html`<span class="tile-icon"><ha-icon icon=${icon}></ha-icon></span>` : nothing}
-          <span class="tile-text">
-            ${name ? html`<span class="tile-name">${name}</span>` : nothing}
-            <span class="tile-value">${cfg.label ?? valueText ?? cfg.entity}</span>
-          </span>
-        `
-      : html`${icon ? html`<ha-icon icon=${icon}></ha-icon>` : nothing}<span>${text}</span>`;
-
-    if (!cfg.tap_action || !isActionable(cfg.tap_action)) {
-      return html`<span class="chip ${tile ? "tile" : ""}" style=${vars}>${body}</span>`;
-    }
-
-    // Only a chip that actually switches something reports a pressed state.
-    // A chip whose tap navigates or opens more-info is a link, and announcing
-    // it as a toggle would be a lie a screen reader has no way to see through.
-    const togglish =
-      cfg.tap_action.action === "toggle" || TOGGLE_DOMAINS.has(cfg.entity.split(".")[0]);
-    const on = togglish && isOnState(raw);
-    const onTap = (e: Event): void => {
-      e.stopPropagation();
-      this._run(cfg.tap_action, cfg.entity);
-    };
-    return html`
-      <button
-        class="chip control ${tile ? "tile" : ""} ${on ? "active" : ""}"
-        type="button"
-        style=${vars}
-        aria-label=${text}
-        aria-pressed=${togglish ? (on ? "true" : "false") : nothing}
-        @click=${onTap}
-        @keydown=${activateOnKey(onTap)}
-      >
-        ${body}
-      </button>
-    `;
   }
 
   static styles = css`
     ${glassCardStyles}
+    ${infoChipStyles}
     ${cardHeaderStyles}
     ${popupCardStyles}
     ${foldArrowStyles}
@@ -1669,125 +1593,6 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       background: color-mix(in srgb, var(--m3p-secondary-text) 8%, transparent);
     }
 
-    /* ---- chips ---- */
-    .chip-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: ${APPLIANCE_CHIP_GAP}px;
-    }
-
-    /* chip_style: tile — the figures as tiles: name small, value large, in a
-       grid that gives two columns on a phone and more on a wide card. */
-    .chip-row.tiles {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(${APPLIANCE_TILE_MIN_WIDTH}px, 1fr));
-    }
-
-    .chip.tile {
-      height: auto;
-      min-height: ${APPLIANCE_TILE_HEIGHT}px;
-      padding: 8px 12px 8px 8px;
-      gap: 10px;
-      border-radius: ${APPLIANCE_TILE_RADIUS}px;
-      justify-content: flex-start;
-      text-align: left;
-      /* A read-only tile is a span and inherits the card's line height; a
-         tile with an action is a button, which does not. Set once, so the two
-         are the same height side by side. */
-      line-height: 1.2;
-      min-width: 0;
-      border-color: transparent;
-      background: color-mix(in srgb, var(--m3a-chip, var(--m3p-secondary-text)) 10%, transparent);
-    }
-
-    .tile-icon {
-      flex: none;
-      width: ${APPLIANCE_TILE_ICON}px;
-      height: ${APPLIANCE_TILE_ICON}px;
-      border-radius: 50%;
-      display: grid;
-      place-items: center;
-      background: color-mix(in srgb, var(--m3a-chip, var(--m3p-secondary-text)) 18%, transparent);
-      color: var(--m3a-chip-text, var(--m3p-secondary-text));
-    }
-
-    .tile-icon ha-icon {
-      --mdc-icon-size: 18px;
-      width: 18px;
-      height: 18px;
-    }
-
-    .tile-text {
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-      gap: 1px;
-    }
-
-    .tile-name {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--m3p-secondary-text);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .tile-value {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--m3p-text, var(--primary-text-color));
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    /* Filled means it can be pressed; outlined means it is telling you
-       something — the rule the vacuum and printer cards follow. The action
-       buttons above are filled, and these chips used to be filled pills too, so
-       "Power 0 W" looked exactly as pressable as "Identify". An information chip
-       now has a rim in its own colour and no fill; a chip with a tap_action is a
-       control and stays filled. */
-    .chip {
-      box-sizing: border-box;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      height: ${APPLIANCE_CHIP_HEIGHT}px;
-      padding: 0 12px;
-      border: 1px solid color-mix(in srgb, var(--m3a-chip, var(--m3p-secondary-text)) 40%, transparent);
-      border-radius: ${APPLIANCE_CHIP_RADIUS}px;
-      font-family: inherit;
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--m3a-chip-text, var(--m3p-secondary-text));
-      background: transparent;
-      transition:
-        border-radius 0.35s ${EASING},
-        background 0.35s ${EASING},
-        border-color 0.35s ${EASING},
-        color 0.35s ${EASING};
-    }
-
-    .chip ha-icon {
-      --mdc-icon-size: 16px;
-      width: 16px;
-      height: 16px;
-    }
-
-    .chip.control {
-      cursor: pointer;
-      border-color: transparent;
-      font-weight: 600;
-      color: var(--m3a-chip-fg, var(--m3p-secondary-text));
-      background: var(--m3a-chip-tint, color-mix(in srgb, var(--m3p-secondary-text) 8%, transparent));
-    }
-
-    .chip.control.active {
-      border-radius: ${APPLIANCE_CHIP_RADIUS_ACTIVE}px;
-      background: var(--m3a-chip);
-      color: var(--m3a-chip-ink);
-    }
 
     /* A tile sets its name, value and icon colours itself, so the fill's ink
        has to reach them too: a switched-on tile kept light text on its light

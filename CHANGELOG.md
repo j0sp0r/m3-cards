@@ -10,6 +10,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **The printer card takes `chips`, as the appliance card does, and both
+  take dividers.** Further readings — the enclosure, the AMS, a filament
+  dryer, the sockets — sit at the foot of the printer card as pills or, with
+  `chip_style: tile`, as tiles. An entry with a `heading` and no `entity` is a
+  divider across the full width, on either card, so readings from several
+  devices stay apart. The rendering moved into a shared module, so the two
+  cards draw them alike.
 - **`action: sidebar` opens Home Assistant's sidebar.** A navbar usually
   takes the place of the header, and with it the button for the sidebar. The
   new action brings it back as a navbar entry, a menu item, or any M3 card's
@@ -178,6 +185,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **The printer, vacuum and vacuum maintenance cards no longer print a
+  version number at their foot.** It showed whenever the visual editor had
+  saved the card, because the editor stamps `card_version` into the config to
+  know which version last touched it. That stamp is for migrations, not for
+  reading.
 - **The NAS card's notification no longer arrives twice, and says what is
   wrong.** Syncthing raises a folder's `errors` and `pull_errors` in the same
   update, and the automation had a trigger for each, so every failed item sent

@@ -11,7 +11,6 @@ import type {
   VacuumSecondaryAction,
 } from "./types";
 import {
-  CARD_VERSION,
   DEFAULT_VACUUM_ICON,
   DEFAULT_VACUUM_RADIUS,
   VACUUM_CHIP_GAP,
@@ -541,9 +540,6 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
                things read at a glance rather than between two sliders that are
                nudged far more often. -->
           ${hidden("cleaning_mode") ? nothing : this._renderCleaningMode(unavailable)}
-          ${this._config.card_version
-            ? html`<div class="version">${CARD_VERSION}</div>`
-            : nothing}
         </div>
       </ha-card>
       ${this._renderPopup()}
@@ -2044,11 +2040,6 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
         border-color: color-mix(in srgb, #e57368 45%, transparent);
       }
 
-      .version {
-        font-size: 10px;
-        opacity: 0.4;
-        text-align: right;
-      }
 
       @media (prefers-reduced-motion: reduce) {
         .primary,
