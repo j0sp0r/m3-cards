@@ -485,8 +485,8 @@ Each of the three draws its own layout:
 
 | | Running | Done | Idle |
 | --- | --- | --- | --- |
-| Top right | the time left, large, with "done at 15:18" under it | a tinted "✓ Done" pill | the state, in the secondary colour |
-| Status line | the state | "Done 12 min ago" | — (one line) |
+| Top right | the time left, large, with "done at 15:18" under it | a tinted "✓ Done" pill | nothing |
+| Status line | the state | "Done 12 min ago" | the state |
 | Below | the bar, its percentage on the same line | the "Emptied" button, when `finish_action` is set | nothing |
 
 The end time comes from the remaining-time sensor: a completion timestamp as
@@ -515,7 +515,7 @@ finish_action:
 into `idle`.
 
 On a collapsible card the fold is a quiet "Details" row at the foot, so the
-top right holds only the time, the pill or the state — the same row every card
+top right holds only the time or the pill — the same row every card
 in the suite that folds has.
 
 ### Notifications

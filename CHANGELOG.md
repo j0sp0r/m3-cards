@@ -204,7 +204,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   100 % with up to two minutes left now counts as done, by one rule shared
   by the layout and the status line. The reconnects also greyed the card for
   a few seconds each time; an appliance that drops out for under 90 seconds
-  keeps showing its last reading.
+  keeps showing its last reading. And "Done … ago" no longer starts over with each
+  reconnect: the card keeps the earliest moment it saw the machine done.
 - **A printer switched off leaves its card as it was, and its camera out.**
   The tiles were held open while the printer was offline, for a socket given
   as a tile, so a card folded on purpose sprang open the moment the printer
@@ -446,7 +447,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   and the percentage on the bar's own line instead of a "Progress … 79 %" row
   above it. Done: a "✓ Done" pill, "Done 12 min ago" as the status, no bar,
   and with `finish_action` a full-width "Emptied" button in the supply card's
-  style. Idle: one line, the state on the right. The fold chevron moves to a
+  style. Idle: the name with the state under it, as running and done have it,
+  and nothing on the right. The fold chevron moves to a
   "Details" row at the foot, except on the one-line idle card. The height
   eases between them. New: `finish_action`, `finish_label`, `show_end_time`;
   a `finished_at` attribute on the status entity is read for "Done … ago".

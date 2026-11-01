@@ -755,6 +755,8 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     const progressDone = doneByProgress(progress);
     const phase: AppliancePhase = unavailable || idle ? "ready" : done || progressDone ? "done" : "running";
     this._machinePhase = phase;
+    // A new run, or a machine emptied, starts the "Done … ago" clock afresh.
+    if (phase !== "done" && !unavailable) this._forgetDone();
     const remaining = phase === "running" ? progress?.remaining : undefined;
 
     // Decide how the wave behaves this render, before anything draws one.
@@ -813,7 +815,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
             </div>`
         : phase === "done"
           ? html`<span class="done-pill"><ha-icon icon="mdi:check"></ha-icon>${this._t("appliance_done")}</span>`
-          : html`<span class="ready-state">${subtitle}</span>`;
+          : undefined;
 
     return html`
       <ha-card style=${`${cssVars} border-radius: ${radius};`}>
@@ -826,7 +828,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
           ${renderCardHeader({
             icon: rule?.icon ?? cfg.icon ?? DEFAULT_APPLIANCE_ICON,
             name,
-            subtitle: phase === "ready" ? "" : (doneSubtitle ?? subtitle),
+            subtitle: doneSubtitle ?? subtitle,
             onClick: onHeader,
             right,
           })}
@@ -940,17 +942,53 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     // dishwasher done for hours read "Done 0 min ago".
     const stamped = this._main?.attributes?.finished_at;
     const source = byState ? this._main : this._state(this._config?.progress?.percentage_entity);
-    const changed =
+    let changed =
       typeof stamped === "string" && Number.isFinite(Date.parse(stamped))
         ? Date.parse(stamped)
         : source?.last_changed
           ? Date.parse(source.last_changed)
           : NaN;
+    // And the earliest moment this browser saw the machine done: a Home
+    // Connect dryer reconnects every few minutes in its anti-crease phase,
+    // each time resetting every timestamp it has, and "Done 40 min ago" fell
+    // back to "0 min" with each one.
+    const seen = this._doneSeen();
+    if (seen !== undefined && (!Number.isFinite(changed) || seen < changed)) changed = seen;
+    if (Number.isFinite(changed)) this._rememberDone(changed);
     if (!Number.isFinite(changed)) return undefined;
     const parts = sinceParts(changed, this._now);
     return "m" in parts
       ? this._t("appliance_done_since_m").replace("{m}", String(parts.m))
       : this._t("appliance_done_since_h").replace("{h}", String(parts.h));
+  }
+
+  private get _doneKey(): string {
+    return `m3-appliance-done:${this._config?.entity ?? ""}`;
+  }
+
+  private _doneSeen(): number | undefined {
+    try {
+      const v = Number(window.localStorage.getItem(this._doneKey));
+      return Number.isFinite(v) && v > 0 ? v : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  private _rememberDone(at: number): void {
+    try {
+      window.localStorage.setItem(this._doneKey, String(Math.round(at)));
+    } catch {
+      /* private mode: the sensor's own timestamp has to do */
+    }
+  }
+
+  private _forgetDone(): void {
+    try {
+      window.localStorage.removeItem(this._doneKey);
+    } catch {
+      /* nothing stored */
+    }
   }
 
   /** The full-width "Emptied" button, only when an action is configured. */
@@ -1545,17 +1583,6 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
 
     .no-animations .finish {
       transition: none;
-    }
-
-    /* Ready: one line, the state on the right in the secondary colour. */
-    .phase-ready .m3-subtitle {
-      display: none;
-    }
-
-    .ready-state {
-      font-size: 14px;
-      color: var(--m3p-secondary-text);
-      white-space: nowrap;
     }
 
     /* ---- blocks ---- */
