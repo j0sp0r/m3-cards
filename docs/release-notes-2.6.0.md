@@ -4,9 +4,10 @@
 
 <p align="center"><sub>The full tour, with sound, is attached below: <code>m3-cards-tour.mp4</code> (landscape) and <code>m3-cards-tour-phone.mp4</code> (portrait), plus the 20-second cut as <code>m3-cards-tour-20s.mp4</code>.</sub></p>
 
-**Upgrading:** no option was removed or renamed, so existing configs load
-unchanged. Five things look or behave differently without having been asked
-for, and the first is a reversal rather than an addition:
+**Upgrading:** no option was removed, so existing configs load unchanged; the
+one renamed key (the waste card's `max_rows`, now `max_visible`) is still read.
+Some things look or behave differently without having been asked for, and the
+first is a reversal rather than an addition:
 
 - **The heading card takes the theme's primary colour** when it has no `color`
   of its own. It used the suite's house blue (`#85b7eb`), which put a blue icon
@@ -25,7 +26,22 @@ for, and the first is a reversal rather than an addition:
   current state rule, so a grey "Ready" rule turned every reading grey. They
   now use their own `color`, else the card's accent colour; the state still
   colours the icon, the status line and the bar. An idle machine also no
-  longer shows a progress bar at 0 %.
+  longer shows a progress bar at 0 %, and a finished one no longer shows
+  "0 min left".
+- **Cards change height by a few pixels.** Every content card now has the same
+  frame — 12px padding, 12px between blocks, a 44px header — where they used
+  to pad 12 or 14px and space their blocks anywhere from 10 to 16. Cards side
+  by side stand equally tall; a card that is folded to its header is 70px
+  wherever it sits.
+- **`wave_style: flat` is flat on the progress and light cards** whatever the
+  animation setting. It used to apply only with `animation: off`, so a card
+  set to flat and left at auto kept its wave.
+- **The weather card's daily bars are coloured by the temperature.** They ran
+  from blue to red across the week's own range, so the warmest day of a cold
+  week was red at 10 °C. Each bar is now a gradient on a fixed outdoor scale:
+  blue to 0 °C, green around 17, red from 30.
+- **The printer and vacuum cards no longer print a version number** at their
+  foot. It appeared whenever the visual editor had saved the card.
 
 A card added from the card picker now starts in the theme's primary colour:
 the appliance, progress, counter, status, clock, time, energy, cost,
@@ -38,8 +54,9 @@ This release is about the parts of a dashboard that are not a card on a grid:
 the details behind a tap, the pop-up behind a button, the remote on the sofa
 and the router in the hallway cupboard. Five new cards, and the existing ones
 learned to open the first of them. And the machines in the utility room: the
-appliance card learned to fold, to draw its readings as tiles and to say when
-a run has started and when it is done.
+appliance and printer cards learned to fold, to draw their readings as tiles
+and to say when a run has started and when it is done. Last, the suite was
+gone over as a whole — one frame for every card, one name for every setting.
 
 The suite registers 49 cards.
 
@@ -131,12 +148,23 @@ A washer and a dryer side by side are two cards that are mostly read: what is
 running, how long is left, what it used. The appliance card now serves that
 page as well as the one with the buttons.
 
-**`chip_style: tile`** draws the readings as tiles — the name small, the value
-large, two to a row on a phone — instead of a row of small pills.
+**`chip_style: tile`** draws the readings as tiles, two to a row on a phone,
+instead of a row of small pills. A tile is drawn the way a button card draws
+itself — the same height, rim, corner and round icon well, the name bold with
+the reading under it — so it sits beside a room's buttons as one design. A
+switch's well is grey while off; on, the well and the tile square their
+corners, as a button card with `shape_by_state` does. An entry with a
+`heading` and no `entity` is a divider across the full width, for a list that
+gathers readings from more than one device. The editor edits all of it:
+pill or tile, dividers, and arrows to reorder.
+
 **`collapsible: true`** folds everything but the header, the way the vacuum and
-printer cards fold, and the chevron is left out while there is nothing to fold:
-a dryer that is off reports its door and child lock as unavailable, and an
-arrow toggling an empty card reads as a broken one.
+printer cards fold. The editor asks the question the right way round — **Stays
+visible when folded** — so keeping the progress bar in view while the rest
+folds is one tick; it used to list what folds away, and an empty list meant
+everything. The chevron is left out while there is nothing to fold: a dryer
+that is off reports its door and child lock as unavailable, and an arrow
+toggling an empty card reads as a broken one.
 
 The card now tells idle, running and done apart without rules for each. An
 idle machine — SmartThings' `none`, Home Connect's `ready` and `inactive` —
@@ -150,7 +178,10 @@ it used to take a Samsung's idle `none` for one.
 The editor's **Notification** section sets up the automation that says the
 laundry is ready. It listens for the two ways a machine says so — the state
 turning to a finished value, and the progress reaching 100 % — and sends one
-message per run, whichever arrives first, however far apart they are.
+message per run, whichever arrives first, however far apart they are. A change
+counts only when the reading it left had stood for a minute, so a dryer
+dropping off Wi-Fi in its anti-crease phase, or template entities being
+reloaded, is not announced as a run finishing.
 
 **Also on start** adds a message when a run begins, with its expected end:
 
@@ -170,7 +201,22 @@ A machine with no integration at all — a dishwasher on a plug that measures
 power — gets the same card. The appliance card's documentation now carries the
 three template sensors that turn a plug's power draw into a status, a
 progress and the minutes left, with a table of what to read off your own
-machine's history first.
+machine's history first. One thing it learned the hard way: a dishwasher dries
+silently, at exactly its standby draw, for half an hour after its last pump —
+"quiet for ten minutes" called it done while its own display still counted
+down. The end is the machine switching itself off, and that is what the
+example listens for.
+
+### The printer joins in
+
+The printer card takes the same **`chips`**, tiles and dividers: the enclosure,
+the AMS, a filament dryer, the sockets, at the foot of the card in place of the
+details block if you like. It has the same **Notification** section — a print
+finished, a print failed, and optionally a print started with its expected
+end — listening for every status the card reads as finished, error or
+printing. It takes **`wave_style`**, its fold chevron appears only when there
+is something to fold, and while the printer is offline its tiles stay open,
+because the socket that brings it back may be one of them.
 
 The progress card reads a remaining time the way the appliance card does:
 minutes, seconds, a clock string or a completion timestamp. Home Connect
@@ -186,6 +232,44 @@ surface stays silent. "Vibrate on tap" in a card's appearance section, or
 `haptics: false`, turns it off for that card, and Home Assistant's "Vibrate"
 profile setting for the whole device.
 
+## A button for the sidebar
+
+A navbar usually takes the place of Home Assistant's header, and with it the
+button that opens the sidebar. **`action: sidebar`** brings it back — as a
+navbar entry, in a submenu or the action button's menu, or as any M3 card's
+`tap_action`. On a phone the drawer slides in; on a wide screen the docked
+sidebar expands or collapses.
+
+```yaml
+action_button:
+  menu:
+    - name: Sidebar
+      icon: mdi:menu
+      tap_action:
+        action: sidebar
+```
+
+## One frame, one name
+
+A dashboard is read as a whole, so the cards were gone over as one. Every
+content card now has the same frame: 12px padding (following a group card's
+setting), 12px between blocks, a 44px header with a 44px icon. Two cards in a
+row stand equally tall, and a block with nothing to show takes no space —
+the printer card used to draw an empty controls row that still took its gap.
+The hero cards (room, aquarium, weather, cost, supply, waste) keep their
+larger header by design.
+
+And every setting now has one name. An audit read the labels out of all 49
+running editors: "Tap-Aktion", "Tippen" and "Tap action" were one setting,
+"Ausklappbar", "Raum aufklappbar" and "Faltung merken" were the fold, and
+auto-discovery had nine wordings. The actions, the fold, haptics, recipients,
+"when to notify", discovery, area and label filters, exclusions, forecast,
+comparison, self-sufficiency, data source and "show state" now read the same
+on every card, in English and German. The printer editor, which showed thirty
+raw keys such as `stage_entity`, names them all, and a few editors gained
+fields their cards already read: the router's and the vacuum maintenance
+card's tap action, and the fold's helper and memory on the vacuum cards.
+
 ## Also fixed
 
 - **The time card follows a change made elsewhere.** An untouched card took
@@ -200,3 +284,7 @@ profile setting for the whole device.
   items instead of the folder's momentary state.
 - **Scrolling over Home Assistant's own cards in a sheet** no longer opens the
   row under the thumb.
+- **The weather editor showed hour labels as off** while the card drew them.
+- **The supply card's range ignores corrections made by hand.** Setting a
+  counter from 46 to 25 read as 21 used at once; only drops of one or two
+  count as use now.
