@@ -78,69 +78,43 @@ export const foldArrowStyles = css`
   }
 `;
 
-// The fold as a quiet row at the foot of the card: "Details" and a chevron.
-//
-// It replaced the chevron in the header on every card that folds. The top right
-// of a card is where it says the one thing it is read for — the time left, the
-// battery, "Done" — and a second control beside that figure made the corner
-// say two things. At the foot it reads as what it is: more of the same card.
+// The fold inside a status pill: the pill says what the card is doing and,
+// with a chevron at its end, is also the control that opens it — one element
+// in the corner instead of a figure and a separate arrow beside it.
 
-export interface DetailsToggleOptions {
-  folded: boolean;
-  /** Visible text, "Details" in the user's language. */
-  text: string;
-  /** Spoken label; the card's name with the text. */
-  label: string;
-  onToggle: (e: Event) => void;
+/** The chevron a pill carries when it folds the card; it turns when open. */
+export function renderPillChevron(folded: boolean): TemplateResult {
+  return html`<ha-icon class="pill-chevron ${folded ? "" : "open"}" icon="mdi:chevron-down"></ha-icon>`;
 }
 
-export function renderDetailsToggle(options: DetailsToggleOptions): TemplateResult {
-  return html`
-    <button
-      class="details-toggle ${options.folded ? "folded" : ""}"
-      aria-expanded=${String(!options.folded)}
-      aria-label=${options.label}
-      @click=${(e: Event) => {
-        e.stopPropagation();
-        options.onToggle(e);
-      }}
-    >
-      <span>${options.text}</span><ha-icon icon="mdi:chevron-down"></ha-icon>
-    </button>
-  `;
-}
-
-export const detailsToggleStyles = css`
-  .details-toggle {
+export const pillChevronStyles = css`
+  .pill-chevron {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    height: 28px;
-    margin: -4px 0 -6px;
-    border: none;
-    background: none;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--m3p-secondary-text, var(--secondary-text-color));
-    cursor: pointer;
-  }
-
-  .details-toggle:focus-visible {
-    outline: 2px solid currentColor;
-    outline-offset: 2px;
-    border-radius: 8px;
-  }
-
-  .details-toggle ha-icon {
-    --mdc-icon-size: 18px;
-    transform: rotate(180deg);
+    --mdc-icon-size: 16px;
+    width: 16px;
+    height: 16px;
+    margin-left: 2px;
+    margin-right: -2px;
     transition: transform 0.3s ${unsafeCSS(STANDARD_EASING)};
   }
 
-  .details-toggle.folded ha-icon {
-    transform: none;
+  .pill-chevron.open {
+    transform: rotate(180deg);
+  }
+
+  button.pill-toggle {
+    border: none;
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  button.pill-toggle:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+
+  .no-animations .pill-chevron {
+    transition: none;
   }
 `;
 

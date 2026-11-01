@@ -83,7 +83,7 @@ import { hassChangeMatters } from "./shared/should-update";
 import { createCards, updateCardsHass } from "./shared/card-helpers";
 import { TemplatedCard } from "./shared/templated-card";
 import { openEntityDetail } from "./shared/entity-detail";
-import { detailsToggleStyles, renderDetailsToggle } from "./shared/fold-arrow";
+import { pillChevronStyles, renderPillChevron } from "./shared/fold-arrow";
 
 const EASING = unsafeCSS(STANDARD_EASING);
 
@@ -620,6 +620,38 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
 
     walk(this._config?.cards, 0);
     return [...new Set(out)];
+  }
+
+  /** The names of what is on, shortest first in spirit: for the line under the room's name. */
+  private _activeNames(categories: { name: string; activeCount: number }[]): string[] {
+    if (!this.hass) return [];
+    if (!this._manual) return categories.filter((c) => c.activeCount > 0).map((c) => c.name);
+    return this._manualEntities()
+      .filter((id) => this._isActive(id.split(".", 1)[0], this.hass!.states[id]))
+      .map((id) => {
+        // The name the dashboard gave it on its own card — "Kaffeemaschine" —
+        // before the registry's "Steckdose 24 - Kaffeemaschine".
+        const given = this._givenNames().get(id);
+        if (given) return given;
+        const full = (this.hass!.states[id]?.attributes?.friendly_name as string | undefined) ?? id;
+        return this._withoutAreaName(full);
+      });
+  }
+
+  /** entity → the `name` a nested card gives it, read from the configured cards. */
+  private _givenNames(): Map<string, string> {
+    const names = new Map<string, string>();
+    const walk = (node: unknown): void => {
+      if (Array.isArray(node)) return node.forEach(walk);
+      if (!node || typeof node !== "object") return;
+      const o = node as Record<string, unknown>;
+      if (typeof o.entity === "string" && typeof o.name === "string" && o.name.trim() && !names.has(o.entity)) {
+        names.set(o.entity, o.name.trim());
+      }
+      for (const v of Object.values(o)) if (v && typeof v === "object") walk(v);
+    };
+    walk(this._config?.cards);
+    return names;
   }
 
   private _manualActiveCount(): number {
@@ -1403,8 +1435,15 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
         : activeDevices === 1
           ? this._t("room_device_active")
           : this._t("room_devices_active").replace("{n}", String(activeDevices));
+    // On a card that folds, the count also sits in the pill that folds it.
+    // `show_active_names` names what is on instead of counting it.
+    const pillFold = !!cfg.collapsible;
+    const names = cfg.show_active_names && activeDevices > 0 ? this._activeNames(categories).join(", ") : "";
+    const lineText = names || countText;
     const subtitle =
-      occupied && showPresence ? `${this._t("room_occupied")} · ${countText}` : countText;
+      occupied && showPresence ? `${this._t("room_occupied")} · ${lineText}` : lineText;
+    const pillText =
+      activeDevices === 0 ? this._t("room_pill_off") : this._t("room_pill_on").replace("{n}", String(activeDevices));
 
     const surface = tinted
       ? tintOn(this, presenceColor, undefined, ROOM_PRESENCE_TINT)
@@ -1475,6 +1514,19 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
               <div class="name" title=${name}>${name}</div>
               <div class="subtitle">${subtitle}</div>
             </div>
+            ${pillFold
+              ? html`<button
+                  class="fold-pill pill-toggle ${activeDevices > 0 ? "on" : ""}"
+                  style=${activeDevices > 0
+                    ? `background: ${fillColor(this, accent, 3)}; color: ${inkOn(fillColor(this, accent, 3), this)};`
+                    : nothing}
+                  aria-expanded=${String(!this._folded)}
+                  aria-label=${`${name}: ${pillText}`}
+                  @click=${this._toggleFold}
+                >
+                  ${pillText}${renderPillChevron(this._folded)}
+                </button>`
+              : nothing}
           </div>
           <div class="body">
             <div class="body-inner">
@@ -1498,14 +1550,6 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
                   : nothing}
             </div>
           </div>
-          ${cfg.collapsible
-            ? renderDetailsToggle({
-                folded: this._folded,
-                text: this._t("details_toggle"),
-                label: `${name} ${this._t("details_toggle")}`,
-                onToggle: this._toggleFold,
-              })
-            : nothing}
           ${this._sheet ? this._renderSheet(categories) : nothing}
         </div>
       </ha-card>
@@ -1514,7 +1558,7 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
 
   static styles = [
     glassCardStyles,
-    detailsToggleStyles,
+    pillChevronStyles,
     css`
       /* No gap between the header and the body: the space above the chips is
          padding *inside* the folding box instead, so it collapses with it. A
@@ -1776,6 +1820,23 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
          moves. Nothing here can be a percentage or a keyword: the card's height
          comes from its content, so there is no definite height for CSS alone to
          animate against. */
+      /* The count and the fold in one: filled while something is on, tonal
+         while everything is off — readable across the room before a word. */
+      .fold-pill {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        height: 36px;
+        padding: 0 12px 0 14px;
+        border-radius: 18px;
+        line-height: 1;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--m3p-secondary-text, var(--secondary-text-color));
+        background: color-mix(in srgb, var(--m3p-secondary-text, var(--secondary-text-color)) 14%, transparent);
+      }
+
       .body {
         overflow: hidden;
         min-height: 0;

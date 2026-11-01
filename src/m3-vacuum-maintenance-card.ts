@@ -42,7 +42,7 @@ import { confirmDialogStyles, renderConfirmDialog, type ConfirmRequest } from ".
 import { syncDialogOpenState } from "./shared/popup-card";
 import { STANDARD_EASING, shouldAnimate } from "./shared/animation";
 import { foldHides, readCollapsed, writeCollapsed, type CollapseTarget } from "./shared/collapse-state";
-import { detailsToggleStyles, easeFoldHeight, renderDetailsToggle } from "./shared/fold-arrow";
+import { easeFoldHeight, foldArrowStyles, renderFoldArrow } from "./shared/fold-arrow";
 import { resolveCommonColors, resolveThemeColor, tintOn } from "./shared/color-config";
 import { formatNumber } from "./shared/formatting";
 import { glassCardClass, glassCardStyles, renderMissingEntity } from "./shared/glass-card";
@@ -338,14 +338,6 @@ export class M3VacuumMaintenanceCard
           ${hidden("station") ? nothing : this._renderStation()}
           ${hidden("stats") ? nothing : this._renderStats()}
           ${hidden("settings") ? nothing : this._renderSettings()}
-          ${this._config.collapsible
-            ? renderDetailsToggle({
-                folded: this._folded,
-                text: this._t("details_toggle"),
-                label: `${this._config?.name ?? ""} ${this._t("details_toggle")}`.trim(),
-                onToggle: this._toggleFold,
-              })
-            : nothing}
         </div>
       </ha-card>
       <!-- Outside the card, not inside it: the question must not inherit the
@@ -380,6 +372,15 @@ export class M3VacuumMaintenanceCard
               <span>${due}</span>
             </span>
           `
+        : nothing}
+      ${cfg.collapsible
+        ? renderFoldArrow({
+            folded: this._folded,
+            accent: "var(--m3vm-accent)",
+            host: this,
+            label: name,
+            onToggle: this._toggleFold,
+          })
         : nothing}
     `;
 
@@ -712,7 +713,7 @@ export class M3VacuumMaintenanceCard
 
   static styles = [
     glassCardStyles,
-    detailsToggleStyles,
+    foldArrowStyles,
     cardHeaderStyles,
     confirmDialogStyles,
     css`

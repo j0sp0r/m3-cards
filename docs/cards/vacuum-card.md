@@ -127,7 +127,7 @@ false` leaves it out.
 
 ## Folding it away
 
-`collapsible: true` adds a "Details" row at the foot that folds the map, the scales,
+`collapsible: true` turns the battery pill into the fold — a chevron at its end — and folds the map, the scales,
 the buttons and the chips. What stays is the line you actually glance at — the
 state, the battery and Start/Pause — which is the split worth making on a
 dashboard where the vacuum is not the main event. Name `controls` in `collapse_blocks` — or untick

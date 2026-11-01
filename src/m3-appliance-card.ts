@@ -125,7 +125,7 @@ import { formatNumber } from "./shared/formatting";
 import { glassCardClass, glassCardStyles, renderMissingEntity } from "./shared/glass-card";
 import { cardHeaderStyles, renderCardHeader } from "./shared/card-header";
 import { foldHides, readCollapsed, writeCollapsed, type CollapseTarget } from "./shared/collapse-state";
-import { detailsToggleStyles, easeFoldHeight, renderDetailsToggle } from "./shared/fold-arrow";
+import { easeFoldHeight, foldArrowStyles, pillChevronStyles, renderFoldArrow, renderPillChevron } from "./shared/fold-arrow";
 import { hassChangeMatters } from "./shared/should-update";
 import { createCards, updateCardsHass } from "./shared/card-helpers";
 import { stopSwipe } from "./shared/swipe";
@@ -850,19 +850,44 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
         }
       : undefined;
     const doneSubtitle = phase === "done" && !unavailable ? this._doneSince(done) : undefined;
-    const right =
+    // Done and idle say so in a pill, and on a card that folds the pill is the
+    // fold: a chevron at its end, the whole pill the button. A running machine
+    // shows its time instead, with the suite's chevron beside it.
+    const pill = (cls: string, icon: string, text: string) =>
+      foldable
+        ? html`<button
+            class="done-pill pill-toggle ${cls}"
+            aria-expanded=${String(!folded)}
+            aria-label=${`${name}: ${text}`}
+            @click=${this._toggleFold}
+          >
+            <ha-icon icon=${icon}></ha-icon>${text}${renderPillChevron(folded)}
+          </button>`
+        : html`<span class="done-pill ${cls}"><ha-icon icon=${icon}></ha-icon>${text}</span>`;
+    const trailing =
       phase === "running"
-        ? remaining === undefined
+        ? remaining === undefined && !foldable
           ? undefined
-          : html`<div class="reading hero">
-              <div class="reading-value">${this._durationParts(remaining)}</div>
-              <div class="reading-caption">${this._endCaption()}</div>
+          : html`<div class="header-trailing">
+              ${remaining === undefined
+                ? nothing
+                : html`<div class="reading hero">
+                    <div class="reading-value">${this._durationParts(remaining)}</div>
+                    <div class="reading-caption">${this._endCaption()}</div>
+                  </div>`}
+              ${foldable
+                ? renderFoldArrow({
+                    folded,
+                    accent: "var(--m3a-accent)",
+                    host: this,
+                    label: name,
+                    onToggle: this._toggleFold,
+                  })
+                : nothing}
             </div>`
         : phase === "done"
-          ? html`<span class="done-pill"><ha-icon icon="mdi:check"></ha-icon>${this._t("appliance_done")}</span>`
-          : html`<span class="done-pill ${unavailable ? "neutral" : ""}"
-              ><ha-icon icon=${unavailable ? "mdi:lan-disconnect" : "mdi:power-standby"}></ha-icon>${subtitle}</span
-            >`;
+          ? pill("", "mdi:check", this._t("appliance_done"))
+          : pill(unavailable ? "neutral" : "", unavailable ? "mdi:lan-disconnect" : "mdi:power-standby", subtitle);
 
     return html`
       <ha-card style=${`${cssVars} border-radius: ${radius};`}>
@@ -877,20 +902,12 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
             name,
             subtitle: doneSubtitle ?? (phase === "ready" ? (this._readySince() ?? "") : subtitle),
             onClick: onHeader,
-            right,
+            right: trailing,
           })}
           ${phase === "done" ? this._renderFinish() : nothing}
           ${blocks
             .filter(({ block }) => !foldHides(block, folded && foldable, cfg.collapse_blocks))
             .map(({ body }) => body)}
-          ${foldable
-            ? renderDetailsToggle({
-                folded: folded,
-                text: this._t("details_toggle"),
-                label: `${this._config?.name ?? ""} ${this._t("details_toggle")}`.trim(),
-                onToggle: this._toggleFold,
-              })
-            : nothing}
         </div>
       </ha-card>
       ${this._renderPopup()}
@@ -1501,7 +1518,8 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     ${infoChipStyles}
     ${cardHeaderStyles}
     ${popupCardStyles}
-    ${detailsToggleStyles}
+    ${foldArrowStyles}
+    ${pillChevronStyles}
 
     ha-card {
       color: var(--m3p-text, var(--primary-text-color));

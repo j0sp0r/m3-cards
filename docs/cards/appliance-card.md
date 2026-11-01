@@ -530,9 +530,8 @@ finish_action:
 …with the button as one more trigger of the status sensor, turning `finished`
 into `idle`.
 
-On a collapsible card the fold is a quiet "Details" row at the foot, so the
-top right holds only the time or a pill — the same row every card
-in the suite that folds has.
+On a collapsible card the pill is the fold: a chevron at its end, the whole
+pill the button. While a run is on, the suite's chevron sits beside the time.
 
 ### Notifications
 

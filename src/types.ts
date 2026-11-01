@@ -2227,6 +2227,11 @@ export interface M3RoomCardConfig {
   door_entities?: string[];
   /** Fold the card down to its header, like the heading card's variant. */
   collapsible?: boolean;
+  /**
+   * Name what is on under the room's name — "Kaffee, Radio, Licht" — instead
+   * of counting it. Names come from the nested cards when they give one.
+   */
+  show_active_names?: boolean;
   default_collapsed?: boolean;
   /**
    * Scrolls the card into view after it is unfolded.

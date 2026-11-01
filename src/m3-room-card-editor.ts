@@ -368,7 +368,10 @@ export class M3RoomCardEditor extends LitElement implements LovelaceCardEditor {
   }
 
   private _foldSchema(): SchemaEntry[] {
-    const schema: SchemaEntry[] = [{ name: "collapsible", selector: { boolean: {} } }];
+    const schema: SchemaEntry[] = [
+      { name: "collapsible", selector: { boolean: {} } },
+      { name: "show_active_names", selector: { boolean: {} } },
+    ];
     if (this._config?.collapsible) {
       schema.push(
         { name: "default_collapsed", selector: { boolean: {} } },
@@ -555,6 +558,7 @@ export class M3RoomCardEditor extends LitElement implements LovelaceCardEditor {
       presence_entity: "editor_room_presence_entity",
       presence_style: "editor_room_presence_style",
       collapsible: "editor_room_collapsible",
+      show_active_names: "editor_room_show_active_names",
       default_collapsed: "editor_room_default_collapsed",
       scroll_on_expand: "editor_room_scroll_on_expand",
       scroll_duration: "editor_room_scroll_duration",
@@ -929,6 +933,7 @@ export class M3RoomCardEditor extends LitElement implements LovelaceCardEditor {
               .hass=${this.hass}
               .data=${{
                 collapsible: cfg.collapsible ?? false,
+                show_active_names: cfg.show_active_names ?? false,
                 default_collapsed: cfg.default_collapsed ?? false,
                 scroll_on_expand: cfg.scroll_on_expand ?? false,
                 scroll_duration: cfg.scroll_duration ?? ROOM_SCROLL_MS,

@@ -59,7 +59,7 @@ import {
   type LevelStep,
 } from "./shared/level-slider";
 import { foldHides, readCollapsed, writeCollapsed, type CollapseTarget } from "./shared/collapse-state";
-import { detailsToggleStyles, easeFoldHeight, renderDetailsToggle } from "./shared/fold-arrow";
+import { easeFoldHeight, foldArrowStyles, pillChevronStyles, renderFoldArrow, renderPillChevron } from "./shared/fold-arrow";
 import {
   ChipRowController,
   chipButtonsStyles,
@@ -548,14 +548,6 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
                things read at a glance rather than between two sliders that are
                nudged far more often. -->
           ${hidden("cleaning_mode") ? nothing : this._renderCleaningMode(unavailable)}
-          ${this._config.collapsible
-            ? renderDetailsToggle({
-                folded: this._folded,
-                text: this._t("details_toggle"),
-                label: `${this._config?.name ?? ""} ${this._t("details_toggle")}`.trim(),
-                onToggle: this._toggleFold,
-              })
-            : nothing}
         </div>
       </ha-card>
       ${this._renderPopup()}
@@ -581,16 +573,38 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
 
     const trailing = html`
       ${level !== undefined
-        ? html`
-            <div
-              class="battery"
-              style=${`color: ${this._batteryColor(level)};`}
-              aria-label=${`${this._t("vacuum_battery")} ${Math.round(level)} %`}
-            >
-              <ha-icon icon=${this._batteryIcon(level, charging)}></ha-icon>
-              <span>${Math.round(level)} %</span>
-            </div>
-          `
+        ? cfg.collapsible
+          ? html`
+              <button
+                class="battery pill-toggle"
+                style=${`color: ${this._batteryColor(level)};`}
+                aria-expanded=${String(!this._folded)}
+                aria-label=${`${name}: ${this._t("vacuum_battery")} ${Math.round(level)} %`}
+                @click=${this._toggleFold}
+              >
+                <ha-icon icon=${this._batteryIcon(level, charging)}></ha-icon>
+                <span>${Math.round(level)} %</span>${renderPillChevron(this._folded)}
+              </button>
+            `
+          : html`
+              <div
+                class="battery"
+                style=${`color: ${this._batteryColor(level)};`}
+                aria-label=${`${this._t("vacuum_battery")} ${Math.round(level)} %`}
+              >
+                <ha-icon icon=${this._batteryIcon(level, charging)}></ha-icon>
+                <span>${Math.round(level)} %</span>
+              </div>
+            `
+        : nothing}
+      ${cfg.collapsible && level === undefined
+        ? renderFoldArrow({
+            folded: this._folded,
+            accent: "var(--m3v-accent)",
+            host: this,
+            label: name,
+            onToggle: this._toggleFold,
+          })
         : nothing}
     `;
 
@@ -1576,7 +1590,8 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
   static styles = [
     glassCardStyles,
     levelSliderStyles,
-    detailsToggleStyles,
+    foldArrowStyles,
+    pillChevronStyles,
     cardHeaderStyles,
     chipButtonsStyles,
     popupCardStyles,

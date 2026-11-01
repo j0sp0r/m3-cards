@@ -450,11 +450,14 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   grows or shrinks into its new height over 320 ms, the edge uncovering what
   appears, as the room card already did. Reduced motion and `animation: off`
   keep the jump.
-- **Every card that folds does it from a "Details" row at its foot.** The
-  appliance, printer, vacuum, vacuum maintenance and room cards had the fold
-  chevron in the top right, beside the one figure each card is read for — the
-  time left, the battery, "Done". It is now one shared control, "Details" with
-  a chevron, under the card; the room card's header still folds it on a tap.
+- **A card's status pill is its fold.** Where a card shows its state in a
+  pill — the appliance's "Ready" and "Done", the vacuum's battery — the pill
+  carries a chevron and folds the card on a tap, so the corner holds one
+  element instead of a figure and an arrow beside it. The room card gets a
+  pill of its own: "4 on", filled while anything is on, "Off" quiet when not;
+  `show_active_names` names what is on under the room's name instead of
+  counting it, with the names the nested cards give them. A card without a pill — a running machine showing its time,
+  the printer — keeps the chevron beside its figure.
 - **The appliance card draws running, done and idle each its own way.**
   Running: the time left large in the top right with "done at 15:18" under it,
   and the percentage on the bar's own line instead of a "Progress … 79 %" row

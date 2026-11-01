@@ -77,7 +77,7 @@ import { OptimisticState } from "./shared/optimistic-state";
 import { confirmDialogStyles, renderConfirmDialog, type ConfirmRequest } from "./shared/confirm-dialog";
 import { syncDialogOpenState } from "./shared/popup-card";
 import { foldHides, readCollapsed, writeCollapsed, type CollapseTarget } from "./shared/collapse-state";
-import { detailsToggleStyles, easeFoldHeight, renderDetailsToggle } from "./shared/fold-arrow";
+import { easeFoldHeight, foldArrowStyles, renderFoldArrow } from "./shared/fold-arrow";
 import { hassChangeMatters } from "./shared/should-update";
 import { infoChipStyles, renderInfoChips } from "./shared/info-chips";
 import { TemplatedCard } from "./shared/templated-card";
@@ -1196,7 +1196,7 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
           }`}
         >
           ${body("camera")}
-          ${this._renderHeader(state)}
+          ${this._renderHeader(state, foldable)}
           ${body("progress")}
           ${body("temps")}
           ${this._renderControls(state, pending)}
@@ -1204,14 +1204,6 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
           ${body("ams")}
           ${body("details")}
           ${body("chips")}
-          ${foldable
-            ? renderDetailsToggle({
-                folded: folded,
-                text: this._t("details_toggle"),
-                label: `${this._config?.name ?? ""} ${this._t("details_toggle")}`.trim(),
-                onToggle: this._toggleFold,
-              })
-            : nothing}
         </div>
       </ha-card>
       <!-- Outside the card, not inside it: a modal dialog is painted in the
@@ -1227,7 +1219,7 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
     `;
   }
 
-  private _renderHeader(state: PrinterState) {
+  private _renderHeader(state: PrinterState, foldable: boolean) {
     const cfg = this._config!;
     const running = isRunning(state);
 
@@ -1264,7 +1256,21 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
             </div>
           `
         : nothing;
-    const trailing = readout !== nothing ? html`<div class="header-trailing">${readout}</div>` : undefined;
+    // The suite's chevron, at the end of the header after the figure, as the
+    // vacuum card has it.
+    const arrow = foldable
+      ? renderFoldArrow({
+          folded: this._folded,
+          accent: "var(--m3pr-accent)",
+          host: this,
+          label: name,
+          onToggle: this._toggleFold,
+        })
+      : nothing;
+    const trailing =
+      readout !== nothing || arrow !== nothing
+        ? html`<div class="header-trailing">${readout}${arrow}</div>`
+        : undefined;
 
     return renderCardHeader({
       icon: cfg.icon ?? printerStateIcon(state) ?? DEFAULT_PRINTER_ICON,
@@ -1423,7 +1429,7 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
     glassCardStyles,
     cardHeaderStyles,
     confirmDialogStyles,
-    detailsToggleStyles,
+    foldArrowStyles,
     infoChipStyles,
     css`
       ha-card {

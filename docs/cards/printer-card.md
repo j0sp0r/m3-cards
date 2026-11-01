@@ -39,7 +39,7 @@ red. The way back is the socket switch in the details block, which is why that
 block stays live when everything else does not, and why the fold never takes
 it while the printer is offline, whatever `collapse_blocks` says. A socket
 given as a tile in `chips` folds like any tile: a folded card stays folded
-when the printer goes off, and the "Details" row opens it.
+when the printer goes off, and the chevron opens it.
 
 ## `state_map`, and why it exists
 
@@ -151,7 +151,7 @@ number their slots 1–4, and merging them would quietly hide half the filament.
 | `show_progress`, `show_temps`, `show_speed`, `show_ams`, `show_details` | boolean | `true` | The blocks. Each also disappears on its own when its entities are missing. |
 | `wave_style` | string | `wavy` | `wavy` or `flat`: the progress as a wave or a plain line, as on the appliance card. |
 | `notify_enabled`, `notify_service`, `notify_title`, `notify_message`, `notify_on_start`, `notify_start_message` | — | — | Set in the editor's Notifications panel — see below. |
-| `collapsible` | boolean | `false` | Folds the card to its header and controls, with the "Details" row every folding card has. |
+| `collapsible` | boolean | `false` | Folds the card to its header and controls, with the chevron the vacuum cards use. |
 | `collapse_blocks` | list | all | Which blocks the fold takes: `camera`, `progress`, `temps`, `speed`, `ams`, `details`, `chips`. |
 | `default_collapsed`, `collapse_state_entity`, `collapse_memory` | — | — | Same keys as the vacuum, room and heading cards: start folded, keep the state in an `input_boolean`, or remember it per device or per session. |
 | `filament_warn` | number | `40` | Percent below which a tray's bar turns amber. |
@@ -220,7 +220,7 @@ on a phone had no label to say what either was for.
 
 ## Folding
 
-`collapsible: true` puts the suite's "Details" row at the foot of the card, the
+`collapsible: true` puts the suite's fold chevron at the end of the header, the
 same one the vacuum cards use, and a tap folds the card down to its header and
 controls. The header still carries the percentage in its pill while a job runs,
 so a folded card still answers "how far along is it".
@@ -237,7 +237,7 @@ This replaces the details block's own drawer. It used to open and close with a
 chevron of its own, a second fold inside a card the suite folds from its header
 — two gestures for the same thing. It is a block like the others now.
 
-The row only appears when folding would take something. An idle printer
+The chevron only appears when folding would take something. An idle printer
 with no camera and every remaining block left out of `collapse_blocks` has
 nothing to fold, and a control that does nothing reads as broken.
 
