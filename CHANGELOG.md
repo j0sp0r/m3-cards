@@ -384,8 +384,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   reading large and the name small — a second design beside the button cards
   a room is usually built from. A tile now takes the button card's height,
   rim and corner, its round icon well at the same inset, the name bold with
-  the reading under it; a switch's well is grey while off and a filled
-  rounded square while on.
+  the reading under it, on the same glass. A switch's well is grey while off;
+  on, the well becomes a filled rounded square and the tile squares its
+  corners, as a button card with `shape_by_state` does. The glyph is 24px,
+  which is what a button card actually shows.
 - **A new card starts in the theme's primary colour; an existing one keeps
   its colour.** Eighteen cards bring an accent of their own — a house blue,
   a sun orange, purple, teal or green — which sits next to the theme's own as

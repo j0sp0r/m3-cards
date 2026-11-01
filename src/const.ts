@@ -2221,7 +2221,15 @@ export const APPLIANCE_TILE_MIN_WIDTH = 140;
 export const APPLIANCE_TILE_HEIGHT = BUTTON_CQ_BASE_PX;
 export const APPLIANCE_TILE_RADIUS = DEFAULT_BUTTON_RADIUS;
 export const APPLIANCE_TILE_ICON = BUTTON_ICON_BOX_PX;
-export const APPLIANCE_TILE_GLYPH = BUTTON_ICON_GLYPH_PX;
+/**
+ * 24px, not BUTTON_ICON_GLYPH_PX: the button card renders <ha-state-icon>,
+ * which its `.icon-container ha-icon` size rule does not reach, so what a
+ * button actually shows is the icon's own 24px — and that is what a tile has
+ * to match.
+ */
+export const APPLIANCE_TILE_GLYPH = 24;
+/** A switched-on tile's corner, as a button card with shape_by_state. */
+export const APPLIANCE_TILE_RADIUS_ON = BUTTON_SHAPE_ON_RADIUS;
 export const APPLIANCE_TILE_INSET = BUTTON_ICON_OFFSET_PX;
 /** A switched-on well, as the button card's: a rounded square. */
 export const APPLIANCE_TILE_ICON_RADIUS_ON = BUTTON_SHAPE_ON_ICON_RADIUS;

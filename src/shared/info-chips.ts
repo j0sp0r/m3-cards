@@ -11,6 +11,7 @@ import {
   APPLIANCE_TILE_ICON,
   APPLIANCE_TILE_ICON_RADIUS_ON,
   APPLIANCE_TILE_INSET,
+  APPLIANCE_TILE_RADIUS_ON,
   APPLIANCE_TILE_MIN_WIDTH,
   APPLIANCE_TILE_RADIUS,
 } from "../const";
@@ -22,6 +23,7 @@ import { buildCssVars, foregroundColor, foregroundOn, inkOn, resolveThemeColor, 
 import { isMissingState, isOnState } from "./entity-actions";
 import { formatNumber } from "./formatting";
 import { findStateRule, numericState } from "./state-rules";
+import { glassBackground } from "./glass-card";
 
 /**
  * Extra readings a card shows as pills or tiles: any entity, its name and its
@@ -238,9 +240,16 @@ export const infoChipStyles = css`
        are the same height side by side. */
     line-height: 1.25;
     min-width: 0;
-    background: transparent;
+    background: ${glassBackground};
     color: var(--m3p-text, var(--primary-text-color));
     font-weight: 400;
+    transition: border-radius 0.3s ${EASING};
+  }
+
+  /* On, the whole tile squares up, not only its well — a button card with
+     shape_by_state does both, and the room's buttons are set up that way. */
+  .chip.tile.on {
+    border-radius: ${APPLIANCE_TILE_RADIUS_ON}px;
   }
 
   /* A tappable tile is still a tile: the pill's filled "control" look is
@@ -248,10 +257,16 @@ export const infoChipStyles = css`
      button card does. */
   .chip.tile.control {
     border: 1px solid rgba(100, 100, 100, 0.25);
-    background: transparent;
+    background: ${glassBackground};
     color: var(--m3p-text, var(--primary-text-color));
     font-weight: 400;
-    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition:
+      transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+      border-radius 0.3s ${EASING};
+  }
+
+  .chip.tile.control.on {
+    border-radius: ${APPLIANCE_TILE_RADIUS_ON}px;
   }
 
   .chip.tile.control:active {
@@ -273,9 +288,15 @@ export const infoChipStyles = css`
       border-radius 0.3s ${EASING};
   }
 
+  /* Off reads in the theme's outline colour, as the room's buttons are set
+     up (inactive_color: outline), on an 8% wash of it. */
   .tile.off .tile-icon {
-    background: color-mix(in srgb, var(--m3p-secondary-text, var(--secondary-text-color)) 8%, transparent);
-    color: var(--m3p-secondary-text, var(--secondary-text-color));
+    background: color-mix(
+      in srgb,
+      var(--md-sys-color-outline, var(--m3p-secondary-text, var(--secondary-text-color))) 8%,
+      transparent
+    );
+    color: var(--md-sys-color-outline, var(--m3p-secondary-text, var(--secondary-text-color)));
   }
 
   .tile.on .tile-icon {
@@ -284,7 +305,10 @@ export const infoChipStyles = css`
     color: var(--m3a-chip-ink);
   }
 
-  .tile-icon ha-icon {
+  /* Three classes deep on purpose: the pill's ".chip ha-icon" further down
+     sets 16px, and at equal weight it won by coming later — the tiles drew
+     a pill's icon in a button's well. */
+  .chip.tile .tile-icon ha-icon {
     --mdc-icon-size: ${APPLIANCE_TILE_GLYPH}px;
     width: ${APPLIANCE_TILE_GLYPH}px;
     height: ${APPLIANCE_TILE_GLYPH}px;
