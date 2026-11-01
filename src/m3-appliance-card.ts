@@ -437,7 +437,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     // machine hidden behind the last reading has to be shown as gone once the
     // grace runs out, whether or not anything else changes.
     const actual = this._config?.entity ? this.hass?.states[this._config.entity]?.state : undefined;
-    if (this._machinePhase === "done" || (actual !== undefined && isMissingState(actual))) {
+    if (this._machinePhase !== "running" || (actual !== undefined && isMissingState(actual))) {
       this._now = now;
       return;
     }
@@ -815,7 +815,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
             </div>`
         : phase === "done"
           ? html`<span class="done-pill"><ha-icon icon="mdi:check"></ha-icon>${this._t("appliance_done")}</span>`
-          : undefined;
+          : html`<span class="done-pill neutral"><ha-icon icon=${unavailable ? "mdi:lan-disconnect" : "mdi:power-standby"}></ha-icon>${subtitle}</span>`;
 
     return html`
       <ha-card style=${`${cssVars} border-radius: ${radius};`}>
@@ -828,7 +828,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
           ${renderCardHeader({
             icon: rule?.icon ?? cfg.icon ?? DEFAULT_APPLIANCE_ICON,
             name,
-            subtitle: doneSubtitle ?? subtitle,
+            subtitle: doneSubtitle ?? (phase === "ready" ? (this._readySince() ?? "") : subtitle),
             onClick: onHeader,
             right,
           })}
@@ -960,6 +960,17 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     return "m" in parts
       ? this._t("appliance_done_since_m").replace("{m}", String(parts.m))
       : this._t("appliance_done_since_h").replace("{h}", String(parts.h));
+  }
+
+  /** "Since 2 h": how long an idle machine has been idle, under its name. */
+  private _readySince(): string | undefined {
+    const raw = this.hass?.states[this._config?.entity ?? ""];
+    const changed = raw?.last_changed ? Date.parse(raw.last_changed) : NaN;
+    if (!Number.isFinite(changed)) return undefined;
+    const parts = sinceParts(changed, this._now);
+    return "m" in parts
+      ? this._t("appliance_since_m").replace("{m}", String(parts.m))
+      : this._t("appliance_since_h").replace("{h}", String(parts.h));
   }
 
   private get _doneKey(): string {
@@ -1542,6 +1553,12 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       font-weight: 700;
       color: var(--m3p-icon-color);
       background: var(--m3p-icon-bg);
+    }
+
+    /* Idle: the same pill, in the quiet colour — nothing to do here. */
+    .done-pill.neutral {
+      color: var(--m3p-secondary-text);
+      background: color-mix(in srgb, var(--m3p-secondary-text) 12%, transparent);
     }
 
     .done-pill ha-icon {

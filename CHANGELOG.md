@@ -447,8 +447,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   and the percentage on the bar's own line instead of a "Progress … 79 %" row
   above it. Done: a "✓ Done" pill, "Done 12 min ago" as the status, no bar,
   and with `finish_action` a full-width "Emptied" button in the supply card's
-  style. Idle: the name with the state under it, as running and done have it,
-  and nothing on the right. The fold chevron moves to a
+  style. Idle: the state in a quiet grey pill, the vacuum battery pill's
+  shape, with "For 2 h" under the name. The fold chevron moves to a
   "Details" row at the foot, except on the one-line idle card. The height
   eases between them. New: `finish_action`, `finish_label`, `show_end_time`;
   a `finished_at` attribute on the status entity is read for "Done … ago".
