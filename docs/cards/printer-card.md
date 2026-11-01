@@ -35,9 +35,10 @@ configurable. See `state_map` below.
 
 Offline is grey rather than red on purpose: a printer switched off at the wall
 is a normal state, not a fault, and colouring it as one trains people to ignore
-red. The way back is the socket switch in the details block, which is why that
-block stays live when everything else does not — and why the fold never takes
-it while the printer is offline, whatever `collapse_blocks` says.
+red. The way back is the socket switch in the details block — or a socket
+given as a tile in `chips` — which is why those blocks stay live when
+everything else does not, and why the fold never takes them while the printer
+is offline, whatever `collapse_blocks` says.
 
 ## `state_map`, and why it exists
 
@@ -339,4 +340,5 @@ otherwise — rather than the printer's state colour, so the readings do not tur
 grey with the machine. A chip is read-only until it has a `tap_action`. A
 socket as a tile does not ask before switching off, as an accessory does; give
 it `more-info` rather than `toggle` when that matters. `chips` is also a fold
-block, for `collapse_blocks`.
+block, for `collapse_blocks`; like the details, it stays open while the
+printer is offline, so a socket given as a tile can still bring it back.

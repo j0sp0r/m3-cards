@@ -1130,13 +1130,15 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
     const radius = `${this._config.radius ?? DEFAULT_PRINTER_RADIUS}px`;
     // Header and controls never fold. Of the rest, the fold takes what
     // `collapse_blocks` names — or everything. While the printer is offline the
-    // details stay whatever the config says, because the socket lives there
-    // and it is the only control that can bring the machine back.
+    // details and the chips stay whatever the config says, because the socket
+    // lives there and it is the only control that can bring the machine back.
     // Cleared before the blocks draw, so a folded or finished progress block
     // leaves no geometry behind for the frame loop to keep animating.
     this._waveGeom = undefined;
     const folded = !!this._config.collapsible && this._folded;
-    const pinned: PrinterBlock[] = state === "offline" ? ["details"] : [];
+    // The chips are held open too: a socket given as a tile, with the details
+    // block switched off, is the same way back as the accessory row was.
+    const pinned: PrinterBlock[] = state === "offline" ? ["details", "chips"] : [];
     const hidden = (block: PrinterBlock): boolean =>
       foldHides(block, folded, this._config!.collapse_blocks, pinned);
 
