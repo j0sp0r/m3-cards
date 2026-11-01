@@ -49,6 +49,9 @@ export interface InfoChipContext {
 /** Domains whose chip reports a pressed state when it is on. */
 const TOGGLE_DOMAINS = new Set(["switch", "input_boolean", "light", "fan", "siren", "lock"]);
 
+/** Domains that are on or off without being switched from the tile. */
+const ON_OFF_DOMAINS = new Set(["binary_sensor"]);
+
 /** Home Assistant's own wording for a state, when it has any. */
 function translated(hass: HomeAssistant | undefined, st: HassEntity, value: string): string | undefined {
   const format = hass?.formatEntityState;
@@ -140,9 +143,13 @@ function renderInfoChip(cfg: InfoChipConfig, ctx: InfoChipContext): TemplateResu
     "m3a-well-ink": foregroundOn(color, tintOn(host, color, undefined, 20), 3, host),
   });
   const tile = ctx.style === "tile";
-  // A switch reads as on or off whether or not the tile can switch it: the
-  // well is grey while off and a filled square while on, as on a button card.
-  const switchy = TOGGLE_DOMAINS.has(cfg.entity.split(".")[0]) || cfg.tap_action?.action === "toggle";
+  // Anything with an on and an off reads that way, whether or not the tile can
+  // switch it: the well is grey while off, and on, the tile and its well
+  // square up and fill, as the room's button cards do. That includes binary
+  // sensors — a door, a child lock, a leak — which have the two states and
+  // were drawn as plain readings, round and tinted, whatever they said.
+  const domain = cfg.entity.split(".")[0];
+  const switchy = TOGGLE_DOMAINS.has(domain) || ON_OFF_DOMAINS.has(domain) || cfg.tap_action?.action === "toggle";
   const power = switchy ? (isOnState(raw) ? "on" : "off") : "";
   const body = tile
     ? html`

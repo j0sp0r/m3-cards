@@ -426,7 +426,8 @@ as a tile instead, in a grid of two columns on a phone and more on a wide
 card. A tile is drawn as a button card is — same height, rim, corner and
 round icon well, the name bold with the reading under it — so it sits beside
 a room's buttons as one design. A switch's well is grey while off and a filled
-rounded square while on.
+rounded square while on — binary sensors too, so a door or a leak sensor
+reads as open or wet at a glance.
 
 ```yaml
 chip_style: tile   # pill (default) | tile

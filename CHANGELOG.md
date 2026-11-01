@@ -485,6 +485,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   on, the well becomes a filled rounded square and the tile squares its
   corners, as a button card with `shape_by_state` does. The glyph is 24px,
   which is what a button card actually shows.
+- **Binary sensors on chip tiles show on and off.** A door, a child lock, a
+  leak sensor were drawn as plain readings, round and tinted whatever they
+  said. They now take the switch's shapes: a grey round well while off, and
+  on, a squared tile with a filled well — as the room card's buttons show.
 - **A new card starts in the theme's primary colour; an existing one keeps
   its colour.** Eighteen cards bring an accent of their own — a house blue,
   a sun orange, purple, teal or green — which sits next to the theme's own as
