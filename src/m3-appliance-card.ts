@@ -60,6 +60,8 @@ import {
   APPLIANCE_SLIDER_TRACK,
   APPLIANCE_VALUE_SIZE,
   APPLIANCE_HERO_SIZE,
+  APPLIANCE_PILL_HEIGHT,
+  APPLIANCE_PILL_RADIUS,
   APPLIANCE_FINISH_HEIGHT,
   APPLIANCE_FINISH_RADIUS,
   APPLIANCE_FINISH_RADIUS_ACTIVE,
@@ -121,7 +123,7 @@ import { formatNumber } from "./shared/formatting";
 import { glassCardClass, glassCardStyles, renderMissingEntity } from "./shared/glass-card";
 import { cardHeaderStyles, renderCardHeader } from "./shared/card-header";
 import { foldHides, readCollapsed, writeCollapsed, type CollapseTarget } from "./shared/collapse-state";
-import { foldArrowStyles, renderFoldArrow } from "./shared/fold-arrow";
+import { detailsToggleStyles, renderDetailsToggle } from "./shared/fold-arrow";
 import { hassChangeMatters } from "./shared/should-update";
 import { stopSwipe } from "./shared/swipe";
 import { findStateRule, numericState } from "./shared/state-rules";
@@ -763,18 +765,6 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
         }
       : undefined;
     const doneSubtitle = phase === "done" && !unavailable ? this._doneSince(done) : undefined;
-    // The chevron sits in the header only on the one-line ready card; while a
-    // run is on or done, the top right belongs to the time or the "Done" pill,
-    // and the fold moves to a quiet row at the foot.
-    const arrow = foldable
-      ? renderFoldArrow({
-          folded,
-          accent: "var(--m3a-accent)",
-          host: this,
-          label: name,
-          onToggle: this._toggleFold,
-        })
-      : nothing;
     const right =
       phase === "running"
         ? remaining === undefined
@@ -785,10 +775,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
             </div>`
         : phase === "done"
           ? html`<span class="done-pill"><ha-icon icon="mdi:check"></ha-icon>${this._t("appliance_done")}</span>`
-          : html`<div class="header-trailing">
-              <span class="ready-state">${subtitle}</span>
-              ${arrow}
-            </div>`;
+          : html`<span class="ready-state">${subtitle}</span>`;
 
     return html`
       <ha-card style=${`${cssVars} border-radius: ${radius};`}>
@@ -809,15 +796,13 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
           ${blocks
             .filter(({ block }) => !foldHides(block, folded && foldable, cfg.collapse_blocks))
             .map(({ body }) => body)}
-          ${foldable && phase !== "ready"
-            ? html`<button
-                class="details-toggle ${folded ? "folded" : ""}"
-                aria-expanded=${String(!folded)}
-                aria-label=${`${name}: ${this._t("appliance_details")}`}
-                @click=${this._toggleFold}
-              >
-                <span>${this._t("appliance_details")}</span><ha-icon icon="mdi:chevron-down"></ha-icon>
-              </button>`
+          ${foldable
+            ? renderDetailsToggle({
+                folded: folded,
+                text: this._t("details_toggle"),
+                label: `${this._config?.name ?? ""} ${this._t("details_toggle")}`.trim(),
+                onToggle: this._toggleFold,
+              })
             : nothing}
         </div>
       </ha-card>
@@ -1380,7 +1365,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     ${infoChipStyles}
     ${cardHeaderStyles}
     ${popupCardStyles}
-    ${foldArrowStyles}
+    ${detailsToggleStyles}
 
     ha-card {
       color: var(--m3p-text, var(--primary-text-color));
@@ -1464,25 +1449,30 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       font-size: 15px;
     }
 
-    /* Done: a tinted pill in place of the time. */
+    /* Done: a tinted pill in place of the time — the size and weight of the
+       battery pill on the vacuum card beside it, so the two corners match.
+       line-height 1 and a flex icon keep the check on the text's centre line:
+       an inline ha-icon sits on the baseline and dropped below the word. */
     .done-pill {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 4px;
       flex-shrink: 0;
-      height: 36px;
-      padding: 0 14px 0 12px;
-      border-radius: 18px;
-      font-size: 15px;
-      font-weight: 600;
+      height: ${APPLIANCE_PILL_HEIGHT}px;
+      padding: 0 10px 0 8px;
+      border-radius: ${APPLIANCE_PILL_RADIUS}px;
+      line-height: 1;
+      font-size: 12px;
+      font-weight: 700;
       color: var(--m3p-icon-color);
       background: var(--m3p-icon-bg);
     }
 
     .done-pill ha-icon {
-      --mdc-icon-size: 18px;
-      width: 18px;
-      height: 18px;
+      display: flex;
+      --mdc-icon-size: 15px;
+      width: 15px;
+      height: 15px;
     }
 
     /* "Emptied": the supply card's refill button, full width. */
@@ -1506,8 +1496,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       border-radius: ${APPLIANCE_FINISH_RADIUS_ACTIVE}px;
     }
 
-    .finish:focus-visible,
-    .details-toggle:focus-visible {
+    .finish:focus-visible {
       outline: 2px solid var(--m3a-accent);
       outline-offset: 2px;
     }
@@ -1529,33 +1518,6 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       font-size: 14px;
       color: var(--m3p-secondary-text);
       white-space: nowrap;
-    }
-
-    /* The fold, at the foot while the top right shows the time or "Done". */
-    .details-toggle {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      height: 28px;
-      margin: -4px 0 -6px;
-      border: none;
-      background: none;
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--m3p-secondary-text);
-      cursor: pointer;
-    }
-
-    .details-toggle ha-icon {
-      --mdc-icon-size: 18px;
-      transform: rotate(180deg);
-      transition: transform 0.3s ${EASING};
-    }
-
-    .details-toggle.folded ha-icon {
-      transform: none;
     }
 
     /* ---- blocks ---- */

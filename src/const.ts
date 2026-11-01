@@ -2289,6 +2289,9 @@ export const VACUUM_ICON_TINT = 16;
 /** Battery chip in the header's trailing slot. */
 export const VACUUM_BATTERY_HEIGHT = 30;
 export const VACUUM_BATTERY_RADIUS = 15;
+/** The "Done" pill: the vacuum card's battery pill, so their corners match. */
+export const APPLIANCE_PILL_HEIGHT = VACUUM_BATTERY_HEIGHT;
+export const APPLIANCE_PILL_RADIUS = VACUUM_BATTERY_RADIUS;
 /** Above this the chip is green, above the second it is amber, below it red.
  *  Not a vendor threshold — the point where a Roborock can still finish a
  *  room and the point where it will dock mid-run. */

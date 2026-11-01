@@ -146,10 +146,9 @@ them, and both quietly do nothing without one. Point them at a tile's
 `categories[].tap_action` instead, which does have an entity behind it.
 
 A tap cannot both fold the card and open a view, so `tap_action` takes the
-header over from the fold, and the chevron goes with it — it promises a fold
-the header no longer performs. The rest of `collapsible` is untouched: the
-stored state is still read and applied, so `collapse_state_entity` and an
-automation can still fold the card while its header navigates.
+header over from the fold. The card still folds: the "Details" row at its foot
+does it, as on every card that folds, and the stored state is still read and
+applied, so `collapse_state_entity` and an automation can fold it too.
 
 Note this is card-level and separate from `categories[].tap_action`, which
 governs a tap on one category tile inside the body, and from `detail_path`,
@@ -164,7 +163,7 @@ which opens on a hold of a tile.
 | `cards` | list | – | Lovelace cards drawn inside the folding body — below the tiles in `auto`, on their own in `manual`. Written as in a view |
 | `cards_columns` | number | `2` | How many of those cards sit side by side |
 | `name` / `icon` | string | the area's own | The icon falls back to a guess from the room name |
-| `tap_action` | action | – | What a tap on the header does. Unset, it folds the card when `collapsible` is on. Set, it takes the header over from the fold and the chevron goes |
+| `tap_action` | action | – | What a tap on the header does. Unset, it folds the card when `collapsible` is on. Set, it takes the header over from the fold; the "Details" row still folds the card. |
 | `detail_path` | string | – | Opened on hold |
 | `extra_domains` | list | – | Domains beyond the built-in nine |
 | `category_order` | list | – | Domains in the order you want them; the rest follow behind |

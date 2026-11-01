@@ -129,7 +129,7 @@ custom text.
 
 ## Folding it away
 
-`collapsible` gives the header a chevron. The header itself never folds — the
+`collapsible` adds the suite's "Details" row at the foot of the card. The header itself never folds — the
 "3 parts due soon" line is the reason to look at the card — and
 `collapse_blocks` decides what goes behind it:
 

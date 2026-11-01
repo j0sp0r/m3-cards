@@ -429,6 +429,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Changed
 
+- **Every card that folds does it from a "Details" row at its foot.** The
+  appliance, printer, vacuum, vacuum maintenance and room cards had the fold
+  chevron in the top right, beside the one figure each card is read for — the
+  time left, the battery, "Done". It is now one shared control, "Details" with
+  a chevron, under the card; the room card's header still folds it on a tap.
 - **The appliance card draws running, done and idle each its own way.**
   Running: the time left large in the top right with "done at 15:18" under it,
   and the percentage on the bar's own line instead of a "Progress … 79 %" row

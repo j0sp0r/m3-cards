@@ -514,9 +514,9 @@ finish_action:
 …with the button as one more trigger of the status sensor, turning `finished`
 into `idle`.
 
-On a collapsible card the fold moves to a quiet "Details" row at the foot
-while a run is on or done, so the top right holds only the time or the pill;
-on the one-line idle card the chevron sits in the header.
+On a collapsible card the fold is a quiet "Details" row at the foot, so the
+top right holds only the time, the pill or the state — the same row every card
+in the suite that folds has.
 
 ### Notifications
 

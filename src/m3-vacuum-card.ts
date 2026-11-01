@@ -59,7 +59,7 @@ import {
   type LevelStep,
 } from "./shared/level-slider";
 import { foldHides, readCollapsed, writeCollapsed, type CollapseTarget } from "./shared/collapse-state";
-import { foldArrowStyles, renderFoldArrow } from "./shared/fold-arrow";
+import { detailsToggleStyles, renderDetailsToggle } from "./shared/fold-arrow";
 import {
   ChipRowController,
   chipButtonsStyles,
@@ -540,6 +540,14 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
                things read at a glance rather than between two sliders that are
                nudged far more often. -->
           ${hidden("cleaning_mode") ? nothing : this._renderCleaningMode(unavailable)}
+          ${this._config.collapsible
+            ? renderDetailsToggle({
+                folded: this._folded,
+                text: this._t("details_toggle"),
+                label: `${this._config?.name ?? ""} ${this._t("details_toggle")}`.trim(),
+                onToggle: this._toggleFold,
+              })
+            : nothing}
         </div>
       </ha-card>
       ${this._renderPopup()}
@@ -575,15 +583,6 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
               <span>${Math.round(level)} %</span>
             </div>
           `
-        : nothing}
-      ${cfg.collapsible
-        ? renderFoldArrow({
-            folded: this._folded,
-            accent: "var(--m3v-accent)",
-            host: this,
-            label: name,
-            onToggle: this._toggleFold,
-          })
         : nothing}
     `;
 
@@ -1569,7 +1568,7 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
   static styles = [
     glassCardStyles,
     levelSliderStyles,
-    foldArrowStyles,
+    detailsToggleStyles,
     cardHeaderStyles,
     chipButtonsStyles,
     popupCardStyles,

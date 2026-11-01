@@ -3537,10 +3537,9 @@ them, and both quietly do nothing without one. Point them at a tile's
 `categories[].tap_action` instead, which does have an entity behind it.
 
 A tap cannot both fold the card and open a view, so `tap_action` takes the
-header over from the fold, and the chevron goes with it — it promises a fold
-the header no longer performs. The rest of `collapsible` is untouched: the
-stored state is still read and applied, so `collapse_state_entity` and an
-automation can still fold the card while its header navigates.
+header over from the fold. The card still folds: the "Details" row at its foot
+does it, as on every card that folds, and the stored state is still read and
+applied, so `collapse_state_entity` and an automation can fold it too.
 
 Note this is card-level and separate from `categories[].tap_action`, which
 governs a tap on one category tile inside the body, and from `detail_path`,
@@ -3555,7 +3554,7 @@ which opens on a hold of a tile.
 | `cards` | list | – | Lovelace cards drawn inside the folding body — below the tiles in `auto`, on their own in `manual`. Written as in a view |
 | `cards_columns` | number | `2` | How many of those cards sit side by side |
 | `name` / `icon` | string | the area's own | The icon falls back to a guess from the room name |
-| `tap_action` | action | – | What a tap on the header does. Unset, it folds the card when `collapsible` is on. Set, it takes the header over from the fold and the chevron goes |
+| `tap_action` | action | – | What a tap on the header does. Unset, it folds the card when `collapsible` is on. Set, it takes the header over from the fold; the "Details" row still folds the card. |
 | `detail_path` | string | – | Opened on hold |
 | `extra_domains` | list | – | Domains beyond the built-in nine |
 | `category_order` | list | – | Domains in the order you want them; the rest follow behind |
@@ -4229,9 +4228,9 @@ finish_action:
 …with the button as one more trigger of the status sensor, turning `finished`
 into `idle`.
 
-On a collapsible card the fold moves to a quiet "Details" row at the foot
-while a run is on or done, so the top right holds only the time or the pill;
-on the one-line idle card the chevron sits in the header.
+On a collapsible card the fold is a quiet "Details" row at the foot, so the
+top right holds only the time, the pill or the state — the same row every card
+in the suite that folds has.
 
 ### Notifications
 
@@ -5266,7 +5265,7 @@ false` leaves it out.
 
 ## Folding it away
 
-`collapsible: true` gives the header a chevron that folds the map, the scales,
+`collapsible: true` adds a "Details" row at the foot that folds the map, the scales,
 the buttons and the chips. What stays is the line you actually glance at — the
 state, the battery and Start/Pause — which is the split worth making on a
 dashboard where the vacuum is not the main event.
@@ -5285,7 +5284,7 @@ collapse_blocks: [map, mop, buttons]
 
 That leaves the state, the battery, Start/Pause, the suction scale and the
 status chips visible at all times, and puts the map and the mop controls behind
-the chevron. Leaving the key out folds everything, which is what `collapsible`
+the row. Leaving the key out folds everything, which is what `collapsible`
 alone has always done.
 
 The fold is remembered the same way the room and heading cards remember theirs:
@@ -5536,7 +5535,7 @@ custom text.
 
 ## Folding it away
 
-`collapsible` gives the header a chevron. The header itself never folds — the
+`collapsible` adds the suite's "Details" row at the foot of the card. The header itself never folds — the
 "3 parts due soon" line is the reason to look at the card — and
 `collapse_blocks` decides what goes behind it:
 
@@ -5609,7 +5608,7 @@ red. The way back is the socket switch in the details block, which is why that
 block stays live when everything else does not, and why the fold never takes
 it while the printer is offline, whatever `collapse_blocks` says. A socket
 given as a tile in `chips` folds like any tile: a folded card stays folded
-when the printer goes off, and the chevron opens it.
+when the printer goes off, and the "Details" row opens it.
 
 ## `state_map`, and why it exists
 
@@ -5721,7 +5720,7 @@ number their slots 1–4, and merging them would quietly hide half the filament.
 | `show_progress`, `show_temps`, `show_speed`, `show_ams`, `show_details` | boolean | `true` | The blocks. Each also disappears on its own when its entities are missing. |
 | `wave_style` | string | `wavy` | `wavy` or `flat`: the progress as a wave or a plain line, as on the appliance card. |
 | `notify_enabled`, `notify_service`, `notify_title`, `notify_message`, `notify_on_start`, `notify_start_message` | — | — | Set in the editor's Notifications panel — see below. |
-| `collapsible` | boolean | `false` | Folds the card to its header and controls, with the chevron the vacuum cards use. |
+| `collapsible` | boolean | `false` | Folds the card to its header and controls, with the "Details" row every folding card has. |
 | `collapse_blocks` | list | all | Which blocks the fold takes: `camera`, `progress`, `temps`, `speed`, `ams`, `details`, `chips`. |
 | `default_collapsed`, `collapse_state_entity`, `collapse_memory` | — | — | Same keys as the vacuum, room and heading cards: start folded, keep the state in an `input_boolean`, or remember it per device or per session. |
 | `filament_warn` | number | `40` | Percent below which a tray's bar turns amber. |
@@ -5757,7 +5756,7 @@ it pauses — the shape says "stopped" before the word does. It is drawn at the
 card's real width. It used to be a 100-unit drawing stretched to fit, which
 turned a tight wave into a long, lazy swell on a phone.
 
-The header ends the way the vacuum card's does — a pill, then the fold chevron —
+The header ends the way the vacuum card's does — a pill —
 with the percentage in the pill. The layer and the time left sit under the wave
 instead, left and right, where they describe the thing they are under; up in the
 header they pushed the stage wording off the end of the line.
@@ -5790,7 +5789,7 @@ on a phone had no label to say what either was for.
 
 ## Folding
 
-`collapsible: true` puts the suite's fold chevron at the end of the header, the
+`collapsible: true` puts the suite's "Details" row at the foot of the card, the
 same one the vacuum cards use, and a tap folds the card down to its header and
 controls. The header still carries the percentage in its pill while a job runs,
 so a folded card still answers "how far along is it".
@@ -5807,9 +5806,9 @@ This replaces the details block's own drawer. It used to open and close with a
 chevron of its own, a second fold inside a card the suite folds from its header
 — two gestures for the same thing. It is a block like the others now.
 
-The chevron only appears when folding would take something. An idle printer
+The row only appears when folding would take something. An idle printer
 with no camera and every remaining block left out of `collapse_blocks` has
-nothing to fold, and a chevron that does nothing reads as broken.
+nothing to fold, and a control that does nothing reads as broken.
 
 ## Notifications
 

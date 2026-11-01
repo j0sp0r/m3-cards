@@ -127,7 +127,7 @@ false` leaves it out.
 
 ## Folding it away
 
-`collapsible: true` gives the header a chevron that folds the map, the scales,
+`collapsible: true` adds a "Details" row at the foot that folds the map, the scales,
 the buttons and the chips. What stays is the line you actually glance at — the
 state, the battery and Start/Pause — which is the split worth making on a
 dashboard where the vacuum is not the main event.
@@ -146,7 +146,7 @@ collapse_blocks: [map, mop, buttons]
 
 That leaves the state, the battery, Start/Pause, the suction scale and the
 status chips visible at all times, and puts the map and the mop controls behind
-the chevron. Leaving the key out folds everything, which is what `collapsible`
+the row. Leaving the key out folds everything, which is what `collapsible`
 alone has always done.
 
 The fold is remembered the same way the room and heading cards remember theirs:

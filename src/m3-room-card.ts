@@ -49,7 +49,6 @@ import {
   ROOM_ARROW,
   ROOM_ARROW_RADIUS,
   ROOM_ARROW_RADIUS_FOLDED,
-  ROOM_ARROW_TINT,
   ROOM_FOLD_MS,
   ROOM_SCROLL_MARGIN,
   DOCK_SCAN_BUDGET,
@@ -84,6 +83,7 @@ import { hassChangeMatters } from "./shared/should-update";
 import { createCards, updateCardsHass } from "./shared/card-helpers";
 import { TemplatedCard } from "./shared/templated-card";
 import { openEntityDetail } from "./shared/entity-detail";
+import { detailsToggleStyles, renderDetailsToggle } from "./shared/fold-arrow";
 
 const EASING = unsafeCSS(STANDARD_EASING);
 
@@ -1326,19 +1326,6 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
     `;
   }
 
-  private _renderFoldArrow(accent: string): TemplateResult {
-    const background = tintOn(this, accent, undefined, ROOM_ARROW_TINT);
-    return html`
-      <div
-        class="fold ${this._folded ? "folded" : ""}"
-        style=${`background: ${background}; color: ${foregroundOn(accent, background, 3, this)};`}
-        aria-hidden="true"
-      >
-        <ha-icon icon="mdi:chevron-down"></ha-icon>
-      </div>
-    `;
-  }
-
   private _renderTile(category: Category): TemplateResult {
     const dead = category.live.length === 0;
     const background = category.active
@@ -1488,7 +1475,6 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
               <div class="name" title=${name}>${name}</div>
               <div class="subtitle">${subtitle}</div>
             </div>
-            ${showFoldArrow ? this._renderFoldArrow(accent) : nothing}
           </div>
           <div class="body">
             <div class="body-inner">
@@ -1512,6 +1498,14 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
                   : nothing}
             </div>
           </div>
+          ${cfg.collapsible
+            ? renderDetailsToggle({
+                folded: this._folded,
+                text: this._t("details_toggle"),
+                label: `${name} ${this._t("details_toggle")}`,
+                onToggle: this._toggleFold,
+              })
+            : nothing}
           ${this._sheet ? this._renderSheet(categories) : nothing}
         </div>
       </ha-card>
@@ -1520,6 +1514,7 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
 
   static styles = [
     glassCardStyles,
+    detailsToggleStyles,
     css`
       /* No gap between the header and the body: the space above the chips is
          padding *inside* the folding box instead, so it collapses with it. A
