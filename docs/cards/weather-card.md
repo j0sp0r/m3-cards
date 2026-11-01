@@ -47,6 +47,12 @@ was ever received. How many days are actually available depends on the
 weather integration (Met.no delivers 6 days max); from 4 days on, the
 daily list collapses by default and expands via a button.
 
+Each day's bar runs from its low to its high and is coloured by the
+temperature itself, on a fixed outdoor scale: blue up to 0 °C, cyan around
+10 °C, green around 17 °C, yellow around 24 °C and red from 30 °C, blended
+in between. A cold week stays blue and a hot one turns red, rather than every
+week running from blue to red.
+
 ### Configuration options
 
 | Option | Type | Default | Description |

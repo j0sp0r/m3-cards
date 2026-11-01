@@ -743,6 +743,21 @@ export const CLIMATE_OVERVIEW_COLOR_COMFORTABLE = PALETTE.dryAuto;
 export const CLIMATE_OVERVIEW_COLOR_WARM = PALETTE.light;
 export const CLIMATE_OVERVIEW_COLOR_HOT = PALETTE.heat;
 export const CLIMATE_OVERVIEW_HUMIDITY_WARN_COLOR = PALETTE.solar;
+// Read by the weather card; it sits here because it needs the colours above.
+/**
+ * The outdoor temperature scale the daily bars are coloured on, in °C. The
+ * climate overview's stages (19–25 °C) are for rooms: outdoors they would paint
+ * every November day blue and every summer day red. These are the same
+ * colours, spread over the range weather actually covers, and blended between
+ * stops so 8 and 10 °C do not jump.
+ */
+export const WEATHER_TEMP_SCALE: ReadonlyArray<readonly [number, string]> = [
+  [0, CLIMATE_OVERVIEW_COLOR_COLD],
+  [10, CLIMATE_OVERVIEW_COLOR_COOL],
+  [17, CLIMATE_OVERVIEW_COLOR_COMFORTABLE],
+  [24, CLIMATE_OVERVIEW_COLOR_WARM],
+  [30, CLIMATE_OVERVIEW_COLOR_HOT],
+];
 export const DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP = [
   " Temperature$",
   " Temperatur$",

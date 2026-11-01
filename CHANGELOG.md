@@ -226,6 +226,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   rule is grey every tile went grey with it. The state now colours the icon,
   the subtitle and the bar; a chip uses its own `color` or rule, else the
   card's accent colour.
+- **The weather card's daily bars are coloured by the temperature, not by
+  the week.** The bar's colour ran from blue to red across the week's own
+  range, so the warmest day was red even at 10 °C. Each bar is now a gradient
+  on a fixed outdoor scale — blue up to 0 °C, cyan around 10, green around 17,
+  yellow around 24, red from 30 — in the climate overview's colours, and a
+  bar that spans several stages passes through each at its place.
 - **The supply card's range ignores corrections made by hand.** Every drop
   in the counter counted as use, so setting it from 46 to 25 read as 21
   tablets used at once, and a fresh pack of 60 was promised to last 5 days.

@@ -43,6 +43,7 @@ import { glassCardStyles, glassCardClass, renderMissingEntity } from "./shared/g
 import { shouldAnimate, STANDARD_EASING } from "./shared/animation";
 import { activateOnKey } from "./shared/a11y";
 import { computeBarHeights } from "./shared/bar-chart";
+import { outdoorTemperatureGradient } from "./shared/temperature-color";
 import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
 import { formatNumber } from "./shared/formatting";
@@ -703,6 +704,10 @@ export class M3WeatherCard extends TemplatedCard(LitElement) implements Lovelace
     const weekMin = Math.min(...allLow);
     const weekMax = Math.max(...allHigh);
     const weekRange = Math.max(1, weekMax - weekMin);
+    // The bars are coloured by the temperature itself, not by its place in
+    // the week: the warmest day of a cold week is still a cold day.
+    const attrs = this._config ? this.hass?.states[this._config.entity]?.attributes : undefined;
+    const tempUnit = (attrs?.temperature_unit as string | undefined) || this.hass?.config?.unit_system?.temperature || "°C";
 
     return html`
       <div class="daily-list">
@@ -711,7 +716,7 @@ export class M3WeatherCard extends TemplatedCard(LitElement) implements Lovelace
           const low = it.templow ?? weekMin;
           const startPct = ((low - weekMin) / weekRange) * 100;
           const endPct = ((high - weekMin) / weekRange) * 100;
-          const dayColor = `color-mix(in srgb, #6ba7dc ${100 - endPct}%, #e57368 ${endPct}%)`;
+          const dayFill = outdoorTemperatureGradient(low, high, tempUnit);
           return html`
             <div class="day-row">
               <span class="day-name">${i === 0 ? this._t("weather_today") : this._formatWeekday(new Date(it.datetime))}</span>
@@ -724,7 +729,7 @@ export class M3WeatherCard extends TemplatedCard(LitElement) implements Lovelace
                 <div class="day-track">
                   <div
                     class="day-fill"
-                    style=${`left: ${startPct}%; width: ${Math.max(4, endPct - startPct)}%; background: ${dayColor};`}
+                    style=${`left: ${startPct}%; width: ${Math.max(4, endPct - startPct)}%; background: ${dayFill};`}
                   ></div>
                 </div>
                 <span class="day-high">${this._formatNumber(high)}°</span>
