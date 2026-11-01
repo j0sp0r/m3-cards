@@ -2987,7 +2987,7 @@ export interface ApplianceChipConfig {
 }
 
 /** The blocks the card can draw, in the order they should appear. */
-export type ApplianceBlock = "progress" | "sliders" | "selects" | "buttons" | "chips";
+export type ApplianceBlock = "progress" | "sliders" | "selects" | "buttons" | "chips" | "cards";
 
 export interface AppliancePopupConfig {
   /** Shown in the popup's top bar. Falls back to the card's name. */
@@ -3053,6 +3053,12 @@ export interface M3ApplianceCardConfig extends NotifyConfigBase {
   finish_action?: HaActionConfig;
   /** The button's text; "Emptied" in the user's language by default. */
   finish_label?: string;
+  /**
+   * Other cards drawn inside this one, under its readings — the dishwasher's
+   * tablet supply, say. Any card, written as in a view; they fold with the
+   * rest under "Details" (the `cards` block).
+   */
+  cards?: Record<string, unknown>[];
   /** "done at 15:18" under the remaining time while a run is on. Default true. */
   show_end_time?: boolean;
 

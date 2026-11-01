@@ -445,6 +445,22 @@ chips:
   - entity: sensor.dryer_power
 ```
 
+### Cards inside
+
+`cards` draws other cards inside the appliance card, under its readings, one
+to a row — the dishwasher's tablet supply, a button for its plug. They are
+written as in a view and fold with the rest under "Details" (the `cards`
+block in the layout and in "Stays visible when folded").
+
+```yaml
+cards:
+  - type: custom:m3-supply-card
+    layout: hero_only
+    items:
+      - entity: counter.dishwasher_tabs
+        unit: Tabs
+```
+
 ### Folding it away
 
 `collapsible: true` gives the header a chevron that folds the blocks away. What
@@ -604,6 +620,7 @@ empty dialog.
 | `finish_action` | — | The "Emptied" button on a finished machine; without it there is none |
 | `finish_label` | "Emptied" | The button's text |
 | `show_end_time` | `true` | "done at HH:MM" under the remaining time |
+| `cards` | — | Other cards drawn inside, under the readings — written as in a view; the `cards` block, which folds with the rest |
 | `layout` | all five | Which blocks, in which order |
 | `collapsible` | `false` | A chevron in the header that folds the blocks away |
 | `collapse_blocks` | all | Which blocks the fold hides |

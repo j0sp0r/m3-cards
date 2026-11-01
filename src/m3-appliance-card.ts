@@ -127,6 +127,7 @@ import { cardHeaderStyles, renderCardHeader } from "./shared/card-header";
 import { foldHides, readCollapsed, writeCollapsed, type CollapseTarget } from "./shared/collapse-state";
 import { detailsToggleStyles, easeFoldHeight, renderDetailsToggle } from "./shared/fold-arrow";
 import { hassChangeMatters } from "./shared/should-update";
+import { createCards, updateCardsHass } from "./shared/card-helpers";
 import { stopSwipe } from "./shared/swipe";
 import { findStateRule, numericState } from "./shared/state-rules";
 import { infoChipStyles, renderInfoChips } from "./shared/info-chips";
@@ -162,7 +163,7 @@ type AppliancePhase = "ready" | "running" | "done";
 
 // Everything, in the order a person reads an appliance: what it is doing, how
 // far along, what it is set to, what it offers, and the details at the bottom.
-const DEFAULT_LAYOUT: ApplianceBlock[] = ["progress", "sliders", "selects", "buttons", "chips"];
+const DEFAULT_LAYOUT: ApplianceBlock[] = ["progress", "sliders", "selects", "buttons", "chips", "cards"];
 
 /** Domains whose "on" is worth showing as a filled button. */
 const TOGGLE_DOMAINS = new Set(["switch", "input_boolean", "light", "fan", "siren", "lock"]);
@@ -185,7 +186,28 @@ interface ProgressReading {
 
 @customElement("m3-appliance-card")
 export class M3ApplianceCard extends TemplatedCard(LitElement) implements LovelaceCard {
-  @property({ attribute: false }) public hass?: HomeAssistant;
+  /**
+   * An accessor rather than a plain property, as on the room card: the cards
+   * drawn inside take their data from a hass pushed onto them, and the render
+   * path is filtered by shouldUpdate, so pushing from there would leave them
+   * showing the state they were born with.
+   */
+  @property({ attribute: false })
+  public get hass(): HomeAssistant | undefined {
+    return this._hass;
+  }
+
+  public set hass(value: HomeAssistant | undefined) {
+    const previous = this._hass;
+    this._hass = value;
+    updateCardsHass(this._cards, value);
+    this.requestUpdate("hass", previous);
+  }
+
+  private _hass?: HomeAssistant;
+  /** The nested cards, built when their config changes and never in render. */
+  private _cards: HTMLElement[] = [];
+  private _cardsFor?: string;
 
   @state() private _config?: M3ApplianceCardConfig;
   @state() private _popupOpen = false;
@@ -295,6 +317,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       }
     }
     this._config = { glass_background: true, animation: "auto", ...config };
+    void this._syncCards();
     this._folded = config.collapsible ? readCollapsed(this.hass, this._foldTarget) : false;
   }
 
@@ -533,7 +556,22 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
   }
 
   private get _layout(): ApplianceBlock[] {
-    return this._config?.layout?.length ? this._config.layout : DEFAULT_LAYOUT;
+    const layout = this._config?.layout?.length ? this._config.layout : DEFAULT_LAYOUT;
+    // A layout written before the cards block existed still shows cards that
+    // were added later, at the end, rather than dropping them silently.
+    return this._config?.cards?.length && !layout.includes("cards") ? [...layout, "cards"] : layout;
+  }
+
+  /** Builds the nested cards when their config changes, and only then. */
+  private async _syncCards(): Promise<void> {
+    const key = JSON.stringify(this._config?.cards ?? []);
+    if (key === this._cardsFor) return;
+    this._cardsFor = key;
+    this._cards = await createCards(this._config?.cards ?? [], this._hass);
+    // Home Assistant sets the config before hass, and building is async: the
+    // hass that arrived meanwhile has to be pushed again.
+    updateCardsHass(this._cards, this._hass);
+    this.requestUpdate();
   }
 
   /**
@@ -882,6 +920,8 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
         return this._renderButtons();
       case "chips":
         return this._renderChips();
+      case "cards":
+        return this._cards.length ? html`<div class="nested-cards">${this._cards}</div>` : nothing;
       default:
         return nothing;
     }
@@ -1610,6 +1650,14 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
 
     .no-animations .finish {
       transition: none;
+    }
+
+    /* Cards drawn inside: one column, at the card's own gap. */
+    .nested-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
     }
 
     /* ---- blocks ---- */

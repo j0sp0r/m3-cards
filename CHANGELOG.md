@@ -10,6 +10,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **The appliance card holds other cards: `cards`.** Any card, written as in
+  a view, under the readings and folding with them under "Details" — the
+  dishwasher's tablet supply inside the dishwasher, say. The room card's
+  mechanism: built when their config changes, fed every hass tick.
 - **The printer card notifies, as the appliance card does.** Its editor has
   the same Notifications panel: a message to every chosen phone when a print
   finishes or fails, and optionally when one starts, with the expected end

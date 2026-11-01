@@ -78,7 +78,7 @@ const CONDITION_KEYS: Record<Exclude<ConditionKind, "else">, keyof StatusRule> =
   below: "below",
 };
 
-const ALL_BLOCKS: ApplianceBlock[] = ["progress", "sliders", "selects", "buttons", "chips"];
+const ALL_BLOCKS: ApplianceBlock[] = ["progress", "sliders", "selects", "buttons", "chips", "cards"];
 
 /** Drops the keys a cleared editor field left behind, so card defaults apply again. */
 function pruned<T extends object>(value: T): T {
@@ -685,6 +685,7 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
               { value: "selects", label: this._t("editor_appliance_block_selects") },
               { value: "buttons", label: this._t("editor_appliance_block_buttons") },
               { value: "chips", label: this._t("editor_appliance_block_chips") },
+              { value: "cards", label: this._t("editor_appliance_block_cards") },
             ],
           },
         },
@@ -707,6 +708,7 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
               { value: "selects", label: this._t("editor_appliance_block_selects") },
               { value: "buttons", label: this._t("editor_appliance_block_buttons") },
               { value: "chips", label: this._t("editor_appliance_block_chips") },
+              { value: "cards", label: this._t("editor_appliance_block_cards") },
             ],
           },
         },

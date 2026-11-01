@@ -220,6 +220,9 @@ silently, at exactly its standby draw, for half an hour after its last pump —
 down. The end is the machine switching itself off, and that is what the
 example listens for.
 
+**`cards`** puts other cards inside the appliance card, under its readings
+and folding with them — the tablet supply inside the dishwasher it feeds.
+
 ### The printer joins in
 
 The printer card takes the same **`chips`**, tiles and dividers: the enclosure,

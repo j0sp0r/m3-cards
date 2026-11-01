@@ -4159,6 +4159,22 @@ chips:
   - entity: sensor.dryer_power
 ```
 
+### Cards inside
+
+`cards` draws other cards inside the appliance card, under its readings, one
+to a row — the dishwasher's tablet supply, a button for its plug. They are
+written as in a view and fold with the rest under "Details" (the `cards`
+block in the layout and in "Stays visible when folded").
+
+```yaml
+cards:
+  - type: custom:m3-supply-card
+    layout: hero_only
+    items:
+      - entity: counter.dishwasher_tabs
+        unit: Tabs
+```
+
 ### Folding it away
 
 `collapsible: true` gives the header a chevron that folds the blocks away. What
@@ -4199,8 +4215,8 @@ Each of the three draws its own layout:
 
 | | Running | Done | Idle |
 | --- | --- | --- | --- |
-| Top right | the time left, large, with "done at 15:18" under it | a tinted "✓ Done" pill | the state, in the secondary colour |
-| Status line | the state | "Done 12 min ago" | — (one line) |
+| Top right | the time left, large, with "done at 15:18" under it | a tinted "✓ Done" pill | the state in a pill, in the state's colour |
+| Status line | the state | "Done 12 min ago" | "For 2 h" |
 | Below | the bar, its percentage on the same line | the "Emptied" button, when `finish_action` is set | nothing |
 
 The end time comes from the remaining-time sensor: a completion timestamp as
@@ -4229,7 +4245,7 @@ finish_action:
 into `idle`.
 
 On a collapsible card the fold is a quiet "Details" row at the foot, so the
-top right holds only the time, the pill or the state — the same row every card
+top right holds only the time or a pill — the same row every card
 in the suite that folds has.
 
 ### Notifications
@@ -4318,6 +4334,7 @@ empty dialog.
 | `finish_action` | — | The "Emptied" button on a finished machine; without it there is none |
 | `finish_label` | "Emptied" | The button's text |
 | `show_end_time` | `true` | "done at HH:MM" under the remaining time |
+| `cards` | — | Other cards drawn inside, under the readings — written as in a view; the `cards` block, which folds with the rest |
 | `layout` | all five | Which blocks, in which order |
 | `collapsible` | `false` | A chevron in the header that folds the blocks away |
 | `collapse_blocks` | all | Which blocks the fold hides |
