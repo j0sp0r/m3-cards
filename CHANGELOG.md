@@ -198,6 +198,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **A folded, idle printer card is as tall as an appliance card.** It drew
+  an empty controls row when there was nothing to press, which still took the
+  card's gap, and its padding was 14px against the suite's 12 — together 16px
+  more, all of it under the icon.
 - **The fold settings ask what stays, not what goes.** "What folds away"
   listed the blocks the fold takes, and an empty list meant all of them, so
   ticking "Progress" to keep it in view folded only the progress. The

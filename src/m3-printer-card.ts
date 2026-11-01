@@ -1325,6 +1325,13 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
     // No primary button rather than a disabled one: an idle printer with no
     // start action has nothing to press, and a greyed-out Start invites the
     // question of why it is greyed out. The secondaries carry the row alone.
+    // With neither, there is no row: an empty one still took the card's gap,
+    // and a folded idle printer stood 12px taller than the appliances beside
+    // it, with the space under its icon.
+    const secondaries = (secondary as readonly PrinterSecondaryAction[]).filter((action) =>
+      this._secondaryApplies(action, state),
+    );
+    if (intent === "none" && secondaries.length === 0) return nothing;
     return html`
       <div class="controls">
         ${intent === "none"
@@ -1338,9 +1345,7 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
                 <span>${label}</span>
               </button>
             `}
-        ${(secondary as readonly PrinterSecondaryAction[])
-          .filter((action) => this._secondaryApplies(action, state))
-          .map((action) => this._renderSecondary(action))}
+        ${secondaries.map((action) => this._renderSecondary(action))}
       </div>
     `;
   }
@@ -1438,7 +1443,9 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
         display: flex;
         flex-direction: column;
         gap: 12px;
-        padding: 14px;
+        /* The suite's card padding, as the appliance card has it, so the two
+           fold to the same height side by side. */
+        padding: var(--m3-group-padding, 12px);
         box-sizing: border-box;
         /* The narrow-layout rules below measure the card's own column, not the
            viewport — a printer card in a two-column grid on a desktop is as
