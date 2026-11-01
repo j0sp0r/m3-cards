@@ -30,6 +30,7 @@ const CHIP_SCHEMA: SchemaEntry[] = [
   { name: "icon", selector: { icon: {} } },
   { name: "label", selector: { text: {} } },
   { name: "show_state", selector: { boolean: {} } },
+  { name: "appearance", selector: { select: { mode: "dropdown", options: [] } } },
   { name: "tap_action", selector: { ui_action: {} } },
 ];
 
@@ -37,6 +38,27 @@ const HEADING_SCHEMA: SchemaEntry[] = [
   { name: "heading", selector: { text: {} }, required: true },
   { name: "icon", selector: { icon: {} } },
 ];
+
+/** The chip fields, with the appearance options in the user's language. */
+function chipSchema(p: ChipsEditorParams): SchemaEntry[] {
+  return CHIP_SCHEMA.map((s) =>
+    s.name === "appearance"
+      ? {
+          name: "appearance",
+          selector: {
+            select: {
+              mode: "dropdown",
+              options: [
+                { value: "auto", label: p.t("editor_chips_appearance_auto") },
+                { value: "active", label: p.t("editor_chips_appearance_active") },
+                { value: "inactive", label: p.t("editor_chips_appearance_inactive") },
+              ],
+            },
+          },
+        }
+      : s,
+  );
+}
 
 /** Drops the keys a cleared field left behind, so the card's defaults apply again. */
 function prune<T extends object>(value: T): T {
@@ -75,6 +97,7 @@ const CHIP_LABELS: Record<string, TranslationKey> = {
   show_state: "editor_appliance_chip_show_state",
   tap_action: "editor_tap_action",
   heading: "editor_chips_heading",
+  appearance: "editor_chips_appearance",
 };
 
 function chipLabel(s: SchemaEntry, p: ChipsEditorParams): string {
@@ -87,7 +110,11 @@ export function renderChipsEditor(p: ChipsEditorParams): TemplateResult {
   const set = (next: ChipEntry[]): void => p.onChange(next.length ? next : undefined);
   const patch = (index: number, change: Record<string, unknown>): void => {
     const next = [...list];
-    next[index] = prune({ ...next[index], ...change }) as ChipEntry;
+    const merged = prune({ ...next[index], ...change }) as ChipEntry & { appearance?: string };
+    // The default is the absent key, so a tile the editor only touched keeps
+    // a config without it.
+    if (merged.appearance === "auto") delete merged.appearance;
+    next[index] = merged;
     set(next);
   };
   const styleSchema: SchemaEntry[] = [
@@ -119,7 +146,7 @@ export function renderChipsEditor(p: ChipsEditorParams): TemplateResult {
     <div class="hint">${p.t("editor_appliance_chips_hint")}</div>
     ${list.map((entry, index) => {
       const heading = isChipHeading(entry);
-      const data = heading ? entry : { show_state: entry.show_state !== false, ...entry };
+      const data = heading ? entry : { show_state: entry.show_state !== false, appearance: "auto", ...entry };
       return html`
         <div class="entry-block ${heading ? "heading-entry" : ""}">
           <div class="entry-head">
@@ -146,7 +173,7 @@ export function renderChipsEditor(p: ChipsEditorParams): TemplateResult {
           <ha-form
             .hass=${p.hass}
             .data=${data}
-            .schema=${heading ? HEADING_SCHEMA : CHIP_SCHEMA}
+            .schema=${heading ? HEADING_SCHEMA : chipSchema(p)}
             .computeLabel=${(s: SchemaEntry) => chipLabel(s, p)}
             @value-changed=${(ev: CustomEvent) => patch(index, ev.detail.value as Record<string, unknown>)}
           ></ha-form>

@@ -427,7 +427,9 @@ card. A tile is drawn as a button card is — same height, rim, corner and
 round icon well, the name bold with the reading under it — so it sits beside
 a room's buttons as one design. A switch's well is grey while off and a filled
 rounded square while on — binary sensors too, so a door or a leak sensor
-reads as open or wet at a glance.
+reads as open or wet at a glance. `appearance` pins a tile either way —
+`active` for a reading that should stand out, `inactive` to keep a switch
+quiet; `auto` is the default.
 
 ```yaml
 chip_style: tile   # pill (default) | tile

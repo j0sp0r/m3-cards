@@ -485,6 +485,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   on, the well becomes a filled rounded square and the tile squares its
   corners, as a button card with `shape_by_state` does. The glyph is 24px,
   which is what a button card actually shows.
+- **A tile can be shown active or inactive: `appearance`.** As a room's
+  button cards show it — active squared, its well filled and the icon
+  inverted; inactive round. `auto`, the default, follows an on/off entity's
+  state; `active` or `inactive` pins a tile, so a reading such as a tablet
+  count can stand out. In the chips editor as "Tile appearance".
 - **Binary sensors on chip tiles show on and off.** A door, a child lock, a
   leak sensor were drawn as plain readings, round and tinted whatever they
   said. They now take the switch's shapes: a grey round well while off, and

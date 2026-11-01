@@ -150,7 +150,9 @@ function renderInfoChip(cfg: InfoChipConfig, ctx: InfoChipContext): TemplateResu
   // were drawn as plain readings, round and tinted, whatever they said.
   const domain = cfg.entity.split(".")[0];
   const switchy = TOGGLE_DOMAINS.has(domain) || ON_OFF_DOMAINS.has(domain) || cfg.tap_action?.action === "toggle";
-  const power = switchy ? (isOnState(raw) ? "on" : "off") : "";
+  const appearance = cfg.appearance ?? "auto";
+  const power =
+    appearance === "active" ? "on" : appearance === "inactive" ? "off" : switchy ? (isOnState(raw) ? "on" : "off") : "";
   const body = tile
     ? html`
         ${icon ? html`<span class="tile-icon"><ha-icon icon=${icon}></ha-icon></span>` : nothing}

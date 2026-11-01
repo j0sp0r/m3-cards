@@ -3038,6 +3038,12 @@ export interface ApplianceChipConfig {
   /** Same rule shape as the card's own `states`, for this chip's text/colour/icon. */
   states?: StatusRule[];
   tap_action?: HaActionConfig;
+  /**
+   * How a tile shows itself, as a room's button cards do. `active`: squared,
+   * its well filled and the icon inverted; `inactive`: round. `auto` (the
+   * default) follows an on/off entity's state and leaves a reading round.
+   */
+  appearance?: "auto" | "active" | "inactive";
 }
 
 /** The blocks the card can draw, in the order they should appear. */
