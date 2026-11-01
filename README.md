@@ -4123,8 +4123,11 @@ the state's colour turned every reading grey whenever the machine stood idle.
 
 On a card that is mostly read — the power draw, today's energy, the meter, the
 water — small pills undersell the figures. `chip_style: tile` draws each chip
-as a tile instead: the name small, the value large, in a grid of two columns on
-a phone and more on a wide card.
+as a tile instead, in a grid of two columns on a phone and more on a wide
+card. A tile is drawn as a button card is — same height, rim, corner and
+round icon well, the name bold with the reading under it — so it sits beside
+a room's buttons as one design. A switch's well is grey while off and a filled
+rounded square while on.
 
 ```yaml
 chip_style: tile   # pill (default) | tile
@@ -5847,7 +5850,8 @@ recognisable name but do say what they are.
 Anything else worth reading beside the printer — the enclosure, the AMS's own
 humidity, a filament dryer, the sockets — goes in `chips`, the same option the
 appliance card has. They sit at the foot of the card, as small pills or, with
-`chip_style: tile`, as a grid of tiles: the name small, the value large.
+`chip_style: tile`, as a grid of tiles drawn like button cards: the name
+bold, the reading under it.
 The editor's **Status chips** panel edits them, dividers and order included.
 
 An entry with a `heading` and no `entity` is a divider across the full width,

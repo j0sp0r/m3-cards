@@ -6,8 +6,11 @@ import {
   APPLIANCE_CHIP_RADIUS,
   APPLIANCE_CHIP_RADIUS_ACTIVE,
   APPLIANCE_CHIP_TINT,
+  APPLIANCE_TILE_GLYPH,
   APPLIANCE_TILE_HEIGHT,
   APPLIANCE_TILE_ICON,
+  APPLIANCE_TILE_ICON_RADIUS_ON,
+  APPLIANCE_TILE_INSET,
   APPLIANCE_TILE_MIN_WIDTH,
   APPLIANCE_TILE_RADIUS,
 } from "../const";
@@ -129,8 +132,16 @@ function renderInfoChip(cfg: InfoChipConfig, ctx: InfoChipContext): TemplateResu
     // checked against that, not against a tint that is no longer drawn.
     "m3a-chip-text": foregroundColor(host, color),
     "m3a-chip-ink": inkOn(color, host),
+    // The tile's well, as the button card's: a wash of the colour carrying the
+    // colour as its glyph, and the solid colour with dark or white ink once on.
+    "m3a-well": tintOn(host, color, undefined, 20),
+    "m3a-well-ink": foregroundOn(color, tintOn(host, color, undefined, 20), 3, host),
   });
   const tile = ctx.style === "tile";
+  // A switch reads as on or off whether or not the tile can switch it: the
+  // well is grey while off and a filled square while on, as on a button card.
+  const switchy = TOGGLE_DOMAINS.has(cfg.entity.split(".")[0]) || cfg.tap_action?.action === "toggle";
+  const power = switchy ? (isOnState(raw) ? "on" : "off") : "";
   const body = tile
     ? html`
         ${icon ? html`<span class="tile-icon"><ha-icon icon=${icon}></ha-icon></span>` : nothing}
@@ -142,7 +153,7 @@ function renderInfoChip(cfg: InfoChipConfig, ctx: InfoChipContext): TemplateResu
     : html`${icon ? html`<ha-icon icon=${icon}></ha-icon>` : nothing}<span>${text}</span>`;
 
   if (!cfg.tap_action || !isActionable(cfg.tap_action)) {
-    return html`<span class="chip ${tile ? "tile" : ""}" style=${vars}>${body}</span>`;
+    return html`<span class="chip ${tile ? `tile ${power}` : ""}" style=${vars}>${body}</span>`;
   }
 
   // Only a chip that actually switches something reports a pressed state.
@@ -156,7 +167,7 @@ function renderInfoChip(cfg: InfoChipConfig, ctx: InfoChipContext): TemplateResu
   };
   return html`
     <button
-      class="chip control ${tile ? "tile" : ""} ${on ? "active" : ""}"
+      class="chip control ${tile ? `tile ${power}` : ""} ${on && !tile ? "active" : ""}"
       type="button"
       style=${vars}
       aria-label=${text}
@@ -209,21 +220,42 @@ export const infoChipStyles = css`
     height: 16px;
   }
 
+  /* A tile is drawn as the button card draws itself — the room card's
+     buttons are button cards, and the two sat side by side in two designs:
+     its height, its rim and corner, a round well at the same inset, the name
+     bold with the reading under it. */
   .chip.tile {
     height: auto;
     min-height: ${APPLIANCE_TILE_HEIGHT}px;
-    padding: 8px 12px 8px 8px;
-    gap: 10px;
+    padding: 4px 14px 4px ${APPLIANCE_TILE_INSET}px;
+    gap: 14px;
+    border: 1px solid rgba(100, 100, 100, 0.25);
     border-radius: ${APPLIANCE_TILE_RADIUS}px;
     justify-content: flex-start;
     text-align: left;
     /* A read-only tile is a span and inherits the card's line height; a
        tile with an action is a button, which does not. Set once, so the two
        are the same height side by side. */
-    line-height: 1.2;
+    line-height: 1.25;
     min-width: 0;
-    border-color: transparent;
-    background: color-mix(in srgb, var(--m3a-chip, var(--m3p-secondary-text)) 10%, transparent);
+    background: transparent;
+    color: var(--m3p-text, var(--primary-text-color));
+    font-weight: 400;
+  }
+
+  /* A tappable tile is still a tile: the pill's filled "control" look is
+     for pills. The well says on or off; the press shrinks it a little, as a
+     button card does. */
+  .chip.tile.control {
+    border: 1px solid rgba(100, 100, 100, 0.25);
+    background: transparent;
+    color: var(--m3p-text, var(--primary-text-color));
+    font-weight: 400;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .chip.tile.control:active {
+    transform: scale(0.96);
   }
 
   .tile-icon {
@@ -233,35 +265,51 @@ export const infoChipStyles = css`
     border-radius: 50%;
     display: grid;
     place-items: center;
-    background: color-mix(in srgb, var(--m3a-chip, var(--m3p-secondary-text)) 18%, transparent);
-    color: var(--m3a-chip-text, var(--m3p-secondary-text));
+    background: var(--m3a-well, color-mix(in srgb, var(--m3a-chip, var(--m3p-secondary-text)) 20%, transparent));
+    color: var(--m3a-well-ink, var(--m3a-chip-text, var(--m3p-secondary-text)));
+    transition:
+      background 0.25s ease,
+      color 0.25s ease,
+      border-radius 0.3s ${EASING};
+  }
+
+  .tile.off .tile-icon {
+    background: color-mix(in srgb, var(--m3p-secondary-text, var(--secondary-text-color)) 8%, transparent);
+    color: var(--m3p-secondary-text, var(--secondary-text-color));
+  }
+
+  .tile.on .tile-icon {
+    border-radius: ${unsafeCSS(APPLIANCE_TILE_ICON_RADIUS_ON)};
+    background: var(--m3a-chip);
+    color: var(--m3a-chip-ink);
   }
 
   .tile-icon ha-icon {
-    --mdc-icon-size: 18px;
-    width: 18px;
-    height: 18px;
+    --mdc-icon-size: ${APPLIANCE_TILE_GLYPH}px;
+    width: ${APPLIANCE_TILE_GLYPH}px;
+    height: ${APPLIANCE_TILE_GLYPH}px;
   }
 
   .tile-text {
     display: flex;
     flex-direction: column;
     min-width: 0;
-    gap: 1px;
+    gap: 2px;
   }
 
   .tile-name {
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--m3p-secondary-text);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--m3p-text, var(--primary-text-color));
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   .tile-value {
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 400;
+    opacity: 0.7;
     color: var(--m3p-text, var(--primary-text-color));
     white-space: nowrap;
     overflow: hidden;
@@ -313,12 +361,4 @@ export const infoChipStyles = css`
     color: var(--m3a-chip-ink);
   }
 
-  /* A tile sets its name, value and icon colours itself, so the fill's ink
-     has to reach them too: a switched-on tile kept light text on its light
-     fill and could not be read. */
-  .chip.tile.control.active .tile-name,
-  .chip.tile.control.active .tile-value,
-  .chip.tile.control.active .tile-icon {
-    color: var(--m3a-chip-ink);
-  }
 `;

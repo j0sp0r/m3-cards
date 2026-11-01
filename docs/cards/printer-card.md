@@ -334,7 +334,8 @@ recognisable name but do say what they are.
 Anything else worth reading beside the printer — the enclosure, the AMS's own
 humidity, a filament dryer, the sockets — goes in `chips`, the same option the
 appliance card has. They sit at the foot of the card, as small pills or, with
-`chip_style: tile`, as a grid of tiles: the name small, the value large.
+`chip_style: tile`, as a grid of tiles drawn like button cards: the name
+bold, the reading under it.
 The editor's **Status chips** panel edits them, dividers and order included.
 
 An entry with a `heading` and no `entity` is a divider across the full width,

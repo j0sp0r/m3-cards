@@ -408,8 +408,11 @@ the state's colour turned every reading grey whenever the machine stood idle.
 
 On a card that is mostly read — the power draw, today's energy, the meter, the
 water — small pills undersell the figures. `chip_style: tile` draws each chip
-as a tile instead: the name small, the value large, in a grid of two columns on
-a phone and more on a wide card.
+as a tile instead, in a grid of two columns on a phone and more on a wide
+card. A tile is drawn as a button card is — same height, rim, corner and
+round icon well, the name bold with the reading under it — so it sits beside
+a room's buttons as one design. A switch's well is grey while off and a filled
+rounded square while on.
 
 ```yaml
 chip_style: tile   # pill (default) | tile
