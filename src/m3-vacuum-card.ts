@@ -52,14 +52,14 @@ import { contentInset, insetCss } from "./shared/image-crop";
 import { acknowledgeReminder, reminderStates } from "./shared/vacuum-reminders";
 import { stopSwipe } from "./shared/swipe";
 import { activateOnKey } from "./shared/a11y";
-import { STANDARD_EASING } from "./shared/animation";
+import { STANDARD_EASING, shouldAnimate } from "./shared/animation";
 import {
   renderLevelSlider,
   levelSliderStyles,
   type LevelStep,
 } from "./shared/level-slider";
 import { foldHides, readCollapsed, writeCollapsed, type CollapseTarget } from "./shared/collapse-state";
-import { detailsToggleStyles, renderDetailsToggle } from "./shared/fold-arrow";
+import { detailsToggleStyles, easeFoldHeight, renderDetailsToggle } from "./shared/fold-arrow";
 import {
   ChipRowController,
   chipButtonsStyles,
@@ -261,8 +261,15 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
 
   private _toggleFold = (e: Event): void => {
     e.stopPropagation();
+    // Measured before the change, so the card can ease from it once the
+    // folded or opened layout has rendered.
+    const inner = this.renderRoot.querySelector(".card-inner") as HTMLElement | null;
+    const before = inner?.offsetHeight ?? 0;
     this._folded = !this._folded;
     writeCollapsed(this.hass, this._foldTarget, this._folded);
+    void this.updateComplete.then(() =>
+      easeFoldHeight(inner, before, shouldAnimate(this._config?.animation)),
+    );
   };
 
   protected updated(): void {

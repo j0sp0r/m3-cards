@@ -180,8 +180,8 @@ right, with "done at 15:18" under it, and the bar with its percentage on one
 line. **Done**: a "✓ Done" pill where the time was, "Done 12 min ago" as the
 status, no bar — and, with `finish_action`, a full-width **Emptied** button
 in the supply card's style, for a status that does not clear itself. **Idle**:
-the state in a quiet grey pill, the same pill as "Done" and the vacuum's
-battery, with how long it has been idle under the name. The height eases from one to the next, and
+the state in a pill in its own colour, the same pill as "Done" and the
+vacuum's battery, with how long it has been idle under the name. The height eases from one to the next, and
 the fold moves to a quiet "Details" row at the foot, so the top right says
 only one thing — on every card that folds, not only this one: the printer,
 vacuum, vacuum maintenance and room cards share the same row.

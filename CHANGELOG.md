@@ -437,6 +437,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Changed
 
+- **Folding eases instead of jumping.** The appliance, printer, vacuum and
+  vacuum maintenance cards dropped or added their blocks at once; the card now
+  grows or shrinks into its new height over 320 ms, the edge uncovering what
+  appears, as the room card already did. Reduced motion and `animation: off`
+  keep the jump.
 - **Every card that folds does it from a "Details" row at its foot.** The
   appliance, printer, vacuum, vacuum maintenance and room cards had the fold
   chevron in the top right, beside the one figure each card is read for — the
@@ -447,7 +452,7 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   and the percentage on the bar's own line instead of a "Progress … 79 %" row
   above it. Done: a "✓ Done" pill, "Done 12 min ago" as the status, no bar,
   and with `finish_action` a full-width "Emptied" button in the supply card's
-  style. Idle: the state in a quiet grey pill, the vacuum battery pill's
+  style. Idle: the state in a pill in its own colour, the vacuum battery pill's
   shape, with "For 2 h" under the name. The fold chevron moves to a
   "Details" row at the foot, except on the one-line idle card. The height
   eases between them. New: `finish_action`, `finish_label`, `show_end_time`;

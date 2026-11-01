@@ -125,7 +125,7 @@ import { formatNumber } from "./shared/formatting";
 import { glassCardClass, glassCardStyles, renderMissingEntity } from "./shared/glass-card";
 import { cardHeaderStyles, renderCardHeader } from "./shared/card-header";
 import { foldHides, readCollapsed, writeCollapsed, type CollapseTarget } from "./shared/collapse-state";
-import { detailsToggleStyles, renderDetailsToggle } from "./shared/fold-arrow";
+import { detailsToggleStyles, easeFoldHeight, renderDetailsToggle } from "./shared/fold-arrow";
 import { hassChangeMatters } from "./shared/should-update";
 import { stopSwipe } from "./shared/swipe";
 import { findStateRule, numericState } from "./shared/state-rules";
@@ -310,8 +310,15 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
 
   private _toggleFold = (e: Event): void => {
     e.stopPropagation();
+    // Measured before the change, so the card can ease from it once the
+    // folded or opened layout has rendered.
+    const inner = this.renderRoot.querySelector(".card-inner") as HTMLElement | null;
+    const before = inner?.offsetHeight ?? 0;
     this._folded = !this._folded;
     writeCollapsed(this.hass, this._foldTarget, this._folded);
+    void this.updateComplete.then(() =>
+      easeFoldHeight(inner, before, shouldAnimate(this._config?.animation)),
+    );
   };
 
   public getCardSize(): number {
@@ -815,7 +822,9 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
             </div>`
         : phase === "done"
           ? html`<span class="done-pill"><ha-icon icon="mdi:check"></ha-icon>${this._t("appliance_done")}</span>`
-          : html`<span class="done-pill neutral"><ha-icon icon=${unavailable ? "mdi:lan-disconnect" : "mdi:power-standby"}></ha-icon>${subtitle}</span>`;
+          : html`<span class="done-pill ${unavailable ? "neutral" : ""}"
+              ><ha-icon icon=${unavailable ? "mdi:lan-disconnect" : "mdi:power-standby"}></ha-icon>${subtitle}</span
+            >`;
 
     return html`
       <ha-card style=${`${cssVars} border-radius: ${radius};`}>
@@ -1555,7 +1564,8 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       background: var(--m3p-icon-bg);
     }
 
-    /* Idle: the same pill, in the quiet colour — nothing to do here. */
+    /* Unreachable: the same pill in the quiet colour. Idle keeps the state's
+       colour, as the icon beside it does. */
     .done-pill.neutral {
       color: var(--m3p-secondary-text);
       background: color-mix(in srgb, var(--m3p-secondary-text) 12%, transparent);

@@ -143,3 +143,30 @@ export const detailsToggleStyles = css`
     transform: none;
   }
 `;
+
+/** How long the card takes to grow or shrink into its folded or open height. */
+export const FOLD_EASE_MS = 320;
+
+/**
+ * Eases a card from the height it had before a fold to the one it has after.
+ *
+ * The cards fold by leaving blocks out of the render, so the change itself is
+ * instant; this plays it back as a movement — the card grows or shrinks, and
+ * what appears is uncovered by the growing edge rather than popping in. Call
+ * it with the height measured before the change, once the update is done.
+ * Nothing happens under reduced motion, with `animation: off`, or when the
+ * height did not change.
+ */
+export function easeFoldHeight(inner: HTMLElement | null, before: number, allowed: boolean): void {
+  if (!inner || !allowed || !before) return;
+  if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+  const after = inner.offsetHeight;
+  if (!after || Math.abs(after - before) < 2) return;
+  inner.animate(
+    [
+      { height: `${before}px`, overflow: "hidden" },
+      { height: `${after}px`, overflow: "hidden" },
+    ],
+    { duration: FOLD_EASE_MS, easing: STANDARD_EASING },
+  );
+}

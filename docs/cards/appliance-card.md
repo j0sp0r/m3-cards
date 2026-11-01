@@ -485,7 +485,7 @@ Each of the three draws its own layout:
 
 | | Running | Done | Idle |
 | --- | --- | --- | --- |
-| Top right | the time left, large, with "done at 15:18" under it | a tinted "✓ Done" pill | the state in a quiet grey pill |
+| Top right | the time left, large, with "done at 15:18" under it | a tinted "✓ Done" pill | the state in a pill, in the state's colour |
 | Status line | the state | "Done 12 min ago" | "For 2 h" |
 | Below | the bar, its percentage on the same line | the "Emptied" button, when `finish_action` is set | nothing |
 

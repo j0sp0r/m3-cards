@@ -65,7 +65,7 @@ import {
   PRINTER_DETAIL_CHIP_RADIUS,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
-import { STANDARD_EASING, isReducedMotion } from "./shared/animation";
+import { STANDARD_EASING, isReducedMotion, shouldAnimate } from "./shared/animation";
 import { runHaAction, isActionable } from "./shared/actions";
 import { cardHeaderStyles, renderCardHeader } from "./shared/card-header";
 import { inkOn, resolveCommonColors, resolveThemeColor, tintOn } from "./shared/color-config";
@@ -77,7 +77,7 @@ import { OptimisticState } from "./shared/optimistic-state";
 import { confirmDialogStyles, renderConfirmDialog, type ConfirmRequest } from "./shared/confirm-dialog";
 import { syncDialogOpenState } from "./shared/popup-card";
 import { foldHides, readCollapsed, writeCollapsed, type CollapseTarget } from "./shared/collapse-state";
-import { detailsToggleStyles, renderDetailsToggle } from "./shared/fold-arrow";
+import { detailsToggleStyles, easeFoldHeight, renderDetailsToggle } from "./shared/fold-arrow";
 import { hassChangeMatters } from "./shared/should-update";
 import { infoChipStyles, renderInfoChips } from "./shared/info-chips";
 import { TemplatedCard } from "./shared/templated-card";
@@ -236,8 +236,15 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
 
   private _toggleFold = (e: Event): void => {
     e.stopPropagation();
+    // Measured before the change, so the card can ease from it once the
+    // folded or opened layout has rendered.
+    const inner = this.renderRoot.querySelector(".card-inner") as HTMLElement | null;
+    const before = inner?.offsetHeight ?? 0;
     this._folded = !this._folded;
     writeCollapsed(this.hass, this._foldTarget, this._folded);
+    void this.updateComplete.then(() =>
+      easeFoldHeight(inner, before, shouldAnimate(this._config?.animation)),
+    );
   };
 
   protected shouldUpdate(changed: PropertyValues): boolean {

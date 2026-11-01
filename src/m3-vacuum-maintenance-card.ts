@@ -40,9 +40,9 @@ import { localize, type TranslationKey } from "./localize";
 import { activateOnKey } from "./shared/a11y";
 import { confirmDialogStyles, renderConfirmDialog, type ConfirmRequest } from "./shared/confirm-dialog";
 import { syncDialogOpenState } from "./shared/popup-card";
-import { STANDARD_EASING } from "./shared/animation";
+import { STANDARD_EASING, shouldAnimate } from "./shared/animation";
 import { foldHides, readCollapsed, writeCollapsed, type CollapseTarget } from "./shared/collapse-state";
-import { detailsToggleStyles, renderDetailsToggle } from "./shared/fold-arrow";
+import { detailsToggleStyles, easeFoldHeight, renderDetailsToggle } from "./shared/fold-arrow";
 import { resolveCommonColors, resolveThemeColor, tintOn } from "./shared/color-config";
 import { formatNumber } from "./shared/formatting";
 import { glassCardClass, glassCardStyles, renderMissingEntity } from "./shared/glass-card";
@@ -161,8 +161,15 @@ export class M3VacuumMaintenanceCard
 
   private _toggleFold = (e: Event): void => {
     e.stopPropagation();
+    // Measured before the change, so the card can ease from it once the
+    // folded or opened layout has rendered.
+    const inner = this.renderRoot.querySelector(".card-inner") as HTMLElement | null;
+    const before = inner?.offsetHeight ?? 0;
     this._folded = !this._folded;
     writeCollapsed(this.hass, this._foldTarget, this._folded);
+    void this.updateComplete.then(() =>
+      easeFoldHeight(inner, before, shouldAnimate(this._config?.animation)),
+    );
   };
 
   protected updated(): void {
