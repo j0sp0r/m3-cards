@@ -339,6 +339,7 @@ export class M3LightsOverviewCard extends TemplatedCard(LitElement) implements L
   private _runAction(tile: LightsOverviewTile, kind: ActionKind): void {
     if (!this.hass) return;
     runHaAction(this.hass, this._resolveAction(kind), {
+      source: this,
       entityId: tile.entities[0],
       toggle: () => this._toggleRoom(tile),
       openPopup: () => this._openPopup(tile),

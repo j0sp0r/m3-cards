@@ -50,7 +50,7 @@ import {
   renderChipButtons,
 } from "./shared/chip-buttons";
 import { TapHoldGesture } from "./shared/gestures";
-import { openActionUrl } from "./shared/actions";
+import { openActionUrl, toggleSidebar } from "./shared/actions";
 import { SUPPORTS_CONTAINER_UNITS } from "./shared/css-support";
 import { openEntityDetail } from "./shared/entity-detail";
 
@@ -343,6 +343,9 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
         // This card still runs its own copy of the action switch (see the note
         // in shared/actions.ts); the URL guard is shared, not copied.
         openActionUrl(cfg.url_path, cfg.new_tab !== false);
+        return;
+      case "sidebar":
+        toggleSidebar(this);
         return;
       default:
         return;

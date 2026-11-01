@@ -1028,6 +1028,7 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
     }
     if (!isActionable(action) || !this.hass) return;
     runHaAction(this.hass, action, {
+      source: this,
       entityId: this._entity("map_entity", "map") ?? this._config!.entity,
       openPopup: () => this._openPopup(),
       fireMoreInfo: (id) => this._fireMoreInfo(id),
@@ -1404,6 +1405,7 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
     }
     if (!isActionable(action) || !this.hass) return;
     runHaAction(this.hass, action, {
+      source: this,
       entityId: this._config!.entity,
       openPopup: () => this._openPopup(),
       fireMoreInfo: (id) => this._fireMoreInfo(id),

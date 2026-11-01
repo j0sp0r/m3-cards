@@ -632,6 +632,7 @@ export class M3ClimateOverviewCard extends TemplatedCard(LitElement) implements 
   private _runHumidityAction(tile: ClimateOverviewTile): void {
     if (!this.hass) return;
     runHaAction(this.hass, this._humidityAction(), {
+      source: this,
       entityId: tile.humidityEntity,
       openPopup: () => this._openPopup(tile),
       fireMoreInfo: (entityId) => openEntityDetail(this, entityId),
@@ -656,6 +657,7 @@ export class M3ClimateOverviewCard extends TemplatedCard(LitElement) implements 
       return;
     }
     runHaAction(this.hass, this._resolveAction(kind), {
+      source: this,
       entityId: tile.tapEntity,
       openPopup: () => this._openPopup(tile),
       fireMoreInfo: (entityId) => openEntityDetail(this, entityId),

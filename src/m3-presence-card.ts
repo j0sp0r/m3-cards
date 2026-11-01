@@ -316,6 +316,7 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
   private _runAction(action: HaActionConfig | undefined, entityId: string): void {
     if (!this.hass) return;
     runHaAction(this.hass, action, {
+      source: this,
       entityId,
       openPopup: () => this._openPopup(entityId),
       fireMoreInfo: (id) => openEntityDetail(this, id),

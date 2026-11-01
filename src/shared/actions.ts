@@ -84,6 +84,17 @@ function confirmed(action: HaActionConfig): boolean {
   return window.confirm(text);
 }
 
+/**
+ * Opens Home Assistant's sidebar. The frontend's main view listens for
+ * `hass-toggle-menu` coming up from anywhere inside it — the header's menu
+ * button fires the same event — so it has to bubble out of the card's shadow
+ * root. On a phone that slides the drawer in; on a wide screen it expands or
+ * collapses the docked sidebar.
+ */
+export function toggleSidebar(source: EventTarget): void {
+  source.dispatchEvent(new CustomEvent("hass-toggle-menu", { bubbles: true, composed: true, detail: {} }));
+}
+
 export function handleAction(
   source: HTMLElement,
   hass: HomeAssistant | undefined,
@@ -126,6 +137,9 @@ export function handleAction(
     case "url":
       openActionUrl(cfg.url_path, cfg.new_tab !== false);
       return;
+    case "sidebar":
+      toggleSidebar(source);
+      return;
     default:
       return;
   }
@@ -148,6 +162,9 @@ export interface RunActionContext {
   openPopup?: () => void;
   fireMoreInfo: (entityId?: string) => void;
   navigate: (path: string) => void;
+  /** The element the "sidebar" action's event starts from; without it the
+   * action does nothing, as the event must rise from inside the frontend. */
+  source?: EventTarget;
 }
 
 // Executes a standard HaActionConfig the same way every M3 card's tap/hold/
@@ -204,6 +221,9 @@ export function runHaAction(
       return;
     case "url":
       openActionUrl(cfg.url_path, cfg.new_tab !== false);
+      return;
+    case "sidebar":
+      if (ctx.source) toggleSidebar(ctx.source);
       return;
     default:
       return;

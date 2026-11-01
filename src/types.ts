@@ -202,6 +202,9 @@ export interface HaActionConfig {
     // A card-defined popup rather than HA's own more-info dialog —
     // see shared/actions.ts and shared/popup-card.ts.
     | "popup"
+    // Opens Home Assistant's own sidebar — the drawer on a phone, where the
+    // header that carries its button may be hidden behind a navbar.
+    | "sidebar"
     | "none";
   service?: string;
   perform_action?: string;

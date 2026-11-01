@@ -65,7 +65,7 @@ hold_action:
 | `corners` | object | – | Optional per-corner override: `top_left`, `top_right`, `bottom_right`, `bottom_left` (px) — for asymmetric Material 3 Expressive shapes, e.g. a button with only one rounded side |
 | `glass_background` | boolean | `true` | Frosted glass background |
 | `animations` | boolean | `true` | Press animation (slight sink-in on tap); `false` disables all transitions |
-| `tap_action` | Action | domain-dependent | Chosen sensibly by default: `automation.trigger`/`script.turn_on`/`scene.turn_on`/`button.press` for the respective domain, `toggle` for light/switch/etc., otherwise `more-info` |
+| `tap_action` | Action | domain-dependent | Chosen sensibly by default: `automation.trigger`/`script.turn_on`/`scene.turn_on`/`button.press` for the respective domain, `toggle` for light/switch/etc., otherwise `more-info`. `action: sidebar` opens Home Assistant's sidebar |
 | `hold_action` | Action | `more-info` | Action on long-press (on the whole tile) — same as the native tile card |
 | `double_tap_action` | Action | `none` | Action on double-tap (on the whole tile) |
 | `icon_tap_action` | Action | `more-info` | Its own tap action for just the icon/icon circle, independent of `tap_action` — same as the native tile card |

@@ -370,6 +370,7 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
     }
     if (!isActionable(action) || !this.hass) return;
     runHaAction(this.hass, action, {
+      source: this,
       entityId: this._config!.entity,
       openPopup: () => this._fireMoreInfo(this._config?.entity),
       fireMoreInfo: (id) => this._fireMoreInfo(id),

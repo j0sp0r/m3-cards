@@ -538,6 +538,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     // the `popup` kind; the branches the two share behave identically.
     if (!this.hass) return;
     runHaAction(this.hass, action, {
+      source: this,
       entityId,
       openPopup: () => this._openPopup(),
       fireMoreInfo: (id) => openEntityDetail(this, id),

@@ -10,6 +10,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **`action: sidebar` opens Home Assistant's sidebar.** A navbar usually
+  takes the place of the header, and with it the button for the sidebar. The
+  new action brings it back as a navbar entry, a menu item, or any M3 card's
+  `tap_action`: the drawer slides in on a phone, the docked sidebar expands or
+  collapses on a wide screen. Set in YAML; Home Assistant's own action editor
+  does not list it.
 - **A popup card, `m3-popup-card`: other cards in a bottom sheet, opened by a
   URL hash.** A button that navigates to `#remotes` opens the popup whose
   `hash` is `#remotes`, which is how Bubble Card's pop-ups work — a dashboard

@@ -179,3 +179,22 @@ describe("safeActionUrl", () => {
     expect(safeActionUrl("file:///etc/passwd", BASE)).toBeUndefined();
   });
 });
+
+describe("sidebar action", () => {
+  it("raises hass-toggle-menu from the card, out through shadow roots", () => {
+    const { hass, callService } = fakeHass();
+    const dispatchEvent = vi.fn();
+    runHaAction(hass, { action: "sidebar" }, fakeCtx({ source: { dispatchEvent } as unknown as EventTarget }));
+    expect(dispatchEvent).toHaveBeenCalledTimes(1);
+    const ev = dispatchEvent.mock.calls[0][0] as CustomEvent;
+    expect(ev.type).toBe("hass-toggle-menu");
+    expect(ev.bubbles).toBe(true);
+    expect(ev.composed).toBe(true);
+    expect(callService).not.toHaveBeenCalled();
+  });
+
+  it("does nothing without a card to start from", () => {
+    const { hass } = fakeHass();
+    expect(() => runHaAction(hass, { action: "sidebar" }, fakeCtx())).not.toThrow();
+  });
+});

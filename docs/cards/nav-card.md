@@ -189,6 +189,27 @@ With `submenu_trigger: hold` the entry navigates on a tap as usual and the
 menu comes up on a long press instead — which is the right way round when the
 entry is a real destination and the menu is a shortcut to its neighbours.
 
+### Opening Home Assistant's sidebar
+
+A navbar usually replaces the header, and with it the button that opens Home
+Assistant's own sidebar. `action: sidebar` brings it back as an entry —
+in the bar, in a submenu or in the action button's menu:
+
+```yaml
+action_button:
+  icon: mdi:dots-horizontal
+  menu:
+    - name: Sidebar
+      icon: mdi:menu
+      tap_action:
+        action: sidebar
+```
+
+On a phone it slides the drawer in; on a wide screen it expands or collapses
+the docked sidebar. The action works on any M3 card's `tap_action`, not just
+the navbar; Home Assistant's own action editor does not list it, so it is set
+in YAML.
+
 ### The sheet
 
 ```yaml
