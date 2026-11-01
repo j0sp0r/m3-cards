@@ -2928,6 +2928,11 @@ export interface M3CheckinCardConfig {
   /** Style `status`: the button names the action — "Check in" / "Check out". */
   button_label_in?: string;
   button_label_out?: string;
+  /** Style `swipe`: the track's words — "Slide to check in" / "Slide to check out". */
+  swipe_label_in?: string;
+  swipe_label_out?: string;
+  /** Style `swipe`: the colour of checking out; default a warm orange. */
+  color_checkout?: string;
   /** Status templates; `{duration}` and `{time}`. */
   status_in?: string;
   status_out?: string;

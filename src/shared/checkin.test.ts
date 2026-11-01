@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkinAction, checkinSince, checkinState, durationParts, fillStatus, runningTime } from "./checkin";
+import { checkinAction, checkinSince, checkinState, durationParts, fillStatus, runningTime, swipeProgress, SWIPE_THRESHOLD } from "./checkin";
 import type { HassEntity } from "../types";
 
 const st = (state: string, last_changed = "2026-11-01T12:00:00Z"): HassEntity =>
@@ -89,5 +89,27 @@ describe("runningTime", () => {
 
   it("never runs backwards", () => {
     expect(runningTime(t0, t0 - 120000)).toEqual({ value: "0", unit: "m" });
+  });
+});
+
+describe("swipeProgress", () => {
+  it("travels right when checked out, left when checked in", () => {
+    expect(swipeProgress(50, 200, false)).toBe(0.25);
+    expect(swipeProgress(-50, 200, true)).toBe(0.25);
+  });
+
+  it("clamps the wrong way and past the end", () => {
+    expect(swipeProgress(-40, 200, false)).toBe(0);
+    expect(swipeProgress(40, 200, true)).toBe(0);
+    expect(swipeProgress(260, 200, false)).toBe(1);
+  });
+
+  it("counts from three quarters", () => {
+    expect(swipeProgress(149, 200, false) >= SWIPE_THRESHOLD).toBe(false);
+    expect(swipeProgress(150, 200, false) >= SWIPE_THRESHOLD).toBe(true);
+  });
+
+  it("has nothing to travel on a track too short for the handle", () => {
+    expect(swipeProgress(30, 0, false)).toBe(0);
   });
 });

@@ -79,18 +79,41 @@ the icon pulses while checked in. Below, **one** button that names the action
 here pressing it does exactly what it says. It squares from a pill to 18px
 under the finger. `button_label_in` / `button_label_out` rename it.
 
+### Style `swipe`
+
+```yaml
+type: custom:m3-checkin-card
+entity: input_boolean.garden_presence
+style: swipe
+```
+
+For a phone in a pocket or a tablet by the door, where a brush of the hand
+should not switch anything: a 54px track with a handle to **slide** — right
+to check in, left to check out. Past three quarters of the way it counts;
+short of that it springs back. The handle squares to 15px while held, and a
+tap on it only nudges it the way it goes. Checking out is a warm orange
+(`color_checkout`, default `#e0a05a`) — an act, not a fault. Only the handle
+claims the touch, so the page still scrolls over the rest of the card.
+
+With a keyboard it is a switch: Space or Enter does it. Under reduced motion
+(or `animation: off`) there is nothing to slide and a tap does it.
+`swipe_label_in` / `swipe_label_out` rename the track; `icon_in` / `icon_out`
+replace the handle's chevrons.
+
 ### Options
 
 | Option | Default | Description |
 | --- | --- | --- |
 | `entity` | — | **Required.** input_boolean, switch, binary_sensor, person or device_tracker |
-| `style` | `segmented` | The control: `segmented` or `status`; `swipe` is planned |
+| `style` | `segmented` | The control: `segmented`, `status` or `swipe` |
 | `name`, `icon`, `icon_off` | entity name, `mdi:account-check`, `mdi:account-off` | Header |
 | `state_on`, `home_state` | `on`, `home` | What counts as checked in |
 | `checkin_action`, `checkout_action` | turn_on / turn_off | Any action |
 | `since_entity` | — | Where "since" comes from instead of `last_changed` |
 | `label_in`, `label_out`, `icon_in`, `icon_out` | "Checked in", "Checked out", `mdi:login`, `mdi:logout` | The halves |
 | `button_label_in`, `button_label_out` | "Check in", "Check out" | Style `status`: the button |
+| `swipe_label_in`, `swipe_label_out` | "Slide to check in", "Slide to check out" | Style `swipe`: the track |
+| `color_checkout` | `#e0a05a` | Style `swipe`: the colour of checking out |
 | `status_in`, `status_out` | see above | Status templates with `{duration}`, `{time}` |
 | `color`, `color_off` | `#81c784`, `#8b909b` | Checked in / out |
 | `optimistic_timeout` | `5000` | Milliseconds to wait for confirmation |

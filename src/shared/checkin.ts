@@ -103,3 +103,17 @@ export function runningTime(since: number, now: number): { value: string; unit: 
   if (h < 48) return { value: `${h}:${String(minutes % 60).padStart(2, "0")}`, unit: "h" };
   return { value: String(Math.floor(h / 24)), unit: "d" };
 }
+
+/** How far a swipe has to travel, as a share of the track, to count. */
+export const SWIPE_THRESHOLD = 0.75;
+
+/**
+ * How far along its way a dragged handle is, 0 to 1. Checked out, the handle
+ * starts on the left and travels right; checked in, it starts on the right and
+ * travels left. Dragging the wrong way, or past the end, is clamped.
+ */
+export function swipeProgress(dx: number, travel: number, fromIn: boolean): number {
+  if (travel <= 0) return 0;
+  const p = (fromIn ? -dx : dx) / travel;
+  return Math.min(1, Math.max(0, p));
+}

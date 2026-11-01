@@ -2996,4 +2996,19 @@ export const CHECKIN_RUNNING_SIZE = 26;
 /** The live dot on the header icon while checked in, and its pulse. */
 export const CHECKIN_DOT_SIZE = 10;
 export const CHECKIN_PULSE_MS = 2000;
+/**
+ * The swipe style: a 54px track, a 46px handle in it (4px all round), round
+ * at rest and squaring to 15 while held. Let go short of the threshold, it
+ * springs back with a slight overshoot.
+ */
+export const CHECKIN_SWIPE_HEIGHT = 54;
+export const CHECKIN_SWIPE_PAD = 4;
+export const CHECKIN_SWIPE_HANDLE = CHECKIN_SWIPE_HEIGHT - 2 * CHECKIN_SWIPE_PAD;
+export const CHECKIN_SWIPE_HANDLE_RADIUS_HELD = 15;
+export const CHECKIN_SWIPE_SPRING_MS = 350;
+export const CHECKIN_SWIPE_SPRING_EASING = "cubic-bezier(0.34, 1.56, 0.64, 1)";
+/** Checking out by swipe: a warm orange, an act rather than a fault. */
+export const CHECKIN_COLOR_CHECKOUT = "#e0a05a";
+/** A tap on the handle nudges it this far, to show which way it goes. */
+export const CHECKIN_SWIPE_NUDGE_PX = 14;
 export const DEFAULT_CHECKIN_RADIUS = RADIUS.card;
