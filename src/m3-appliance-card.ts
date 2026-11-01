@@ -60,6 +60,8 @@ import {
   APPLIANCE_SLIDER_TRACK,
   APPLIANCE_VALUE_SIZE,
   APPLIANCE_HERO_SIZE,
+  APPLIANCE_UNAVAILABLE_GRACE_MS,
+  APPLIANCE_DONE_SLACK_MIN,
   APPLIANCE_PILL_HEIGHT,
   APPLIANCE_PILL_RADIUS,
   APPLIANCE_FINISH_HEIGHT,
@@ -139,6 +141,21 @@ console.info(
 );
 
 const EASING = unsafeCSS(STANDARD_EASING);
+
+/**
+ * A run at 100 % with at most APPLIANCE_DONE_SLACK_MIN left is done. Not
+ * "under a minute": a Home Connect dryer in its anti-crease phase sets its end
+ * to now + 1 min every time it reconnects, which it does every few minutes, so
+ * the card flipped between "1 min left" and "Done" all afternoon.
+ */
+function doneByProgress(progress: ProgressReading | undefined): boolean {
+  return (
+    !!progress &&
+    !progress.indeterminate &&
+    (progress.percent ?? 0) >= 100 &&
+    (progress.remaining ?? 0) <= APPLIANCE_DONE_SLACK_MIN
+  );
+}
 
 /** What the card shows: a run with its time, a finished machine, or one line. */
 type AppliancePhase = "ready" | "running" | "done";
@@ -416,8 +433,11 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
    * unconditional assignment: on those the minute tick renders nothing at all.
    */
   private _onTick(now: number): void {
-    // "Done 12 min ago" has no sensor that changes as the minutes pass.
-    if (this._machinePhase === "done") {
+    // "Done 12 min ago" has no sensor that changes as the minutes pass, and a
+    // machine hidden behind the last reading has to be shown as gone once the
+    // grace runs out, whether or not anything else changes.
+    const actual = this._config?.entity ? this.hass?.states[this._config.entity]?.state : undefined;
+    if (this._machinePhase === "done" || (actual !== undefined && isMissingState(actual))) {
       this._now = now;
       return;
     }
@@ -440,9 +460,28 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     return localize(key, this._language);
   }
 
+  /**
+   * The entity's state — or, for a short gap, the last one that was a reading.
+   *
+   * A Home Connect dryer in its anti-crease phase drops off and reconnects
+   * every few minutes, each time for a few seconds, and the card went grey and
+   * back with it. A blip shorter than APPLIANCE_UNAVAILABLE_GRACE_MS shows the
+   * last reading instead; a machine that stays gone is shown as gone.
+   */
   private _state(entityId?: string): HassEntity | undefined {
-    return entityId ? this.hass?.states[entityId] : undefined;
+    if (!entityId) return undefined;
+    const st = this.hass?.states[entityId];
+    if (st && !isMissingState(st.state)) {
+      this._lastReading.set(entityId, st);
+      return st;
+    }
+    const last = this._lastReading.get(entityId);
+    const since = st?.last_changed ? Date.parse(st.last_changed) : NaN;
+    if (last && Number.isFinite(since) && Date.now() - since < APPLIANCE_UNAVAILABLE_GRACE_MS) return last;
+    return st;
   }
+
+  private readonly _lastReading = new Map<string, HassEntity>();
 
   private get _main(): HassEntity | undefined {
     return this._state(this._config?.entity);
@@ -462,7 +501,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     // `run` at 100% with its finish time behind it. When the card has a rule
     // for a finished state, that is the one that describes the machine.
     const progress = this._config?.progress ? this._progress() : undefined;
-    if ((progress?.percent ?? 0) >= 100 && (progress?.remaining ?? 0) < 1) {
+    if (doneByProgress(progress)) {
       const done = states?.find((r) => r.value && DEFAULT_DONE_STATES.includes(r.value.toLowerCase()));
       if (done) return done;
     }
@@ -713,9 +752,8 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     // but name": a dryer in its anti-crease phase reports `run` at 100 % with
     // its finish time behind it.
     const done = (cfg.done_states ?? DEFAULT_DONE_STATES).some((s) => s.toLowerCase() === raw);
-    const doneByProgress =
-      !!progress && !progress.indeterminate && (progress.percent ?? 0) >= 100 && (progress.remaining ?? 0) < 1;
-    const phase: AppliancePhase = unavailable || idle ? "ready" : done || doneByProgress ? "done" : "running";
+    const progressDone = doneByProgress(progress);
+    const phase: AppliancePhase = unavailable || idle ? "ready" : done || progressDone ? "done" : "running";
     this._machinePhase = phase;
     const remaining = phase === "running" ? progress?.remaining : undefined;
 

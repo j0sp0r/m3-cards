@@ -198,6 +198,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **A dryer in its anti-crease phase stays "Done".** Home Connect sets the end
+  to now + 1 min on every reconnect, which it does every few minutes, so a run
+  at 100 % read as one minute left and then as done, over and over. A run at
+  100 % with up to two minutes left now counts as done, by one rule shared
+  by the layout and the status line. The reconnects also greyed the card for
+  a few seconds each time; an appliance that drops out for under 90 seconds
+  keeps showing its last reading.
 - **A printer switched off leaves its card as it was, and its camera out.**
   The tiles were held open while the printer was offline, for a socket given
   as a tile, so a card folded on purpose sprang open the moment the printer

@@ -2164,6 +2164,10 @@ export const APPLIANCE_LABEL_SIZE = HUMIDIFIER_LABEL_SIZE;
 export const APPLIANCE_VALUE_SIZE = 22;
 /** The remaining time while a run is on: the figure the card is read for. */
 export const APPLIANCE_HERO_SIZE = 34;
+/** Minutes a run at 100 % may still claim and count as done. */
+export const APPLIANCE_DONE_SLACK_MIN = 2;
+/** How long a dropped connection shows the last reading instead of "unavailable". */
+export const APPLIANCE_UNAVAILABLE_GRACE_MS = 90_000;
 /** "Emptied": the supply card's refill button, so the two read as one kind. */
 export const APPLIANCE_FINISH_HEIGHT = SUPPLY_ACTION_HEIGHT;
 export const APPLIANCE_FINISH_RADIUS = SUPPLY_REFILL_RADIUS;
