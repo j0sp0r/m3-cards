@@ -2955,3 +2955,28 @@ export const DETAIL_TILE_RADIUS = 16;
 export const DETAIL_TILE_PADDING = 10;
 // localStorage key prefix for the period a viewer last picked, per entity.
 export const DETAIL_RANGE_STORAGE_PREFIX = "m3-detail-range:";
+
+// ---- Check-in card ----------------------------------------------------------
+export const CHECKIN_COLOR_IN = "#81c784";
+/** Out is a normal state, not a fault: a neutral grey, never red. */
+export const CHECKIN_COLOR_OFF = "#8b909b";
+export const DEFAULT_CHECKIN_ICON = "mdi:account-check";
+export const DEFAULT_CHECKIN_ICON_OFF = "mdi:account-off";
+export const DEFAULT_CHECKIN_ICON_IN = "mdi:login";
+export const DEFAULT_CHECKIN_ICON_OUT = "mdi:logout";
+/** How much the whole card takes the state's colour, and its rim. */
+export const CHECKIN_TINT_IN = 10;
+export const CHECKIN_RIM_IN = 28;
+export const CHECKIN_TINT_OUT = 5;
+export const CHECKIN_RIM_OUT = 10;
+export const CHECKIN_TRANSITION_MS = 400;
+export const CHECKIN_OPTIMISTIC_MS = 5000;
+/** The segmented control: a 44px row, each half morphing its corner. */
+export const CHECKIN_SEGMENT_HEIGHT = 44;
+export const CHECKIN_SEGMENT_PAD = 4;
+export const CHECKIN_SEGMENT_RADIUS = 22;
+export const CHECKIN_SEGMENT_RADIUS_ON = 14;
+export const CHECKIN_SEGMENT_RADIUS_OFF = 20;
+/** Below this the segment labels give way to their icons. */
+export const CHECKIN_NARROW_PX = 280;
+export const DEFAULT_CHECKIN_RADIUS = RADIUS.card;

@@ -2897,6 +2897,52 @@ export interface M3GroupCardConfig {
   card_version?: string;
 }
 
+// ---- m3-checkin-card -----------------------------------------------------
+
+export type CheckinStyle = "segmented" | "status" | "swipe";
+
+/** One element that shows whether someone is checked in and switches it. */
+export interface M3CheckinCardConfig {
+  type: string;
+  /** input_boolean (switchable), binary_sensor (display), person or device_tracker (by zone). */
+  entity: string;
+  style?: CheckinStyle;
+  name?: string;
+  icon?: string;
+  icon_off?: string;
+  /** The state that means checked in; default `on`. */
+  state_on?: string;
+  /** For a person or tracker, the zone that means checked in; default `home`. */
+  home_state?: string;
+  checkin_action?: HaActionConfig;
+  checkout_action?: HaActionConfig;
+  /** An input_datetime or timestamp sensor holding the last change. */
+  since_entity?: string;
+  /** "Checked in" / "Checked out" — the state, never the verb. */
+  label_in?: string;
+  label_out?: string;
+  icon_in?: string;
+  icon_out?: string;
+  /** Status templates; `{duration}` and `{time}`. */
+  status_in?: string;
+  status_out?: string;
+  /** Colour while checked in; default the card accent green. */
+  color?: string;
+  /** Colour while checked out; neutral on purpose, so out is not an error. */
+  color_off?: string;
+  /** Milliseconds to wait for Home Assistant to confirm a tap. Default 5000. */
+  optimistic_timeout?: number;
+  tap_action?: HaActionConfig;
+  animation?: "auto" | "on" | "off";
+  haptics?: boolean;
+  glass_background?: boolean;
+  card_background?: string;
+  text_color?: string;
+  secondary_text_color?: string;
+  radius?: number;
+  card_version?: string;
+}
+
 // ---- m3-popup-card -------------------------------------------------------
 
 export interface M3PopupCardConfig {

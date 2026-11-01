@@ -55,6 +55,10 @@ const SUBSTITUTED_ELSEWHERE = new Map<string, string>([
   // Goes into a `template` const first, because a configured
   // `status_text_running` may replace it; the const is then substituted.
   ["progress_status_running", "the `template` const one line down"],
+  // A configured status_in/status_out may replace them, so they go into a
+  // `template` const that fillStatus() then fills.
+  ["checkin_status_in", "fillStatus() on the `template` const"],
+  ["checkin_status_out", "fillStatus() on the `template` const"],
 ]);
 
 /**
