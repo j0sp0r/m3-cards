@@ -2964,19 +2964,23 @@ export const DEFAULT_CHECKIN_ICON = "mdi:account-check";
 export const DEFAULT_CHECKIN_ICON_OFF = "mdi:account-off";
 export const DEFAULT_CHECKIN_ICON_IN = "mdi:login";
 export const DEFAULT_CHECKIN_ICON_OUT = "mdi:logout";
-/** How much the whole card takes the state's colour, and its rim. */
+/** How much the whole card takes the state's colour. */
 export const CHECKIN_TINT_IN = 10;
-export const CHECKIN_RIM_IN = 28;
 export const CHECKIN_TINT_OUT = 5;
-export const CHECKIN_RIM_OUT = 10;
 export const CHECKIN_TRANSITION_MS = 400;
 export const CHECKIN_OPTIMISTIC_MS = 5000;
 /** The segmented control: a 44px row, each half morphing its corner. */
 export const CHECKIN_SEGMENT_HEIGHT = 44;
 export const CHECKIN_SEGMENT_PAD = 4;
 export const CHECKIN_SEGMENT_RADIUS = 22;
-export const CHECKIN_SEGMENT_RADIUS_ON = 14;
-export const CHECKIN_SEGMENT_RADIUS_OFF = 20;
+/**
+ * Each half is concentric with the track: its radius is the track's less the
+ * padding, so the two curves run parallel. A tighter active corner looked
+ * like a mismatch, not a morph; the morph is the press, as on every button.
+ */
+export const CHECKIN_SEGMENT_RADIUS_ON = CHECKIN_SEGMENT_RADIUS - CHECKIN_SEGMENT_PAD;
+export const CHECKIN_SEGMENT_RADIUS_OFF = CHECKIN_SEGMENT_RADIUS - CHECKIN_SEGMENT_PAD;
+export const CHECKIN_SEGMENT_RADIUS_PRESSED = 12;
 /** Below this the segment labels give way to their icons. */
 export const CHECKIN_NARROW_PX = 280;
 export const DEFAULT_CHECKIN_RADIUS = RADIUS.card;

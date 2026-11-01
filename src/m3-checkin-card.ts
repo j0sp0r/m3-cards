@@ -6,13 +6,12 @@ import {
   CHECKIN_COLOR_OFF,
   CHECKIN_NARROW_PX,
   CHECKIN_OPTIMISTIC_MS,
-  CHECKIN_RIM_IN,
-  CHECKIN_RIM_OUT,
   CHECKIN_SEGMENT_HEIGHT,
   CHECKIN_SEGMENT_PAD,
   CHECKIN_SEGMENT_RADIUS,
   CHECKIN_SEGMENT_RADIUS_OFF,
   CHECKIN_SEGMENT_RADIUS_ON,
+  CHECKIN_SEGMENT_RADIUS_PRESSED,
   CHECKIN_TINT_IN,
   CHECKIN_TINT_OUT,
   CHECKIN_TRANSITION_MS,
@@ -217,7 +216,6 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
     const vars = buildCssVars({
       "ci-tone": tone,
       "ci-tint": `${checkedIn ? CHECKIN_TINT_IN : CHECKIN_TINT_OUT}%`,
-      "ci-rim": `${checkedIn ? CHECKIN_RIM_IN : CHECKIN_RIM_OUT}%`,
       "ci-status": checkedIn ? foregroundOn(colorIn, iconBg, 4.5, this) : "var(--m3p-secondary-text)",
       "ci-on": colorIn,
       "ci-on-ink": inkOn(colorIn, this),
@@ -298,13 +296,13 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
           opacity ${CHECKIN_TRANSITION_MS}ms ${EASING};
       }
 
-      /* The whole card takes the state's colour: a tint over the glass and a
-         rim — strong while checked in, faint while out, so out reads as
-         quiet rather than as something wrong. */
+      /* The whole card takes the state's colour as a tint over the glass —
+         stronger while checked in, faint while out, so out reads as quiet
+         rather than as something wrong. The rim stays the suite's own, as on
+         every card beside it. */
       .card-inner.glass,
       .card-inner {
         background-color: color-mix(in srgb, var(--ci-tone) var(--ci-tint), ${glassBackground});
-        border-color: color-mix(in srgb, var(--ci-tone) var(--ci-rim), transparent);
       }
 
       .card-inner.unavailable {
@@ -384,6 +382,10 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
 
       .card-inner.out .seg.active {
         color: #1c1c1c;
+      }
+
+      .seg:not(:disabled):active {
+        border-radius: ${CHECKIN_SEGMENT_RADIUS_PRESSED}px;
       }
 
       .seg:disabled {
