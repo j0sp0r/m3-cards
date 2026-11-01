@@ -553,8 +553,9 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
     const mode = this._config.animation ?? "auto";
     const wavyStatic = (this._config.wave_style ?? "wavy") === "wavy";
     const reducedMotion = isReducedMotion();
-    const forceFlatShape = reducedMotion || (mode === "off" && !wavyStatic);
-    this._phaseAnimating = !forceFlatShape && mode !== "off" && effectiveOn && !unavailable;
+    // Flat is a look, not an animation setting — see the progress card.
+    const forceFlatShape = !wavyStatic;
+    this._phaseAnimating = !forceFlatShape && !reducedMotion && mode !== "off" && effectiveOn && !unavailable;
     this._targetAmplitude =
       unavailable || !effectiveOn || forceFlatShape ? 0 : LIGHT_WAVE_AMPLITUDE;
 

@@ -294,8 +294,8 @@ export class M3EnergyCardEditor extends LitElement implements LovelaceCardEditor
           select: {
             mode: "dropdown",
             options: [
-              { value: "change", label: this._t("editor_energy_statistic_type_change") },
               { value: "state", label: this._t("editor_energy_statistic_type_state") },
+              { value: "change", label: this._t("editor_energy_statistic_type_change") },
             ],
           },
         },

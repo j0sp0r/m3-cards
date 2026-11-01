@@ -66,6 +66,22 @@ function entryTitle(entry: ChipEntry, index: number, p: ChipsEditorParams): stri
   return `#${index + 1}`;
 }
 
+/** The chip fields carry their own names, so every card shows them alike. */
+const CHIP_LABELS: Record<string, TranslationKey> = {
+  entity: "editor_entity",
+  name: "editor_name",
+  icon: "editor_icon",
+  label: "editor_appliance_chip_label",
+  show_state: "editor_appliance_chip_show_state",
+  tap_action: "editor_tap_action",
+  heading: "editor_chips_heading",
+};
+
+function chipLabel(s: SchemaEntry, p: ChipsEditorParams): string {
+  const key = CHIP_LABELS[s.name];
+  return key ? p.t(key) : p.computeLabel(s);
+}
+
 export function renderChipsEditor(p: ChipsEditorParams): TemplateResult {
   const list = p.chips ?? [];
   const set = (next: ChipEntry[]): void => p.onChange(next.length ? next : undefined);
@@ -131,8 +147,7 @@ export function renderChipsEditor(p: ChipsEditorParams): TemplateResult {
             .hass=${p.hass}
             .data=${data}
             .schema=${heading ? HEADING_SCHEMA : CHIP_SCHEMA}
-            .computeLabel=${(s: SchemaEntry) =>
-              s.name === "heading" ? p.t("editor_chips_heading") : p.computeLabel(s)}
+            .computeLabel=${(s: SchemaEntry) => chipLabel(s, p)}
             @value-changed=${(ev: CustomEvent) => patch(index, ev.detail.value as Record<string, unknown>)}
           ></ha-form>
           ${heading

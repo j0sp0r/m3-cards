@@ -1727,6 +1727,10 @@ export interface M3WasteCardConfig extends NotifyConfigBase {
   hero_icon?: "first" | "multi";
   show_timeline?: boolean;
   timeline_days?: number;
+  /** Rows shown at once, the rest behind "show more"; 0 = all. The name the
+   *  other list cards use. */
+  max_visible?: number;
+  /** @deprecated The waste card's old name for `max_visible`; still read. */
   max_rows?: number;
   reminder_offset?: number;
   reminder_time?: string;

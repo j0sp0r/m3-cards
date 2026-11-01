@@ -393,9 +393,15 @@ export class M3ProgressCard extends TemplatedCard(LitElement) implements Lovelac
     const mode = this._config.animation ?? "auto";
     const wavyStatic = (this._config.wave_style ?? "wavy") === "wavy";
     const reducedMotion = this._reducedMotion;
-    const forceFlat = reducedMotion || (mode === "off" && !wavyStatic);
+    // `wave_style: flat` is a look, not an animation setting: it holds the
+    // line flat whatever `animation` says, as on the appliance, printer and
+    // light cards. It used to apply only with animation off, so "flat" on a
+    // card left at auto did nothing. Reduced motion stops the travel and keeps
+    // the shape.
+    const forceFlat = !wavyStatic;
     this._phaseAnimating =
       !forceFlat &&
+      !reducedMotion &&
       mode !== "off" &&
       (category === "running" || category === "preparing");
     this._indeterminateActive = this._phaseAnimating && isIndeterminate;

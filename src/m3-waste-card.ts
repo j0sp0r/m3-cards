@@ -417,7 +417,7 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
     }
 
     const timelineDays = Math.max(7, Math.min(28, this._config.timeline_days ?? WASTE_TIMELINE_DAYS));
-    const maxRows = this._config.max_rows ?? 0;
+    const maxRows = this._config.max_visible ?? this._config.max_rows ?? 0;
     const visibleRows = maxRows > 0 ? streams.slice(0, maxRows) : streams;
     const hiddenRows = maxRows > 0 ? streams.slice(maxRows) : [];
 

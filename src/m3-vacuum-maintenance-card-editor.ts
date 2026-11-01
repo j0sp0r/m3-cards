@@ -361,6 +361,7 @@ export class M3VacuumMaintenanceCardEditor extends LitElement implements Lovelac
       { name: "entity", selector: { entity: { domain: "vacuum" } } },
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },
+      { name: "tap_action", selector: { ui_action: {} } },
     ];
   }
 
@@ -395,6 +396,19 @@ export class M3VacuumMaintenanceCardEditor extends LitElement implements Lovelac
         },
       },
       { name: "default_collapsed", selector: { boolean: {} } },
+      {
+        name: "collapse_memory",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "device", label: this._t("editor_vacuum_collapse_device") },
+              { value: "session", label: this._t("editor_vacuum_collapse_session") },
+            ],
+          },
+        },
+      },
+      { name: "collapse_state_entity", selector: { entity: { domain: "input_boolean" } } },
     ];
   }
 
@@ -419,6 +433,9 @@ export class M3VacuumMaintenanceCardEditor extends LitElement implements Lovelac
       collapsible: "editor_vacuum_collapsible",
       collapse_keep: "editor_fold_keep",
       default_collapsed: "editor_vacuum_default_collapsed",
+      collapse_memory: "editor_vacuum_collapse_memory",
+      collapse_state_entity: "editor_appliance_collapse_state_entity",
+      tap_action: "editor_tap_action",
       glass_background: "editor_glass_background",
       ...radiusLabelMap,
     };
@@ -433,7 +450,7 @@ export class M3VacuumMaintenanceCardEditor extends LitElement implements Lovelac
       ...(ev.detail.value as Record<string, unknown>),
     };
     // A cleared field means "use the default", not "show nothing".
-    for (const key of ["name", "icon"]) {
+    for (const key of ["name", "icon", "collapse_state_entity"]) {
       if (next[key] === "") delete next[key];
     }
     // The editor's list is what stays; the config keeps what folds.
@@ -498,7 +515,7 @@ export class M3VacuumMaintenanceCardEditor extends LitElement implements Lovelac
     if (!this.hass || !this._config) return nothing;
     const cfg = this._config;
 
-    const deviceData = { entity: cfg.entity ?? "", name: cfg.name ?? "", icon: cfg.icon ?? "" };
+    const deviceData = { entity: cfg.entity ?? "", name: cfg.name ?? "", icon: cfg.icon ?? "", tap_action: cfg.tap_action };
     const thresholdData = {
       warn_below: cfg.warn_below ?? VACUUM_PART_WARN_BELOW,
       alert_below: cfg.alert_below ?? VACUUM_PART_ALERT_BELOW,
@@ -517,6 +534,8 @@ export class M3VacuumMaintenanceCardEditor extends LitElement implements Lovelac
       collapsible: cfg.collapsible ?? false,
       collapse_keep: keptWhenFolded(MAINT_FOLD_BLOCKS, cfg.collapse_blocks),
       default_collapsed: cfg.default_collapsed ?? false,
+      collapse_memory: cfg.collapse_memory ?? "device",
+      collapse_state_entity: cfg.collapse_state_entity ?? "",
     };
 
     return html`

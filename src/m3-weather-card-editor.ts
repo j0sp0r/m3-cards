@@ -219,7 +219,7 @@ export class M3WeatherCardEditor extends LitElement implements LovelaceCardEdito
       show_current: this._config.show_current ?? true,
       hours: this._config.hours,
       show_chart: this._config.show_chart ?? true,
-      show_hour_labels: this._config.show_hour_labels ?? false,
+      show_hour_labels: this._config.show_hour_labels ?? true,
       show_hourly_icons: this._config.show_hourly_icons ?? true,
       show_hourly_temperatures: this._config.show_hourly_temperatures ?? true,
       show_temp_axis: this._config.show_temp_axis ?? false,

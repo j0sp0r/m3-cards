@@ -40,7 +40,7 @@ entities:
 | `hero_icon` | `first` \| `multi` | `first` | Single icon or overlapping bin icons |
 | `show_timeline` | boolean | `true` | Two-week timeline |
 | `timeline_days` | number | `14` | Timeline span (7–28) |
-| `max_rows` | number | `0` | Cap rows, rest collapsible (0 = all) |
+| `max_visible` | number | `0` | Rows shown at once, the rest behind "show more" (0 = all), as on the other list cards. `max_rows`, the old name, still works. |
 | `reminder_offset` | number | `1` | Days before pickup to start reminding (reminder mode) |
 | `reminder_time` | string | `18:00` | Only remind after this time the day before |
 | `ack_entity` | string | – | `input_boolean`/`input_datetime` storing "put out" |

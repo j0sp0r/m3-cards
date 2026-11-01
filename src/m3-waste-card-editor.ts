@@ -132,7 +132,7 @@ export class M3WasteCardEditor extends LitElement implements LovelaceCardEditor 
       },
       { name: "show_timeline", selector: { boolean: {} } },
       { name: "timeline_days", selector: { number: { min: 7, max: 28, mode: "box", unit_of_measurement: "d" } } },
-      { name: "max_rows", selector: { number: { min: 0, max: 20, mode: "box" } } },
+      { name: "max_visible", selector: { number: { min: 0, max: 20, mode: "box" } } },
     ];
   }
 
@@ -302,7 +302,7 @@ export class M3WasteCardEditor extends LitElement implements LovelaceCardEditor 
       hero_icon: "editor_waste_hero_icon",
       show_timeline: "editor_waste_show_timeline",
       timeline_days: "editor_waste_timeline_days",
-      max_rows: "editor_waste_max_rows",
+      max_visible: "editor_waste_max_rows",
       animation: "editor_progress_animation",
       glass_background: "editor_glass_background",
       ...radiusLabelMap,
@@ -313,7 +313,10 @@ export class M3WasteCardEditor extends LitElement implements LovelaceCardEditor 
 
   private _valueChanged(ev: CustomEvent): void {
     if (!this._config) return;
-    this._emit({ ...this._config, ...(ev.detail.value as Record<string, unknown>) } as M3WasteCardConfig);
+    const next = { ...this._config, ...(ev.detail.value as Record<string, unknown>) } as M3WasteCardConfig;
+    // The old name goes once the new one is written, so the two cannot disagree.
+    if ("max_visible" in (ev.detail.value as object)) delete next.max_rows;
+    this._emit(next);
   }
 
   private _entityChanged(index: number, ev: CustomEvent): void {
@@ -393,7 +396,7 @@ export class M3WasteCardEditor extends LitElement implements LovelaceCardEditor 
       hero_icon: this._config.hero_icon ?? "first",
       show_timeline: this._config.show_timeline ?? true,
       timeline_days: this._config.timeline_days ?? 14,
-      max_rows: this._config.max_rows ?? 0,
+      max_visible: this._config.max_visible ?? this._config.max_rows ?? 0,
     };
 
     return html`

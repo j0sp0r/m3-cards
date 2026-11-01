@@ -256,6 +256,7 @@ export class M3VacuumCardEditor extends LitElement implements LovelaceCardEditor
           },
         },
       },
+      { name: "collapse_state_entity", selector: { entity: { domain: "input_boolean" } } },
       {
         name: "animation",
         selector: {
@@ -295,6 +296,7 @@ export class M3VacuumCardEditor extends LitElement implements LovelaceCardEditor
       collapsible: "editor_vacuum_collapsible",
       collapse_keep: "editor_fold_keep",
       default_collapsed: "editor_vacuum_default_collapsed",
+      collapse_state_entity: "editor_appliance_collapse_state_entity",
       collapse_memory: "editor_vacuum_collapse_memory",
       notify_service: "editor_notify_service",
       notify_title: "editor_notify_title",
@@ -314,7 +316,7 @@ export class M3VacuumCardEditor extends LitElement implements LovelaceCardEditor
       ...(ev.detail.value as Record<string, unknown>),
     };
     // A cleared field means "use the default", not "show nothing".
-    for (const key of ["name", "icon"]) {
+    for (const key of ["name", "icon", "collapse_state_entity"]) {
       if (next[key] === "") delete next[key];
     }
     if (Array.isArray(next.rooms) && next.rooms.length === 0) delete next.rooms;
@@ -415,6 +417,7 @@ export class M3VacuumCardEditor extends LitElement implements LovelaceCardEditor
       collapse_keep: keptWhenFolded(VACUUM_FOLD_BLOCKS, cfg.collapse_blocks),
       default_collapsed: cfg.default_collapsed ?? false,
       collapse_memory: cfg.collapse_memory ?? "device",
+      collapse_state_entity: cfg.collapse_state_entity ?? "",
       animation: cfg.animation ?? "auto",
     };
 

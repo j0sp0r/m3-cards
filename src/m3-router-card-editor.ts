@@ -89,6 +89,7 @@ export class M3RouterCardEditor extends LitElement implements LovelaceCardEditor
       { name: "auto_discover", selector: { boolean: {} } },
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },
+      { name: "tap_action", selector: { ui_action: {} } },
     ];
   }
 
@@ -143,6 +144,7 @@ export class M3RouterCardEditor extends LitElement implements LovelaceCardEditor
       auto_discover: "editor_router_auto_discover",
       name: "editor_name",
       icon: "editor_icon",
+      tap_action: "editor_tap_action",
       rsrp_entity: "editor_router_rsrp_entity",
       rsrq_entity: "editor_router_rsrq_entity",
       snr_entity: "editor_router_snr_entity",
@@ -326,6 +328,7 @@ export class M3RouterCardEditor extends LitElement implements LovelaceCardEditor
       auto_discover: cfg.auto_discover ?? true,
       name: cfg.name ?? "",
       icon: cfg.icon ?? "",
+      tap_action: cfg.tap_action,
     };
     const signalData = {
       rsrp_entity: cfg.rsrp_entity ?? "",

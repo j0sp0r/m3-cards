@@ -198,6 +198,25 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **The editors call the same setting by the same name.** An audit of every
+  editor's labels, read from the running editors rather than the source:
+  "Tap action", "Tippen" and "Tap-Aktion" were one setting; "Ausklappbar",
+  "Raum aufklappbar" and "Faltung merken" were the fold. The fold, the three
+  actions, haptics, recipients, "when to notify", auto-discovery, area and
+  label filters, exclusions, forecast, comparison, self-sufficiency, data
+  source, show state and attribute now read the same on every card. The
+  printer editor showed thirty raw keys (`stage_entity`, `pause_action`, …)
+  and now names them.
+- **`wave_style: flat` is flat on the progress and light cards too.** There it
+  applied only with `animation: off`, so "flat" on a card left at auto did
+  nothing; the progress editor offered the field only then. It is a look, as
+  on the appliance and printer cards, and reduced motion keeps the shape.
+- **The weather editor showed hour labels as off** while the card drew them.
+- **Editors gained the fields their cards already read:** the router's and
+  vacuum maintenance card's tap action, and the fold's helper and memory on
+  the vacuum and maintenance cards.
+- **The waste card's `max_rows` is `max_visible`**, the name the seven other
+  list cards use; the old key is still read.
 - **Reloading template entities no longer announces a machine finished.**
   A reload re-creates them, and a progress derived from a status read 0 for a
   moment and then 100 again — a real number, beside a status that had "just

@@ -105,20 +105,19 @@ export class M3ProgressCardEditor
         },
       },
     ];
-    if (this._config?.animation === "off") {
-      schema.push({
-        name: "wave_style",
-        selector: {
-          select: {
-            mode: "dropdown",
-            options: [
-              { value: "wavy", label: this._t("editor_progress_wave_style_wavy") },
-              { value: "flat", label: this._t("editor_progress_wave_style_flat") },
-            ],
-          },
+    // Always offered: flat is a look, not an animation setting.
+    schema.push({
+      name: "wave_style",
+      selector: {
+        select: {
+          mode: "dropdown",
+          options: [
+            { value: "wavy", label: this._t("editor_progress_wave_style_wavy") },
+            { value: "flat", label: this._t("editor_progress_wave_style_flat") },
+          ],
         },
-      });
-    }
+      },
+    });
     return schema;
   }
 
