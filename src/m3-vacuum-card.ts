@@ -31,6 +31,7 @@ import {
   VACUUM_BATTERY_HEIGHT,
   VACUUM_BATTERY_LOW,
   VACUUM_BATTERY_OK,
+  STATUS_PILL_TINT,
   VACUUM_BATTERY_RADIUS,
   VACUUM_ICON_TINT,
   VACUUM_OPTIMISTIC_MS,
@@ -78,7 +79,7 @@ import { TapHoldGesture } from "./shared/gestures";
 import { findStateRule } from "./shared/state-rules";
 import { glassCardClass, glassCardStyles, renderMissingEntity } from "./shared/glass-card";
 import { cardHeaderStyles, renderCardHeader } from "./shared/card-header";
-import { resolveCommonColors, resolveThemeColor, tintOn, inkOn } from "./shared/color-config";
+import { foregroundOn, resolveCommonColors, resolveThemeColor, tintOn, inkOn } from "./shared/color-config";
 import { hassChangeMatters, listEntities } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
 import {
@@ -461,6 +462,18 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
     return activityColor("error");
   }
 
+  /**
+   * The battery pill as every status pill is drawn: tinted from the card's
+   * accent while the battery is fine, so it matches the appliance cards'
+   * pills beside it; from the warning colour once it runs low, because then
+   * the colour is the message.
+   */
+  private _batteryPillStyle(level: number): string {
+    const base = level > VACUUM_BATTERY_OK ? this._accent(this._activity().activity) : this._batteryColor(level);
+    const bg = tintOn(this, base, undefined, STATUS_PILL_TINT);
+    return `background: ${bg}; color: ${foregroundOn(base, bg, 3, this)};`;
+  }
+
   private _batteryIcon(level: number | undefined, charging: boolean): string {
     if (charging) return "mdi:battery-charging";
     if (level === undefined) return "mdi:battery-unknown";
@@ -577,7 +590,7 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
           ? html`
               <button
                 class="battery pill-toggle"
-                style=${`color: ${this._batteryColor(level)};`}
+                style=${this._batteryPillStyle(level)}
                 aria-expanded=${String(!this._folded)}
                 aria-label=${`${name}: ${this._t("vacuum_battery")} ${Math.round(level)} %`}
                 @click=${this._toggleFold}
@@ -589,7 +602,7 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
           : html`
               <div
                 class="battery"
-                style=${`color: ${this._batteryColor(level)};`}
+                style=${this._batteryPillStyle(level)}
                 aria-label=${`${this._t("vacuum_battery")} ${Math.round(level)} %`}
               >
                 <ha-icon icon=${this._batteryIcon(level, charging)}></ha-icon>

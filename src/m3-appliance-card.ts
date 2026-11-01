@@ -60,6 +60,7 @@ import {
   APPLIANCE_SLIDER_TRACK,
   APPLIANCE_VALUE_SIZE,
   APPLIANCE_HERO_SIZE,
+  STATUS_PILL_TINT,
   APPLIANCE_UNAVAILABLE_GRACE_MS,
   APPLIANCE_DONE_SLACK_MIN,
   APPLIANCE_PILL_HEIGHT,
@@ -775,6 +776,8 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       // The shared header reads the m3p-* names, so they are set rather than
       // re-styled — one fewer place for this card to drift from its siblings.
       "m3p-icon-bg": iconBg,
+      "m3a-pill-bg": tintOn(this, accent, cfg.accent_opacity, STATUS_PILL_TINT),
+      "m3a-pill-ink": foregroundOn(accent, tintOn(this, accent, cfg.accent_opacity, STATUS_PILL_TINT), 3, this),
       "m3p-icon-color": foregroundOn(accent, iconBg, 3, this),
       "m3p-text": textColorCss,
       "m3p-secondary-text": secondaryTextColorCss,
@@ -1618,8 +1621,8 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       line-height: 1;
       font-size: 12px;
       font-weight: 700;
-      color: var(--m3p-icon-color);
-      background: var(--m3p-icon-bg);
+      color: var(--m3a-pill-ink);
+      background: var(--m3a-pill-bg);
     }
 
     /* Unreachable: the same pill in the quiet colour. Idle keeps the state's

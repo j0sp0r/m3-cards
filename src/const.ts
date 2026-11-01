@@ -2160,6 +2160,11 @@ export const DEFAULT_APPLIANCE_RADIUS = RADIUS.card;
 export const DEFAULT_APPLIANCE_ICON = "mdi:washing-machine";
 export const DEFAULT_APPLIANCE_ACCENT = PALETTE.home;
 export const APPLIANCE_ICON_TINT = HUMIDIFIER_ICON_TINT;
+/**
+ * Every status pill — the appliance's Ready and Done, the vacuum's battery,
+ * the room's count — is tinted this much, so pills side by side match.
+ */
+export const STATUS_PILL_TINT = HUMIDIFIER_ICON_TINT;
 export const APPLIANCE_LABEL_SIZE = HUMIDIFIER_LABEL_SIZE;
 export const APPLIANCE_VALUE_SIZE = 22;
 /** The remaining time while a run is on: the figure the card is read for. */

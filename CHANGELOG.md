@@ -454,7 +454,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   pill — the appliance's "Ready" and "Done", the vacuum's battery — the pill
   carries a chevron and folds the card on a tap, so the corner holds one
   element instead of a figure and an arrow beside it. The room card gets a
-  pill of its own: "4 on", filled while anything is on, "Off" quiet when not;
+  pill of its own, "4 on" or "Off", drawn as the appliance's — every status
+  pill now shares one tint, size and type;
   `show_active_names` names what is on under the room's name instead of
   counting it, with the names the nested cards give them. A card without a pill — a running machine showing its time,
   the printer — keeps the chevron beside its figure.

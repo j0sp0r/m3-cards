@@ -146,8 +146,8 @@ them, and both quietly do nothing without one. Point them at a tile's
 `categories[].tap_action` instead, which does have an entity behind it.
 
 A tap cannot both fold the card and open a view, so `tap_action` takes the
-header over from the fold. The card still folds from its pill — "4 on ⌄",
-filled while anything is on, "Off ⌄" when not — and the stored state is still
+header over from the fold. The card still folds from its pill — "4 on ⌄" or
+"Off ⌄", drawn as the appliance cards' pill — and the stored state is still
 read and applied, so `collapse_state_entity` and an automation can fold it
 too. `show_active_names: true` names what is on under the room's name —
 "Kaffeemaschine, Radio" — instead of counting it, using the names the nested

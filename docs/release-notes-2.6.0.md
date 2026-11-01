@@ -183,7 +183,7 @@ in the supply card's style, for a status that does not clear itself. **Idle**:
 the state in a pill in its own colour, the same pill as "Done" and the
 vacuum's battery, with how long it has been idle under the name. The height eases from one to the next, and
 the pill folds the card: "Ready ⌄", "✓ Done ⌄", the vacuum's "100 % ⌄", and on
-the room card a new "4 on ⌄", filled while anything is on.
+the room card a new "4 on ⌄" — one tint, size and type for every status pill.
 
 ### Done, and started
 

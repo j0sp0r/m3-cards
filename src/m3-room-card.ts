@@ -16,6 +16,9 @@ import {
   DEFAULT_ROOM_RADIUS,
   DEFAULT_ROOM_CARD_COLUMNS,
   ROOM_CATEGORIES,
+  STATUS_PILL_TINT,
+  APPLIANCE_PILL_HEIGHT,
+  APPLIANCE_PILL_RADIUS,
   ROOM_CHIP_HEIGHT,
   ROOM_CHIP_RADIUS,
   ROOM_CHIP_TINT,
@@ -1517,9 +1520,12 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
             ${pillFold
               ? html`<button
                   class="fold-pill pill-toggle ${activeDevices > 0 ? "on" : ""}"
-                  style=${activeDevices > 0
-                    ? `background: ${fillColor(this, accent, 3)}; color: ${inkOn(fillColor(this, accent, 3), this)};`
-                    : nothing}
+                  style=${(() => {
+                    // The appliance cards' pill: the accent as a tint, the
+                    // same on every card that shows its state this way.
+                    const bg = tintOn(this, accent, undefined, STATUS_PILL_TINT);
+                    return `background: ${bg}; color: ${foregroundOn(accent, bg, 3, this)};`;
+                  })()}
                   aria-expanded=${String(!this._folded)}
                   aria-label=${`${name}: ${pillText}`}
                   @click=${this._toggleFold}
@@ -1820,19 +1826,19 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
          moves. Nothing here can be a percentage or a keyword: the card's height
          comes from its content, so there is no definite height for CSS alone to
          animate against. */
-      /* The count and the fold in one: filled while something is on, tonal
-         while everything is off — readable across the room before a word. */
+      /* The count and the fold in one, drawn as every status pill is: the
+         appliance cards' size, tint and type. */
       .fold-pill {
         flex: 0 0 auto;
         display: inline-flex;
         align-items: center;
         gap: 2px;
-        height: 36px;
-        padding: 0 12px 0 14px;
-        border-radius: 18px;
+        height: ${unsafeCSS(APPLIANCE_PILL_HEIGHT)}px;
+        padding: 0 10px 0 12px;
+        border-radius: ${unsafeCSS(APPLIANCE_PILL_RADIUS)}px;
         line-height: 1;
-        font-size: 15px;
-        font-weight: 600;
+        font-size: 12px;
+        font-weight: 700;
         color: var(--m3p-secondary-text, var(--secondary-text-color));
         background: color-mix(in srgb, var(--m3p-secondary-text, var(--secondary-text-color)) 14%, transparent);
       }
