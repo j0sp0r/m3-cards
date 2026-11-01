@@ -198,6 +198,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **A printer switched off leaves its card as it was, and its camera out.**
+  The tiles were held open while the printer was offline, for a socket given
+  as a tile, so a card folded on purpose sprang open the moment the printer
+  went off; the chevron reaches the socket as well. The camera, which could
+  only show the last frame from before the power went, is left out until the
+  printer is back.
 - **The editors call the same setting by the same name.** An audit of every
   editor's labels, read from the running editors rather than the source:
   "Tap action", "Tippen" and "Tap-Aktion" were one setting; "Ausklappbar",

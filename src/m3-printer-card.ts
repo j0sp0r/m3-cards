@@ -495,6 +495,10 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
    */
   private _renderCamera(state: PrinterState) {
     if (this._config?.show_camera === false) return nothing;
+    // A printer switched off has no picture worth showing: the still is the
+    // last frame from before the power went, and the chamber light cannot be
+    // switched on either. The block goes with the machine and comes back with it.
+    if (state === "offline") return nothing;
     const entityId = this._entity("camera_entity", "camera");
     if (!entityId) return nothing;
     const cameraState = this.hass?.states[entityId];
@@ -1137,9 +1141,11 @@ export class M3PrinterCard extends TemplatedCard(LitElement) implements Lovelace
     // Cleared before the blocks draw, so a folded or finished progress block
     // leaves no geometry behind for the frame loop to keep animating.
     this._waveGeom = undefined;
-    // The chips are held open too: a socket given as a tile, with the details
-    // block switched off, is the same way back as the accessory row was.
-    const pinned: PrinterBlock[] = state === "offline" ? ["details", "chips"] : [];
+    // Only the details are held open. The chips were too, for a socket given
+    // as a tile, but a card folded on purpose then sprang open with every
+    // tile the moment the printer was switched off; the chevron reaches the
+    // socket just as well, and the card stays as it was left.
+    const pinned: PrinterBlock[] = state === "offline" ? ["details"] : [];
     // Every block is drawn first and the fold decides afterwards, so the card
     // knows whether folding would take anything at all. A chevron over a card
     // whose foldable blocks are all empty — an idle printer with no camera —

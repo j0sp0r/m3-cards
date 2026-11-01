@@ -215,8 +215,8 @@ details block if you like. It has the same **Notification** section — a print
 finished, a print failed, and optionally a print started with its expected
 end — listening for every status the card reads as finished, error or
 printing. It takes **`wave_style`**, its fold chevron appears only when there
-is something to fold, and while the printer is offline its tiles stay open,
-because the socket that brings it back may be one of them.
+is something to fold, and while the printer is switched off the camera — which
+could only show the last frame from before — is left out.
 
 The progress card reads a remaining time the way the appliance card does:
 minutes, seconds, a clock string or a completion timestamp. Home Connect

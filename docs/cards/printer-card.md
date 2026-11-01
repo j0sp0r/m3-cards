@@ -35,10 +35,11 @@ configurable. See `state_map` below.
 
 Offline is grey rather than red on purpose: a printer switched off at the wall
 is a normal state, not a fault, and colouring it as one trains people to ignore
-red. The way back is the socket switch in the details block — or a socket
-given as a tile in `chips` — which is why those blocks stay live when
-everything else does not, and why the fold never takes them while the printer
-is offline, whatever `collapse_blocks` says.
+red. The way back is the socket switch in the details block, which is why that
+block stays live when everything else does not, and why the fold never takes
+it while the printer is offline, whatever `collapse_blocks` says. A socket
+given as a tile in `chips` folds like any tile: a folded card stays folded
+when the printer goes off, and the chevron opens it.
 
 ## `state_map`, and why it exists
 
@@ -296,6 +297,9 @@ An `image` entity is preferred over a `camera` one when the device offers both,
 because an image entity's state is the timestamp of the picture: the browser
 then refetches exactly when there is something new and never otherwise.
 
+While the printer is offline the camera is left out: the still would be the
+last frame from before the power went off.
+
 ## Accessories, and why they outlive "offline"
 
 `accessories` are the switches that belong *with* the printer but not *to* it —
@@ -369,5 +373,4 @@ otherwise — rather than the printer's state colour, so the readings do not tur
 grey with the machine. A chip is read-only until it has a `tap_action`. A
 socket as a tile does not ask before switching off, as an accessory does; give
 it `more-info` rather than `toggle` when that matters. `chips` is also a fold
-block, for `collapse_blocks`; like the details, it stays open while the
-printer is offline, so a socket given as a tile can still bring it back.
+block, for `collapse_blocks`.
