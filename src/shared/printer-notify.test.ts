@@ -69,3 +69,13 @@ describe("Bambu's own status list", () => {
     for (const v of ["prepare", "running", "slicing"]) expect(work).toContain(v);
   });
 });
+
+describe("a flicker is not an event", () => {
+  it("asks every branch for a status that stood a minute", () => {
+    const a = buildPrinterNotifyAutomation({ ...base, onStart: true });
+    const choose = (a.actions[0] as { choose: { conditions: { value_template?: string }[] }[] }).choose;
+    for (const branch of choose) {
+      expect(branch.conditions.some((c) => c.value_template?.includes("> 60"))).toBe(true);
+    }
+  });
+});

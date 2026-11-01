@@ -38,6 +38,18 @@ export function printerRawValues(states: PrinterState[], stateMap?: PrinterState
 /** The states HA itself reports for an entity it cannot read. */
 const NOT_READ = ["unavailable", "unknown"];
 
+/**
+ * A change counts only when the status it left had stood for a minute: a
+ * reload or a reconnect that flickers through another value for a moment is
+ * not a job ending or starting.
+ */
+export const HELD_A_MINUTE = {
+  condition: "template",
+  value_template:
+    "{{ trigger.from_state is not none and" +
+    " (trigger.to_state.last_changed - trigger.from_state.last_changed).total_seconds() > 60 }}",
+};
+
 export interface PrinterNotifyParams {
   entity: string;
   stateMap?: PrinterStateMap;
@@ -95,11 +107,11 @@ export function buildPrinterNotifyAutomation(
   ];
   const choose: Record<string, unknown>[] = [
     {
-      conditions: [{ condition: "trigger", id: "done" }],
+      conditions: [{ condition: "trigger", id: "done" }, HELD_A_MINUTE],
       sequence: notifyActions(p.targets, p.name, p.doneMessage, { ...texts, message: p.message }),
     },
     {
-      conditions: [{ condition: "trigger", id: "failed" }],
+      conditions: [{ condition: "trigger", id: "failed" }, HELD_A_MINUTE],
       sequence: notifyActions(p.targets, p.name, p.failedMessage, texts),
     },
   ];
@@ -111,7 +123,7 @@ export function buildPrinterNotifyAutomation(
     const prelude = endTimePrelude(p.endEntity, p.remainingEntity);
     const message = `${p.startMessage}{% if t %} ${p.untilText} {{ t | timestamp_custom('%H:%M') }}.{% endif %}`;
     choose.push({
-      conditions: [{ condition: "trigger", id: "start" }],
+      conditions: [{ condition: "trigger", id: "start" }, HELD_A_MINUTE],
       sequence: [
         // The slicer's estimate arrives after the job does; waiting for it
         // beats announcing "done around now".

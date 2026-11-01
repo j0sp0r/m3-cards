@@ -43,6 +43,21 @@ import {
 /** Seconds within which the two "finished" witnesses are one event. */
 const TWIN_WINDOW_S = 15;
 
+/**
+ * A witness counts only when the reading it left had stood for a minute.
+ * Reloading template entities re-creates them: a progress derived from a
+ * status read 0 for a moment and then 100 again, which passed every other
+ * check — a real number, a status that had "just changed" — and announced a
+ * dishwasher finished once per reload. A real run's last reading stands far
+ * longer than that; a reload's stands for milliseconds.
+ */
+const HELD_A_MINUTE = {
+  condition: "template",
+  value_template:
+    "{{ trigger.from_state is not none and" +
+    " (trigger.to_state.last_changed - trigger.from_state.last_changed).total_seconds() > 60 }}",
+};
+
 /** The four repeatable list sections, which all behave identically. */
 type ListField = "sliders" | "selects" | "buttons" | "chips";
 
@@ -178,6 +193,7 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
         {
           conditions: [
             { condition: "trigger", id: "done_state" },
+            HELD_A_MINUTE,
             ...(percent
               ? [
                   {
@@ -203,6 +219,7 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
             // unavailable → 100 five times in half an hour, and each return
             // was announced as the run finishing.
             { condition: "template", value_template: "{{ trigger.from_state is not none and is_number(trigger.from_state.state) }}" },
+            HELD_A_MINUTE,
             {
               condition: "template",
               value_template:

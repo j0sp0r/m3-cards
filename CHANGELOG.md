@@ -198,6 +198,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Reloading template entities no longer announces a machine finished.**
+  A reload re-creates them, and a progress derived from a status read 0 for a
+  moment and then 100 again — a real number, beside a status that had "just
+  changed", so it passed every check and the message went out once per
+  reload. The appliance and printer notifications now count a change only when
+  the reading it left had stood for a minute.
 - **A folded, idle printer card is as tall as an appliance card.** It drew
   an empty controls row when there was nothing to press, which still took the
   card's gap, and its padding was 14px against the suite's 12 — together 16px
