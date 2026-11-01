@@ -16,7 +16,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   to slide, springing back short of three quarters). `user_entity_map` puts
   several people on one card — each viewer switches their own, and everyone
   checked in shows as avatars — and `confirm` asks first (`double_tap` or
-  `hold`). The editor is still to come. Not yet in the 2.6 release notes.
+  `hold`). A visual editor covers all of it, its style panel showing only
+  what the chosen style uses. README screenshots are still to come. Not yet in the 2.6 release notes.
 
 ## [2.6.0] – 2026-10-27
 

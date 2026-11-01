@@ -2968,6 +2968,8 @@ export interface M3CheckinCardConfig {
   text_color?: string;
   secondary_text_color?: string;
   radius?: number;
+  corners?: CornerRadiusConfig;
+  detail_mode?: DetailMode;
   card_version?: string;
 }
 

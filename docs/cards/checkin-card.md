@@ -16,6 +16,9 @@ true — and a subtitle "on" under one of them reads as if that button were on.
 This card says which, and its control names **states** ("Checked in",
 "Checked out"), never verbs, so it cannot be read the other way round.
 
+Everything below can be set in the visual editor, whose style panel shows
+only the words and icons the chosen style uses.
+
 <details>
 <summary>Configuration, examples & options</summary>
 
@@ -147,6 +150,7 @@ tap does. The swipe style ignores `confirm`: its slide is the confirmation.
 | `color`, `color_off` | `#81c784`, `#8b909b` | Checked in / out |
 | `optimistic_timeout` | `5000` | Milliseconds to wait for confirmation |
 | `tap_action` | `more-info` | A tap on the header |
-| `animation`, `haptics`, `glass_background`, `radius` | — | The usual shared options |
+| `card_background`, `text_color`, `secondary_text_color` | — | The card's own colours; the state's tint goes over `card_background` |
+| `animation`, `haptics`, `glass_background`, `radius`, `corners`, `detail_mode` | — | The usual shared options |
 
 </details>

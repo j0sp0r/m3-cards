@@ -1,6 +1,13 @@
 import { LitElement, html, css, nothing, unsafeCSS, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import type { HaActionConfig, HomeAssistant, LovelaceCard, LovelaceGridOptions, M3CheckinCardConfig } from "./types";
+import type {
+  HaActionConfig,
+  HomeAssistant,
+  LovelaceCard,
+  LovelaceCardEditor,
+  LovelaceGridOptions,
+  M3CheckinCardConfig,
+} from "./types";
 import {
   CHECKIN_AVATAR_MAX,
   CHECKIN_AVATAR_OVERLAP,
@@ -40,6 +47,7 @@ import {
   DEFAULT_CHECKIN_ICON_OFF,
   DEFAULT_CHECKIN_ICON_OUT,
   DEFAULT_CHECKIN_RADIUS,
+  resolveCornerRadius,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { STANDARD_EASING, shouldAnimate } from "./shared/animation";
@@ -121,6 +129,11 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
   private readonly _ticker = new VisibleTicker(this, (now) => {
     this._now = now;
   });
+
+  public static async getConfigElement(): Promise<LovelaceCardEditor> {
+    await import("./m3-checkin-card-editor");
+    return document.createElement("m3-checkin-card-editor") as unknown as LovelaceCardEditor;
+  }
 
   public static getStubConfig(hass: HomeAssistant): M3CheckinCardConfig {
     const booleans = Object.keys(hass?.states ?? {}).filter((e) => e.startsWith("input_boolean."));
@@ -402,9 +415,9 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
     const colorIn = resolveThemeColor(cfg.color ?? CHECKIN_COLOR_IN);
     const colorOff = resolveThemeColor(cfg.color_off ?? CHECKIN_COLOR_OFF);
     const tone = checkedIn ? colorIn : colorOff;
-    const { textColorCss, secondaryTextColorCss } = resolveCommonColors(cfg);
+    const { textColorCss, secondaryTextColorCss, cardBackgroundCss } = resolveCommonColors(cfg);
     const iconBg = tintOn(this, tone, undefined, checkedIn ? 20 : 12);
-    const radius = cfg.radius ?? DEFAULT_CHECKIN_RADIUS;
+    const radius = resolveCornerRadius(cfg.radius ?? DEFAULT_CHECKIN_RADIUS, cfg.corners);
     const name =
       cfg.name ?? (this._entity.attributes?.friendly_name as string | undefined) ?? this._t("checkin_default_name");
     const canSwitch = !!checkinAction(this._model, "in") && !unavailable;
@@ -424,12 +437,12 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
     });
 
     return html`
-      <ha-card style=${`${vars} border-radius: ${radius}px;`}>
+      <ha-card style=${`${vars} border-radius: ${radius};`}>
         <div
           class="card-inner ${glassCardClass(cfg.glass_background)} ${checkedIn ? "in" : "out"} style-${this._style} ${
             unavailable ? "unavailable" : ""
           } ${shouldAnimate(cfg.animation) ? "" : "no-animations"}"
-          style=${`border-radius: ${radius}px;`}
+          style=${`border-radius: ${radius};${cardBackgroundCss ? ` --ci-base: ${cardBackgroundCss};` : ""}`}
         >
           ${renderCardHeader({
             icon: checkedIn ? (cfg.icon ?? DEFAULT_CHECKIN_ICON) : (cfg.icon_off ?? DEFAULT_CHECKIN_ICON_OFF),
@@ -706,7 +719,7 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
          every card beside it. */
       .card-inner.glass,
       .card-inner {
-        background-color: color-mix(in srgb, var(--ci-tone) var(--ci-tint), ${glassBackground});
+        background-color: color-mix(in srgb, var(--ci-tone) var(--ci-tint), var(--ci-base, ${glassBackground}));
       }
 
       .card-inner.unavailable {
