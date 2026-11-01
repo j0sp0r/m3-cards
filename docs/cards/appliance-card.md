@@ -205,12 +205,19 @@ sensor, a week of it, in the history panel):
 | --- | --- | --- |
 | Standby draw | under 5 W | below this the machine is idle |
 | Draw at the start of a run | 10–50 W | above this for 2 min, a run has started |
-| Longest pause inside a run | 3 min | quiet for longer than this (10 min here) means done |
-| Length of a run, per programme | 110 / 140 min | the estimate before anything better is known |
+| Draw after the programme ends | under 1 W | the machine switching itself off is the end — see below |
+| Longest pause inside a run | 3 min | a fallback only: quiet for 90 min also counts as done |
+| Length of a run, per programme | 140 / 170 min | the estimate before anything better is known |
 | Heater | over 1000 W | the last heating phase starts a fixed time before the end |
 
 A dishwasher heats twice: once early, for the wash, and once late, for the
-final rinse, which starts about 20 minutes before the end on most machines.
+final rinse — about 50 minutes before the end on the machine below, because
+the drying after it runs silently. That silence is the trap: for half an hour
+the machine draws exactly what it draws in standby, while its own display
+still counts down. "Quiet for 10 minutes" called it done 35 minutes early.
+What marks the real end is the machine switching itself off: the draw falls
+from about 3.5 W to nothing. Look for that drop in your history; a machine
+that does not switch itself off needs the long quiet fallback instead.
 The minutes left are therefore estimated from the programme's usual length
 until the second heating starts, and counted down from that point after it —
 which is what keeps the estimate honest on a programme that runs long. Two
@@ -233,8 +240,13 @@ template:
         id: heat
       - trigger: numeric_state
         entity_id: sensor.dishwasher_plug_power
+        below: 1
+        for: "00:00:30"
+        id: selfoff
+      - trigger: numeric_state
+        entity_id: sensor.dishwasher_plug_power
         below: 5
-        for: "00:10:00"
+        for: "01:30:00"
         id: quiet
       - trigger: numeric_state
         entity_id: sensor.dishwasher_plug_power
@@ -265,8 +277,9 @@ template:
             {{ (now() - states.sensor.dishwasher_plug_power.last_changed).total_seconds() / 60
                if states.sensor.dishwasher_plug_power is not none else 0 }}
           ended: >
-            {{ prev == 'run' and (trigger.id == 'quiet'
-               or (trigger.id == 'tick' and power < 5 and quiet_for >= 10)) }}
+            {{ prev == 'run' and (trigger.id in ['selfoff', 'quiet']
+               or (trigger.id == 'tick' and power < 1 and quiet_for >= 1)
+               or (trigger.id == 'tick' and power < 5 and quiet_for >= 90)) }}
           begun: "{{ trigger.id == 'active' and prev != 'run' }}"
           new: >
             {% if states('switch.dishwasher_plug') == 'off' %}off
@@ -305,10 +318,10 @@ template:
           {% else %}
             {% set mins = (now() - as_datetime(a.started)).total_seconds() / 60 %}
             {% if a.get('final_heat') %}
-              {{ [20 - (now() - as_datetime(a.final_heat)).total_seconds() / 60, 1] | max | round(0) | int }}
+              {{ [50 - (now() - as_datetime(a.final_heat)).total_seconds() / 60, 1] | max | round(0) | int }}
             {% else %}
               {% set fh = a.get('first_heat') %}
-              {% set expected = 125 if fh is none else (140 if fh | int >= 12 else 112) %}
+              {% set expected = 155 if fh is none else (170 if fh | int >= 12 else 142) %}
               {{ [expected - mins, 20] | max | round(0) | int }}
             {% endif %}
           {% endif %}
@@ -329,10 +342,11 @@ template:
           {% endif %}
 ```
 
-The numbers to change are the thresholds in the triggers (8 W, 1000 W, 5 W),
-the 10 minutes of quiet, and in *minutes left* the programme lengths (112 and
-140, 125 while unknown), the minute that separates them (12) and the 20
-minutes after the last heating. A machine with one programme can drop the
+The numbers to change are the thresholds in the triggers (8 W, 1000 W, 1 W,
+5 W), the 90 minutes of quiet, and in *minutes left* the programme lengths
+(142 and 170, 155 while unknown), the minute that separates them (12) and the
+50 minutes after the last heating. Measure the lengths to the moment the
+machine switches itself off, not to the moment it goes quiet. A machine with one programme can drop the
 `first_heat` attribute and use one length. One without a heater worth the name
 — most dryers heat throughout — can drop `final_heat` and live with the
 estimate.

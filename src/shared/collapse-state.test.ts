@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { foldHides } from "./collapse-state";
+import { collapseBlocksFor, foldHides, keptWhenFolded } from "./collapse-state";
 
 describe("foldHides", () => {
   it("hides nothing while the card is open", () => {
@@ -22,5 +22,23 @@ describe("foldHides", () => {
     // The printer's socket while offline: the one control that brings it back.
     expect(foldHides("details", true, undefined, ["details"])).toBe(false);
     expect(foldHides("details", true, ["details"], ["details"])).toBe(false);
+  });
+});
+
+describe("the editor's kept list", () => {
+  const all = ["progress", "sliders", "chips"] as const;
+
+  it("keeps nothing when everything folds, and the reverse", () => {
+    expect(keptWhenFolded(all, undefined)).toEqual([]);
+    expect(collapseBlocksFor(all, [])).toBeUndefined();
+  });
+
+  it("keeps the progress by folding the rest", () => {
+    expect(collapseBlocksFor(all, ["progress"])).toEqual(["sliders", "chips"]);
+    expect(keptWhenFolded(all, ["sliders", "chips"])).toEqual(["progress"]);
+  });
+
+  it("keeping everything folds nothing", () => {
+    expect(collapseBlocksFor(all, [...all])).toEqual([]);
   });
 });

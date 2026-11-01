@@ -7,6 +7,7 @@ import {
   PRINTER_CAMERA_REFRESH_S,
   PRINTER_FILAMENT_WARN,
 } from "./const";
+import { collapseBlocksFor, keptWhenFolded } from "./shared/collapse-state";
 import { localize, type TranslationKey } from "./localize";
 import { colorRow, editorStyles, fireEvent, type SchemaEntry } from "./shared/editor-helpers";
 import { chipsEditorStyles, renderChipsEditor } from "./shared/info-chips-editor";
@@ -31,6 +32,8 @@ import {
   renderAppearanceSection,
   type AppearanceState,
 } from "./shared/appearance-editor";
+
+const PRINTER_FOLD_BLOCKS = ["camera", "progress", "temps", "speed", "ams", "details", "chips"] as const;
 
 @customElement("m3-printer-card-editor")
 export class M3PrinterCardEditor extends LitElement implements LovelaceCardEditor {
@@ -318,7 +321,7 @@ export class M3PrinterCardEditor extends LitElement implements LovelaceCardEdito
     return [
       { name: "collapsible", selector: { boolean: {} } },
       {
-        name: "collapse_blocks",
+        name: "collapse_keep",
         selector: {
           select: {
             multiple: true,
@@ -448,7 +451,7 @@ export class M3PrinterCardEditor extends LitElement implements LovelaceCardEdito
       show_details: "editor_printer_show_details",
       wave_style: "editor_appliance_wave_style",
       collapsible: "editor_printer_collapsible",
-      collapse_blocks: "editor_printer_collapse_blocks",
+      collapse_keep: "editor_fold_keep",
       default_collapsed: "editor_printer_default_collapsed",
       collapse_state_entity: "editor_printer_collapse_entity",
       collapse_memory: "editor_printer_collapse_memory",
@@ -475,10 +478,12 @@ export class M3PrinterCardEditor extends LitElement implements LovelaceCardEdito
     for (const [key, value] of Object.entries(next)) {
       if (value === "" || value === null) delete next[key];
     }
-    // An empty selection means "fold everything", which is the absent key —
-    // storing [] would silently make the fold hide nothing at all.
-    if (Array.isArray(next.collapse_blocks) && next.collapse_blocks.length === 0) {
-      delete next.collapse_blocks;
+    // The editor's list is what stays; the config keeps what folds.
+    if ("collapse_keep" in next) {
+      const blocks = collapseBlocksFor(PRINTER_FOLD_BLOCKS, ((next as Record<string, unknown>).collapse_keep ?? []) as never[]);
+      delete (next as Record<string, unknown>).collapse_keep;
+      if (blocks) next.collapse_blocks = blocks as never;
+      else delete next.collapse_blocks;
     }
     this._emit(next as unknown as M3PrinterCardConfig);
   }
@@ -550,7 +555,7 @@ export class M3PrinterCardEditor extends LitElement implements LovelaceCardEdito
     };
     const foldData = {
       collapsible: cfg.collapsible ?? false,
-      collapse_blocks: cfg.collapse_blocks ?? [],
+      collapse_keep: keptWhenFolded(PRINTER_FOLD_BLOCKS, cfg.collapse_blocks),
       default_collapsed: cfg.default_collapsed ?? false,
       collapse_state_entity: cfg.collapse_state_entity ?? "",
       collapse_memory: cfg.collapse_memory ?? "device",

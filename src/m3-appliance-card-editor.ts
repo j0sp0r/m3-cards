@@ -10,6 +10,7 @@ import type {
   StatusRule,
 } from "./types";
 import { DEFAULT_APPLIANCE_RADIUS, DEFAULT_DONE_STATES, DEFAULT_IDLE_STATES } from "./const";
+import { collapseBlocksFor, keptWhenFolded } from "./shared/collapse-state";
 import { localize, type TranslationKey } from "./localize";
 import {
   colorRow,
@@ -350,8 +351,17 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
   /** An empty block list or helper leaves the config rather than staying as `[]` or "". */
   private _foldChanged = (ev: CustomEvent): void => {
     if (!this._config) return;
-    const next = { ...this._config, ...(ev.detail.value as Partial<M3ApplianceCardConfig>) };
-    if (!next.collapse_blocks?.length) delete next.collapse_blocks;
+    const next = { ...this._config, ...(ev.detail.value as Partial<M3ApplianceCardConfig>) } as M3ApplianceCardConfig & {
+      collapse_keep?: string[];
+    };
+    // The editor's list is what stays; the config keeps what folds.
+    if ("collapse_keep" in next) {
+      const blocks = collapseBlocksFor(ALL_BLOCKS, (next.collapse_keep ?? []) as never[]);
+      delete next.collapse_keep;
+      if (blocks) next.collapse_blocks = blocks as never;
+      else delete next.collapse_blocks;
+    }
+
     if (!next.collapse_state_entity) delete next.collapse_state_entity;
     if (!next.collapsible) delete next.collapsible;
     this._emit(next);
@@ -663,7 +673,7 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
     return [
       { name: "collapsible", selector: { boolean: {} } },
       {
-        name: "collapse_blocks",
+        name: "collapse_keep",
         selector: {
           select: {
             multiple: true,
@@ -748,7 +758,7 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
       notify_title: "editor_notify_title",
       notify_message: "editor_notify_message",
       collapsible: "editor_vacuum_collapsible",
-      collapse_blocks: "editor_vacuum_collapse_blocks",
+      collapse_keep: "editor_fold_keep",
       default_collapsed: "editor_vacuum_default_collapsed",
       collapse_memory: "editor_vacuum_collapse_memory",
       collapse_state_entity: "editor_appliance_collapse_state_entity",
@@ -965,7 +975,7 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
               .hass=${this.hass}
               .data=${{
                 collapsible: cfg.collapsible ?? false,
-                collapse_blocks: cfg.collapse_blocks ?? [],
+                collapse_keep: keptWhenFolded(ALL_BLOCKS, cfg.collapse_blocks),
                 default_collapsed: cfg.default_collapsed ?? false,
                 collapse_memory: cfg.collapse_memory ?? "device",
                 collapse_state_entity: cfg.collapse_state_entity ?? "",

@@ -198,6 +198,17 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **The fold settings ask what stays, not what goes.** "What folds away"
+  listed the blocks the fold takes, and an empty list meant all of them, so
+  ticking "Progress" to keep it in view folded only the progress. The
+  appliance, printer, vacuum and vacuum maintenance editors now ask "Stays
+  visible when folded"; the config key is unchanged.
+- **Docs: the smart-plug dishwasher ends when it switches itself off.** The
+  example called a run done after 10 minutes below 5 W, but a dishwasher dries
+  silently at standby draw for half an hour after that while its display still
+  counts down. The end is the draw falling to nothing; 90 minutes of quiet is
+  only the fallback, and the lengths and the count-down after the last heating
+  are measured to that point.
 - **A finished appliance no longer shows "0 min left".** The remaining time
   is left out once the status is a done state: beside "Done" it said the same
   thing twice, and a remaining sensor stalled a minute short of the end said

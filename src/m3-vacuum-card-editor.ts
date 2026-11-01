@@ -2,6 +2,7 @@ import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant, LovelaceCardEditor, M3VacuumCardConfig } from "./types";
 import { DEFAULT_VACUUM_ICON, DEFAULT_VACUUM_RADIUS, VACUUM_MAP_HEIGHT } from "./const";
+import { collapseBlocksFor, keptWhenFolded } from "./shared/collapse-state";
 import { localize, type TranslationKey } from "./localize";
 import { colorRow, editorStyles, fireEvent, type SchemaEntry } from "./shared/editor-helpers";
 import { radiusLabelMap } from "./shared/radius-editor";
@@ -27,6 +28,8 @@ import {
   setAutomationEnabled,
   triggerStatePrelude,
 } from "./shared/notify-editor";
+
+const VACUUM_FOLD_BLOCKS = ["map", "rooms", "fan_speed", "cleaning_mode", "mop", "buttons", "chips"] as const;
 
 @customElement("m3-vacuum-card-editor")
 export class M3VacuumCardEditor extends LitElement implements LovelaceCardEditor {
@@ -223,7 +226,7 @@ export class M3VacuumCardEditor extends LitElement implements LovelaceCardEditor
       },
       { name: "collapsible", selector: { boolean: {} } },
       {
-        name: "collapse_blocks",
+        name: "collapse_keep",
         selector: {
           select: {
             multiple: true,
@@ -290,7 +293,7 @@ export class M3VacuumCardEditor extends LitElement implements LovelaceCardEditor
       secondary_actions: "editor_vacuum_secondary",
       optimistic_timeout: "editor_vacuum_optimistic",
       collapsible: "editor_vacuum_collapsible",
-      collapse_blocks: "editor_vacuum_collapse_blocks",
+      collapse_keep: "editor_fold_keep",
       default_collapsed: "editor_vacuum_default_collapsed",
       collapse_memory: "editor_vacuum_collapse_memory",
       notify_service: "editor_notify_service",
@@ -315,10 +318,12 @@ export class M3VacuumCardEditor extends LitElement implements LovelaceCardEditor
       if (next[key] === "") delete next[key];
     }
     if (Array.isArray(next.rooms) && next.rooms.length === 0) delete next.rooms;
-    // An empty selection means "fold everything", which is the absent key —
-    // storing [] would silently make the fold hide nothing at all.
-    if (Array.isArray(next.collapse_blocks) && next.collapse_blocks.length === 0) {
-      delete next.collapse_blocks;
+    // The editor's list is what stays; the config keeps what folds.
+    if ("collapse_keep" in next) {
+      const blocks = collapseBlocksFor(VACUUM_FOLD_BLOCKS, ((next as Record<string, unknown>).collapse_keep ?? []) as never[]);
+      delete (next as Record<string, unknown>).collapse_keep;
+      if (blocks) next.collapse_blocks = blocks as never;
+      else delete next.collapse_blocks;
     }
     this._emit(next as unknown as M3VacuumCardConfig);
   }
@@ -407,7 +412,7 @@ export class M3VacuumCardEditor extends LitElement implements LovelaceCardEditor
       secondary_actions: cfg.secondary_actions ?? ["return_to_base", "locate"],
       optimistic_timeout: cfg.optimistic_timeout ?? 70000,
       collapsible: cfg.collapsible ?? false,
-      collapse_blocks: cfg.collapse_blocks ?? [],
+      collapse_keep: keptWhenFolded(VACUUM_FOLD_BLOCKS, cfg.collapse_blocks),
       default_collapsed: cfg.default_collapsed ?? false,
       collapse_memory: cfg.collapse_memory ?? "device",
       animation: cfg.animation ?? "auto",

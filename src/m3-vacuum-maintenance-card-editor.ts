@@ -14,6 +14,7 @@ import {
   VACUUM_PART_ALERT_BELOW,
   VACUUM_PART_WARN_BELOW,
 } from "./const";
+import { collapseBlocksFor, keptWhenFolded } from "./shared/collapse-state";
 import { localize, type TranslationKey } from "./localize";
 import { colorRow, editorStyles, fireEvent, type SchemaEntry } from "./shared/editor-helpers";
 import { radiusLabelMap } from "./shared/radius-editor";
@@ -39,6 +40,8 @@ import {
   renderAppearanceSection,
   type AppearanceState,
 } from "./shared/appearance-editor";
+
+const MAINT_FOLD_BLOCKS = ["parts", "reminders", "station", "stats", "settings"] as const;
 
 @customElement("m3-vacuum-maintenance-card-editor")
 export class M3VacuumMaintenanceCardEditor extends LitElement implements LovelaceCardEditor {
@@ -376,7 +379,7 @@ export class M3VacuumMaintenanceCardEditor extends LitElement implements Lovelac
       { name: "show_reset", selector: { boolean: {} } },
       { name: "collapsible", selector: { boolean: {} } },
       {
-        name: "collapse_blocks",
+        name: "collapse_keep",
         selector: {
           select: {
             multiple: true,
@@ -414,7 +417,7 @@ export class M3VacuumMaintenanceCardEditor extends LitElement implements Lovelac
       notify_title: "editor_notify_title",
       notify_message: "editor_notify_message",
       collapsible: "editor_vacuum_collapsible",
-      collapse_blocks: "editor_vacuum_collapse_blocks",
+      collapse_keep: "editor_fold_keep",
       default_collapsed: "editor_vacuum_default_collapsed",
       glass_background: "editor_glass_background",
       ...radiusLabelMap,
@@ -433,10 +436,12 @@ export class M3VacuumMaintenanceCardEditor extends LitElement implements Lovelac
     for (const key of ["name", "icon"]) {
       if (next[key] === "") delete next[key];
     }
-    // Empty means "fold everything", which is the absent key — storing [] would
-    // read as "fold nothing" and leave a chevron that does nothing.
-    if (Array.isArray(next.collapse_blocks) && next.collapse_blocks.length === 0) {
-      delete next.collapse_blocks;
+    // The editor's list is what stays; the config keeps what folds.
+    if ("collapse_keep" in next) {
+      const blocks = collapseBlocksFor(MAINT_FOLD_BLOCKS, ((next as Record<string, unknown>).collapse_keep ?? []) as never[]);
+      delete (next as Record<string, unknown>).collapse_keep;
+      if (blocks) next.collapse_blocks = blocks as never;
+      else delete next.collapse_blocks;
     }
     this._emit(next as unknown as M3VacuumMaintenanceCardConfig);
   }
@@ -510,7 +515,7 @@ export class M3VacuumMaintenanceCardEditor extends LitElement implements Lovelac
       show_settings: cfg.show_settings ?? false,
       show_reset: cfg.show_reset ?? false,
       collapsible: cfg.collapsible ?? false,
-      collapse_blocks: cfg.collapse_blocks ?? [],
+      collapse_keep: keptWhenFolded(MAINT_FOLD_BLOCKS, cfg.collapse_blocks),
       default_collapsed: cfg.default_collapsed ?? false,
     };
 

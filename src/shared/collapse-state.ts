@@ -105,3 +105,19 @@ export function foldHides<B extends string>(
   if (!folded || pinned.includes(block)) return false;
   return !collapseBlocks || collapseBlocks.includes(block);
 }
+
+/**
+ * The editors ask the question the other way round from the config. The
+ * config lists what the fold takes (`collapse_blocks`, absent meaning all);
+ * the editor lists what *stays* when folded. Ticking "Progress" to keep it in
+ * view used to do the opposite — fold only the progress — and an empty list
+ * meant "fold everything", which no one reads off an empty list.
+ */
+export function keptWhenFolded<B extends string>(all: readonly B[], collapseBlocks: readonly B[] | undefined): B[] {
+  return collapseBlocks ? all.filter((b) => !collapseBlocks.includes(b)) : [];
+}
+
+/** The inverse: the config's `collapse_blocks` for a set of blocks to keep. */
+export function collapseBlocksFor<B extends string>(all: readonly B[], kept: readonly B[]): B[] | undefined {
+  return kept.length ? all.filter((b) => !kept.includes(b)) : undefined;
+}
