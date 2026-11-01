@@ -232,3 +232,35 @@ export function waveSliderGeometry(
     trackStart: Math.min(widthPx, handleX + gapHalf + handleWidth / 2),
   };
 }
+
+/**
+ * The moment a run will end, from what the remaining-time sensor says: a
+ * completion timestamp is the end itself, every other form is now plus the
+ * minutes left. Undefined when there is nothing to go by. Rounded to the
+ * minute, so the time on the card does not flicker between 15:17 and 15:18
+ * as seconds of a countdown pass.
+ */
+export function endTimeOf(
+  raw: string | undefined,
+  attributes: Record<string, unknown> | undefined,
+  now: number,
+): number | undefined {
+  const minutes = remainingMinutes(raw, attributes, now);
+  if (minutes === undefined) return undefined;
+  const state = (raw ?? "").trim();
+  const at =
+    attributes?.device_class === "timestamp" || /\d{4}-\d{2}-\d{2}/.test(state)
+      ? Date.parse(state)
+      : now + minutes * 60000;
+  if (!Number.isFinite(at)) return undefined;
+  return Math.round(at / 60000) * 60000;
+}
+
+/**
+ * How long ago something happened, for "Done 12 min ago": whole minutes below
+ * an hour, whole hours from there. `{ m }` or `{ h }`, so the caller words it.
+ */
+export function sinceParts(since: number, now: number): { m: number } | { h: number } {
+  const minutes = Math.max(0, Math.floor((now - since) / 60000));
+  return minutes < 60 ? { m: minutes } : { h: Math.floor(minutes / 60) };
+}

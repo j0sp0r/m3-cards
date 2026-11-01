@@ -173,6 +173,17 @@ state still says `run`, which is how a Bosch dryer reports the anti-crease
 phase that follows the drying. Only an unavailable entity greys the card out;
 it used to take a Samsung's idle `none` for one.
 
+### Running, done, idle
+
+Each state draws its own card. **Running**: the time left, large, in the top
+right, with "done at 15:18" under it, and the bar with its percentage on one
+line. **Done**: a "✓ Done" pill where the time was, "Done 12 min ago" as the
+status, no bar — and, with `finish_action`, a full-width **Emptied** button
+in the supply card's style, for a status that does not clear itself. **Idle**:
+one line, the name and the state. The height eases from one to the next, and
+the fold moves to a quiet "Details" row at the foot, so the top right says
+only one thing.
+
 ### Done, and started
 
 The editor's **Notification** section sets up the automation that says the

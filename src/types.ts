@@ -3045,6 +3045,16 @@ export interface M3ApplianceCardConfig extends NotifyConfigBase {
    * that is mostly read, where the figures are the point.
    */
   chip_style?: "pill" | "tile";
+  /**
+   * The full-width button a finished machine shows — "Emptied". Any action:
+   * a script, an input_boolean, an input_button that resets a derived status.
+   * Without it there is no button.
+   */
+  finish_action?: HaActionConfig;
+  /** The button's text; "Emptied" in the user's language by default. */
+  finish_label?: string;
+  /** "done at 15:18" under the remaining time while a run is on. Default true. */
+  show_end_time?: boolean;
 
   /**
    * Which blocks to draw and in what order. Leaving a block out hides it, so

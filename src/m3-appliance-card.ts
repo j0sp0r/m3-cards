@@ -59,6 +59,12 @@ import {
   APPLIANCE_SLIDER_THROTTLE_MS,
   APPLIANCE_SLIDER_TRACK,
   APPLIANCE_VALUE_SIZE,
+  APPLIANCE_HERO_SIZE,
+  APPLIANCE_FINISH_HEIGHT,
+  APPLIANCE_FINISH_RADIUS,
+  APPLIANCE_FINISH_RADIUS_ACTIVE,
+  APPLIANCE_FINISH_TINT,
+  APPLIANCE_RESIZE_MS,
   CARD_VERSION,
   DEFAULT_APPLIANCE_ACCENT,
   DEFAULT_DONE_STATES,
@@ -83,7 +89,9 @@ import {
 import {
   prettifyOption,
   prettifyState,
+  endTimeOf,
   remainingMinutes,
+  sinceParts,
   resolveSliderRange,
   snapToRange,
   splitDuration,
@@ -98,6 +106,7 @@ import {
   inkOn,
   resolveCommonColors,
   resolveThemeColor,
+  tintInk,
   tintOn,
 } from "./shared/color-config";
 import { DragThrottle } from "./shared/drag-throttle";
@@ -128,6 +137,9 @@ console.info(
 );
 
 const EASING = unsafeCSS(STANDARD_EASING);
+
+/** What the card shows: a run with its time, a finished machine, or one line. */
+type AppliancePhase = "ready" | "running" | "done";
 
 // Everything, in the order a person reads an appliance: what it is doing, how
 // far along, what it is set to, what it offers, and the details at the bottom.
@@ -173,6 +185,9 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
    *  block is the same width, so one measurement serves the bar and every
    *  slider. */
   @state() private _blockWidth = 0;
+  /** The machine's phase as last drawn, so a change of height can be eased. */
+  private _machinePhase: AppliancePhase = "ready";
+  private _heightBefore = 0;
   /** Travelling phase of the wave, in radians. */
   @state() private _phase = 0;
   /** Animated toward `_targetAmplitude`, so a wave settles flat instead of
@@ -336,8 +351,31 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     this._ticker.connect();
   }
 
+  protected willUpdate(changed: PropertyValues): void {
+    super.willUpdate?.(changed);
+    const inner = this.renderRoot?.querySelector?.(".card-inner") as HTMLElement | null;
+    this._heightBefore = inner?.offsetHeight ?? 0;
+    this._phaseBefore = this._machinePhase;
+  }
+
+  private _phaseBefore: AppliancePhase = "ready";
+
+  /** Eases the card to its new height when the phase changes its layout. */
+  private _easeHeight(): void {
+    if (this._machinePhase === this._phaseBefore || !this._heightBefore) return;
+    if (this._reducedMotion || !shouldAnimate(this._config?.animation)) return;
+    const inner = this.renderRoot.querySelector(".card-inner") as HTMLElement | null;
+    const after = inner?.offsetHeight ?? 0;
+    if (!inner || !after || Math.abs(after - this._heightBefore) < 2) return;
+    inner.animate([{ height: `${this._heightBefore}px` }, { height: `${after}px` }], {
+      duration: APPLIANCE_RESIZE_MS,
+      easing: STANDARD_EASING,
+    });
+  }
+
   protected updated(changed: PropertyValues): void {
     super.updated(changed);
+    this._easeHeight();
     // An entity-backed fold can be changed elsewhere, so it is re-read rather
     // than only written on a tap.
     if (this._config?.collapsible) {
@@ -376,6 +414,11 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
    * unconditional assignment: on those the minute tick renders nothing at all.
    */
   private _onTick(now: number): void {
+    // "Done 12 min ago" has no sensor that changes as the minutes pass.
+    if (this._machinePhase === "done") {
+      this._now = now;
+      return;
+    }
     const before = this._remainingAt(this._now);
     const after = this._remainingAt(now);
     if (before === undefined && after === undefined) return;
@@ -664,11 +707,15 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     // empty bar and "0 Min. verbleibend" on a machine that is doing nothing.
     const progress = idle ? undefined : this._progress();
     const folded = !!cfg.collapsible && this._folded;
-    // A finished machine has no time left to count: "Done" beside "0 min
-    // left" says the same thing twice, and a remaining sensor that stalled
-    // at a minute or two before the end would say something else.
+    // Three layouts, by what the machine is doing. Done includes "done in all
+    // but name": a dryer in its anti-crease phase reports `run` at 100 % with
+    // its finish time behind it.
     const done = (cfg.done_states ?? DEFAULT_DONE_STATES).some((s) => s.toLowerCase() === raw);
-    const remaining = done ? undefined : progress?.remaining;
+    const doneByProgress =
+      !!progress && !progress.indeterminate && (progress.percent ?? 0) >= 100 && (progress.remaining ?? 0) < 1;
+    const phase: AppliancePhase = unavailable || idle ? "ready" : done || doneByProgress ? "done" : "running";
+    this._machinePhase = phase;
+    const remaining = phase === "running" ? progress?.remaining : undefined;
 
     // Decide how the wave behaves this render, before anything draws one.
     //
@@ -707,53 +754,71 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       !!cfg.collapsible &&
       blocks.some(({ block, body }) => foldHides(block, true, cfg.collapse_blocks) && this._blockShows(block, body));
 
+    const name =
+      cfg.name ?? (this._main?.attributes?.friendly_name as string | undefined) ?? this._t("appliance_default_name");
+    const onHeader = headerInteractive
+      ? (e: Event) => {
+          e.stopPropagation();
+          this._run(headerAction, cfg.entity);
+        }
+      : undefined;
+    const doneSubtitle = phase === "done" && !unavailable ? this._doneSince(done) : undefined;
+    // The chevron sits in the header only on the one-line ready card; while a
+    // run is on or done, the top right belongs to the time or the "Done" pill,
+    // and the fold moves to a quiet row at the foot.
+    const arrow = foldable
+      ? renderFoldArrow({
+          folded,
+          accent: "var(--m3a-accent)",
+          host: this,
+          label: name,
+          onToggle: this._toggleFold,
+        })
+      : nothing;
+    const right =
+      phase === "running"
+        ? remaining === undefined
+          ? undefined
+          : html`<div class="reading hero">
+              <div class="reading-value">${this._durationParts(remaining)}</div>
+              <div class="reading-caption">${this._endCaption()}</div>
+            </div>`
+        : phase === "done"
+          ? html`<span class="done-pill"><ha-icon icon="mdi:check"></ha-icon>${this._t("appliance_done")}</span>`
+          : html`<div class="header-trailing">
+              <span class="ready-state">${subtitle}</span>
+              ${arrow}
+            </div>`;
+
     return html`
       <ha-card style=${`${cssVars} border-radius: ${radius};`}>
         <div
-          class="card-inner ${glassCardClass(cfg.glass_background)} ${
+          class="card-inner phase-${phase} ${glassCardClass(cfg.glass_background)} ${
             unavailable ? "off" : ""
           } ${this._narrow ? "narrow" : ""} ${shouldAnimate(cfg.animation) ? "" : "no-animations"}"
           style=${`border-radius: ${radius};${cardBackgroundCss ? ` background: ${cardBackgroundCss};` : ""}`}
         >
           ${renderCardHeader({
             icon: rule?.icon ?? cfg.icon ?? DEFAULT_APPLIANCE_ICON,
-            name:
-              cfg.name ??
-              (this._main?.attributes?.friendly_name as string | undefined) ??
-              this._t("appliance_default_name"),
-            subtitle,
-            onClick: headerInteractive
-              ? (e: Event) => {
-                  e.stopPropagation();
-                  this._run(headerAction, cfg.entity);
-                }
-              : undefined,
-            right:
-              remaining === undefined && !foldable
-                ? undefined
-                : html`
-                    <div class="header-trailing">
-                      ${remaining === undefined
-                        ? nothing
-                        : html`
-                            <div class="reading">
-                              <div class="reading-value">${this._durationParts(remaining)}</div>
-                              <div class="reading-caption">${this._t("appliance_remaining")}</div>
-                            </div>
-                          `}
-                      ${foldable
-                        ? renderFoldArrow({
-                            folded,
-                            accent: "var(--m3a-accent)",
-                            host: this,
-                            label: cfg.name ?? this._t("appliance_default_name"),
-                            onToggle: this._toggleFold,
-                          })
-                        : nothing}
-                    </div>
-                  `,
+            name,
+            subtitle: phase === "ready" ? "" : (doneSubtitle ?? subtitle),
+            onClick: onHeader,
+            right,
           })}
-          ${blocks.filter(({ block }) => !foldHides(block, folded && foldable, cfg.collapse_blocks)).map(({ body }) => body)}
+          ${phase === "done" ? this._renderFinish() : nothing}
+          ${blocks
+            .filter(({ block }) => !foldHides(block, folded && foldable, cfg.collapse_blocks))
+            .map(({ body }) => body)}
+          ${foldable && phase !== "ready"
+            ? html`<button
+                class="details-toggle ${folded ? "folded" : ""}"
+                aria-expanded=${String(!folded)}
+                aria-label=${`${name}: ${this._t("appliance_details")}`}
+                @click=${this._toggleFold}
+              >
+                <span>${this._t("appliance_details")}</span><ha-icon icon="mdi:chevron-down"></ha-icon>
+              </button>`
+            : nothing}
         </div>
       </ha-card>
       ${this._renderPopup()}
@@ -791,25 +856,22 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
   // ---- progress block -------------------------------------------------------
 
   private _renderProgress(progress: ProgressReading | undefined): TemplateResult | typeof nothing {
-    if (!progress) return nothing;
+    // Only while a run is on: a finished machine says so in its pill, and a
+    // full bar beside it would say it twice.
+    if (!progress || this._machinePhase !== "running") return nothing;
     const cfg = this._config?.progress;
     const color = cfg?.color ? resolveThemeColor(cfg.color) : undefined;
     const animate = shouldAnimate(this._config?.animation);
+    const label = cfg?.label ?? this._t("appliance_progress");
 
+    // The percentage sits on the bar's own line rather than over it: the
+    // label row above said "Progress" over a bar that says progress.
     return html`
-      <div class="block" style=${color ? buildCssVars({ "m3a-accent": color }) : nothing}>
-        <div class="block-head">
-          <span class="block-label">${cfg?.label ?? this._t("appliance_progress")}</span>
-          ${progress.percent === undefined
-            ? nothing
-            : html`<span class="block-value"
-                >${formatNumber(this._language, progress.percent, { maximumFractionDigits: 0 })} %</span
-              >`}
-        </div>
+      <div class="block progress-row" style=${color ? buildCssVars({ "m3a-accent": color }) : nothing}>
         <div
           class="bar wave-host ${this._wavy ? "wavy" : "flat"}"
           role="progressbar"
-          aria-label=${cfg?.label ?? this._t("appliance_progress")}
+          aria-label=${label}
           aria-valuemin=${progress.indeterminate ? nothing : 0}
           aria-valuemax=${progress.indeterminate ? nothing : 100}
           aria-valuenow=${progress.indeterminate ? nothing : Math.round(progress.percent ?? 0)}
@@ -823,7 +885,75 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
                 style=${progress.indeterminate ? nothing : `width: ${progress.percent ?? 0}%;`}
               ></div>`}
         </div>
+        ${progress.percent === undefined
+          ? nothing
+          : html`<span class="block-value"
+              >${formatNumber(this._language, progress.percent, { maximumFractionDigits: 0 })} %</span
+            >`}
       </div>
+    `;
+  }
+
+  /** "done at 15:18" under the remaining time, or "left" when the end is not known. */
+  private _endCaption(): string {
+    const st = this._state(this._config?.progress?.remaining_entity);
+    if (this._config?.show_end_time === false || !st) return this._t("appliance_remaining");
+    const end = endTimeOf(st.state, st.attributes, this._now);
+    if (end === undefined) return this._t("appliance_remaining");
+    const hour12 =
+      this.hass?.locale?.time_format === "12" ? true : this.hass?.locale?.time_format === "24" ? false : undefined;
+    const time = new Intl.DateTimeFormat(this._language, { hour: "2-digit", minute: "2-digit", hour12 }).format(end);
+    return this._t("appliance_done_at").replace("{time}", time);
+  }
+
+  /**
+   * "Done 12 min ago": from the status turning done — or, for a machine done
+   * in all but name, from the progress reaching 100 %, since its status has
+   * said `run` since the programme began.
+   */
+  private _doneSince(byState: boolean): string | undefined {
+    // A `finished_at` attribute wins: a template sensor's last_changed is the
+    // moment Home Assistant last started or reloaded it, which made a
+    // dishwasher done for hours read "Done 0 min ago".
+    const stamped = this._main?.attributes?.finished_at;
+    const source = byState ? this._main : this._state(this._config?.progress?.percentage_entity);
+    const changed =
+      typeof stamped === "string" && Number.isFinite(Date.parse(stamped))
+        ? Date.parse(stamped)
+        : source?.last_changed
+          ? Date.parse(source.last_changed)
+          : NaN;
+    if (!Number.isFinite(changed)) return undefined;
+    const parts = sinceParts(changed, this._now);
+    return "m" in parts
+      ? this._t("appliance_done_since_m").replace("{m}", String(parts.m))
+      : this._t("appliance_done_since_h").replace("{h}", String(parts.h));
+  }
+
+  /** The full-width "Emptied" button, only when an action is configured. */
+  private _renderFinish(): TemplateResult | typeof nothing {
+    const action = this._config?.finish_action;
+    if (!action || !isActionable(action)) return nothing;
+    const accent = this._accent;
+    const label = this._config?.finish_label || this._t("appliance_emptied");
+    const onTap = (e: Event): void => {
+      e.stopPropagation();
+      this._run(action, this._config?.entity);
+    };
+    return html`
+      <button
+        class="finish"
+        style=${`background: ${tintOn(this, accent, this._config?.accent_opacity, APPLIANCE_FINISH_TINT)}; color: ${tintInk(
+          this,
+          accent,
+          this._config?.accent_opacity,
+          APPLIANCE_FINISH_TINT,
+        )};`}
+        aria-label=${label}
+        @click=${onTap}
+      >
+        <ha-icon icon="mdi:basket-check-outline"></ha-icon><span>${label}</span>
+      </button>
     `;
   }
 
@@ -1297,6 +1427,135 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       font-size: ${APPLIANCE_CAPTION_SIZE}px;
       opacity: 0.5;
       color: var(--m3p-secondary-text);
+    }
+
+    /* ---- the three phases ---- */
+    /* Running: the time left is the figure the card is read for, so it is
+       large; the end time sits under it, small. */
+    .reading.hero .reading-value {
+      font-size: ${APPLIANCE_HERO_SIZE}px;
+      line-height: 1;
+    }
+
+    .reading.hero .reading-unit {
+      font-size: ${APPLIANCE_CAPTION_SIZE + 4}px;
+    }
+
+    .reading.hero .reading-caption {
+      margin-top: 4px;
+      opacity: 0.7;
+    }
+
+    /* The bar and its percentage on one line. Two classes, so the general
+       .block rule below — a column — does not win by coming later. */
+    .block.progress-row {
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .block.progress-row .bar {
+      flex: 1 1 auto;
+      align-self: center;
+      min-width: 0;
+    }
+
+    .block.progress-row .block-value {
+      font-size: 15px;
+    }
+
+    /* Done: a tinted pill in place of the time. */
+    .done-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      height: 36px;
+      padding: 0 14px 0 12px;
+      border-radius: 18px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--m3p-icon-color);
+      background: var(--m3p-icon-bg);
+    }
+
+    .done-pill ha-icon {
+      --mdc-icon-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+
+    /* "Emptied": the supply card's refill button, full width. */
+    .finish {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      height: ${APPLIANCE_FINISH_HEIGHT}px;
+      border: none;
+      border-radius: ${APPLIANCE_FINISH_RADIUS}px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-radius 0.4s ${EASING};
+    }
+
+    .finish:active {
+      border-radius: ${APPLIANCE_FINISH_RADIUS_ACTIVE}px;
+    }
+
+    .finish:focus-visible,
+    .details-toggle:focus-visible {
+      outline: 2px solid var(--m3a-accent);
+      outline-offset: 2px;
+    }
+
+    .finish ha-icon {
+      --mdc-icon-size: 20px;
+    }
+
+    .no-animations .finish {
+      transition: none;
+    }
+
+    /* Ready: one line, the state on the right in the secondary colour. */
+    .phase-ready .m3-subtitle {
+      display: none;
+    }
+
+    .ready-state {
+      font-size: 14px;
+      color: var(--m3p-secondary-text);
+      white-space: nowrap;
+    }
+
+    /* The fold, at the foot while the top right shows the time or "Done". */
+    .details-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      height: 28px;
+      margin: -4px 0 -6px;
+      border: none;
+      background: none;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--m3p-secondary-text);
+      cursor: pointer;
+    }
+
+    .details-toggle ha-icon {
+      --mdc-icon-size: 18px;
+      transform: rotate(180deg);
+      transition: transform 0.3s ${EASING};
+    }
+
+    .details-toggle.folded ha-icon {
+      transform: none;
     }
 
     /* ---- blocks ---- */

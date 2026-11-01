@@ -481,6 +481,43 @@ The card knows three things about a run without being told:
 - **Unavailable.** Only `unavailable`, `unknown` or no state at all dim the
   card. SmartThings' idle `none` is a reading, not a missing entity.
 
+Each of the three draws its own layout:
+
+| | Running | Done | Idle |
+| --- | --- | --- | --- |
+| Top right | the time left, large, with "done at 15:18" under it | a tinted "✓ Done" pill | the state, in the secondary colour |
+| Status line | the state | "Done 12 min ago" | — (one line) |
+| Below | the bar, its percentage on the same line | the "Emptied" button, when `finish_action` is set | nothing |
+
+The end time comes from the remaining-time sensor: a completion timestamp as
+it is, minutes left added to now. It is written in your locale and moves on
+with the minute. `show_end_time: false` keeps the plain "left" under the time.
+
+"Done … ago" counts from a `finished_at` attribute on the status entity when
+there is one — a template sensor's `last_changed` is reset whenever Home
+Assistant restarts or reloads it — else from the status turning done, or, for
+a machine done in all but name, from the progress reaching 100 %.
+
+`finish_action` is any action; the button runs it and shows `finish_label`,
+"Emptied" by default. A machine whose integration clears "done" itself when the
+door opens needs none. A status derived from a plug does, or it sits at
+"finished" until its timeout:
+
+```yaml
+finish_action:
+  action: perform-action
+  perform_action: input_button.press
+  target:
+    entity_id: input_button.dishwasher_emptied
+```
+
+…with the button as one more trigger of the status sensor, turning `finished`
+into `idle`.
+
+On a collapsible card the fold moves to a quiet "Details" row at the foot
+while a run is on or done, so the top right holds only the time or the pill;
+on the one-line idle card the chevron sits in the header.
+
 ### Notifications
 
 The editor's **Notification** section sets up an automation that pushes to the
@@ -564,6 +601,9 @@ empty dialog.
 | `buttons[]` | — | `entity`, `name`, `icon`, `color`, `tap_action` |
 | `chips[]` | — | `entity`, `name`, `icon`, `label`, `show_state`, `states`, `color`, `tap_action` |
 | `chip_style` | `pill` | `pill` or `tile` |
+| `finish_action` | — | The "Emptied" button on a finished machine; without it there is none |
+| `finish_label` | "Emptied" | The button's text |
+| `show_end_time` | `true` | "done at HH:MM" under the remaining time |
 | `layout` | all five | Which blocks, in which order |
 | `collapsible` | `false` | A chevron in the header that folds the blocks away |
 | `collapse_blocks` | all | Which blocks the fold hides |

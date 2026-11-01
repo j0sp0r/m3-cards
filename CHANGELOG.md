@@ -429,6 +429,15 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Changed
 
+- **The appliance card draws running, done and idle each its own way.**
+  Running: the time left large in the top right with "done at 15:18" under it,
+  and the percentage on the bar's own line instead of a "Progress … 79 %" row
+  above it. Done: a "✓ Done" pill, "Done 12 min ago" as the status, no bar,
+  and with `finish_action` a full-width "Emptied" button in the supply card's
+  style. Idle: one line, the state on the right. The fold chevron moves to a
+  "Details" row at the foot, except on the one-line idle card. The height
+  eases between them. New: `finish_action`, `finish_label`, `show_end_time`;
+  a `finished_at` attribute on the status entity is read for "Done … ago".
 - **One frame for every card.** Cards side by side stood at different
   heights because each set its own padding (12 or 14px) and its own gap
   between blocks (10 to 16px). Every content card now uses the suite's

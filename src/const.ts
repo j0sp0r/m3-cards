@@ -2162,6 +2162,15 @@ export const DEFAULT_APPLIANCE_ACCENT = PALETTE.home;
 export const APPLIANCE_ICON_TINT = HUMIDIFIER_ICON_TINT;
 export const APPLIANCE_LABEL_SIZE = HUMIDIFIER_LABEL_SIZE;
 export const APPLIANCE_VALUE_SIZE = 22;
+/** The remaining time while a run is on: the figure the card is read for. */
+export const APPLIANCE_HERO_SIZE = 34;
+/** "Emptied": the supply card's refill button, so the two read as one kind. */
+export const APPLIANCE_FINISH_HEIGHT = SUPPLY_ACTION_HEIGHT;
+export const APPLIANCE_FINISH_RADIUS = SUPPLY_REFILL_RADIUS;
+export const APPLIANCE_FINISH_RADIUS_ACTIVE = SUPPLY_REFILL_RADIUS_ACTIVE;
+export const APPLIANCE_FINISH_TINT = 18;
+/** Height change between running, done and ready. */
+export const APPLIANCE_RESIZE_MS = DURATION_MS.flip;
 export const APPLIANCE_CAPTION_SIZE = HUMIDIFIER_CAPTION_SIZE;
 
 /** Progress bar. Thinner than the humidifier's slider — it is read, not dragged. */

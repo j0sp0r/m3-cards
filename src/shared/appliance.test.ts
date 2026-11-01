@@ -232,3 +232,31 @@ describe("prettifyState", () => {
     expect(prettifyState("Pronta")).toBe("Pronta");
   });
 });
+
+describe("endTimeOf", () => {
+  const now = Date.parse("2026-11-01T14:45:20Z");
+  it("adds minutes left to now, to the minute", async () => {
+    const { endTimeOf } = await import("./appliance");
+    expect(endTimeOf("33", { unit_of_measurement: "min" }, now)).toBe(Date.parse("2026-11-01T15:18:00Z"));
+  });
+  it("takes a completion timestamp as it is", async () => {
+    const { endTimeOf } = await import("./appliance");
+    expect(endTimeOf("2026-11-01T15:18:00+00:00", { device_class: "timestamp" }, now)).toBe(
+      Date.parse("2026-11-01T15:18:00Z"),
+    );
+  });
+  it("has nothing to say without a reading", async () => {
+    const { endTimeOf } = await import("./appliance");
+    expect(endTimeOf("unknown", {}, now)).toBeUndefined();
+  });
+});
+
+describe("sinceParts", () => {
+  it("counts minutes below an hour and hours from there", async () => {
+    const { sinceParts } = await import("./appliance");
+    const t = Date.parse("2026-11-01T14:00:00Z");
+    expect(sinceParts(t, t + 12 * 60000)).toEqual({ m: 12 });
+    expect(sinceParts(t, t + 59 * 60000)).toEqual({ m: 59 });
+    expect(sinceParts(t, t + 130 * 60000)).toEqual({ h: 2 });
+  });
+});

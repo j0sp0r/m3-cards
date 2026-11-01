@@ -362,7 +362,10 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
   private _valueChanged(ev: CustomEvent): void {
     if (!this._config) return;
     const patch = ev.detail.value as Record<string, unknown>;
-    this._emit(pruned({ ...this._config, ...patch }) as M3ApplianceCardConfig);
+    const next = pruned({ ...this._config, ...patch }) as M3ApplianceCardConfig;
+    // On is the default, so only "off" is worth keeping in the config.
+    if (next.show_end_time === true) delete next.show_end_time;
+    this._emit(next);
   }
 
   /** An empty block list or helper leaves the config rather than staying as `[]` or "". */
@@ -595,6 +598,9 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
       { name: "icon", selector: { icon: {} } },
       { name: "attribute", selector: { text: {} } },
       { name: "tap_action", selector: { ui_action: {} } },
+      { name: "finish_action", selector: { ui_action: {} } },
+      { name: "finish_label", selector: { text: {} } },
+      { name: "show_end_time", selector: { boolean: {} } },
     ];
   }
 
@@ -761,6 +767,9 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
       icon: "editor_icon",
       attribute: "editor_appliance_attribute",
       tap_action: "editor_tap_action",
+      finish_action: "editor_appliance_finish_action",
+      finish_label: "editor_appliance_finish_label",
+      show_end_time: "editor_appliance_show_end_time",
       percentage_entity: "editor_appliance_percentage_entity",
       remaining_entity: "editor_appliance_remaining_entity",
       label: "editor_appliance_label",
@@ -885,6 +894,9 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
                 icon: cfg.icon ?? "",
                 attribute: cfg.attribute ?? "",
                 tap_action: cfg.tap_action,
+                finish_action: cfg.finish_action,
+                finish_label: cfg.finish_label ?? "",
+                show_end_time: cfg.show_end_time ?? true,
               }}
               .schema=${this._deviceSchema()}
               .computeLabel=${this._computeLabel}
