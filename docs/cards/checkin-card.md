@@ -100,11 +100,40 @@ With a keyboard it is a switch: Space or Enter does it. Under reduced motion
 `swipe_label_in` / `swipe_label_out` rename the track; `icon_in` / `icon_out`
 replace the handle's chevrons.
 
+### Several people on one card
+
+```yaml
+type: custom:m3-checkin-card
+name: Office
+user_entity_map:
+  Josef: input_boolean.office_josef
+  Anna: input_boolean.office_anna
+```
+
+`user_entity_map` maps a Home Assistant user — by name, ignoring case, or by
+user id — to that person's entity. Each viewer's control switches their
+**own**; a viewer the map does not name falls back to `entity`, which may
+then be left out. Above the control, everyone checked in: 30px avatars from
+their `person` entity's picture (matched by `user_id` or name), initials
+where there is none, "+n" past five, and their names — or a count once there
+are more than two. `show_people: false` hides the row.
+
+### Confirmation
+
+`confirm: double_tap` asks "Sure?" on the first tap and switches on a second
+within three seconds; `confirm: hold` switches after 600 ms held, a fill
+running across the control meanwhile, and says "Press and hold" if let go too
+soon. With a keyboard, which cannot hold, Space or Enter confirms as a double
+tap does. The swipe style ignores `confirm`: its slide is the confirmation.
+
 ### Options
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `entity` | — | **Required.** input_boolean, switch, binary_sensor, person or device_tracker |
+| `entity` | — | **Required** unless `user_entity_map` names every viewer. input_boolean, switch, binary_sensor, person or device_tracker |
+| `user_entity_map` | — | HA user (name or id) → that person's entity |
+| `show_people` | `true` with a map | The avatars of everyone checked in |
+| `confirm` | `none` | `double_tap` or `hold`; not for `swipe` |
 | `style` | `segmented` | The control: `segmented`, `status` or `swipe` |
 | `name`, `icon`, `icon_off` | entity name, `mdi:account-check`, `mdi:account-off` | Header |
 | `state_on`, `home_state` | `on`, `home` | What counts as checked in |

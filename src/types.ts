@@ -33,6 +33,7 @@ export interface HomeAssistant {
   /** The logged-in user. Optional for the same reason as the registries above:
    *  a card must work without it rather than assume it is there. */
   user?: {
+    id?: string;
     is_admin?: boolean;
     name?: string;
   };
@@ -2906,8 +2907,25 @@ export type CheckinStyle = "segmented" | "status" | "swipe";
 /** One element that shows whether someone is checked in and switches it. */
 export interface M3CheckinCardConfig {
   type: string;
-  /** input_boolean (switchable), binary_sensor (display), person or device_tracker (by zone). */
+  /**
+   * input_boolean (switchable), binary_sensor (display), person or
+   * device_tracker (by zone). May be left out when `user_entity_map` names
+   * every viewer.
+   */
   entity: string;
+  /**
+   * Several people on one card: Home Assistant user (name or id) → that
+   * person's entity. The card switches the viewer's own, and shows everyone
+   * checked in as avatars.
+   */
+  user_entity_map?: Record<string, string>;
+  /** The avatars of everyone checked in; default true when there is a map. */
+  show_people?: boolean;
+  /**
+   * Ask before switching: `double_tap` ("Sure?" for 3 s), `hold` (600 ms).
+   * Not for the swipe style, whose slide is its own confirmation.
+   */
+  confirm?: "none" | "double_tap" | "hold";
   style?: CheckinStyle;
   name?: string;
   icon?: string;

@@ -2,12 +2,18 @@ import { LitElement, html, css, nothing, unsafeCSS, type PropertyValues } from "
 import { customElement, property, state } from "lit/decorators.js";
 import type { HaActionConfig, HomeAssistant, LovelaceCard, LovelaceGridOptions, M3CheckinCardConfig } from "./types";
 import {
+  CHECKIN_AVATAR_MAX,
+  CHECKIN_AVATAR_OVERLAP,
+  CHECKIN_AVATAR_SIZE,
   CHECKIN_BUTTON_HEIGHT,
   CHECKIN_BUTTON_RADIUS,
   CHECKIN_BUTTON_RADIUS_PRESSED,
   CHECKIN_COLOR_CHECKOUT,
   CHECKIN_COLOR_IN,
   CHECKIN_COLOR_OFF,
+  CHECKIN_CONFIRM_HINT_MS,
+  CHECKIN_CONFIRM_HOLD_MS,
+  CHECKIN_CONFIRM_WINDOW_MS,
   CHECKIN_DOT_SIZE,
   CHECKIN_NARROW_PX,
   CHECKIN_OPTIMISTIC_MS,
@@ -45,15 +51,20 @@ import { runHaAction } from "./shared/actions";
 import { openEntityDetail } from "./shared/entity-detail";
 import { TemplatedCard } from "./shared/templated-card";
 import { VisibleTicker } from "./shared/visible-ticker";
+import { safeImageUrl } from "./shared/css-safe";
 import {
+  checkedInPeople,
   checkinAction,
   checkinSince,
   checkinState,
   durationParts,
   fillStatus,
+  initials,
   runningTime,
   swipeProgress,
   SWIPE_THRESHOLD,
+  viewerEntity,
+  type CheckinModelConfig,
   type CheckinState,
 } from "./shared/checkin";
 
@@ -96,6 +107,16 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
   @state() private _spring = false;
   @state() private _nudge = false;
   private _nudgeTimer?: number;
+  /**
+   * A control waiting for its confirmation: "Sure?" after a first tap, or the
+   * hint after a hold let go too soon. Keyed by the state it would switch to.
+   */
+  @state() private _armed?: { target: "in" | "out"; text: string };
+  @state() private _holding?: "in" | "out";
+  private _armTimer?: number;
+  private _holdTimer?: number;
+  /** A hold that switched; the click its release fires must not count again. */
+  private _swallowClick = false;
   private _pendingTimer?: number;
   private readonly _ticker = new VisibleTicker(this, (now) => {
     this._now = now;
@@ -108,8 +129,9 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
   }
 
   public setConfig(config: M3CheckinCardConfig): void {
-    if (!config?.entity) throw new Error("m3-checkin-card: 'entity' is required");
-    this._config = { glass_background: true, animation: "auto", ...config };
+    const hasMap = !!config?.user_entity_map && Object.keys(config.user_entity_map).length > 0;
+    if (!config?.entity && !hasMap) throw new Error("m3-checkin-card: 'entity' or 'user_entity_map' is required");
+    this._config = { glass_background: true, animation: "auto", ...config, entity: config.entity ?? "" };
     // The status style's running time moves off the clock's minute; ten
     // seconds keeps it close. The others only show minutes in a subtitle.
     this._ticker.setCadence(this._style === "status" ? "ten-seconds" : "minute");
@@ -138,11 +160,17 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
     this._ticker.disconnect();
     window.clearTimeout(this._pendingTimer);
     window.clearTimeout(this._nudgeTimer);
+    window.clearTimeout(this._armTimer);
+    window.clearTimeout(this._holdTimer);
   }
 
   protected shouldUpdate(changed: PropertyValues): boolean {
     if (changed.size > 1 || !changed.has("hass")) return true;
-    return hassChangeMatters(changed, this.hass, [this._config?.entity, this._config?.since_entity]);
+    const cfg = this._config;
+    const watched = [this._entityId, cfg?.since_entity, ...Object.values(cfg?.user_entity_map ?? {})];
+    // The avatars come from person entities: a new picture should show.
+    if (this._showPeople) watched.push(...Object.keys(this.hass?.states ?? {}).filter((id) => id.startsWith("person.")));
+    return hassChangeMatters(changed, this.hass, watched);
   }
 
   protected willUpdate(changed: PropertyValues): void {
@@ -165,12 +193,30 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
     this._pending = undefined;
   }
 
+  /** The viewer's own entity when the map names them, else the card's. */
+  private get _entityId(): string | undefined {
+    const cfg = this._config;
+    if (!cfg) return undefined;
+    return viewerEntity(cfg.user_entity_map, this.hass?.user, cfg.entity || undefined);
+  }
+
+  /** The model's view of the config, with the viewer's entity in it. */
+  private get _model(): CheckinModelConfig {
+    return { ...this._config!, entity: this._entityId ?? "" };
+  }
+
+  private get _showPeople(): boolean {
+    const cfg = this._config;
+    return !!cfg?.user_entity_map && cfg.show_people !== false;
+  }
+
   private get _entity() {
-    return this._config ? this.hass?.states[this._config.entity] : undefined;
+    const id = this._entityId;
+    return id ? this.hass?.states[id] : undefined;
   }
 
   private get _actual(): CheckinState {
-    return this._config ? checkinState(this._config, this._entity) : "unavailable";
+    return this._config ? checkinState(this._model, this._entity) : "unavailable";
   }
 
   /** What the card shows: the asked-for state while a tap is pending. */
@@ -191,8 +237,9 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
   private _choose(target: "in" | "out"): void {
     const cfg = this._config;
     if (!cfg || !this.hass || this._shown === target || this._shown === "unavailable") return;
-    const action = checkinAction(cfg, target);
+    const action = checkinAction(this._model, target);
     if (!action) return;
+    this._disarm();
     // Optimistic: the control moves at once, and goes back if Home Assistant
     // has not agreed within the timeout — with a word saying so, rather than
     // a silent jump the person may not even see.
@@ -211,13 +258,84 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
     if (!this.hass) return;
     runHaAction(this.hass, action, {
       source: this,
-      entityId: this._config?.entity,
+      entityId: this._entityId,
       fireMoreInfo: (id) => openEntityDetail(this, id),
       navigate: (path) => {
         window.history.pushState(null, "", path);
         this.dispatchEvent(new CustomEvent("location-changed", { bubbles: true, composed: true, detail: { replace: false } }));
       },
     });
+  }
+
+  // ---- confirmation ---------------------------------------------------------
+
+  private get _confirm(): "none" | "double_tap" | "hold" {
+    // The slide is its own confirmation; asking again would be a second hurdle.
+    if (this._style === "swipe") return "none";
+    const c = this._config?.confirm;
+    return c === "double_tap" || c === "hold" ? c : "none";
+  }
+
+  private _disarm(): void {
+    window.clearTimeout(this._armTimer);
+    this._armed = undefined;
+  }
+
+  private _arm(target: "in" | "out", text: string, ms: number): void {
+    window.clearTimeout(this._armTimer);
+    this._armed = { target, text };
+    this._armTimer = window.setTimeout(() => (this._armed = undefined), ms);
+  }
+
+  /**
+   * A click on a control that switches to `target`. With `double_tap` the
+   * first asks "Sure?" and the second within three seconds switches. With
+   * `hold` a pointer click does nothing (the hold did it, or was too short);
+   * a keyboard click — which cannot be held — confirms as a double tap does.
+   */
+  private _activate(target: "in" | "out", e: MouseEvent): void {
+    if (this._swallowClick) {
+      this._swallowClick = false;
+      return;
+    }
+    const mode = this._confirm;
+    const keyboard = e.detail === 0;
+    if (mode === "none") return this._choose(target);
+    if (mode === "hold" && !keyboard) return;
+    if (this._armed?.target === target && this._armed.text === this._t("checkin_confirm")) return this._choose(target);
+    this._arm(target, this._t("checkin_confirm"), CHECKIN_CONFIRM_WINDOW_MS);
+  }
+
+  private _holdStart(target: "in" | "out", e: PointerEvent): void {
+    if (this._confirm !== "hold" || e.button > 0) return;
+    this._swallowClick = false;
+    this._holding = target;
+    window.clearTimeout(this._holdTimer);
+    this._holdTimer = window.setTimeout(() => {
+      this._holding = undefined;
+      this._swallowClick = true;
+      this._choose(target);
+    }, CHECKIN_CONFIRM_HOLD_MS);
+  }
+
+  private _holdEnd(): void {
+    if (!this._holding) return;
+    const target = this._holding;
+    window.clearTimeout(this._holdTimer);
+    this._holding = undefined;
+    this._arm(target, this._t("checkin_hold_hint"), CHECKIN_CONFIRM_HINT_MS);
+  }
+
+  /** The events a control needs for the confirmation mode. */
+  private _pressHandlers(target: "in" | "out") {
+    return {
+      click: (e: MouseEvent) => {
+        e.stopPropagation();
+        this._activate(target, e);
+      },
+      down: (e: PointerEvent) => this._holdStart(target, e),
+      up: () => this._holdEnd(),
+    };
   }
 
   // ---- reading --------------------------------------------------------------
@@ -276,7 +394,7 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
   protected render() {
     const cfg = this._config;
     if (!cfg || !this.hass) return nothing;
-    if (!this._entity) return renderMissingEntity(cfg.entity);
+    if (!this._entity) return renderMissingEntity(this._entityId ?? "user_entity_map");
 
     const shown = this._shown;
     const checkedIn = shown === "in";
@@ -289,7 +407,7 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
     const radius = cfg.radius ?? DEFAULT_CHECKIN_RADIUS;
     const name =
       cfg.name ?? (this._entity.attributes?.friendly_name as string | undefined) ?? this._t("checkin_default_name");
-    const canSwitch = !!checkinAction(cfg, "in") && !unavailable;
+    const canSwitch = !!checkinAction(this._model, "in") && !unavailable;
     const status = this._style === "status";
 
     const vars = buildCssVars({
@@ -322,6 +440,7 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
               this._run(cfg.tap_action ?? { action: "more-info" });
             },
           })}
+          ${this._renderPeople()}
           ${status
             ? this._renderStatus(shown, canSwitch)
             : this._style === "swipe"
@@ -344,12 +463,15 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
     const since = this._pending ? this._now : this._since;
     const running = since !== undefined && shown !== "unavailable" ? runningTime(since, this._now) : undefined;
     const target: "in" | "out" = shown === "in" ? "out" : "in";
-    const hasAction = !!checkinAction(cfg, target);
+    const hasAction = !!checkinAction(this._model, target);
+    const armed = this._armed?.target === target ? this._armed.text : undefined;
     const label =
-      target === "in"
+      armed ??
+      (target === "in"
         ? (cfg.button_label_in ?? this._t("checkin_action_in"))
-        : (cfg.button_label_out ?? this._t("checkin_action_out"));
+        : (cfg.button_label_out ?? this._t("checkin_action_out")));
     const icon = target === "in" ? (cfg.icon_in ?? DEFAULT_CHECKIN_ICON_IN) : (cfg.icon_out ?? DEFAULT_CHECKIN_ICON_OUT);
+    const press = this._pressHandlers(target);
     return html`
       ${running
         ? html`<div class="running" aria-live="off">
@@ -359,16 +481,51 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
         : nothing}
       ${hasAction
         ? html`<button
-            class="action to-${target}"
+            class="action to-${target} ${armed ? "armed" : ""} ${this._holding === target ? "holding" : ""}"
             ?disabled=${!canSwitch}
-            @click=${(e: Event) => {
-              e.stopPropagation();
-              this._choose(target);
-            }}
+            @click=${press.click}
+            @pointerdown=${press.down}
+            @pointerup=${press.up}
+            @pointerleave=${press.up}
+            @pointercancel=${press.up}
           >
             <ha-icon icon=${icon}></ha-icon><span class="action-label">${label}</span>
           </button>`
         : nothing}
+    `;
+  }
+
+  // ---- people ---------------------------------------------------------------
+
+  /**
+   * Everyone checked in, as overlapping avatars — a picture from their person
+   * entity, else initials — with their names, or a count once there are more
+   * than two. Nobody in: nothing, not an empty row.
+   */
+  private _renderPeople() {
+    if (!this._showPeople || !this.hass) return nothing;
+    const people = checkedInPeople(this._config!.user_entity_map, this.hass.states, this._model);
+    if (people.length === 0) return nothing;
+    const shown = people.length > CHECKIN_AVATAR_MAX ? people.slice(0, CHECKIN_AVATAR_MAX - 1) : people;
+    const more = people.length - shown.length;
+    const text =
+      people.length <= 2
+        ? people.map((p) => p.name).join(", ")
+        : this._t("checkin_people_n").replace("{n}", String(people.length));
+    return html`
+      <div class="people" aria-label=${people.map((p) => p.name).join(", ")}>
+        <div class="avatars" aria-hidden="true">
+          ${shown.map((p) => {
+            const raw = p.person?.attributes?.entity_picture as string | undefined;
+            const picture = safeImageUrl(raw);
+            return html`<span class="avatar" title=${p.name}
+              >${picture ? html`<img src=${picture} alt="" />` : initials(p.name)}</span
+            >`;
+          })}
+          ${more > 0 ? html`<span class="avatar more">+${more}</span>` : nothing}
+        </div>
+        <span class="people-names">${text}</span>
+      </div>
     `;
   }
 
@@ -382,7 +539,7 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
   private _renderSwipe(checkedIn: boolean, canSwitch: boolean) {
     const cfg = this._config!;
     const target: "in" | "out" = checkedIn ? "out" : "in";
-    if (!checkinAction(cfg, target)) return nothing;
+    if (!checkinAction(this._model, target)) return nothing;
     const plainTap = !shouldAnimate(cfg.animation);
     const drag = this._drag;
     const progress = drag?.progress ?? 0;
@@ -494,19 +651,25 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
     const cfg = this._config!;
     const half = (target: "in" | "out", label: string, icon: string) => {
       const active = (target === "in") === checkedIn;
+      const armed = !active && this._armed?.target === target ? this._armed.text : undefined;
+      const press = this._pressHandlers(target);
       return html`
         <button
-          class="seg ${active ? "active" : ""}"
+          class="seg ${active ? "active" : ""} ${armed ? "armed" : ""} ${this._holding === target ? "holding" : ""}"
           role="radio"
           aria-checked=${String(active)}
-          aria-label=${label}
+          aria-label=${armed ?? label}
           ?disabled=${!canSwitch}
-          @click=${(e: Event) => {
+          @click=${(e: MouseEvent) => {
             e.stopPropagation();
-            if (!active) this._choose(target);
+            if (!active) press.click(e);
           }}
+          @pointerdown=${(e: PointerEvent) => !active && press.down(e)}
+          @pointerup=${press.up}
+          @pointerleave=${press.up}
+          @pointercancel=${press.up}
         >
-          <ha-icon icon=${icon}></ha-icon><span class="seg-label">${label}</span>
+          <ha-icon icon=${icon}></ha-icon><span class="seg-label">${armed ?? label}</span>
         </button>
       `;
     };
@@ -636,6 +799,99 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
       .seg:focus-visible {
         outline: 2px solid var(--ci-tone);
         outline-offset: 2px;
+      }
+
+      /* ---- people ---- */
+      .people {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .avatars {
+        display: flex;
+        flex-shrink: 0;
+        padding-left: ${CHECKIN_AVATAR_OVERLAP}px;
+      }
+
+      .avatar {
+        width: ${CHECKIN_AVATAR_SIZE}px;
+        height: ${CHECKIN_AVATAR_SIZE}px;
+        margin-left: -${CHECKIN_AVATAR_OVERLAP}px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        box-sizing: border-box;
+        border: 2px solid color-mix(in srgb, var(--ci-tone) var(--ci-tint), var(--ha-card-background, var(--card-background-color, #1c1c1c)));
+        background: var(--m3p-icon-bg);
+        color: var(--m3p-icon-color);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+      }
+
+      .avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .avatar.more {
+        background: color-mix(in srgb, var(--m3p-text, var(--primary-text-color)) 12%, transparent);
+        color: var(--m3p-text, var(--primary-text-color));
+      }
+
+      .people-names {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--m3p-text, var(--primary-text-color));
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* ---- confirmation ---- */
+      .seg,
+      .action {
+        position: relative;
+        overflow: hidden;
+      }
+
+      /* Held: a fill runs across the control for as long as the hold takes. */
+      .seg::before,
+      .action::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: currentColor;
+        opacity: 0.16;
+        transform: scaleX(0);
+        transform-origin: left center;
+        pointer-events: none;
+      }
+
+      .seg.holding::before,
+      .action.holding::before {
+        transform: scaleX(1);
+        transition: transform ${CHECKIN_CONFIRM_HOLD_MS}ms linear;
+      }
+
+      /* "Sure?": the control the second tap would land on, outlined in the
+         colour it leads to. */
+      .seg.armed {
+        opacity: 1;
+        box-shadow: inset 0 0 0 2px var(--ci-on);
+      }
+
+      .card-inner.in .seg.armed {
+        box-shadow: inset 0 0 0 2px var(--m3p-text, var(--primary-text-color));
+      }
+
+      .action.armed {
+        box-shadow: inset 0 0 0 2px currentColor;
       }
 
       /* ---- status ---- */

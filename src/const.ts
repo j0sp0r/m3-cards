@@ -3011,4 +3011,13 @@ export const CHECKIN_SWIPE_SPRING_EASING = "cubic-bezier(0.34, 1.56, 0.64, 1)";
 export const CHECKIN_COLOR_CHECKOUT = "#e0a05a";
 /** A tap on the handle nudges it this far, to show which way it goes. */
 export const CHECKIN_SWIPE_NUDGE_PX = 14;
+/** Confirmation: how long "Sure?" waits for the second tap, and the hold. */
+export const CHECKIN_CONFIRM_WINDOW_MS = 3000;
+export const CHECKIN_CONFIRM_HOLD_MS = 600;
+/** How long "Press and hold" stays after a press let go too soon. */
+export const CHECKIN_CONFIRM_HINT_MS = 1500;
+/** The people row: 30px avatars, overlapping, and how many before "+n". */
+export const CHECKIN_AVATAR_SIZE = 30;
+export const CHECKIN_AVATAR_OVERLAP = 8;
+export const CHECKIN_AVATAR_MAX = 5;
 export const DEFAULT_CHECKIN_RADIUS = RADIUS.card;

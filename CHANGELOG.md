@@ -13,8 +13,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   tinted by the state — the accent while in, a neutral grey while out. The
   three styles are done: `segmented`; `status` (the running time large, a
   pulsing dot while in, one button that names the action); `swipe` (a handle
-  to slide, springing back short of three quarters). People and
-  confirmation modes are planned. Not yet in the 2.6 release notes.
+  to slide, springing back short of three quarters). `user_entity_map` puts
+  several people on one card — each viewer switches their own, and everyone
+  checked in shows as avatars — and `confirm` asks first (`double_tap` or
+  `hold`). The editor is still to come. Not yet in the 2.6 release notes.
 
 ## [2.6.0] – 2026-10-27
 

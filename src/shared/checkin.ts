@@ -117,3 +117,77 @@ export function swipeProgress(dx: number, travel: number, fromIn: boolean): numb
   const p = (fromIn ? -dx : dx) / travel;
   return Math.min(1, Math.max(0, p));
 }
+
+// ---- people -----------------------------------------------------------------
+
+/** A Home Assistant user, as `hass.user` gives it. */
+export interface CheckinUser {
+  id?: string;
+  name?: string;
+}
+
+/** Whether a `user_entity_map` key names this user: by id, or by name ignoring case. */
+function keyMatchesUser(key: string, user: CheckinUser | undefined): boolean {
+  if (!user) return false;
+  const k = key.trim().toLowerCase();
+  return k === (user.id ?? "").toLowerCase() || k === (user.name ?? "").trim().toLowerCase();
+}
+
+/**
+ * The entity this viewer checks in with: theirs from `user_entity_map` when
+ * the map names them, else the card's own `entity`. Several people can share
+ * one card this way, and each tap switches the person holding the phone.
+ */
+export function viewerEntity(
+  map: Record<string, string> | undefined,
+  user: CheckinUser | undefined,
+  fallback: string | undefined,
+): string | undefined {
+  if (map) {
+    for (const [key, entity] of Object.entries(map)) if (keyMatchesUser(key, user)) return entity;
+  }
+  return fallback;
+}
+
+/** Up to two initials: first and last word, or the first two letters of one. */
+export function initials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "?";
+  if (words.length === 1) return [...words[0]].slice(0, 2).join("").toUpperCase();
+  return ([...words[0]][0] + [...words[words.length - 1]][0]).toUpperCase();
+}
+
+export interface CheckinPerson {
+  key: string;
+  name: string;
+  entity: string;
+  /** The person entity whose picture and name stand for this key, if one is found. */
+  person?: HassEntity;
+}
+
+/**
+ * Everyone in the map who is checked in, in the map's order. A key is matched
+ * to a `person` entity by its `user_id` attribute or its name, for a picture
+ * and a proper name; without one the key itself is the name.
+ */
+export function checkedInPeople(
+  map: Record<string, string> | undefined,
+  states: Record<string, HassEntity>,
+  cfg: Omit<CheckinModelConfig, "entity">,
+): CheckinPerson[] {
+  if (!map) return [];
+  const persons = Object.values(states).filter((s) => s.entity_id.startsWith("person."));
+  const out: CheckinPerson[] = [];
+  for (const [key, entity] of Object.entries(map)) {
+    if (checkinState({ ...cfg, entity }, states[entity]) !== "in") continue;
+    const k = key.trim().toLowerCase();
+    const person = persons.find(
+      (p) =>
+        String(p.attributes?.user_id ?? "").toLowerCase() === k ||
+        String(p.attributes?.friendly_name ?? "").trim().toLowerCase() === k,
+    );
+    const name = (person?.attributes?.friendly_name as string | undefined) ?? key;
+    out.push({ key, name, entity, person });
+  }
+  return out;
+}

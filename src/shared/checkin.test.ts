@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkinAction, checkinSince, checkinState, durationParts, fillStatus, runningTime, swipeProgress, SWIPE_THRESHOLD } from "./checkin";
+import { checkinAction, checkinSince, checkinState, durationParts, fillStatus, runningTime, swipeProgress, SWIPE_THRESHOLD, viewerEntity, initials, checkedInPeople } from "./checkin";
 import type { HassEntity } from "../types";
 
 const st = (state: string, last_changed = "2026-11-01T12:00:00Z"): HassEntity =>
@@ -111,5 +111,55 @@ describe("swipeProgress", () => {
 
   it("has nothing to travel on a track too short for the handle", () => {
     expect(swipeProgress(30, 0, false)).toBe(0);
+  });
+});
+
+describe("viewerEntity", () => {
+  const map = { Josef: "input_boolean.josef", "abc123": "input_boolean.anna" };
+
+  it("finds the viewer by name, ignoring case, or by user id", () => {
+    expect(viewerEntity(map, { id: "zzz", name: "josef" }, "input_boolean.x")).toBe("input_boolean.josef");
+    expect(viewerEntity(map, { id: "ABC123", name: "Anna" }, undefined)).toBe("input_boolean.anna");
+  });
+
+  it("falls back to the card's entity", () => {
+    expect(viewerEntity(map, { id: "q", name: "Guest" }, "input_boolean.x")).toBe("input_boolean.x");
+    expect(viewerEntity(undefined, { id: "q" }, "input_boolean.x")).toBe("input_boolean.x");
+    expect(viewerEntity(map, undefined, undefined)).toBeUndefined();
+  });
+});
+
+describe("initials", () => {
+  it("takes the first and last word, or two letters of one", () => {
+    expect(initials("Anna Maria Berg")).toBe("AB");
+    expect(initials("josef")).toBe("JO");
+    expect(initials("  ")).toBe("?");
+    expect(initials("Ölaf")).toBe("ÖL");
+  });
+});
+
+describe("checkedInPeople", () => {
+  const states: Record<string, HassEntity> = {
+    "input_boolean.josef": st("on"),
+    "input_boolean.anna": st("off"),
+    "input_boolean.max": st("on"),
+    "person.josef": { entity_id: "person.josef", state: "home", attributes: { user_id: "u1", friendly_name: "Josef P." }, last_changed: "" } as unknown as HassEntity,
+    "person.max": { entity_id: "person.max", state: "home", attributes: { friendly_name: "Max" }, last_changed: "" } as unknown as HassEntity,
+  };
+
+  it("lists those checked in, in the map's order, with their person", () => {
+    const people = checkedInPeople({ u1: "input_boolean.josef", Anna: "input_boolean.anna", max: "input_boolean.max" }, states, {});
+    expect(people.map((p) => [p.key, p.name, p.person?.entity_id])).toEqual([
+      ["u1", "Josef P.", "person.josef"],
+      ["max", "Max", "person.max"],
+    ]);
+  });
+
+  it("uses the key as the name when no person matches", () => {
+    expect(checkedInPeople({ Gast: "input_boolean.josef" }, states, {})[0].name).toBe("Gast");
+  });
+
+  it("is empty without a map", () => {
+    expect(checkedInPeople(undefined, states, {})).toEqual([]);
   });
 });
