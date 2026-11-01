@@ -130,7 +130,10 @@ false` leaves it out.
 `collapsible: true` adds a "Details" row at the foot that folds the map, the scales,
 the buttons and the chips. What stays is the line you actually glance at — the
 state, the battery and Start/Pause — which is the split worth making on a
-dashboard where the vacuum is not the main event.
+dashboard where the vacuum is not the main event. Name `controls` in `collapse_blocks` — or untick
+"Main buttons" under "Stays visible when folded" — and Start/Pause folds too,
+leaving the header and the battery: the card then folds to the same line as
+every other folded card. A list left out keeps the buttons, as before.
 
 `collapse_blocks` narrows what disappears. Folding the map away while the
 suction scale stays put is a different card from folding everything, and both

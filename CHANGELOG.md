@@ -10,6 +10,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **The vacuum card can fold its main buttons too.** A `controls` block —
+  "Main buttons" in the editor — takes Start/Pause, dock and locate with the
+  fold when named, so a folded vacuum is its header and battery, like every
+  other folded card. A `collapse_blocks` list left out keeps them, as before.
 - **The appliance card holds other cards: `cards`.** Any card, written as in
   a view, under the readings and folding with them under "Details" — the
   dishwasher's tablet supply inside the dishwasher, say. The room card's

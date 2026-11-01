@@ -29,7 +29,7 @@ import {
   triggerStatePrelude,
 } from "./shared/notify-editor";
 
-const VACUUM_FOLD_BLOCKS = ["map", "rooms", "fan_speed", "cleaning_mode", "mop", "buttons", "chips"] as const;
+const VACUUM_FOLD_BLOCKS = ["controls", "map", "rooms", "fan_speed", "cleaning_mode", "mop", "buttons", "chips"] as const;
 
 @customElement("m3-vacuum-card-editor")
 export class M3VacuumCardEditor extends LitElement implements LovelaceCardEditor {
@@ -232,6 +232,7 @@ export class M3VacuumCardEditor extends LitElement implements LovelaceCardEditor
             multiple: true,
             mode: "list",
             options: [
+              { value: "controls", label: this._t("editor_vacuum_controls") },
               { value: "map", label: this._t("editor_vacuum_show_map") },
               { value: "rooms", label: this._t("vacuum_rooms") },
               { value: "fan_speed", label: this._t("vacuum_fan_speed") },
@@ -323,8 +324,11 @@ export class M3VacuumCardEditor extends LitElement implements LovelaceCardEditor
     // The editor's list is what stays; the config keeps what folds.
     if ("collapse_keep" in next) {
       const blocks = collapseBlocksFor(VACUUM_FOLD_BLOCKS, ((next as Record<string, unknown>).collapse_keep ?? []) as never[]);
+      // Nothing kept has to be written out: an absent list keeps the buttons.
+      const keptNothing = (((next as Record<string, unknown>).collapse_keep ?? []) as unknown[]).length === 0;
       delete (next as Record<string, unknown>).collapse_keep;
-      if (blocks) next.collapse_blocks = blocks as never;
+      if (keptNothing) next.collapse_blocks = [...VACUUM_FOLD_BLOCKS] as never;
+      else if (blocks) next.collapse_blocks = blocks as never;
       else delete next.collapse_blocks;
     }
     this._emit(next as unknown as M3VacuumCardConfig);
@@ -414,7 +418,8 @@ export class M3VacuumCardEditor extends LitElement implements LovelaceCardEditor
       secondary_actions: cfg.secondary_actions ?? ["return_to_base", "locate"],
       optimistic_timeout: cfg.optimistic_timeout ?? 70000,
       collapsible: cfg.collapsible ?? false,
-      collapse_keep: keptWhenFolded(VACUUM_FOLD_BLOCKS, cfg.collapse_blocks),
+      // No list keeps the main buttons, so that is what the editor shows.
+      collapse_keep: cfg.collapse_blocks ? keptWhenFolded(VACUUM_FOLD_BLOCKS, cfg.collapse_blocks) : ["controls"],
       default_collapsed: cfg.default_collapsed ?? false,
       collapse_memory: cfg.collapse_memory ?? "device",
       collapse_state_entity: cfg.collapse_state_entity ?? "",

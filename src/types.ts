@@ -1036,6 +1036,9 @@ export interface VacuumPopupConfig {
 
 /** The foldable parts of the control card, below the primary buttons. */
 export type VacuumBlock =
+  /** Start/Pause and its neighbours. Folds only when named: a list left out
+   *  keeps them, as before the block existed. */
+  | "controls"
   | "map"
   | "rooms"
   | "fan_speed"

@@ -482,9 +482,10 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
     // is the colour, which is the whole point of the header.
     const accent = this._accent(activity);
     const radius = `${this._config.radius ?? DEFAULT_VACUUM_RADIUS}px`;
-    // The state, the battery and Start/Pause never fold: they are what the
-    // card is for at a glance. Of what is below them, the fold hides whatever
-    // `collapse_blocks` names — and everything, when it names nothing.
+    // The state and the battery never fold. Start/Pause folds only when
+    // `collapse_blocks` names `controls` — a card folded to its header then
+    // looks like every other folded card. Of what is below, the fold hides
+    // whatever the list names, and everything when it names nothing.
     const folded = !!this._config.collapsible && this._folded;
     const foldable = this._config.collapse_blocks;
     const hidden = (block: VacuumBlock): boolean => foldHides(block, folded, foldable);
@@ -510,7 +511,7 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
           }`}
         >
           ${this._renderHeader(activity, pending)}
-          ${this._renderPrimaryRow(activity, pending)}
+          ${folded && foldable?.includes("controls") ? nothing : this._renderPrimaryRow(activity, pending)}
           ${hidden("map") ? nothing : this._renderMap()}
           ${hidden("rooms") ? nothing : this._renderRooms(unavailable)}
           ${hidden("fan_speed")
