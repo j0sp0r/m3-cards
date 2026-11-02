@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { checkinAction, checkinSince, checkinState, durationParts, fillStatus, runningTime, swipeProgress, SWIPE_THRESHOLD, viewerEntity, initials, checkedInPeople } from "./checkin";
+import { checkinAction, checkinSince, checkinState, durationParts, fillStatus, runningTime, swipeProgress, SWIPE_THRESHOLD, viewerEntity, initials, checkedInPeople, realChangeTime } from "./checkin";
 import type { HassEntity } from "../types";
 
 const st = (state: string, last_changed = "2026-11-01T12:00:00Z"): HassEntity =>
@@ -161,5 +161,36 @@ describe("checkedInPeople", () => {
 
   it("is empty without a map", () => {
     expect(checkedInPeople(undefined, states, {})).toEqual([]);
+  });
+});
+
+describe("realChangeTime", () => {
+  const t = (iso: string) => Date.parse(iso) / 1000;
+
+  it("skips a restart that brought the same state back", () => {
+    // The author's garden presence on 2026-11-01/02: out at 20:10, then two
+    // reconnects of the mirrored entity.
+    const rows = [
+      { s: "on", lu: t("2026-11-01T19:09:42Z") },
+      { s: "off", lu: t("2026-11-01T19:10:08Z") },
+      { s: null, lu: t("2026-11-01T21:53:18Z") },
+      { s: "off", lu: t("2026-11-01T21:54:03Z") },
+      { s: "unavailable", lu: t("2026-11-02T03:00:01Z") },
+      { s: "off", lu: t("2026-11-02T03:00:32Z") },
+    ];
+    expect(realChangeTime(rows, "off")).toBe(Date.parse("2026-11-01T19:10:08Z"));
+  });
+
+  it("takes the latest change when the state really changed", () => {
+    const rows = [
+      { s: "off", lc: t("2026-11-01T08:00:00Z") },
+      { s: "on", lu: t("2026-11-01T09:00:00Z") },
+    ];
+    expect(realChangeTime(rows, "on")).toBe(Date.parse("2026-11-01T09:00:00Z"));
+  });
+
+  it("knows nothing when the window holds no other state", () => {
+    expect(realChangeTime([{ s: "off", lc: t("2026-11-01T08:00:00Z") }, { s: "unknown", lu: 1 }], "off")).toBeUndefined();
+    expect(realChangeTime([], "off")).toBeUndefined();
   });
 });

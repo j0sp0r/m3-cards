@@ -6920,8 +6920,11 @@ shown, not switched; a person or tracker is checked in while in `home_state`
   (`color`, default green) while checked in, a neutral grey (`color_off`)
   while out, so out never reads as a fault. Its rim is the suite's own.
 - **The status line** says how long: "Checked in for 2 h 14 min", "Checked out
-  · 6 min ago". `since_entity` (an input_datetime or a timestamp sensor) takes
-  the place of the entity's `last_changed`; a time in the future is left out.
+  · 6 min ago". It counts from when the state really began: a restart, or a
+  mirrored entity reconnecting, writes the same state again with a new
+  `last_changed`, so the card asks the recorder (the last 14 days) and skips
+  such gaps. `since_entity` (an input_datetime or a timestamp sensor) takes
+  the place of both; a time in the future is left out.
   `status_in` / `status_out` take `{duration}` and `{time}`.
 - **The control** (style `segmented`, the default) is two halves, concentric
   with their track; the active one is filled. A tap moves it at once; if Home

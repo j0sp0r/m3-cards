@@ -22,6 +22,7 @@ import {
   CHECKIN_CONFIRM_HOLD_MS,
   CHECKIN_CONFIRM_WINDOW_MS,
   CHECKIN_DOT_SIZE,
+  CHECKIN_HISTORY_DAYS,
   CHECKIN_NARROW_PX,
   CHECKIN_OPTIMISTIC_MS,
   CHECKIN_PULSE_MS,
@@ -68,6 +69,7 @@ import {
   durationParts,
   fillStatus,
   initials,
+  realChangeTime,
   runningTime,
   swipeProgress,
   SWIPE_THRESHOLD,
@@ -77,6 +79,7 @@ import {
 } from "./shared/checkin";
 
 const EASING = unsafeCSS(STANDARD_EASING);
+const MISSING_STATES = new Set(["unavailable", "unknown", ""]);
 const SPRING = unsafeCSS(CHECKIN_SWIPE_SPRING_EASING);
 
 /** A drag in progress on the swipe handle. */
@@ -123,6 +126,12 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
   @state() private _holding?: "in" | "out";
   private _armTimer?: number;
   private _holdTimer?: number;
+  /**
+   * When the state really began, from the recorder, for the reading it was
+   * fetched for. last_changed restarts with every Home Assistant restart.
+   */
+  @state() private _history?: { key: string; at?: number };
+  private _historyFetching?: string;
   /** A hold that switched; the click its release fires must not count again. */
   private _swallowClick = false;
   private _pendingTimer?: number;
@@ -187,6 +196,7 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
   }
 
   protected willUpdate(changed: PropertyValues): void {
+    if (changed.has("hass") || changed.has("_config")) this._fetchHistory();
     // Home Assistant has caught up — or changed its mind from elsewhere (an
     // automation, a second phone). Either way the wait is over, quietly.
     if (changed.has("hass") && this._pending && this._actual !== "unavailable") {
@@ -363,7 +373,52 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
 
   private get _since(): number | undefined {
     const cfg = this._config!;
-    return checkinSince(this._entity, cfg.since_entity ? this.hass?.states[cfg.since_entity] : undefined, this._now);
+    if (cfg.since_entity) return checkinSince(this._entity, this.hass?.states[cfg.since_entity], this._now);
+    const lastChanged = checkinSince(this._entity, undefined, this._now);
+    const h = this._history;
+    // Only for the reading it was fetched for, and never later than what
+    // Home Assistant says — the history can only push "since" back.
+    if (h?.at !== undefined && h.key === this._historyKey && (lastChanged === undefined || h.at <= lastChanged)) return h.at;
+    return lastChanged;
+  }
+
+  /** Which reading a history answer belongs to: a restart or a change makes a new one. */
+  private get _historyKey(): string | undefined {
+    const e = this._entity;
+    return e ? `${e.entity_id}|${e.state}|${e.last_changed}` : undefined;
+  }
+
+  /**
+   * Asks the recorder when the current state really began, once per reading.
+   * A restart writes the same state again with a new last_changed; the
+   * history still shows the change before it. Without a recorder, or with the
+   * entity excluded from it, nothing comes back and last_changed stands.
+   */
+  private async _fetchHistory(): Promise<void> {
+    const cfg = this._config;
+    const key = this._historyKey;
+    const entity = this._entity;
+    if (!cfg || cfg.since_entity || !key || !entity || !this.hass?.callWS) return;
+    if (this._history?.key === key || this._historyFetching === key) return;
+    if (MISSING_STATES.has(entity.state)) return;
+    this._historyFetching = key;
+    try {
+      const id = entity.entity_id;
+      const res = await this.hass.callWS<Record<string, Array<{ s?: string | null; lc?: number; lu?: number }>>>({
+        type: "history/history_during_period",
+        start_time: new Date(Date.now() - CHECKIN_HISTORY_DAYS * 86_400_000).toISOString(),
+        entity_ids: [id],
+        minimal_response: true,
+        no_attributes: true,
+        significant_changes_only: false,
+      });
+      if (this._historyKey !== key) return;
+      this._history = { key, at: realChangeTime(res?.[id] ?? [], entity.state) };
+    } catch {
+      this._history = { key };
+    } finally {
+      if (this._historyFetching === key) this._historyFetching = undefined;
+    }
   }
 
   /** "14:02" today, "Sat 14:02" within the week, a date beyond. */

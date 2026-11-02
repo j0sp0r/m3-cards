@@ -2969,6 +2969,8 @@ export const CHECKIN_TINT_IN = 10;
 export const CHECKIN_TINT_OUT = 5;
 export const CHECKIN_TRANSITION_MS = 400;
 export const CHECKIN_OPTIMISTIC_MS = 5000;
+/** How far back the card looks for the real start of the current state. */
+export const CHECKIN_HISTORY_DAYS = 14;
 /** The segmented control: a 44px row, each half morphing its corner. */
 export const CHECKIN_SEGMENT_HEIGHT = 44;
 export const CHECKIN_SEGMENT_PAD = 4;

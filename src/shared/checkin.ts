@@ -191,3 +191,43 @@ export function checkedInPeople(
   }
   return out;
 }
+
+// ---- the real "since" -------------------------------------------------------
+
+/** One row of a minimal history response: a state and when it was written. */
+export interface HistoryRow {
+  s?: string | null;
+  /** Seconds since the epoch. */
+  lc?: number;
+  lu?: number;
+}
+
+const isMissing = (s: string | null | undefined): boolean => s == null || MISSING.has(s);
+
+/**
+ * When the entity really took its current state, read from its history.
+ *
+ * A restart, a reload or a mirrored entity reconnecting writes the state
+ * again — unavailable for a moment, then the same state as before — and gives
+ * it a new last_changed. "Checked out for 5 h" then counts from 4 a.m. rather
+ * than from the evening before. Walking back over the rows, gaps of nothing
+ * and repeats of the same state belong to the current run; the run starts at
+ * the first row after the last *different* real state.
+ *
+ * Undefined when the history holds no different state at all: the change is
+ * older than the window, and the caller keeps last_changed.
+ */
+export function realChangeTime(rows: HistoryRow[], current: string): number | undefined {
+  let start: number | undefined;
+  for (let i = rows.length - 1; i >= 0; i--) {
+    const row = rows[i];
+    if (isMissing(row.s)) continue;
+    const at = (row.lc ?? row.lu ?? NaN) * 1000;
+    if (row.s === current) {
+      if (Number.isFinite(at)) start = at;
+      continue;
+    }
+    return start;
+  }
+  return undefined;
+}
