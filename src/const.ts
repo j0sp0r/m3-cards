@@ -890,6 +890,8 @@ export const DEFAULT_AQUARIUM_ICON = "mdi:fishbowl-outline";
 export const DEFAULT_AQUARIUM_ACCENT = PALETTE.dryAuto;
 export const DEFAULT_AQUARIUM_TARGET_RANGE: [number, number] = [24, 26];
 export const DEFAULT_AQUARIUM_CLEANING_INTERVAL_DAYS = 14;
+/** Not fed by this time of day counts as overdue, and the reminder goes out. */
+export const DEFAULT_AQUARIUM_FEEDING_DUE_TIME = "19:00:00";
 export const DEFAULT_AQUARIUM_CAMERA_REFRESH_S = 10;
 // Deliberately deviates from the shared squircle scale (tokens.ts only has
 // 44/16) — the reference design's header icon is a size/radius pair unique
@@ -944,6 +946,7 @@ export const DEFAULT_AQUARIUM_DEVICE_COLORS = {
   heater: PALETTE.heat,
   co2: PALETTE.dryAuto,
   cleaning: PALETTE.cover,
+  feeding: PALETTE.ok,
   camera: PALETTE.media,
 } as const;
 

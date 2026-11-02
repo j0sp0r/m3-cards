@@ -16,6 +16,7 @@ import {
   DEFAULT_AQUARIUM_ACCENT,
   DEFAULT_AQUARIUM_TARGET_RANGE,
   DEFAULT_AQUARIUM_CLEANING_INTERVAL_DAYS,
+  DEFAULT_AQUARIUM_FEEDING_DUE_TIME,
   DEFAULT_AQUARIUM_CAMERA_REFRESH_S,
   DEFAULT_AQUARIUM_DEVICE_COLORS,
   AQUARIUM_HEADER_ICON_SIZE,
@@ -68,6 +69,7 @@ import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
 import { openEntityDetail } from "./shared/entity-detail";
+import { feedingStatus, type FeedingStatus } from "./shared/aquarium-feeding";
 
 console.info(
   `%c M3-AQUARIUM-CARD %c v${CARD_VERSION} `,
@@ -283,6 +285,7 @@ export class M3AquariumCard extends TemplatedCard(LitElement) implements Lovelac
       this._config?.water_level_entity,
       this._config?.cleaning_entity,
       this._config?.cleaning_interval_entity,
+      this._config?.feeding_entity,
       this._config?.camera_entity,
       this._config?.schedule_entity,
     ]);
@@ -458,11 +461,39 @@ export class M3AquariumCard extends TemplatedCard(LitElement) implements Lovelac
         ),
       );
     }
+    if (this._config.feeding_entity) {
+      // A logging tile like cleaning, but it lights up once the fish have had
+      // their food today: the one tile that answers a yes/no for the day
+      const fed = this._feeding();
+      const tile = this._buildTile(
+        { entity: this._config.feeding_entity },
+        this._t("aquarium_feed"),
+        "mdi:fish",
+        DEFAULT_AQUARIUM_DEVICE_COLORS.feeding,
+      );
+      tiles.push({
+        ...tile,
+        active: !tile.unavailable && !!fed?.fedToday,
+        secondary: fed?.fedToday && fed.at
+          ? this._t("aquarium_fed_at").replace("{time}", this._clock(fed.at))
+          : this._t("aquarium_not_fed"),
+      });
+    }
     for (const extra of this._config.extra_devices ?? []) {
       if (!extra.entity) continue;
       tiles.push(this._buildTile(extra, undefined, "mdi:power-socket-eu", DEFAULT_AQUARIUM_ACCENT));
     }
     return tiles;
+  }
+
+  private _feeding(): FeedingStatus | undefined {
+    const id = this._config?.feeding_entity;
+    if (!id || !this.hass) return undefined;
+    return feedingStatus(this.hass.states[id]?.state, new Date(), this._config?.feeding_due_time ?? DEFAULT_AQUARIUM_FEEDING_DUE_TIME);
+  }
+
+  private _clock(d: Date): string {
+    return new Intl.DateTimeFormat(this._language, { hour: "2-digit", minute: "2-digit" }).format(d);
   }
 
   private _waterTemp(): { value: number; unavailable: boolean } | undefined {
@@ -720,6 +751,16 @@ export class M3AquariumCard extends TemplatedCard(LitElement) implements Lovelac
             warn: false,
           });
         }
+      }
+    }
+
+    const fed = this._feeding();
+    if (fed) {
+      if (fed.fedToday && fed.at) {
+        chips.push({ key: "feeding", icon: "mdi:fish", text: this._t("aquarium_chip_fed").replace("{time}", this._clock(fed.at)), warn: false });
+      } else {
+        // Before the due time a plain note; after it, a warning
+        chips.push({ key: "feeding", icon: "mdi:fish", text: this._t("aquarium_chip_not_fed"), warn: fed.overdue });
       }
     }
 

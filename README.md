@@ -2298,6 +2298,22 @@ Automations. Because both the chip and the automation read the same
 `cleaning_interval_entity` helper, changing the interval there updates both
 at once.
 
+### Feeding
+
+`feeding_entity` (an `input_datetime` helper with date and time, or an
+`input_button`) answers one question for the day: have the fish been fed?
+A **Feed** tile stamps the helper with now and lights up for the rest of the
+day; a chip reads "Fed at 08:12", or "Not fed yet" — as a warning once the
+day passes `feeding_due_time`. "Today" is the calendar day, not the last 24
+hours. Anything else that stamps the helper counts too, such as a Zigbee
+button in an automation.
+
+The editor's **Maintenance → Feeding** section creates the reminder, as it
+does for cleaning: at `feeding_due_time` it notifies the chosen targets if
+the fish have not been fed today. The notification carries a **Fed ✓**
+button that stamps the helper, and any feeding — tile, button or
+notification — clears the notification from the phones again.
+
 `accent_color` (header icon) and the temperature-derived tile colors both
 have a paired `_opacity` option (`accent_opacity`, `tile_tint_opacity`,
 0–100) controlling how strongly that color tints its background — the
@@ -2321,6 +2337,9 @@ Changelog).
 | `cleaning_interval_entity` | string | – | `input_number` helper; takes priority over `cleaning_interval` and is shared with the reminder automation |
 | `cleaning_notify_service` | list\<string\> | – | Notify targets for the reminder (without the `notify.` prefix) |
 | `cleaning_notify_time` | string | `18:00:00` | Daily time at which the reminder checks whether cleaning is due |
+| `feeding_entity` | string | – | `input_datetime` (date and time) or `input_button` holding the last feeding; adds the Feed tile and chip |
+| `feeding_due_time` | string | `19:00:00` | Not fed by then counts as overdue; also when the feeding reminder goes out |
+| `feeding_notify_service` | list\<string\> | – | Notify targets for the feeding reminder (without the `notify.` prefix) |
 | `camera_entity` | string | – | `camera` entity |
 | `camera_style` | `none` \| `thumbnail` \| `banner` \| `live` | `none` | How the camera is shown |
 | `camera_refresh` | number | `10` | Still-image refresh interval in seconds (`0` = off) |

@@ -936,6 +936,11 @@ const translations = {
     aquarium_chip_cleaning_due: "Säubern fällig",
     aquarium_chip_cleaned_days_ago: "Gesäubert vor {n} T.",
     aquarium_chip_cleaned_today: "Heute gesäubert",
+    aquarium_feed: "Füttern",
+    aquarium_fed_at: "Um {time}",
+    aquarium_not_fed: "Noch nicht",
+    aquarium_chip_fed: "Gefüttert {time}",
+    aquarium_chip_not_fed: "Noch nicht gefüttert",
     aquarium_chip_water_level_low: "Wasserstand niedrig",
     editor_aquarium_general: "Allgemein",
     editor_aquarium_accent_color: "Akzentfarbe",
@@ -997,6 +1002,22 @@ const translations = {
       "Automatisch erstellt von der M3 Aquarium-Karte. Prüft, ob seit der letzten Reinigung mehr Tage vergangen sind als im Intervall-Helfer eingestellt.",
     editor_aquarium_reminder_message:
       "Reinigung fällig — zuletzt vor {{ d }} Tagen gesäubert.",
+    editor_aquarium_feeding: "Füttern",
+    editor_aquarium_feeding_entity: "Fütter-Zeitstempel (input_datetime oder input_button)",
+    editor_aquarium_feeding_due_time: "Füttern bis",
+    editor_aquarium_feeding_hint:
+      "Die Kachel „Füttern“ setzt den Zeitstempel per Tipp. Ein Chip zeigt, ob heute schon gefüttert wurde — nach der Uhrzeit oben als Warnung.",
+    editor_aquarium_feeding_reminder_hint:
+      "Legt eine Home-Assistant-Automatisierung an, die zur Uhrzeit „Füttern bis“ erinnert, wenn heute noch nicht gefüttert wurde. Die Benachrichtigung hat einen Knopf, der das Füttern direkt abhakt.",
+    editor_aquarium_feeding_reminder_missing:
+      "Bitte zuerst Fütter-Zeitstempel und Benachrichtigungsziel auswählen.",
+    editor_aquarium_feeding_reminder_success:
+      "Fütter-Erinnerung eingerichtet. Sie erscheint jetzt unter Einstellungen → Automatisierungen.",
+    editor_aquarium_feeding_reminder_alias: "Füttern nicht vergessen",
+    editor_aquarium_feeding_reminder_description:
+      "Automatisch erstellt von der M3 Aquarium-Karte. Erinnert abends, wenn die Fische heute noch nicht gefüttert wurden; der Knopf in der Benachrichtigung hakt das Füttern ab.",
+    editor_aquarium_feeding_reminder_message: "Die Fische haben heute noch nichts bekommen.",
+    editor_aquarium_feeding_reminder_action: "Gefüttert ✓",
     editor_climate_overview_auto_discover: "Automatisch erkennen",
     editor_climate_overview_include_area: "Nur diese Bereiche (leer = alle)",
     editor_climate_overview_exclude_entities: "Ausgeschlossene Entitäten",
@@ -3761,6 +3782,11 @@ const translations = {
     aquarium_chip_cleaning_due: "Cleaning due",
     aquarium_chip_cleaned_days_ago: "Cleaned {n}d ago",
     aquarium_chip_cleaned_today: "Cleaned today",
+    aquarium_feed: "Feed",
+    aquarium_fed_at: "At {time}",
+    aquarium_not_fed: "Not yet",
+    aquarium_chip_fed: "Fed at {time}",
+    aquarium_chip_not_fed: "Not fed yet",
     aquarium_chip_water_level_low: "Water level low",
     editor_aquarium_general: "General",
     editor_aquarium_accent_color: "Accent color",
@@ -3822,6 +3848,22 @@ const translations = {
       "Created automatically by the M3 Aquarium Card. Checks whether more days have passed since the last cleaning than the interval helper allows.",
     editor_aquarium_reminder_message:
       "Cleaning due — last cleaned {{ d }} days ago.",
+    editor_aquarium_feeding: "Feeding",
+    editor_aquarium_feeding_entity: "Feeding timestamp (input_datetime or input_button)",
+    editor_aquarium_feeding_due_time: "Feed by",
+    editor_aquarium_feeding_hint:
+      "The Feed tile sets the timestamp with a tap. A chip shows whether the fish have been fed today — after the time above, as a warning.",
+    editor_aquarium_feeding_reminder_hint:
+      "Creates a Home Assistant automation that reminds you at the feed-by time if the fish have not been fed today. The notification has a button that logs the feeding right away.",
+    editor_aquarium_feeding_reminder_missing:
+      "Please pick a feeding timestamp entity and a notification target first.",
+    editor_aquarium_feeding_reminder_success:
+      "Feeding reminder set up. It now shows under Settings → Automations.",
+    editor_aquarium_feeding_reminder_alias: "feed the fish",
+    editor_aquarium_feeding_reminder_description:
+      "Created automatically by the M3 Aquarium Card. Reminds you in the evening if the fish have not been fed today; the button in the notification logs the feeding.",
+    editor_aquarium_feeding_reminder_message: "The fish have not had their food today.",
+    editor_aquarium_feeding_reminder_action: "Fed ✓",
     editor_climate_overview_auto_discover: "Auto-discover",
     editor_climate_overview_include_area: "Only these areas (empty = all)",
     editor_climate_overview_exclude_entities: "Excluded entities",

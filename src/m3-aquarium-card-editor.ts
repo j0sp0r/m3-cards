@@ -11,6 +11,7 @@ import {
   DEFAULT_AQUARIUM_RADIUS,
   DEFAULT_AQUARIUM_TARGET_RANGE,
   DEFAULT_AQUARIUM_CLEANING_INTERVAL_DAYS,
+  DEFAULT_AQUARIUM_FEEDING_DUE_TIME,
   DEFAULT_AQUARIUM_CAMERA_REFRESH_S,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
@@ -48,6 +49,9 @@ export class M3AquariumCardEditor extends LitElement implements LovelaceCardEdit
   @state() private _reminderBusy = false;
   @state() private _reminderStatus: "idle" | "success" | "error" = "idle";
   @state() private _reminderDetail = "";
+  @state() private _feedBusy = false;
+  @state() private _feedStatus: "idle" | "success" | "error" = "idle";
+  @state() private _feedDetail = "";
 
   public setConfig(config: M3AquariumCardConfig): void {
     this._config = config;
@@ -160,6 +164,14 @@ export class M3AquariumCardEditor extends LitElement implements LovelaceCardEdit
     ];
   }
 
+  private _feedingSchema(): SchemaEntry[] {
+    return [
+      { name: "feeding_entity", selector: { entity: { domain: ["input_datetime", "input_button"] } } },
+      { name: "feeding_due_time", selector: { time: {} } },
+      notifyServiceSchema(this.hass, "feeding_notify_service"),
+    ];
+  }
+
   private _reminderSchema(): SchemaEntry[] {
     return [
       notifyServiceSchema(this.hass, "cleaning_notify_service"),
@@ -216,6 +228,9 @@ export class M3AquariumCardEditor extends LitElement implements LovelaceCardEdit
       cleaning_interval_entity: "editor_aquarium_cleaning_interval_entity",
       cleaning_notify_service: "editor_aquarium_notify_service",
       cleaning_notify_time: "editor_aquarium_notify_time",
+      feeding_entity: "editor_aquarium_feeding_entity",
+      feeding_due_time: "editor_aquarium_feeding_due_time",
+      feeding_notify_service: "editor_aquarium_notify_service",
       animation: "editor_progress_animation",
       glass_background: "editor_glass_background",
     };
@@ -360,6 +375,101 @@ export class M3AquariumCardEditor extends LitElement implements LovelaceCardEdit
       this._reminderDetail = e instanceof Error ? e.message : String(e);
     } finally {
       this._reminderBusy = false;
+    }
+  }
+
+  // The feeding reminder: one automation with three triggers. At the feed-by
+  // time it notifies, unless the fish were fed today; the notification's
+  // button logs the feeding; and any feeding, from wherever, clears the
+  // notification off the phones again. Its id comes from the card config, so
+  // setting it up twice updates the same automation.
+  private async _toggleFeedReminder(enabled: boolean): Promise<void> {
+    if (!this._config || !this.hass) return;
+    this._config = { ...this._config, feeding_notify_enabled: enabled };
+    fireEvent(this, "config-changed", { config: this._config });
+    if (enabled) {
+      await this._setupFeedReminder();
+      return;
+    }
+    const id = this._config.feeding_notify_automation_id;
+    if (id) await setAutomationEnabled(this.hass, id, false);
+  }
+
+  private async _setupFeedReminder(): Promise<void> {
+    const cfg = this._config;
+    if (!this.hass || !cfg) return;
+    const targets = cfg.feeding_notify_service ?? [];
+    const fed = cfg.feeding_entity;
+    if (!fed || targets.length === 0) {
+      this._feedStatus = "error";
+      this._feedDetail = this._t("editor_aquarium_feeding_reminder_missing");
+      return;
+    }
+    this._feedBusy = true;
+    this._feedStatus = "idle";
+    this._feedDetail = "";
+    try {
+      const cardName = cfg.name || this._t("aquarium_default_name");
+      const isButton = fed.startsWith("input_button.");
+      const tag = `m3_aquarium_feed_${slugifyForId(fed)}`;
+      const action = tag.toUpperCase();
+      // An input_datetime's timestamp attribute is local time already; an
+      // input_button holds an ISO timestamp with its zone
+      const ts = isButton ? `as_timestamp(states('${fed}'), none)` : `state_attr('${fed}', 'timestamp')`;
+      const notFedToday = `{% set ts = ${ts} %}{{ ts is none or (ts | timestamp_custom('%Y-%m-%d')) != now().strftime('%Y-%m-%d') }}`;
+      const logFeeding = isButton
+        ? { action: "input_button.press", target: { entity_id: fed } }
+        : { action: "input_datetime.set_datetime", target: { entity_id: fed }, data: { datetime: "{{ now().strftime('%Y-%m-%d %H:%M:%S') }}" } };
+      const remind = notifyActions(targets, cardName, this._t("editor_aquarium_feeding_reminder_message")).map((a) => ({
+        ...a,
+        data: {
+          ...(a.data as Record<string, unknown>),
+          data: { tag, actions: [{ action, title: this._t("editor_aquarium_feeding_reminder_action") }] },
+        },
+      }));
+      const clear = targets.map((target) => ({
+        action: `notify.${target}`,
+        data: { message: "clear_notification", data: { tag } },
+      }));
+      const automationId = resolveAutomationId("aquarium_feed", cfg.feeding_notify_automation_id);
+
+      await saveNotifyAutomation(this.hass, {
+        id: automationId,
+        alias: `${cardName}: ${this._t("editor_aquarium_feeding_reminder_alias")}`,
+        description: this._t("editor_aquarium_feeding_reminder_description"),
+        mode: "queued",
+        triggers: [
+          { trigger: "time", at: cfg.feeding_due_time || DEFAULT_AQUARIUM_FEEDING_DUE_TIME, id: "remind" },
+          { trigger: "event", event_type: "mobile_app_notification_action", event_data: { action }, id: "fed" },
+          { trigger: "state", entity_id: fed, id: "logged" },
+        ],
+        conditions: [],
+        actions: [
+          {
+            choose: [
+              {
+                conditions: [{ condition: "trigger", id: "remind" }, { condition: "template", value_template: notFedToday }],
+                sequence: remind,
+              },
+              { conditions: [{ condition: "trigger", id: "fed" }], sequence: [logFeeding] },
+              { conditions: [{ condition: "trigger", id: "logged" }], sequence: clear },
+            ],
+          },
+        ],
+      });
+
+      await setAutomationEnabled(this.hass, automationId, true);
+      if (cfg.feeding_notify_automation_id !== automationId) {
+        this._config = { ...cfg, feeding_notify_automation_id: automationId };
+        fireEvent(this, "config-changed", { config: this._config });
+      }
+      this._feedStatus = "success";
+      this._feedDetail = "";
+    } catch (e) {
+      this._feedStatus = "error";
+      this._feedDetail = e instanceof Error ? e.message : String(e);
+    } finally {
+      this._feedBusy = false;
     }
   }
 
@@ -553,6 +663,11 @@ export class M3AquariumCardEditor extends LitElement implements LovelaceCardEdit
       cleaning_notify_service: this._config.cleaning_notify_service ?? [],
       cleaning_notify_time: this._config.cleaning_notify_time ?? "18:00:00",
     };
+    const feedingData = {
+      feeding_entity: this._config.feeding_entity,
+      feeding_due_time: this._config.feeding_due_time ?? DEFAULT_AQUARIUM_FEEDING_DUE_TIME,
+      feeding_notify_service: this._config.feeding_notify_service ?? [],
+    };
     const extraDevices = this._config.extra_devices ?? [];
     const animationData = { animation: this._config.animation ?? "auto" };
 
@@ -719,6 +834,34 @@ export class M3AquariumCardEditor extends LitElement implements LovelaceCardEdit
                   : this._t("editor_notify_missing"),
               onToggle: (on) => this._toggleReminder(on),
               onSetup: () => this._setupReminder(),
+            })}
+
+            <div class="sub-header">${this._t("editor_aquarium_feeding")}</div>
+            <div class="hint">${this._t("editor_aquarium_feeding_hint")}</div>
+            <ha-form
+              .hass=${this.hass}
+              .data=${feedingData}
+              .schema=${this._feedingSchema()}
+              .computeLabel=${this._computeLabel}
+              @value-changed=${this._valueChanged}
+            ></ha-form>
+            <div class="hint">${this._t("editor_aquarium_feeding_reminder_hint")}</div>
+            ${renderNotifyControls({
+              hass: this.hass,
+              language: this._language,
+              enabled: this._config.feeding_notify_enabled ?? false,
+              automationId: this._config.feeding_notify_automation_id,
+              busy: this._feedBusy,
+              status: this._feedStatus,
+              detail: this._feedDetail,
+              successText: this._t("editor_aquarium_feeding_reminder_success"),
+              blockedReason: !this._config.feeding_entity
+                ? this._t("editor_aquarium_feeding_reminder_missing")
+                : this._config.feeding_notify_service?.length
+                  ? undefined
+                  : this._t("editor_notify_missing"),
+              onToggle: (on) => this._toggleFeedReminder(on),
+              onSetup: () => this._setupFeedReminder(),
             })}
           </div>
         </ha-expansion-panel>

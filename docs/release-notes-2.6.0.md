@@ -345,6 +345,15 @@ raw keys such as `stage_entity`, names them all, and a few editors gained
 fields their cards already read: the router's and the vacuum maintenance
 card's tap action, and the fold's helper and memory on the vacuum cards.
 
+## Also new
+
+- **The aquarium card knows whether the fish were fed.** Point
+  `feeding_entity` at a date-and-time helper: a Feed tile logs the feeding and
+  stays lit for the rest of the day, and a chip says when — or warns once the
+  day passes `feeding_due_time` (19:00 by default). As with cleaning, the
+  editor creates the reminder, and its notification has a **Fed ✓** button
+  that logs the feeding from the phone.
+
 ## Also fixed
 
 - **The time card follows a change made elsewhere.** An untouched card took

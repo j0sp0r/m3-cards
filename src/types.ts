@@ -1475,6 +1475,14 @@ export interface M3AquariumCardConfig extends NotifyConfigBase {
   cleaning_interval_entity?: string;
   cleaning_notify_service?: string[];
   cleaning_notify_time?: string;
+  /** Holds the last feeding: an input_datetime (date and time) or an input_button. */
+  feeding_entity?: string;
+  /** Not fed by then counts as overdue; also when the reminder goes out. */
+  feeding_due_time?: string;
+  feeding_notify_service?: string[];
+  feeding_notify_enabled?: boolean;
+  /** Written back on first setup, like notify_automation_id for cleaning. */
+  feeding_notify_automation_id?: string;
   camera_entity?: string;
   camera_style?: AquariumCameraStyle;
   camera_refresh?: number;

@@ -30,6 +30,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   day. All closed, it is one line naming the last one opened. Unreachable
   sensors never count as closed. Finds its sensors itself unless given a
   list, as the battery card does.
+- **The aquarium card knows whether the fish were fed: `feeding_entity`.** A
+  Feed tile logs the feeding and stays lit for the day, a chip says when, or
+  warns after `feeding_due_time`; the editor creates an evening reminder
+  whose notification logs the feeding with one tap.
 - **The vacuum card can fold its main buttons too.** A `controls` block —
   "Main buttons" in the editor — takes Start/Pause, dock and locate with the
   fold when named, so a folded vacuum is its header and battery, like every
