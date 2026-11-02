@@ -2973,6 +2973,51 @@ export interface M3CheckinCardConfig {
   card_version?: string;
 }
 
+// ---- m3-openings-card ----------------------------------------------------
+
+export interface OpeningsEntityConfig {
+  entity: string;
+  name?: string;
+  icon?: string;
+  tap_action?: HaActionConfig;
+}
+
+/** Windows and doors: what is open, for how long, and whether it matters. */
+export interface M3OpeningsCardConfig {
+  type: string;
+  /** binary_sensors of class door, window, opening or garage_door; the bare id works too. */
+  entities?: Array<string | OpeningsEntityConfig>;
+  /** Find the sensors by device class; on by default when `entities` is left out. */
+  auto_discover?: boolean;
+  include_area?: string[];
+  include_label?: string[];
+  exclude_entities?: string[];
+  title?: string;
+  icon?: string;
+  outdoor_temperature?: string;
+  /** Minutes open before a sensor counts as open too long. Default 15. */
+  warn_after_minutes?: number;
+  /** Below this outdoor temperature an open-too-long sensor warns. Default 10. */
+  cold_below?: number;
+  /** Closed and missing sensors shown as chips before "+N". Default 4. */
+  max_chips?: number;
+  /** Default action for every row and chip; an entry's own tap_action wins. */
+  tap_action?: HaActionConfig;
+  color_open?: string;
+  color_warn?: string;
+  color_closed?: string;
+  animation?: "auto" | "on" | "off";
+  haptics?: boolean;
+  glass_background?: boolean;
+  card_background?: string;
+  text_color?: string;
+  secondary_text_color?: string;
+  radius?: number;
+  corners?: CornerRadiusConfig;
+  detail_mode?: DetailMode;
+  card_version?: string;
+}
+
 // ---- m3-popup-card -------------------------------------------------------
 
 export interface M3PopupCardConfig {

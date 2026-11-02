@@ -3023,3 +3023,37 @@ export const CHECKIN_AVATAR_SIZE = 30;
 export const CHECKIN_AVATAR_OVERLAP = 8;
 export const CHECKIN_AVATAR_MAX = 5;
 export const DEFAULT_CHECKIN_RADIUS = RADIUS.card;
+
+// ---- Openings card ----------------------------------------------------------
+/** Something open: a warm amber, a heads-up rather than an alarm. */
+export const OPENINGS_COLOR_OPEN = PALETTE.light;
+/** Open too long while it is cold outside. */
+export const OPENINGS_COLOR_WARN = PALETTE.heat;
+export const OPENINGS_COLOR_CLOSED = PALETTE.ok;
+/** A sensor that does not answer: neutral, neither open nor closed. */
+export const OPENINGS_COLOR_MISSING = PALETTE.off;
+export const DEFAULT_OPENINGS_RADIUS = RADIUS.card;
+export const DEFAULT_OPENINGS_WARN_AFTER_MIN = 15;
+export const DEFAULT_OPENINGS_COLD_BELOW = 10;
+export const DEFAULT_OPENINGS_MAX_CHIPS = 4;
+/** The open rows: two lines, a 32px squircle, joined into one group. */
+export const OPENINGS_ROW_HEIGHT = HEIGHT.rowTall;
+export const OPENINGS_ICON_SIZE = 32;
+export const OPENINGS_ICON_RADIUS = RADIUS.squircle32;
+/** The group's outer corners are a row's; its joints are a connected control's. */
+export const OPENINGS_GROUP_RADIUS_OUTER = RADIUS.row;
+export const OPENINGS_GROUP_RADIUS_INNER = RADIUS.segmentInner;
+export const OPENINGS_GROUP_RADIUS_PRESSED = RADIUS.rowActive;
+export const OPENINGS_GROUP_GAP = SPACING.segmentGap;
+/** The open rows' wash and the icon wells, as a share of the amber. */
+export const OPENINGS_ROW_TINT = 10;
+export const OPENINGS_ICON_TINT = 20;
+/** The closed and missing chips. */
+export const OPENINGS_CHIP_HEIGHT = 30;
+export const OPENINGS_CHIP_RADIUS = RADIUS.chip;
+export const OPENINGS_CHIP_TINT = 14;
+/** The count of open sensors beside the header. */
+export const OPENINGS_HERO_SIZE = 34;
+/** How far back the card looks for when a sensor really opened or closed. */
+export const OPENINGS_HISTORY_DAYS = 14;
+

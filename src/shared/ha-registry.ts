@@ -168,6 +168,15 @@ export async function discoverBatteryEntities(
   return discoverByDeviceClass(hass, ["sensor", "binary_sensor"], ["battery"], opts);
 }
 
+// Windows and doors for the openings card: binary sensors of the four
+// opening classes.
+export async function discoverOpeningEntities(
+  hass: HomeAssistant,
+  opts: DiscoverPowerOptions,
+): Promise<string[]> {
+  return discoverByDeviceClass(hass, ["binary_sensor"], ["door", "window", "opening", "garage_door"], opts);
+}
+
 // Auto-discovers every `person.*` entity — unlike the device_class-based
 // helpers above, `person` has no device_class, so this filters by domain
 // alone (still supports the same area/label narrowing).

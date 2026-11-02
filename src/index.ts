@@ -45,6 +45,7 @@ export * from "./m3-chip-buttons-card";
 export * from "./m3-group-card";
 export * from "./m3-popup-card";
 export * from "./m3-checkin-card";
+export * from "./m3-openings-card";
 export * from "./m3-appliance-card";
 export * from "./m3-search-card";
 export * from "./m3-vacuum-card";

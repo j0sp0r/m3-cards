@@ -8,6 +8,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **A new card: `m3-openings-card`.** Windows and doors: while something is
+  open, the count beside the header and the open sensors as one joined
+  group, longest open first, with how long each has been open; a red pill
+  with the outdoor temperature when one has been open too long on a cold
+  day. All closed, it is one line naming the last one opened. Unreachable
+  sensors never count as closed. Finds its sensors itself unless given a
+  list, as the battery card does.
 - **A new card: `m3-checkin-card` (work in progress).** Check-in and
   check-out as one element that shows the state and switches it, on a card
   tinted by the state — the accent while in, a neutral grey while out. The
