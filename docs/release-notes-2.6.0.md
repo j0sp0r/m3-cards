@@ -1,8 +1,8 @@
 # M3 Cards 2.6.0
 
-<p align="center"><img src="https://raw.githubusercontent.com/j0sp0r/m3-cards/v2.6.0/docs/images/tour.gif" alt="A 20-second tour of M3 Cards" width="880"></p>
+<p align="center"><a href="https://github.com/j0sp0r/m3-cards/releases/download/v2.6.0/m3-cards-2.6.mp4"><img src="https://raw.githubusercontent.com/j0sp0r/m3-cards/v2.6.0/docs/images/release-2.6.jpg" alt="What's new in 2.6: the detail view beside Home Assistant's own history dialog" width="880"></a></p>
 
-<p align="center"><sub>The full tour, with sound, is attached below: <code>m3-cards-tour.mp4</code> (landscape) and <code>m3-cards-tour-phone.mp4</code> (portrait), plus the 20-second cut as <code>m3-cards-tour-20s.mp4</code>.</sub></p>
+<p align="center"><sub>What's new in 2.6, in 38 seconds with sound, is attached below: <code>m3-cards-2.6.mp4</code> (landscape) and <code>m3-cards-2.6-phone.mp4</code> (portrait).</sub></p>
 
 **Upgrading:** no option was removed, so existing configs load unchanged; the
 one renamed key (the waste card's `max_rows`, now `max_visible`) is still read.
