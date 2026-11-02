@@ -61,15 +61,14 @@ import { openEntityDetail } from "./shared/entity-detail";
 import { TemplatedCard } from "./shared/templated-card";
 import { VisibleTicker } from "./shared/visible-ticker";
 import { safeImageUrl } from "./shared/css-safe";
+import { fetchRealChanges, formatHeldFor } from "./shared/state-since";
 import {
   checkedInPeople,
   checkinAction,
   checkinSince,
   checkinState,
-  durationSpan,
   fillStatus,
   initials,
-  realChange,
   runningTime,
   swipeProgress,
   SWIPE_THRESHOLD,
@@ -363,18 +362,9 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
 
   // ---- reading --------------------------------------------------------------
 
+  /** Empty under a minute, for "just now". */
   private _duration(since: number): string {
-    const span = durationSpan(since, this._now);
-    switch (span.kind) {
-      case "m":
-        return span.m === 0 ? "" : this._t("checkin_m").replace("{m}", String(span.m));
-      case "hm":
-        return this._t("checkin_hm").replace("{h}", String(span.h)).replace("{m}", String(span.m));
-      case "dh":
-        return span.h === 0 ? this._t("checkin_1d") : this._t("checkin_1d_h").replace("{h}", String(span.h));
-      case "d":
-        return this._t("checkin_days").replace("{d}", String(span.d));
-    }
+    return this._now - since < 60_000 ? "" : formatHeldFor(since, this._now, this._language);
   }
 
   /**
@@ -424,18 +414,9 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
     if (MISSING_STATES.has(entity.state)) return;
     this._historyFetching = key;
     try {
-      const id = entity.entity_id;
-      const windowStart = Date.now() - CHECKIN_HISTORY_DAYS * 86_400_000;
-      const res = await this.hass.callWS<Record<string, Array<{ s?: string | null; lc?: number; lu?: number }>>>({
-        type: "history/history_during_period",
-        start_time: new Date(windowStart).toISOString(),
-        entity_ids: [id],
-        minimal_response: true,
-        no_attributes: true,
-        significant_changes_only: false,
-      });
+      const changes = await fetchRealChanges(this.hass, [entity], CHECKIN_HISTORY_DAYS);
       if (this._historyKey !== key) return;
-      this._history = { key, ...realChange(res?.[id] ?? [], entity.state, windowStart) };
+      this._history = { key, ...(changes.get(entity.entity_id) ?? { older: false }) };
     } catch {
       this._history = { key };
     } finally {
