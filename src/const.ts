@@ -664,9 +664,8 @@ export const BATTERY_ROW_RADIUS_ACTIVE = RADIUS.rowActive;
 export const BATTERY_ICON_SIZE = 32;
 export const BATTERY_ICON_RADIUS = RADIUS.squircle32;
 export const BATTERY_ROW_GAP = SPACING.rowGap;
-export const BATTERY_BAR_HEIGHT = 6;
-export const BATTERY_BAR_RADIUS = 3;
-export const BATTERY_BAR_MIN_WIDTH = 6;
+/** How strongly a compact row fills to its charge; the full rows use the list row's own 16 %. */
+export const BATTERY_FILL_TINT = 16;
 export const BATTERY_CHIP_RADIUS = RADIUS.chip;
 export const BATTERY_COMPACT_ROW_HEIGHT = HEIGHT.rowCompact;
 export const BATTERY_COMPACT_ROW_RADIUS = 14;

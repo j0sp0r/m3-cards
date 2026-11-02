@@ -29,9 +29,7 @@ import {
   BATTERY_ICON_SIZE,
   BATTERY_ICON_RADIUS,
   BATTERY_ROW_GAP,
-  BATTERY_BAR_HEIGHT,
-  BATTERY_BAR_RADIUS,
-  BATTERY_BAR_MIN_WIDTH,
+  BATTERY_FILL_TINT,
   BATTERY_CHIP_RADIUS,
   BATTERY_COMPACT_ROW_HEIGHT,
   BATTERY_COMPACT_ROW_RADIUS,
@@ -298,15 +296,11 @@ export class M3BatteryCard extends TemplatedCard(LitElement) implements Lovelace
       icon: row.icon,
       iconColor: color,
       iconBackground: tintOn(this, color, this._config?.stage_tint_opacity, 18),
-      middle: html`
-        <div class="battery-name">${row.name}</div>
-        <div class="battery-track">
-          <div
-            class="battery-fill"
-            style=${`width: ${barPct}%; min-width: ${barPct > 0 ? BATTERY_BAR_MIN_WIDTH : 0}px; background: ${color};`}
-          ></div>
-        </div>
-      `,
+      // The row itself fills to the charge, as the plug list fills to the
+      // draw: a bar the width of the row reads at a glance, a thin one did not
+      barFraction: barPct / 100,
+      barColor: color,
+      middle: html`<div class="battery-name">${row.name}</div>`,
       right: html`
         <div class="battery-value" style=${`color: ${foregroundOn(color, listRowSurface(this), 4.5)};`}>
           ${row.unavailable ? this._t("battery_value_unavailable") : `${Math.round(row.value)} %`}
@@ -329,13 +323,10 @@ export class M3BatteryCard extends TemplatedCard(LitElement) implements Lovelace
         @click=${this._moreInfo(row.entity)}
         @keydown=${activateOnKey(this._moreInfo(row.entity))}
       >
+        ${barPct > 0
+          ? html`<div class="compact-fill" style=${`width: ${barPct}%; background: ${tintOn(this, color, undefined, BATTERY_FILL_TINT)};`}></div>`
+          : nothing}
         <div class="compact-name">${row.name}</div>
-        <div class="compact-track">
-          <div
-            class="compact-fill"
-            style=${`width: ${barPct}%; min-width: ${barPct > 0 ? BATTERY_BAR_MIN_WIDTH : 0}px; background: ${color};`}
-          ></div>
-        </div>
         <div class="compact-value" style=${`color: ${color};`}>
           ${row.unavailable ? this._t("battery_value_unavailable") : `${Math.round(row.value)} %`}
         </div>
@@ -507,19 +498,6 @@ export class M3BatteryCard extends TemplatedCard(LitElement) implements Lovelace
         color: var(--m3p-text);
       }
 
-      .battery-track {
-        margin-top: 5px;
-        height: ${BATTERY_BAR_HEIGHT}px;
-        border-radius: ${BATTERY_BAR_RADIUS}px;
-        background: rgba(255, 255, 255, 0.1);
-        overflow: hidden;
-      }
-
-      .battery-fill {
-        height: 100%;
-        border-radius: inherit;
-      }
-
       .battery-value {
         min-width: 42px;
         text-align: right;
@@ -603,18 +581,21 @@ export class M3BatteryCard extends TemplatedCard(LitElement) implements Lovelace
         color: var(--m3p-text);
       }
 
-      .compact-track {
-        flex-shrink: 0;
-        width: 44px;
-        height: 5px;
-        border-radius: 3px;
-        background: rgba(255, 255, 255, 0.1);
-        overflow: hidden;
+      .compact-fill {
+        position: absolute;
+        inset: 0 auto 0 0;
+        border-radius: inherit;
+        pointer-events: none;
+        transition: width 600ms ${EASING};
       }
 
-      .compact-fill {
-        height: 100%;
-        border-radius: inherit;
+      .compact-name,
+      .compact-value {
+        position: relative;
+      }
+
+      .card-inner.no-animations .compact-fill {
+        transition: none;
       }
 
       .compact-value {
