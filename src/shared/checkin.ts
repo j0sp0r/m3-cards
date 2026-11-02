@@ -204,6 +204,14 @@ export interface HistoryRow {
 
 const isMissing = (s: string | null | undefined): boolean => s == null || MISSING.has(s);
 
+/** What the history says about the current state's start. */
+export interface RealChange {
+  /** When the current state really began, when the window shows it. */
+  at?: number;
+  /** The state held through the whole window: it began before `windowStart`. */
+  older: boolean;
+}
+
 /**
  * When the entity really took its current state, read from its history.
  *
@@ -214,10 +222,13 @@ const isMissing = (s: string | null | undefined): boolean => s == null || MISSIN
  * and repeats of the same state belong to the current run; the run starts at
  * the first row after the last *different* real state.
  *
- * Undefined when the history holds no different state at all: the change is
- * older than the window, and the caller keeps last_changed.
+ * With no different state in the window, the history's first row tells which
+ * case it is: written at the window's start, the state was already there and
+ * is older than the window; written later, the entity is newer than that and
+ * its first row is the start. No rows at all (no recorder, or the entity is
+ * excluded from it): nothing is known.
  */
-export function realChangeTime(rows: HistoryRow[], current: string): number | undefined {
+export function realChange(rows: HistoryRow[], current: string, windowStart: number): RealChange {
   let start: number | undefined;
   for (let i = rows.length - 1; i >= 0; i--) {
     const row = rows[i];
@@ -227,7 +238,29 @@ export function realChangeTime(rows: HistoryRow[], current: string): number | un
       if (Number.isFinite(at)) start = at;
       continue;
     }
-    return start;
+    return { at: start, older: false };
   }
-  return undefined;
+  if (start === undefined) return { older: false };
+  // The response opens with the state as it stood at start_time, stamped with
+  // that moment; a minute's slack covers the round trip.
+  if (start <= windowStart + 60_000) return { older: true };
+  return { at: start, older: false };
+}
+
+/**
+ * The status line's duration in parts: minutes under an hour, hours and
+ * minutes under a day, a day and hours under two, then whole days — "48 h
+ * 5 min" says less than "2 days".
+ */
+export function durationSpan(since: number, now: number):
+  | { kind: "m"; m: number }
+  | { kind: "hm"; h: number; m: number }
+  | { kind: "dh"; h: number }
+  | { kind: "d"; d: number } {
+  const minutes = Math.max(0, Math.floor((now - since) / 60000));
+  const h = Math.floor(minutes / 60);
+  if (h === 0) return { kind: "m", m: minutes };
+  if (h < 24) return { kind: "hm", h, m: minutes % 60 };
+  if (h < 48) return { kind: "dh", h: h - 24 };
+  return { kind: "d", d: Math.floor(h / 24) };
 }

@@ -66,10 +66,10 @@ import {
   checkinAction,
   checkinSince,
   checkinState,
-  durationParts,
+  durationSpan,
   fillStatus,
   initials,
-  realChangeTime,
+  realChange,
   runningTime,
   swipeProgress,
   SWIPE_THRESHOLD,
@@ -130,7 +130,7 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
    * When the state really began, from the recorder, for the reading it was
    * fetched for. last_changed restarts with every Home Assistant restart.
    */
-  @state() private _history?: { key: string; at?: number };
+  @state() private _history?: { key: string; at?: number; older?: boolean };
   private _historyFetching?: string;
   /** A hold that switched; the click its release fires must not count again. */
   private _swallowClick = false;
@@ -364,11 +364,32 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
   // ---- reading --------------------------------------------------------------
 
   private _duration(since: number): string {
-    const { h, m } = durationParts(since, this._now);
-    if (h === 0 && m === 0) return "";
-    return h > 0
-      ? this._t("checkin_hm").replace("{h}", String(h)).replace("{m}", String(m))
-      : this._t("checkin_m").replace("{m}", String(m));
+    const span = durationSpan(since, this._now);
+    switch (span.kind) {
+      case "m":
+        return span.m === 0 ? "" : this._t("checkin_m").replace("{m}", String(span.m));
+      case "hm":
+        return this._t("checkin_hm").replace("{h}", String(span.h)).replace("{m}", String(span.m));
+      case "dh":
+        return span.h === 0 ? this._t("checkin_1d") : this._t("checkin_1d_h").replace("{h}", String(span.h));
+      case "d":
+        return this._t("checkin_days").replace("{d}", String(span.d));
+    }
+  }
+
+  /**
+   * The state has held for longer than the history the card reads, and
+   * last_changed is only the last restart: say so, instead of counting from
+   * a moment that is known to be wrong.
+   */
+  private get _older(): boolean {
+    const h = this._history;
+    return !this._config?.since_entity && !this._pending && !!h?.older && h.key === this._historyKey;
+  }
+
+  private _olderLine(shown: CheckinState): string {
+    const key = shown === "in" ? "checkin_status_in_old" : "checkin_status_out_old";
+    return this._t(key).replace("{d}", String(CHECKIN_HISTORY_DAYS));
   }
 
   private get _since(): number | undefined {
@@ -404,16 +425,17 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
     this._historyFetching = key;
     try {
       const id = entity.entity_id;
+      const windowStart = Date.now() - CHECKIN_HISTORY_DAYS * 86_400_000;
       const res = await this.hass.callWS<Record<string, Array<{ s?: string | null; lc?: number; lu?: number }>>>({
         type: "history/history_during_period",
-        start_time: new Date(Date.now() - CHECKIN_HISTORY_DAYS * 86_400_000).toISOString(),
+        start_time: new Date(windowStart).toISOString(),
         entity_ids: [id],
         minimal_response: true,
         no_attributes: true,
         significant_changes_only: false,
       });
       if (this._historyKey !== key) return;
-      this._history = { key, at: realChangeTime(res?.[id] ?? [], entity.state) };
+      this._history = { key, ...realChange(res?.[id] ?? [], entity.state, windowStart) };
     } catch {
       this._history = { key };
     } finally {
@@ -437,6 +459,7 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
   private _sinceLine(shown: CheckinState): string {
     if (shown === "unavailable") return this._t("appliance_unavailable");
     if (this._unconfirmed) return this._t("checkin_unconfirmed");
+    if (this._older) return this._olderLine(shown);
     const since = this._pending ? undefined : this._since;
     if (since === undefined) return this._t(shown === "in" ? "checkin_status_in_bare" : "checkin_status_out_bare");
     const key = shown === "in" ? "checkin_since_in" : "checkin_since_out";
@@ -447,6 +470,7 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
     const cfg = this._config!;
     if (shown === "unavailable") return this._t("appliance_unavailable");
     if (this._unconfirmed) return this._t("checkin_unconfirmed");
+    if (this._older) return this._olderLine(shown);
     const since = this._pending ? undefined : this._since;
     const bare = this._t(shown === "in" ? "checkin_status_in_bare" : "checkin_status_out_bare");
     if (since === undefined) return bare;
@@ -529,7 +553,12 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
     // While a tap is pending the new state has just begun: 0, not the old
     // state's figure, and not an empty row that would make the card jump.
     const since = this._pending ? this._now : this._since;
-    const running = since !== undefined && shown !== "unavailable" ? runningTime(since, this._now) : undefined;
+    const running =
+      shown === "unavailable" || since === undefined
+        ? undefined
+        : this._older
+          ? { value: `${CHECKIN_HISTORY_DAYS}+`, unit: "d" as const }
+          : runningTime(since, this._now);
     const target: "in" | "out" = shown === "in" ? "out" : "in";
     const hasAction = !!checkinAction(this._model, target);
     const armed = this._armed?.target === target ? this._armed.text : undefined;

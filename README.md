@@ -6923,8 +6923,10 @@ shown, not switched; a person or tracker is checked in while in `home_state`
   · 6 min ago". It counts from when the state really began: a restart, or a
   mirrored entity reconnecting, writes the same state again with a new
   `last_changed`, so the card asks the recorder (the last 14 days) and skips
-  such gaps. `since_entity` (an input_datetime or a timestamp sensor) takes
-  the place of both; a time in the future is left out.
+  such gaps. Past a day it reads "1 day 3 h", past two "2 days ago"; a state
+  older than those 14 days says "for over 14 days" rather than counting from
+  the last restart. `since_entity` (an input_datetime or a timestamp sensor)
+  takes the place of both; a time in the future is left out.
   `status_in` / `status_out` take `{duration}` and `{time}`.
 - **The control** (style `segmented`, the default) is two halves, concentric
   with their track; the active one is filled. A tap moves it at once; if Home
