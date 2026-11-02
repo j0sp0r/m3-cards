@@ -27,6 +27,7 @@ import {
   OPENINGS_GROUP_RADIUS_PRESSED,
   OPENINGS_HERO_SIZE,
   OPENINGS_HISTORY_DAYS,
+  OPENINGS_MOTION,
   OPENINGS_ICON_RADIUS,
   OPENINGS_ICON_SIZE,
   OPENINGS_ICON_TINT,
@@ -47,6 +48,7 @@ import { discoveryChangeMatters, hassChangeMatters } from "./shared/should-updat
 import { runHaAction } from "./shared/actions";
 import { openEntityDetail } from "./shared/entity-detail";
 import { easeFoldHeight } from "./shared/fold-arrow";
+import { playKeyed, snapshotKeyed, type MotionSnapshot } from "./shared/keyed-motion";
 import { formatClock } from "./shared/formatting";
 import { discoverOpeningEntities } from "./shared/ha-registry";
 import { TemplatedCard } from "./shared/templated-card";
@@ -101,8 +103,9 @@ export class M3OpeningsCard extends TemplatedCard(LitElement) implements Lovelac
   private _historyKey = "";
   private _historyFetching = "";
   private _discoverKey = "";
-  private _lastSummary?: Summary;
+  private _layoutKey?: string;
   private _easeFrom = 0;
+  private _motion?: MotionSnapshot;
   private readonly _ticker = new VisibleTicker(this, (now) => {
     this._now = now;
   });
@@ -264,13 +267,16 @@ export class M3OpeningsCard extends TemplatedCard(LitElement) implements Lovelac
   protected willUpdate(changed: PropertyValues): void {
     if (changed.has("hass") || changed.has("_config")) this._maybeDiscover();
     if (changed.has("hass") || changed.has("_config") || changed.has("_discovered")) this._fetchHistory();
-    // A change of state changes the card's height — a line for all closed,
-    // a list for something open. Measured before, eased after.
-    const summary = this._summary(this._rows());
-    if (this._lastSummary !== undefined && summary !== this._lastSummary) {
-      this._easeFrom = (this.renderRoot?.querySelector?.(".card-inner") as HTMLElement | null)?.offsetHeight ?? 0;
+    // A window that opens or closes changes the layout: a row comes or goes,
+    // a chip with it, the count, the height. Measured before, played after.
+    const rows = this._rows();
+    const key = [this._chipsOpen, ...rows.map((r) => `${r.entry.entity}:${r.status}`)].join("|");
+    if (this._layoutKey !== undefined && key !== this._layoutKey && shouldAnimate(this._config?.animation)) {
+      const inner = this.renderRoot?.querySelector?.(".card-inner") as HTMLElement | null;
+      this._easeFrom = inner?.offsetHeight ?? 0;
+      this._motion = snapshotKeyed(inner);
     }
-    this._lastSummary = summary;
+    this._layoutKey = key;
   }
 
   protected updated(changed: PropertyValues): void {
@@ -278,7 +284,9 @@ export class M3OpeningsCard extends TemplatedCard(LitElement) implements Lovelac
     if (this._easeFrom) {
       const inner = this.renderRoot.querySelector(".card-inner") as HTMLElement | null;
       easeFoldHeight(inner, this._easeFrom, shouldAnimate(this._config?.animation));
+      playKeyed(inner, this._motion, OPENINGS_MOTION);
       this._easeFrom = 0;
+      this._motion = undefined;
     }
   }
 
@@ -300,10 +308,8 @@ export class M3OpeningsCard extends TemplatedCard(LitElement) implements Lovelac
 
   private _toggleChips(e: Event): void {
     e.stopPropagation();
-    const inner = this.renderRoot.querySelector(".card-inner") as HTMLElement | null;
-    const before = inner?.offsetHeight ?? 0;
+    // The layout key includes the fold, so willUpdate eases it like any change
     this._chipsOpen = !this._chipsOpen;
-    void this.updateComplete.then(() => easeFoldHeight(inner, before, shouldAnimate(this._config?.animation)));
   }
 
   // ---- render ---------------------------------------------------------------
@@ -400,12 +406,12 @@ export class M3OpeningsCard extends TemplatedCard(LitElement) implements Lovelac
 
   private _headerRight(summary: Summary, openCount: number) {
     if (summary === "open") {
-      return html`<div class="hero" aria-label=${`${openCount} ${this._t("openings_open_label")}`}>
-        <span class="hero-n">${openCount}</span><span class="hero-l">${this._t("openings_open_label")}</span>
+      return html`<div class="hero" data-motion-key="hero" aria-label=${`${openCount} ${this._t("openings_open_label")}`}>
+        <span class="hero-n" data-motion-key="hero-n" data-motion-count>${openCount}</span><span class="hero-l">${this._t("openings_open_label")}</span>
       </div>`;
     }
     if (summary === "clear") {
-      return html`<span class="pill ok"><ha-icon icon="mdi:check"></ha-icon>${this._t("openings_all_closed")}</span>`;
+      return html`<span class="pill ok" data-motion-key="pill-ok"><ha-icon icon="mdi:check"></ha-icon>${this._t("openings_all_closed")}</span>`;
     }
     return undefined;
   }
@@ -502,6 +508,7 @@ export class M3OpeningsCard extends TemplatedCard(LitElement) implements Lovelac
           };
           return html`<span
             class="chip ${isMissing ? "missing" : "ok"}"
+            data-motion-key=${`chip:${row.entry.entity}`}
             role="button"
             tabindex="0"
             aria-label=${label}
@@ -514,6 +521,7 @@ export class M3OpeningsCard extends TemplatedCard(LitElement) implements Lovelac
         ${overflow
           ? html`<span
               class="chip more"
+              data-motion-key="chip:more"
               role="button"
               tabindex="0"
               aria-expanded=${String(this._chipsOpen)}
@@ -538,6 +546,7 @@ export class M3OpeningsCard extends TemplatedCard(LitElement) implements Lovelac
       }
 
       .card-inner {
+        position: relative;
         display: flex;
         flex-direction: column;
         gap: var(--m3-card-gap, 12px);

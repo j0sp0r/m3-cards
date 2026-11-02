@@ -3056,4 +3056,9 @@ export const OPENINGS_CHIP_TINT = 14;
 export const OPENINGS_HERO_SIZE = 34;
 /** How far back the card looks for when a sensor really opened or closed. */
 export const OPENINGS_HISTORY_DAYS = 14;
+/**
+ * A window opening or closing: the rows that stay glide, the one that goes
+ * fades where it stood, a new chip grows in once the room is made.
+ */
+export const OPENINGS_MOTION = { moveMs: 320, leaveMs: 220, enterMs: 280, enterDelayMs: 120 } as const;
 
