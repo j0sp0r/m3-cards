@@ -16,6 +16,8 @@ true — and a subtitle "on" under one of them reads as if that button were on.
 This card says which, and its control names **states** ("Checked in",
 "Checked out"), never verbs, so it cannot be read the other way round.
 
+<img src="docs/images/checkin-card.png" alt="Check-in Card" width="440">
+
 Everything below can be set in the visual editor, whose style panel shows
 only the words and icons the chosen style uses.
 

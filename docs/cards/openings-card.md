@@ -16,6 +16,8 @@ day. Everything closed shrinks it to a single line that names the last one
 opened. A sensor that does not answer is shown as such and never counted as
 closed.
 
+<img src="docs/images/openings-card.png" alt="Openings Card" width="440">
+
 <details>
 <summary>Configuration, examples & options</summary>
 

@@ -6880,6 +6880,8 @@ true — and a subtitle "on" under one of them reads as if that button were on.
 This card says which, and its control names **states** ("Checked in",
 "Checked out"), never verbs, so it cannot be read the other way round.
 
+<img src="docs/images/checkin-card.png" alt="Check-in Card" width="440">
+
 Everything below can be set in the visual editor, whose style panel shows
 only the words and icons the chosen style uses.
 
@@ -7033,6 +7035,8 @@ pill with the outdoor temperature when one has been open too long on a cold
 day. Everything closed shrinks it to a single line that names the last one
 opened. A sensor that does not answer is shown as such and never counted as
 closed.
+
+<img src="docs/images/openings-card.png" alt="Openings Card" width="440">
 
 <details>
 <summary>Configuration, examples & options</summary>
