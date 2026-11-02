@@ -6,8 +6,23 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.6.0] – 2026-10-27
+
 ### Added
 
+- **A new card: `m3-checkin-card`.** Check-in and check-out as one element
+  that shows the state and switches it, on a card tinted by the state — the
+  accent while in, a neutral grey while out, so out never reads as a fault.
+  Three styles: `segmented`, two halves that name the states, not verbs;
+  `status`, the running time large, a pulsing dot while in, and one button
+  that names the action; `swipe`, a handle to slide that springs back short
+  of three quarters, for a phone in a pocket or a tablet by the door. A tap
+  moves it at once and goes back, with a word, if Home Assistant does not
+  confirm. "Checked in for 2 h" counts from the real change: a restart or a
+  mirrored entity reconnecting is seen through in the recorder.
+  `user_entity_map` puts several people on one card — each viewer switches
+  their own, and everyone checked in shows as avatars — and `confirm` asks
+  first (`double_tap` or `hold`). A visual editor covers all of it.
 - **A new card: `m3-openings-card`.** Windows and doors: while something is
   open, the count beside the header and the open sensors as one joined
   group, longest open first, with how long each has been open; a red pill
@@ -15,21 +30,6 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   day. All closed, it is one line naming the last one opened. Unreachable
   sensors never count as closed. Finds its sensors itself unless given a
   list, as the battery card does.
-- **A new card: `m3-checkin-card` (work in progress).** Check-in and
-  check-out as one element that shows the state and switches it, on a card
-  tinted by the state — the accent while in, a neutral grey while out. The
-  three styles are done: `segmented`; `status` (the running time large, a
-  pulsing dot while in, one button that names the action); `swipe` (a handle
-  to slide, springing back short of three quarters). `user_entity_map` puts
-  several people on one card — each viewer switches their own, and everyone
-  checked in shows as avatars — and `confirm` asks first (`double_tap` or
-  `hold`). A visual editor covers all of it, its style panel showing only
-  what the chosen style uses. README screenshots are still to come. Not yet in the 2.6 release notes.
-
-## [2.6.0] – 2026-10-27
-
-### Added
-
 - **The vacuum card can fold its main buttons too.** A `controls` block —
   "Main buttons" in the editor — takes Start/Pause, dock and locate with the
   fold when named, so a folded vacuum is its header and battery, like every

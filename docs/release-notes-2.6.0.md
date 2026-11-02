@@ -53,12 +53,15 @@ had.
 This release is about the parts of a dashboard that are not a card on a grid:
 the details behind a tap, the pop-up behind a button, the remote on the sofa
 and the router in the hallway cupboard. Five new cards, and the existing ones
-learned to open the first of them. And the machines in the utility room: the
+learned to open the first of them. Two more say who is in and what is open:
+a check-in card that is one element instead of two buttons, and a card for
+windows and doors that warns when one is left open on a cold day. And the
+machines in the utility room: the
 appliance and printer cards learned to fold, to draw their readings as tiles
 and to say when a run has started and when it is done. Last, the suite was
 gone over as a whole — one frame for every card, one name for every setting.
 
-The suite registers 49 cards.
+The suite registers 51 cards.
 
 ## A detail view of its own
 
@@ -141,6 +144,56 @@ sparkline from the recorder, and monthly volume honours binary units.
 The diagnostics card carries modem temperatures, cell and band, reachability
 checks and a restart button that takes two taps and disarms itself after four
 seconds — an armed red button on a wall tablet is a trap for whoever walks past.
+
+## Checked in or out, in one element
+
+<p align="center"><img src="https://raw.githubusercontent.com/j0sp0r/m3-cards/v2.6.0/docs/images/checkin-card.png" alt="The check-in card in its three styles" width="440"></p>
+
+Two buttons, "check in" and "check out", say nothing about which is true —
+and "on" under one of them reads as if that button were on. `m3-checkin-card`
+is one element that shows the state and switches it. The whole card takes the
+state's colour: the accent while checked in, a neutral grey while out, so out
+never reads as a fault.
+
+It comes in three styles. `segmented` puts the two states side by side and
+names them as states — "Checked in", "Checked out" — never as verbs. `status`
+leads with how long, the running time large in tabular figures, a dot pulsing
+on the icon while checked in, and one full-width button that names the action,
+the one place a verb is right. `swipe` asks for a deliberate slide, for a phone
+in a pocket or a tablet by the door: past three quarters it counts, short of
+that the handle springs back, and a tap only nudges it the way it goes. With a
+keyboard it is a switch; under reduced motion a tap does it.
+
+A tap moves the control at once. If Home Assistant has not confirmed within
+`optimistic_timeout`, it goes back and says so, rather than jumping silently.
+"Checked in for 2 h" counts from the real change: a restart, or a mirrored
+entity reconnecting, writes the same state again with a new `last_changed`,
+and the card looks past that in the recorder. Past a day it says "1 day 3 h",
+past two "2 days".
+
+`user_entity_map` puts several people on one card: each Home Assistant user
+switches their own entity, and everyone checked in shows as avatars. `confirm`
+asks first — "Sure?" on a first tap, or a 600 ms hold — for a card where a
+slip would matter.
+
+## Windows and doors
+
+<p align="center"><img src="https://raw.githubusercontent.com/j0sp0r/m3-cards/v2.6.0/docs/images/openings-card.png" alt="The openings card with something open, and all closed" width="440"></p>
+
+`m3-openings-card` changes with the house. While something is open it leads
+with it: the count beside the header, and the open sensors as one joined group,
+longest open first, each with how long it has been open. Open longer than
+`warn_after_minutes` while it is colder outside than `cold_below`, a row turns
+its duration amber and shows a red pill with the outdoor temperature — an open
+window on a warm evening is no news. The closed ones are green chips, with a
+"+N" for the rest. Everything closed shrinks the card to one line: a green
+lock, "Last opened: Kitchen, until 14:12".
+
+A sensor that does not answer is shown as one, and never counted as closed.
+The durations come from the recorder, so a restart does not reset a window
+that has been open all afternoon to "2 min". Without a list the card finds
+every door, window, opening and garage-door sensor itself, as the battery card
+finds batteries, with the same area, label and exclusion filters.
 
 ## The utility room
 
