@@ -54,7 +54,7 @@ Beide Fehler ließen die Seite besser aussehen, als sie war.
 - Ein Handy oder ein per DevTools emuliertes Touch-Gerät für alle Drag-Interaktionen
   (Wave-Slider, Wischen) — Maus-Events allein decken `touch-action`-Konflikte nicht ab.
 
-## Cross-Cutting-Checkliste (für jede der 44 Karten)
+## Cross-Cutting-Checkliste (für jede der 51 Karten)
 
 Diese Punkte gelten kartenübergreifend, weil sie über gemeinsame `shared/*`-Module
 implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichzeitig.
@@ -264,10 +264,14 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Auto-Discovery-Anzahl | `auto_discover: true`, Konsole/Editor prüfen | Anzahl gefundener Batterie-Entities plausibel (`device_class: battery` + `%`-Sensoren) |
 | Namens-Override in Auto-Discover-Modus | `entities: [{entity: ..., name: "Custom"}]` **zusätzlich zu** `auto_discover: true` | Eintrag wirkt als Override (Name/Icon), ersetzt nicht die automatische Liste |
 | `name_strip` | Entität mit „ Battery Level“-Suffix | Suffix verschwindet aus der Zeilenbeschriftung |
-| Stufenfarben | Werte in critical/low/medium/ok-Bereiche verschieben | Balkenfarbe und Textfarbe wechseln an den `thresholds`-Grenzen |
+| Stufenfarben | Werte in critical/low/medium/ok-Bereiche verschieben | Füllfarbe der Zeile und Textfarbe wechseln an den `thresholds`-Grenzen |
+| Zeilenfüllung | Werte 0 %, 5 %, 50 %, 100 % | Die Zeile selbst ist bis zum Ladestand getönt, wie die Zeilen der Power-List-Karte; kein separater Balken unter dem Namen. Bei 0 % keine Füllung, die Prozentzahl steht weiter rechts |
+| Füllung kompakter Zeilen | `max_visible` überschreiten, Erweitern-Button tippen | Auch die kompakten Zusatzzeilen sind bis zum Ladestand gefüllt; Name und Prozent bleiben über der Füllung lesbar |
+| Füllung ändert sich | Wert eines Sensors in Dev-Tools ändern | Füllung folgt dem neuen Wert. Kompakte Zeilen gleiten (600 ms), die Hauptzeilen übernehmen die Breite direkt, wie in der Power-List-Karte |
 | Sortierung | Mehrere Entitäten mit unterschiedlichen Werten + eine `unavailable` | `unavailable` immer zuerst, danach aufsteigend nach Wert |
 | `max_visible` + Erweitern-Button | Mehr Entitäten als `max_visible` | „N weitere anzeigen“/„Einklappen“ toggelt kompakte Zusatzzeilen mit FLIP-Animation |
 | Manuelle Ausschlüsse | `exclude_entities` mit einer Entity-ID aus der Auto-Discovery | Diese Entität erscheint nirgends, auch nicht hinter dem Erweitern-Button |
+| Ausschluss bei fester Liste | `auto_discover: false`, eine Entität in `entities` **und** in `exclude_entities` | Die Entität erscheint trotzdem: `exclude_entities` wirkt nur auf die Auto-Discovery. Aus einer festen Liste wird sie entfernt, indem man sie aus `entities` nimmt |
 
 ## M3 Media Card
 
@@ -331,6 +335,14 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Kamera | `camera_entity` gesetzt, Banner aufklappen | Bild lädt, Aufklappanimation ruckelt nicht |
 | Reinigungsintervall | Datum in Vergangenheit und Zukunft | Fälligkeit korrekt, Zustandsfarbe wechselt |
 | Schloss als Gerätekachel | Ein `lock` als Geräte-Slot eintragen, auf- und abschließen | Aufgeschlossen zählt als „an" (Akzentfarbe, Text „An"), abgeschlossen als „aus" — seit dem Schloss-Farbtausch umgekehrt zu vorher |
+| Füttern: Kachel | `feeding_entity` auf ein `input_datetime` mit Datum und Uhrzeit, Kachel „Füttern" tippen | Helfer steht auf jetzt; Kachel leuchtet, darunter „Um HH:MM"; Chip „Gefüttert HH:MM" |
+| Füttern: Kalendertag | Helfer auf gestern 23:50 setzen | Kachel aus, „Nicht gefüttert" — es zählt der Kalendertag, nicht die letzten 24 Stunden |
+| Füttern: überfällig | Helfer auf gestern, `feeding_due_time` auf eine Minute in der Vergangenheit | Chip „Nicht gefüttert" warnt (Warnfarbe); vor der Uhrzeit noch ohne Warnung. Der Wechsel kommt ohne Reload (Minutentakt der Karte) |
+| Füttern: `input_button` | `feeding_entity` auf ein `input_button` | Tippen drückt den Button; Zustand und Uhrzeit kommen aus dessen Zeitstempel |
+| Füttern: frischer Helfer | Neues `input_datetime` anlegen, ohne es zu setzen | Steht auf heute 00:00 und liest sich als „gefüttert" — bekannte Eigenheit von HA, einmal zurücksetzen |
+| Füttern: Erinnerung anlegen | Editor → Wartung → Füttern → Dienst wählen, Erinnerung einschalten | Eine Automation entsteht (Zeit, Benachrichtigungs-Aktion, Helferwechsel); ausschalten entfernt sie wieder |
+| Füttern: Benachrichtigung | Uhrzeit kurz in die Zukunft, nicht füttern | Benachrichtigung mit Knopf „Gefüttert ✓" kommt; Knopf tippen setzt den Helfer und die Benachrichtigung verschwindet. Bereits gefüttert: keine Benachrichtigung |
+| Füttern: Taster | Helfer anders setzen (Kachel, Taster), während die Benachrichtigung offen ist | Benachrichtigung verschwindet auf allen Handys (per `tag`) |
 
 ## M3 Updates Card
 
@@ -1154,6 +1166,89 @@ Pop-up mit `hash: "#test"` und zwei, drei Karten anlegen, dazu einen Button mit
 - [ ] Theme der Ansicht gilt auch im Pop-up
 - [ ] Desktop: zentriert, alle vier Ecken rund, blendet ein
 
+## M3 Router Card
+
+Am besten gegen einen echten LTE/5G-Router; Schlüsselnamen und Einheiten
+unterscheiden sich je Integration. Siehe `docs/cards/router-card.md`,
+„What is actually verified".
+
+| Test | Schritte | Erwartung |
+|---|---|---|
+| Discovery | Nur `type` setzen, ein Router vorhanden | Verbindung, Signal, Durchsatz und Volumen werden gefunden; Titel „<PREFIX> Router" |
+| Zwei Router | Zwei Router-Integrationen, `entity_prefix` setzen | Nur die Entitäten des gewählten Routers |
+| Signal-Einstufung | RSRP in Dev-Tools über die Schwellen schieben | Stufe (Wort, Balken, Farbe) wechselt an den `rsrp_thresholds`; die Zahl steht klein daneben |
+| 5G-Zeile | Router mit NR-Werten / ohne | Zweite Signalzeile erscheint nur mit 5G-Wert; `show_nr_signal: false` blendet sie aus |
+| Glasfaser | Keine Funkwerte, nur `optical_rx_entity` | Signal wird aus der optischen Leistung eingestuft; über `optical_rx_max` als Fehler, nicht als „perfekt" |
+| Durchsatz | Raten ändern | Kacheln folgen; Einheit kommt von der Entität; Sparkline füllt sich, beim ersten Laden aus dem Recorder vorbefüllt |
+| Volumen | `data_limit` setzen | Balken wird zum Budget; ohne Limit Down/Up-Aufteilung. Dezimaltrennzeichen nach Sprache |
+| Verbindung weg | Verbindungsentität auf `off` | Icon `router-wireless-off`, Offline-Pill; keine Werte als falsch-aktuell |
+| `value_map` | Rohzustand der Netzart auf einen Text abbilden | Untertitel zeigt den gemappten Text |
+| Monatssumme | Ein Gesamtvolumen-Sensor mit Monatssumme | Wird nicht als Live-Rate gelesen |
+
+## M3 Router Diagnostics Card
+
+| Test | Schritte | Erwartung |
+|---|---|---|
+| Urteil | Alle Werte im grünen Bereich | Header „Alles im grünen Bereich", OK-Pill |
+| Temperatur | Modemtemperatur über `temp_warn`, dann über `temp_hot` | Balken erst gelb, dann rot; erst `temp_hot` zählt als Befund im Urteil |
+| Drosselung | Einen Throttle-Sensor auf einen Wert ≠ 0 | Ein Chip meldet die Drosselung; kein Graph |
+| Zelle & Band | `info_entities` mit `warn_value` | Der passende Wert ist hervorgehoben (z. B. Carrier Aggregation „Aus") |
+| Erreichbarkeit | `check_entities` mit `ok_state`, eine davon auf Fehler | Kachel wechselt auf Fehler und zählt im Urteil; ohne `check_entities` kein Block |
+| Neustart, Abbrechen | „Router neu starten" einmal tippen, warten | Knopf scharf, fällt nach `confirm_timeout` zurück; nichts passiert |
+| Neustart | Zweimal tippen — **nur, wenn ein Neustart gerade in Ordnung ist** | Aktion läuft, Spinner bis die Verbindung zurück ist |
+| Header-Chips | `show_uptime`/`show_firmware`/`show_clients: true` | Chips erscheinen nur, wenn die Entität existiert |
+
+## M3 Remote Card
+
+Mit dem echten Gerät testen; Tastennamen aus Dokumentationen waren mehrfach
+falsch. `docs/cards/remote-card.md` vorher lesen. Eingangstasten mit Bedacht:
+eine PlayStation-Taste kann die Konsole per CEC wecken.
+
+| Test | Schritte | Erwartung |
+|---|---|---|
+| Profil | `entity` auf ein `remote.*` bzw. `media_player.*` | Profil (Samsung, Google TV, …) wird aus der Entität erkannt; Tasten, die das Gerät nicht kann, fehlen |
+| Ring | Jede Richtung und OK tippen | Gerät reagiert; gedrückte Richtung zeigt Feedback; gehalten wiederholt sie im `repeat_interval` |
+| Tastatur | Karte fokussieren, Pfeiltasten und Enter | Steuern das Gerät (`keyboard_control: false` schaltet es ab) |
+| Ein/Aus | Einschaltknopf | Geht über die `remote`-Entität, wo es eine gibt; mit `power_entity` über diese |
+| Zwei Entitäten | Chromecast mit Google TV: `cast` und `androidtv_remote` | Karte grau nur, wenn beide aus sind; kein „Default Media Receiver" als Titel |
+| Apps | App-Chip tippen | App startet; aktive App ist umrandet. Beim Prüfen `current_activity` mehrfach abfragen, nicht einmal |
+| Lautstärke / Stumm | VOL ±, Stumm | Funktioniert auch auf Keycode-Profilen |
+| Texteingabe | Texteingabe öffnen, Text senden | Dialog aus einfachen Elementen, Text kommt am Gerät an |
+| Rechte Spalte | `right_column: custom` mit `right_buttons` | Eigene Knöpfe statt CH ±; `none` lässt die Spalte weg |
+| Breite Spalte | Karte über 440 px breit | Ring bleibt rund, keine eckige Box in einer runden Karte |
+
+## M3 Check-in Card
+
+Mit einem harmlosen `input_boolean` testen.
+
+| Test | Schritte | Erwartung |
+|---|---|---|
+| `segmented` | Andere Hälfte tippen | Wechselt sofort; Karte im Akzent getönt (ein), neutral grau (aus); Untertitel „Eingecheckt seit …" |
+| Bestätigung bleibt aus | `optimistic_timeout: 2000`, `checkin_action` auf eine Aktion, die den Zustand nicht ändert | Nach 2 s springt die Anzeige zurück, mit einem kurzen Hinweis |
+| Dauer aus dem Recorder | HA neu starten bzw. gespiegelte Entität neu verbinden | „seit 2 Std." zählt weiter vom echten Wechsel, nicht vom Neustart |
+| `status` | `style: status` | Laufzeit groß (H:MM, ab 48 h in Tagen), pulsierender Punkt solange eingecheckt, ein Knopf, der die Aktion nennt |
+| `swipe` | `style: swipe`, Griff ziehen | Unter drei Vierteln federt er zurück, darüber schaltet es; Tippen auf den Griff stupst nur an. Seite scrollt beim Ziehen nicht mit |
+| `swipe` per Tastatur | Griff fokussieren, Leertaste/Enter | Schaltet (role=switch) |
+| `swipe` reduziert | Reduced Motion an | Ein Tippen schaltet, ohne Ziehen |
+| `confirm` | `confirm: double_tap`, dann `hold` | Einmal tippen fragt „Sicher?" und schaltet erst beim zweiten Tippen bzw. nach 600 ms Halten; bei `swipe` wirkungslos |
+| Mehrere Personen | `user_entity_map` mit zwei HA-Benutzern | Jeder schaltet nur seine eigene Entität; Eingecheckte als Avatare (Bild oder Initialen, „+N") |
+| `person` als Entität | `entity: person.x` | Eingecheckt = `home` bzw. `home_state`; Schalten über die konfigurierten Aktionen |
+| Editor | Karte im Dashboard-Editor | Abschnitte je Stil; Wechsel des Stils blendet die passenden Felder ein |
+
+## M3 Openings Card
+
+| Test | Schritte | Erwartung |
+|---|---|---|
+| Discovery | Ohne `entities` | Findet Tür-, Fenster-, Öffnungs- und Garagentor-Sensoren; `include_area`/`include_label`/`exclude_entities` grenzen ein |
+| Etwas offen | Zwei Sensoren auf `on` | Zahl „2 offen" am Header, die offenen als verbundene Gruppe, am längsten offen zuerst, mit Dauer; die geschlossenen als grüne Chips, Rest als „+N" |
+| Kältewarnung | `outdoor_temperature` unter `cold_below`, ein Sensor länger als `warn_after_minutes` offen | Dauer der Zeile in Warnfarbe, rote Pill mit Außentemperatur. Warm draußen: keine Warnung |
+| Alles zu | Alle Sensoren auf `off` | Karte schrumpft auf eine Zeile: Schloss, „Zuletzt geöffnet: X, bis HH:MM", Pill „Alles zu" |
+| Animation beim Schließen | Einen von zwei offenen Sensoren schließen | Keine Sprünge: bleibende Zeilen gleiten an ihren Platz, die geschlossene blendet an ihrer Stelle aus, die Zahl rollt, die Höhe gleitet. Gleiches beim Öffnen |
+| Animation aus | Reduced Motion an bzw. `animation: off` | Wechsel ohne Animation, Endzustand stimmt |
+| Nicht erreichbar | Einen Sensor auf `unavailable` | Als nicht erreichbar gezeigt, nie als geschlossen gezählt |
+| Dauer nach Neustart | HA neu starten, während ein Fenster offen ist | Dauer kommt aus dem Recorder, beginnt nicht bei „2 Min." |
+| Am Handy | Karte in 390 px Breite | Chips brechen um, nichts läuft über den Rand |
+
 ## Bekannte Einschränkungen
 
 Beide Punkte, die hier bis 2.0 standen — die Akzentfarben im hellen Theme und
@@ -1173,7 +1268,7 @@ kleiner konfigurierte Kachel angehoben und nicht abgeschnitten wird.
 1. Alle Cross-Cutting-Punkte (C1–C15) auf mindestens 3 unterschiedlichen Karten
    durchgehen (eine einfache, eine mit Editor-Unterinhalten wie Battery/Power-List,
    eine mit Animation wie Progress/Light).
-2. Jede der 44 Karten mindestens einmal mit einer Minimal-Config und einmal mit
+2. Jede der 51 Karten mindestens einmal mit einer Minimal-Config und einmal mit
    einer voll ausgereizten Config (alle Farben/Optionen gesetzt) rendern.
 3. `CHANGELOG.md` gegen die tatsächlich getesteten Änderungen abgleichen.
 4. Die Kartenzahl abgleichen. Zwei der vier Stellen zählen sich seit der
@@ -1190,3 +1285,10 @@ kleiner konfigurierte Kachel angehoben und nicht abgeschnitten wird.
    `grep -rho 'type: "m3-[a-z0-9-]*"' src/*.ts | grep -v editor | sort -u | wc -l`
 5. `CARD_VERSION` in `src/const.ts` und `version` in `package.json` auf die neue
    Nummer setzen. Beides passiert erst zum Release, nicht während der Arbeit.
+6. Alles, was öffentlich wird, auf sensible Daten prüfen: die Commits seit dem
+   letzten Release (`git diff origin/main..HEAD`), Commit-Autoren, das gebaute
+   Bundle, die Release Notes und **jedes neue Bild**. Gesucht wird nach
+   Tokens und Schlüsseln, internen IP-Adressen und Hostnamen, E-Mail-Adressen,
+   Gerätekennungen (IMEI, ICCID, MAC, Zellen-ID) und Adressen. Screenshots von
+   einer echten Instanz zeigen schnell mehr als gedacht — eine Zellen-ID
+   verrät ungefähr den Standort, ein Kalendereintrag die Wohnadresse.
