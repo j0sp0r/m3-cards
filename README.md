@@ -1642,7 +1642,7 @@ member list all still render, and the header still opens more-info.
 ## M3 Battery Card
 
 An overview of all battery-level sensors as a sorted list with threshold-
-based coloring (critical/low/medium/ok), a bar per row, and a collapsible
+based coloring (critical/low/medium/ok), each row filled to its charge, and a collapsible
 section for the remaining devices.
 
 <img src="docs/images/battery-card.png" alt="Battery Card" width="440">
@@ -1673,7 +1673,7 @@ so the entity name "Bedroom Battery Level" becomes "Bedroom".
 
 Rows are always `unavailable` first, then sorted ascending by charge level
 — so the devices most likely to need attention appear at the top.
-`thresholds` (critical/low/medium) determine bar and text color;
+`thresholds` (critical/low/medium) determine fill and text color;
 `max_visible` + `show_healthy_toggle` hide healthy devices behind a "show
 N more" button, similar to the Power List Card.
 
