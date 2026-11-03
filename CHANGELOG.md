@@ -29,7 +29,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   with the outdoor temperature when one has been open too long on a cold
   day. All closed, it is one line naming the last one opened. Unreachable
   sensors never count as closed. Finds its sensors itself unless given a
-  list, as the battery card does.
+  list, as the battery card does. When a window closes the card does
+  not jump: the rows that stay glide into place, the closed one fades where
+  it stood, the count rolls and the height eases.
 - **The aquarium card knows whether the fish were fed: `feeding_entity`.** A
   Feed tile logs the feeding and stays lit for the day, a chip says when, or
   warns after `feeding_due_time`; the editor creates an evening reminder
@@ -469,6 +471,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Changed
 
+- **A battery row fills to its charge.** The battery card drew the charge as a
+  thin bar under the name, too small to read on a narrow card; the row itself
+  now fills to the percentage in the charge's colour, as the plug card's rows
+  fill to their power. The percentage stays, and compact rows fill the same way.
 - **Folding eases instead of jumping.** The appliance, printer, vacuum and
   vacuum maintenance cards dropped or added their blocks at once; the card now
   grows or shrinks into its new height over 320 ms, the edge uncovering what

@@ -187,7 +187,9 @@ longest open first, each with how long it has been open. Open longer than
 its duration amber and shows a red pill with the outdoor temperature — an open
 window on a warm evening is no news. The closed ones are green chips, with a
 "+N" for the rest. Everything closed shrinks the card to one line: a green
-lock, "Last opened: Kitchen, until 14:12".
+lock, "Last opened: Kitchen, until 14:12". The change is animated rather
+than abrupt: the rows that stay glide into place, the window that closed fades
+where it stood, the count rolls, and the card eases to its new height.
 
 A sensor that does not answer is shown as one, and never counted as closed.
 The durations come from the recorder, so a restart does not reset a window
@@ -353,6 +355,9 @@ card's tap action, and the fold's helper and memory on the vacuum cards.
   day passes `feeding_due_time` (19:00 by default). As with cleaning, the
   editor creates the reminder, and its notification has a **Fed ✓** button
   that logs the feeding from the phone.
+- **A battery row fills to its charge.** The thin bar under each name is gone;
+  the row itself fills to the percentage in the charge's colour, the way the
+  plug card's rows fill to their power. The percentage stays.
 
 ## Also fixed
 
