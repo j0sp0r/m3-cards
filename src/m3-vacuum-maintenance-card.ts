@@ -35,6 +35,7 @@ import {
   VACUUM_STATION_TILE_RADIUS,
   VACUUM_STATION_TILE_RADIUS_ACTIVE,
   VACUUM_STATION_TINT,
+  CARD_VERSION,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { activateOnKey } from "./shared/a11y";
@@ -71,6 +72,12 @@ import { openEntityDetail } from "./shared/entity-detail";
  * Everything is discovered from the vacuum entity, including the dock, which
  * Roborock registers as a separate device — see `discoverVacuum`.
  */
+console.info(
+  `%c M3-VACUUM-MAINTENANCE-CARD %c v${CARD_VERSION} `,
+  "color: #222; background: #5dcaa5; font-weight: 700; border-radius: 4px 0 0 4px;",
+  "color: #5dcaa5; background: #222; font-weight: 700; border-radius: 0 4px 4px 0;",
+);
+
 @customElement("m3-vacuum-maintenance-card")
 export class M3VacuumMaintenanceCard
   extends TemplatedCard(LitElement)

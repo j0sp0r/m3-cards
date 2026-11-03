@@ -7,7 +7,7 @@ import type {
   LovelaceCardEditor,
   LovelaceGridOptions,
 } from "./types";
-import { DEFAULT_GROUP_RADIUS, DEFAULT_GROUP_GAP, resolveCornerRadius } from "./const";
+import { CARD_VERSION, DEFAULT_GROUP_RADIUS, DEFAULT_GROUP_GAP, resolveCornerRadius } from "./const";
 import { resolveThemeColor } from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { GroupChildrenController } from "./shared/group-children";
@@ -18,6 +18,12 @@ import { TemplatedCard } from "./shared/templated-card";
 // --m3-group-* CSS custom property this card sets on .group-children, which
 // inherits into every nested card's shadow root) — this file only has to
 // build/host the child card elements and lay them out.
+
+console.info(
+  `%c M3-GROUP-CARD %c v${CARD_VERSION} `,
+  "color: #222; background: #85b7eb; font-weight: 700; border-radius: 4px 0 0 4px;",
+  "color: #85b7eb; background: #222; font-weight: 700; border-radius: 0 4px 4px 0;",
+);
 
 @customElement("m3-group-card")
 export class M3GroupCard extends TemplatedCard(LitElement) implements LovelaceCard {

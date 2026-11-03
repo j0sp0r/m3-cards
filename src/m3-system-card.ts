@@ -1,4 +1,5 @@
 import { customElement } from "lit/decorators.js";
+import { CARD_VERSION } from "./const";
 import { M3NasCard } from "./m3-nas-card";
 import type { M3NasCardConfig, LovelaceCardEditor, HostSource } from "./types";
 
@@ -7,6 +8,12 @@ import type { M3NasCardConfig, LovelaceCardEditor, HostSource } from "./types";
 // pointed at the System Monitor integration instead of Glances. Sharing the
 // implementation keeps the two tiles visually identical, which is the whole
 // point of having them side by side.
+console.info(
+  `%c M3-SYSTEM-CARD %c v${CARD_VERSION} `,
+  "color: #222; background: #6ba7dc; font-weight: 700; border-radius: 4px 0 0 4px;",
+  "color: #6ba7dc; background: #222; font-weight: 700; border-radius: 0 4px 4px 0;",
+);
+
 @customElement("m3-system-card")
 export class M3SystemCard extends M3NasCard {
   protected get _source(): HostSource {

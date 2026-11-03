@@ -45,6 +45,7 @@ import {
   VACUUM_SECONDARY_RADIUS,
   VACUUM_SECONDARY_TINT,
   VACUUM_SECONDARY_WIDTH,
+  CARD_VERSION,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { formatNumber } from "./shared/formatting";
@@ -112,6 +113,12 @@ import { openEntityDetail } from "./shared/entity-detail";
  * `OptimisticActivity` in shared/vacuum.ts. Without that, every button feels
  * broken for half a minute.
  */
+console.info(
+  `%c M3-VACUUM-CARD %c v${CARD_VERSION} `,
+  "color: #222; background: #5dcaa5; font-weight: 700; border-radius: 4px 0 0 4px;",
+  "color: #5dcaa5; background: #222; font-weight: 700; border-radius: 0 4px 4px 0;",
+);
+
 @customElement("m3-vacuum-card")
 export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceCard {
   @property({ attribute: false }) public hass?: HomeAssistant;

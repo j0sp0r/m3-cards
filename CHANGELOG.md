@@ -14,6 +14,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   another place in the list, where a re-inserted element would otherwise
   skip its transition. Reduced motion and `animation: off` keep the jump.
 
+### Fixed
+
+- **Every card says its version in the browser console.** Nine of them — the
+  button, check-in, chip buttons, group, openings, printer, system, vacuum and
+  vacuum maintenance cards — printed no banner, so "which version do you
+  run?" had no quick answer for them. A test now fails for a card without one.
+
 ## [2.6.0] – 2026-11-03
 
 ### Added

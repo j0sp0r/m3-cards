@@ -36,6 +36,7 @@ import {
   STATUS_PILL_TINT,
   APPLIANCE_PILL_HEIGHT,
   resolveCornerRadius,
+  CARD_VERSION,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { shouldAnimate } from "./shared/animation";
@@ -91,6 +92,12 @@ type Summary = "open" | "clear" | "incomplete" | "empty";
  * last one opened. A sensor that does not answer is shown as such and never
  * counted as closed.
  */
+console.info(
+  `%c M3-OPENINGS-CARD %c v${CARD_VERSION} `,
+  "color: #222; background: #f0c46e; font-weight: 700; border-radius: 4px 0 0 4px;",
+  "color: #f0c46e; background: #222; font-weight: 700; border-radius: 0 4px 4px 0;",
+);
+
 @customElement("m3-openings-card")
 export class M3OpeningsCard extends TemplatedCard(LitElement) implements LovelaceCard {
   @property({ attribute: false }) public hass?: HomeAssistant;

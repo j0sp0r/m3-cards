@@ -49,6 +49,7 @@ import {
   DEFAULT_CHECKIN_ICON_OUT,
   DEFAULT_CHECKIN_RADIUS,
   resolveCornerRadius,
+  CARD_VERSION,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { STANDARD_EASING, shouldAnimate } from "./shared/animation";
@@ -104,6 +105,12 @@ interface SwipeDrag {
  * `swipe` asks for a deliberate slide, for a phone in a pocket or a tablet
  * by the door that should not switch on a brush of the hand.
  */
+console.info(
+  `%c M3-CHECKIN-CARD %c v${CARD_VERSION} `,
+  "color: #222; background: #81c784; font-weight: 700; border-radius: 4px 0 0 4px;",
+  "color: #81c784; background: #222; font-weight: 700; border-radius: 0 4px 4px 0;",
+);
+
 @customElement("m3-checkin-card")
 export class M3CheckinCard extends TemplatedCard(LitElement) implements LovelaceCard {
   @property({ attribute: false }) public hass?: HomeAssistant;

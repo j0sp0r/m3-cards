@@ -25,6 +25,7 @@ import {
   ACTIVE_STATES,
   SLIDER_DOMAINS,
   resolveCornerRadius,
+  CARD_VERSION,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
@@ -71,6 +72,12 @@ function _isRealAction(action?: HaActionConfig): boolean {
 function _isNotDisabled(action?: HaActionConfig): boolean {
   return action?.action !== "none";
 }
+
+console.info(
+  `%c M3-BUTTON-CARD %c v${CARD_VERSION} `,
+  "color: #222; background: #85b7eb; font-weight: 700; border-radius: 4px 0 0 4px;",
+  "color: #85b7eb; background: #222; font-weight: 700; border-radius: 0 4px 4px 0;",
+);
 
 @customElement("m3-button-card")
 export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceCard {

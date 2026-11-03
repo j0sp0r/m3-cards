@@ -63,6 +63,7 @@ import {
   PRINTER_ACCESSORY_RADIUS,
   PRINTER_DETAIL_CHIP_HEIGHT,
   PRINTER_DETAIL_CHIP_RADIUS,
+  CARD_VERSION,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { STANDARD_EASING, isReducedMotion, shouldAnimate } from "./shared/animation";
@@ -112,6 +113,12 @@ import { openEntityDetail } from "./shared/entity-detail";
  * offline one shows almost nothing — except the socket switch, because that is
  * the one control that can bring it back.
  */
+console.info(
+  `%c M3-PRINTER-CARD %c v${CARD_VERSION} `,
+  "color: #222; background: #f0a24a; font-weight: 700; border-radius: 4px 0 0 4px;",
+  "color: #f0a24a; background: #222; font-weight: 700; border-radius: 0 4px 4px 0;",
+);
+
 @customElement("m3-printer-card")
 export class M3PrinterCard extends TemplatedCard(LitElement) implements LovelaceCard {
   @property({ attribute: false }) public hass?: HomeAssistant;

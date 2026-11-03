@@ -7,7 +7,7 @@ import type {
   LovelaceCardEditor,
   LovelaceGridOptions,
 } from "./types";
-import { DEFAULT_CHIP_BUTTONS_RADIUS, resolveCornerRadius } from "./const";
+import { CARD_VERSION, DEFAULT_CHIP_BUTTONS_RADIUS, resolveCornerRadius } from "./const";
 import { hassChangeMatters } from "./shared/should-update";
 import { shouldAnimate } from "./shared/animation";
 import { resolveThemeColor } from "./shared/color-config";
@@ -19,6 +19,12 @@ import {
 } from "./shared/chip-buttons";
 import { TapHoldGesture } from "./shared/gestures";
 import { TemplatedCard } from "./shared/templated-card";
+
+console.info(
+  `%c M3-CHIP-BUTTONS-CARD %c v${CARD_VERSION} `,
+  "color: #222; background: #85b7eb; font-weight: 700; border-radius: 4px 0 0 4px;",
+  "color: #85b7eb; background: #222; font-weight: 700; border-radius: 0 4px 4px 0;",
+);
 
 @customElement("m3-chip-buttons-card")
 export class M3ChipButtonsCard extends TemplatedCard(LitElement) implements LovelaceCard {
