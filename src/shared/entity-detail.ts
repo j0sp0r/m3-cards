@@ -1,4 +1,4 @@
-import type { DetailMode } from "../types";
+import type { DetailMode, DetailModeConfig } from "../types";
 
 // The one door to an entity's detail view.
 //
@@ -41,11 +41,13 @@ export function closeSheetOf(host: HTMLElement): void {
 }
 
 /**
- * The card's `detail_mode`, read the way templated-card.ts reads its config:
- * every card keeps it in `_config`, and none declares the field publicly.
+ * The card's `detail_mode`. Every card keeps its config in a private
+ * `_config`, typed per card; the ones that open details extend
+ * `DetailModeConfig`. A hand-written YAML value is still checked, since
+ * anything other than "sheet" means Home Assistant's own dialog.
  */
 export function detailModeOf(host: EventTarget): DetailMode {
-  const mode = (host as { _config?: { detail_mode?: unknown } })._config?.detail_mode;
+  const mode: unknown = (host as { _config?: DetailModeConfig })._config?.detail_mode;
   return mode === "sheet" ? "sheet" : "more_info";
 }
 

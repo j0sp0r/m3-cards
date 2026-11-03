@@ -108,7 +108,7 @@ export interface ModeColorOverrides {
  */
 export type ClimateCardStyle = "tiles" | "expressive";
 
-export interface M3ClimateCardConfig {
+export interface M3ClimateCardConfig extends DetailModeConfig {
   type: string;
   entity: string;
   name?: string;
@@ -154,7 +154,7 @@ export interface M3ClimateCardConfig {
   card_version?: string;
 }
 
-export interface M3ClimateCardMiniConfig {
+export interface M3ClimateCardMiniConfig extends DetailModeConfig {
   type: string;
   entity: string;
   name?: string;
@@ -223,7 +223,7 @@ export interface HaActionConfig {
   confirmation?: boolean | { text?: string };
 }
 
-export interface M3ButtonCardConfig {
+export interface M3ButtonCardConfig extends DetailModeConfig {
   type: string;
   entity?: string;
   name?: string;
@@ -330,7 +330,7 @@ export interface M3ProgressCardConfig extends NotifyConfigBase {
 
 export type EnergyNotifyMode = "day_end" | "month_end";
 
-export interface M3EnergyCardConfig extends NotifyConfigBase {
+export interface M3EnergyCardConfig extends NotifyConfigBase, DetailModeConfig {
   type: string;
   entity?: string;
   unit?: string;
@@ -445,7 +445,7 @@ export interface PowerThreshold {
   color: string;
 }
 
-export interface M3CounterCardConfig {
+export interface M3CounterCardConfig extends DetailModeConfig {
   type: string;
   entity: string;
   power_entity?: string;
@@ -495,7 +495,7 @@ export interface PowerListEntity {
 
 export type PowerListSort = "power_desc" | "power_asc" | "name" | "config";
 
-export interface M3PowerListCardConfig extends NotifyConfigBase {
+export interface M3PowerListCardConfig extends NotifyConfigBase, DetailModeConfig {
   type: string;
   entities?: PowerListEntity[];
   auto_discover?: boolean;
@@ -542,7 +542,7 @@ export interface PowerMetricConfig {
   type?: PowerEntryType;
 }
 
-export interface M3PowerSummaryCardConfig {
+export interface M3PowerSummaryCardConfig extends DetailModeConfig {
   type: string;
   grid_entity: string;
   grid_sign?: GridSignConvention;
@@ -584,7 +584,7 @@ export interface TopConsumerEntityConfig {
 
 export type TopConsumersUnitMode = "energy" | "cost";
 
-export interface M3TopConsumersCardConfig extends PricingConfig, NotifyConfigBase {
+export interface M3TopConsumersCardConfig extends PricingConfig, NotifyConfigBase, DetailModeConfig {
   // notify_service / notify_mode / notify_time / notify_weekday /
   // notify_automation_id come from NotifyConfigBase — see
   // shared/notify-editor. The weekly digest only works for utility_meter
@@ -636,7 +636,7 @@ export interface PricingConfig {
 
 export type CostPeriod = "day" | "month" | "year";
 
-export interface M3CostCardConfig extends PricingConfig, NotifyConfigBase {
+export interface M3CostCardConfig extends PricingConfig, NotifyConfigBase, DetailModeConfig {
   type: string;
   entity?: string;
   statistic_type?: "change" | "state";
@@ -697,7 +697,7 @@ export interface LightSceneConfig {
   icon?: string;
 }
 
-export interface M3LightCardConfig {
+export interface M3LightCardConfig extends DetailModeConfig {
   type: string;
   entity: string;
   name?: string;
@@ -746,7 +746,7 @@ export interface BatteryThresholds {
 
 export type BatteryNotifyMode = "daily" | "weekly" | "on_change";
 
-export interface M3BatteryCardConfig extends NotifyConfigBase {
+export interface M3BatteryCardConfig extends NotifyConfigBase, DetailModeConfig {
   type: string;
   entities?: BatteryEntityConfig[];
   auto_discover?: boolean;
@@ -811,7 +811,7 @@ export interface VacuumEntityOverrides {
 
 export type VacuumMapFit = "plan" | "picture";
 
-export interface M3VacuumCardConfig extends VacuumEntityOverrides, NotifyConfigBase {
+export interface M3VacuumCardConfig extends VacuumEntityOverrides, NotifyConfigBase, DetailModeConfig {
   type: string;
   /** The `vacuum` entity. Everything else is optional. */
   entity: string;
@@ -979,7 +979,7 @@ export type VacuumMaintenanceBlock =
   | "stats"
   | "settings";
 
-export interface M3VacuumMaintenanceCardConfig extends NotifyConfigBase {
+export interface M3VacuumMaintenanceCardConfig extends NotifyConfigBase, DetailModeConfig {
   type: string;
   /** The vacuum. Everything else is found on its device and its dock. */
   entity: string;
@@ -1077,7 +1077,7 @@ export interface PrinterAmsSlotConfig {
 
 export type PrinterSecondaryAction = "stop" | "files" | "filament" | "preheat";
 
-export interface M3PrinterCardConfig extends NotifyConfigBase {
+export interface M3PrinterCardConfig extends NotifyConfigBase, DetailModeConfig {
   /**
    * The entity whose state drives the layout — a status or stage sensor. Any
    * domain is accepted, because integrations disagree about which one holds
@@ -1186,7 +1186,7 @@ export interface M3PrinterCardConfig extends NotifyConfigBase {
   card_version?: string;
 }
 
-export interface M3WeatherCardConfig {
+export interface M3WeatherCardConfig extends DetailModeConfig {
   type: string;
   entity: string;
   name?: string;
@@ -1243,7 +1243,7 @@ export interface PresencePersonPopupConfig {
   content: Record<string, unknown>;
 }
 
-export interface M3PresenceCardConfig {
+export interface M3PresenceCardConfig extends DetailModeConfig {
   type: string;
   entities?: string[];
   auto_discover?: boolean;
@@ -1296,7 +1296,7 @@ export interface M3PresenceCardConfig {
   card_version?: string;
 }
 
-export interface M3MediaCardConfig {
+export interface M3MediaCardConfig extends DetailModeConfig {
   type: string;
   entity: string;
   name?: string;
@@ -1370,7 +1370,7 @@ export interface ClimateOverviewPopupConfig extends EntityFilterConfig {
   card?: Record<string, unknown>;
 }
 
-export interface M3ClimateOverviewCardConfig extends NotifyConfigBase, EntityFilterConfig {
+export interface M3ClimateOverviewCardConfig extends NotifyConfigBase, EntityFilterConfig, DetailModeConfig {
   type: string;
   auto_discover?: boolean;
   /** Which entities auto-discovery reports on: dedicated temperature
@@ -1453,7 +1453,7 @@ export interface AquariumScheduleEntry {
 
 export type AquariumCameraStyle = "none" | "thumbnail" | "banner" | "live";
 
-export interface M3AquariumCardConfig extends NotifyConfigBase {
+export interface M3AquariumCardConfig extends NotifyConfigBase, DetailModeConfig {
   type: string;
   name?: string;
   icon?: string;
@@ -1526,7 +1526,7 @@ export interface NasDiskConfig {
 
 export type HostSource = "glances" | "systemmonitor" | "synology_dsm";
 
-export interface M3NasCardConfig extends NotifyConfigBase {
+export interface M3NasCardConfig extends NotifyConfigBase, DetailModeConfig {
   type: string;
   /** Which integration supplies the metrics. Defaults per card type. */
   source?: HostSource;
@@ -1580,7 +1580,7 @@ export interface M3NasCardConfig extends NotifyConfigBase {
   card_version?: string;
 }
 
-export interface M3UpdatesCardConfig extends NotifyConfigBase {
+export interface M3UpdatesCardConfig extends NotifyConfigBase, DetailModeConfig {
   type: string;
   auto_discover?: boolean;
   entities?: string[];
@@ -1643,7 +1643,7 @@ export interface CoverEntityConfig {
   icon?: string;
 }
 
-export interface M3CoverCardConfig {
+export interface M3CoverCardConfig extends DetailModeConfig {
   type: string;
   mode?: "single" | "group";
   /** single mode: the cover (or, with entity_type switch_pair, ignored). */
@@ -1686,7 +1686,7 @@ export interface LeakSensorConfig {
   battery_entity?: string;
 }
 
-export interface M3LeakCardConfig extends NotifyConfigBase {
+export interface M3LeakCardConfig extends NotifyConfigBase, DetailModeConfig {
   type: string;
   auto_discover?: boolean;
   include_area?: string[];
@@ -1727,7 +1727,7 @@ export interface WasteEntityConfig {
   color?: string;
 }
 
-export interface M3WasteCardConfig extends NotifyConfigBase {
+export interface M3WasteCardConfig extends NotifyConfigBase, DetailModeConfig {
   type: string;
   mode?: "info" | "reminder";
   entities?: (string | WasteEntityConfig)[];
@@ -1899,7 +1899,7 @@ export type SupplyListTapAction = "hero" | "more-info";
 /** Which state an item must reach before it is worth notifying about. */
 export type SupplyNotifyLevel = "empty" | "critical" | "low";
 
-export interface M3SupplyCardConfig extends NotifyConfigBase {
+export interface M3SupplyCardConfig extends NotifyConfigBase, DetailModeConfig {
   type: string;
   items?: SupplyItemConfig[];
   // notify_service / notify_mode / notify_time / notify_weekday /
@@ -2007,7 +2007,7 @@ export interface OccupancySensorConfig {
   timeout_entity?: string;
 }
 
-export interface M3OccupancyCardConfig extends NotifyConfigBase {
+export interface M3OccupancyCardConfig extends NotifyConfigBase, DetailModeConfig {
   type: string;
   auto_discover?: boolean;
   include_area?: string[];
@@ -2091,7 +2091,7 @@ export interface M3StatusItemConfig {
   trend_inverted?: boolean;
 }
 
-export interface M3StatusCardConfig {
+export interface M3StatusCardConfig extends DetailModeConfig {
   type: string;
   /** Shown above the grid; ignored by the hero layout, which has its own label. */
   title?: string;
@@ -2171,7 +2171,7 @@ export interface RoomCategoryConfig {
  */
 export type RoomCardMode = "auto" | "manual";
 
-export interface M3RoomCardConfig {
+export interface M3RoomCardConfig extends DetailModeConfig {
   type: string;
   /** HA area id. Everything else is discovered from it. */
   area: string;
@@ -2408,7 +2408,7 @@ export interface CalendarSourceConfig {
 
 export type CalendarView = "agenda" | "month";
 
-export interface M3CalendarCardConfig {
+export interface M3CalendarCardConfig extends DetailModeConfig {
   type: string;
   /**
    * Calendars to merge. A bare entity id is accepted alongside the full object,
@@ -2636,7 +2636,7 @@ export interface NavSheetItem {
  */
 export type NavSheetItemStyle = "grid" | "list";
 
-export interface M3NavCardConfig {
+export interface M3NavCardConfig extends DetailModeConfig {
   type: string;
   style?: NavVariant;
   position?: NavPosition;
@@ -2806,7 +2806,7 @@ export interface ChipButtonsRowConfig {
   stretch?: boolean | "smart";
 }
 
-export interface M3ChipButtonsCardConfig extends ChipButtonsRowConfig {
+export interface M3ChipButtonsCardConfig extends ChipButtonsRowConfig, DetailModeConfig {
   type: string;
   glass_background?: boolean;
   animation?: "auto" | "on" | "off";
@@ -2856,7 +2856,7 @@ export interface LightsOverviewPopupConfig extends EntityFilterConfig {
   card?: Record<string, unknown>;
 }
 
-export interface M3LightsOverviewCardConfig extends EntityFilterConfig {
+export interface M3LightsOverviewCardConfig extends EntityFilterConfig, DetailModeConfig {
   type: string;
   auto_discover?: boolean;
   /** Domains auto-discovery sweeps, default `["light"]`. Add `switch` to pick
@@ -2913,7 +2913,7 @@ export interface M3GroupCardConfig {
 export type CheckinStyle = "segmented" | "status" | "swipe";
 
 /** One element that shows whether someone is checked in and switches it. */
-export interface M3CheckinCardConfig {
+export interface M3CheckinCardConfig extends DetailModeConfig {
   type: string;
   /**
    * input_boolean (switchable), binary_sensor (display), person or
@@ -2977,7 +2977,6 @@ export interface M3CheckinCardConfig {
   secondary_text_color?: string;
   radius?: number;
   corners?: CornerRadiusConfig;
-  detail_mode?: DetailMode;
   card_version?: string;
 }
 
@@ -2991,7 +2990,7 @@ export interface OpeningsEntityConfig {
 }
 
 /** Windows and doors: what is open, for how long, and whether it matters. */
-export interface M3OpeningsCardConfig {
+export interface M3OpeningsCardConfig extends DetailModeConfig {
   type: string;
   /** binary_sensors of class door, window, opening or garage_door; the bare id works too. */
   entities?: Array<string | OpeningsEntityConfig>;
@@ -3022,7 +3021,6 @@ export interface M3OpeningsCardConfig {
   secondary_text_color?: string;
   radius?: number;
   corners?: CornerRadiusConfig;
-  detail_mode?: DetailMode;
   card_version?: string;
 }
 
@@ -3143,7 +3141,7 @@ export interface AppliancePopupConfig {
   content: Record<string, unknown>;
 }
 
-export interface M3ApplianceCardConfig extends NotifyConfigBase {
+export interface M3ApplianceCardConfig extends NotifyConfigBase, DetailModeConfig {
   type: string;
   /**
    * The entity that says what the appliance is doing. Usually a `sensor`
@@ -3338,7 +3336,7 @@ export interface RouterEntityOverrides {
   connected_devices_entity?: string;
 }
 
-export interface M3RouterCardConfig extends RouterEntityOverrides, NotifyConfigBase {
+export interface M3RouterCardConfig extends RouterEntityOverrides, NotifyConfigBase, DetailModeConfig {
   type: string;
   /**
    * The connection entity — a `binary_sensor` with a connectivity class, or a
@@ -3420,7 +3418,7 @@ export interface RouterCheckConfig {
   ok_state?: string;
 }
 
-export interface M3RouterDiagnosticsCardConfig extends RouterEntityOverrides, NotifyConfigBase {
+export interface M3RouterDiagnosticsCardConfig extends RouterEntityOverrides, NotifyConfigBase, DetailModeConfig {
   type: string;
   /** The connection entity, used to tell when a reboot has completed. */
   entity?: string;
@@ -3491,7 +3489,7 @@ export interface RemoteButtonConfig {
   action?: HaActionConfig;
 }
 
-export interface M3RemoteCardConfig {
+export interface M3RemoteCardConfig extends DetailModeConfig {
   type: string;
   /** A `remote.*` or `media_player.*` entity. Everything else is found from it. */
   entity: string;
@@ -3546,6 +3544,16 @@ export type DetailStat = "min" | "mean" | "max" | "sum";
 
 /** What a tap that would open more-info opens instead. See shared/entity-detail.ts. */
 export type DetailMode = "more_info" | "sheet";
+
+/**
+ * Every card that opens an entity's details takes `detail_mode`: `more_info`
+ * (Home Assistant's dialog, the default) or `sheet` (the suite's own detail
+ * sheet). The cards that never open details — the list is
+ * `NO_DETAIL_CARDS` in shared/appearance-editor.ts — do not extend this.
+ */
+export interface DetailModeConfig {
+  detail_mode?: DetailMode;
+}
 
 export interface M3DetailCardConfig {
   type: string;
