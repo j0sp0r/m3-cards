@@ -6,6 +6,14 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Changed
+
+- **A row's fill glides to a new value.** On the battery, power list, NAS and
+  supply cards the fill behind a row jumped when its value changed; it now
+  takes 600 ms to get there — also when the new value moves the row to
+  another place in the list, where a re-inserted element would otherwise
+  skip its transition. Reduced motion and `animation: off` keep the jump.
+
 ## [2.6.0] – 2026-11-03
 
 ### Added

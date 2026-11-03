@@ -11,6 +11,9 @@ import { foregroundOn, tintOn } from "./color-config";
 
 const EASING = unsafeCSS(STANDARD_EASING);
 
+/** How long a row's fill takes to reach a new value. */
+const LIST_ROW_FILL_MS = 600;
+
 export interface ListRowParams {
   key: string;
   icon: string;
@@ -81,14 +84,25 @@ export function captureRowRects(
   renderRoot: DocumentFragment | Element | null | undefined,
 ): Map<string, DOMRect> {
   const map = new Map<string, DOMRect>();
+  const fills = new Map<string, number>();
   const rows = renderRoot?.querySelectorAll<HTMLElement>("[data-row-key]");
   if (!rows) return map;
   for (const el of Array.from(rows)) {
     const key = el.dataset.rowKey;
-    if (key) map.set(key, el.getBoundingClientRect());
+    if (!key) continue;
+    map.set(key, el.getBoundingClientRect());
+    const fill = el.querySelector<HTMLElement>(":scope > .lr-bar-fill");
+    if (fill) fills.set(key, fill.offsetWidth);
   }
+  fillWidths.set(map, fills);
   return map;
 }
+
+// The fills' widths ride along with the rects, so every caller of the pair
+// gets them without passing a second map. A row that changes place is
+// re-inserted by `repeat`, and a re-inserted element runs no CSS transition:
+// its fill would jump. flipRows animates those fills from the old width.
+const fillWidths = new WeakMap<Map<string, DOMRect>, Map<string, number>>();
 
 // FLIP-lite: inverts each row's transform back to its pre-render position,
 // then animates it to identity on the next frame.
@@ -107,6 +121,14 @@ export function flipRows(
     const next = el.getBoundingClientRect();
     const deltaY = prev.top - next.top;
     if (Math.abs(deltaY) < 1) continue;
+    const fill = el.querySelector<HTMLElement>(":scope > .lr-bar-fill");
+    const fromWidth = fillWidths.get(prevRects)?.get(key);
+    if (fill && fromWidth !== undefined && Math.abs(fromWidth - fill.offsetWidth) >= 1) {
+      fill.animate([{ width: `${fromWidth}px` }, { width: `${fill.offsetWidth}px` }], {
+        duration: LIST_ROW_FILL_MS,
+        easing: STANDARD_EASING,
+      });
+    }
     el.style.transition = "none";
     el.style.transform = `translateY(${deltaY}px)`;
     requestAnimationFrame(() => {
@@ -151,11 +173,18 @@ export const listRowStyles = css`
     transition: none;
   }
 
+  /* Rows are keyed (repeat + data-row-key), so a fill stays with its row and
+     glides from the old value to the new one rather than jumping */
   .lr-bar-fill {
     position: absolute;
     inset: 0 auto 0 0;
     border-radius: inherit;
     pointer-events: none;
+    transition: width ${LIST_ROW_FILL_MS}ms ${EASING};
+  }
+
+  .card-inner.no-animations .lr-bar-fill {
+    transition: none;
   }
 
   .lr-icon {

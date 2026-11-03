@@ -267,7 +267,7 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Stufenfarben | Werte in critical/low/medium/ok-Bereiche verschieben | Füllfarbe der Zeile und Textfarbe wechseln an den `thresholds`-Grenzen |
 | Zeilenfüllung | Werte 0 %, 5 %, 50 %, 100 % | Die Zeile selbst ist bis zum Ladestand getönt, wie die Zeilen der Power-List-Karte; kein separater Balken unter dem Namen. Bei 0 % keine Füllung, die Prozentzahl steht weiter rechts |
 | Füllung kompakter Zeilen | `max_visible` überschreiten, Erweitern-Button tippen | Auch die kompakten Zusatzzeilen sind bis zum Ladestand gefüllt; Name und Prozent bleiben über der Füllung lesbar |
-| Füllung ändert sich | Wert eines Sensors in Dev-Tools ändern | Füllung folgt dem neuen Wert. Kompakte Zeilen gleiten (600 ms), die Hauptzeilen übernehmen die Breite direkt, wie in der Power-List-Karte |
+| Füllung ändert sich | Wert eines Sensors in Dev-Tools ändern, einmal ohne und einmal mit Umsortierung | Die Füllung gleitet in 600 ms auf die neue Breite, in Haupt- und kompakten Zeilen, auch wenn die Zeile dabei den Platz wechselt; unter Reduced Motion bzw. `animation: off` springt sie |
 | Sortierung | Mehrere Entitäten mit unterschiedlichen Werten + eine `unavailable` | `unavailable` immer zuerst, danach aufsteigend nach Wert |
 | `max_visible` + Erweitern-Button | Mehr Entitäten als `max_visible` | „N weitere anzeigen“/„Einklappen“ toggelt kompakte Zusatzzeilen mit FLIP-Animation |
 | Manuelle Ausschlüsse | `exclude_entities` mit einer Entity-ID aus der Auto-Discovery | Diese Entität erscheint nirgends, auch nicht hinter dem Erweitern-Button |
