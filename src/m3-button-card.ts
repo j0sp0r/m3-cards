@@ -26,6 +26,7 @@ import {
   SLIDER_DOMAINS,
   resolveCornerRadius,
   CARD_VERSION,
+  BUTTON_SLIDER_SETTLE_MS,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
@@ -96,6 +97,9 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
   private _lastTap = 0;
   private _dragStartX = 0;
   private _dragActive = false;
+  /** The value just committed, held on the fill until the entity reports it. */
+  private _settleValue?: number;
+  private _settleTimer?: number;
   private readonly _intent = new SliderIntent();
   private _suppressClick = false;
 
@@ -128,6 +132,7 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
     super.disconnectedCallback();
     window.clearTimeout(this._holdTimer);
     window.clearTimeout(this._iconHoldTimer);
+    window.clearTimeout(this._settleTimer);
     this._holdTimer = undefined;
     this._iconHoldTimer = undefined;
     this._chipGestures.cancel();
@@ -384,6 +389,7 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
   private _startDrag(e: PointerEvent): void {
     const el = e.currentTarget as HTMLElement;
     capturePointer(el, e);
+    this._endSettle(false);
     this._dragActive = true;
     this._dragPercent = this._percentFromEvent(e, el);
   }
@@ -425,10 +431,39 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
     // that came from a long-press (hold_action fired) is left alone.
     if (info && this._dragPercent !== undefined && !this._holdTriggered) {
       this._suppressClick = true;
-      this._setSliderValue(this._valueFromPercent(this._dragPercent, info));
+      const value = this._valueFromPercent(this._dragPercent, info);
+      this._setSliderValue(value);
+      // Keep the fill where the finger left it until the device confirms;
+      // a real light reports late, and the old value would flash back first.
+      if (Math.abs(info.value - value) > info.step / 2) {
+        this._dragPercent = ((value - info.min) / (info.max - info.min)) * 100;
+        this._settleValue = value;
+        window.clearTimeout(this._settleTimer);
+        this._settleTimer = window.setTimeout(() => this._endSettle(true), BUTTON_SLIDER_SETTLE_MS);
+        return;
+      }
     }
     this._dragPercent = undefined;
   };
+
+  /** Stop holding a committed value; `release` also drops it from the fill. */
+  private _endSettle(release: boolean): void {
+    window.clearTimeout(this._settleTimer);
+    this._settleTimer = undefined;
+    if (this._settleValue === undefined) return;
+    this._settleValue = undefined;
+    if (release && !this._dragActive) this._dragPercent = undefined;
+  }
+
+  protected willUpdate(changed: PropertyValues): void {
+    super.willUpdate(changed);
+    // The device confirmed the value: show the state again. Within one step,
+    // since a light rounds 0-255 brightness back to a percentage.
+    if (changed.has("hass") && this._settleValue !== undefined && !this._dragActive) {
+      const info = this._sliderInfo();
+      if (!info || Math.abs(info.value - this._settleValue) <= info.step) this._endSettle(true);
+    }
+  }
 
   // Dashboard-wide swipe plugins (hass-swipe-navigation and friends) listen for
   // touch/mouse drags on an ancestor of the card in the bubble phase. A drag on

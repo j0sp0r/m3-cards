@@ -38,6 +38,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **A slider button no longer jumps back after a slide.** On release the fill
+  returned to the entity's old value until the device reported the new one —
+  a Zigbee light does that late, often through a brightness in between, so the
+  fill snapped back and then jumped. The button now holds the value it set
+  until the entity confirms it (within one step), for at most four seconds.
 - **The bug report form lists every card.** Its dropdown was kept by hand and
   named 17 of 52; `npm run docs` now writes it from the card docs, and CI
   checks it stays in step.

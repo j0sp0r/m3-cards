@@ -280,6 +280,13 @@ export const BUTTON_SHAPE_ON_RADIUS = 16;
 export const BUTTON_SHAPE_ON_ICON_RADIUS = "28%";
 /** How long a button takes to change between the two shapes. */
 export const BUTTON_SHAPE_MS = 300;
+/**
+ * How long a slider button holds the value it just set while the device has
+ * not confirmed it. A Zigbee light answers in a few hundred ms, often through
+ * an intermediate brightness; without the hold the fill snaps back to the old
+ * value and then jumps to the new one.
+ */
+export const BUTTON_SLIDER_SETTLE_MS = 4000;
 
 /**
  * The card height the button card's container-query sizes are tuned for: one
