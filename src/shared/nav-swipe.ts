@@ -2,13 +2,14 @@
 // `swipe_navigation`).
 //
 // The finger only ever moves the bar: the active pill follows it toward the
-// entry it would land on, with a rubber band at either end. The page itself
-// does not follow — the nav card sits inside the view it would be dragging,
-// and a transform on an ancestor of a `position: fixed` bar turns the bar into
-// part of the page. The page moves once the swipe is committed, through the
-// View Transitions API: the old view slides out, the new one in, and the bar,
-// captured under its own name, stays where it is. A browser without the API
-// simply navigates.
+// entry it would land on, with a rubber band at either end. Once the swipe is
+// committed the page slides — but not as one piece. The bar is
+// `position: fixed` inside the view it would be sliding, and a transform on
+// any ancestor makes it part of the page; a View Transition snapshot cannot
+// leave it out either, since names in shadow trees are not captured on their
+// own. So what moves is everything *beside* the bar: at every level from the
+// nav card up to the view, its siblings — the other sections, in a sections
+// view. The bar and the view's background never move.
 
 export type SwipeDirection = "next" | "prev";
 
@@ -52,91 +53,120 @@ export function swipeShown(p: { dx: number; distance: number; hasPrev: boolean; 
   return Math.sign(p.dx) * Math.min(Math.abs(p.dx), p.distance);
 }
 
-const STYLE_ID = "m3-nav-swipe-transition";
+/** Out: short and accelerating; in: longer and decelerating, as M3 pairs them. */
+const OUT_MS = 150;
+const IN_MS = 320;
+const SHIFT_PX = 40;
+const OUT_EASING = "cubic-bezier(0.3, 0, 0.8, 0.15)";
+const IN_EASING = "cubic-bezier(0.05, 0.7, 0.1, 1)";
+/** How long the new page's nav card may take to appear. */
+const ARRIVE_CAP_MS = 800;
 
-/** The slide itself. Document-level, since the pseudo-elements live there. */
-const TRANSITION_CSS = `
-@keyframes m3-nav-out-left { to { transform: translateX(-14%); opacity: 0; } }
-@keyframes m3-nav-out-right { to { transform: translateX(14%); opacity: 0; } }
-@keyframes m3-nav-in-right { from { transform: translateX(14%); opacity: 0; } }
-@keyframes m3-nav-in-left { from { transform: translateX(-14%); opacity: 0; } }
-html[data-m3-nav-swipe]::view-transition-old(root) {
-  animation: 200ms cubic-bezier(0.3, 0, 0.8, 0.15) both m3-nav-out-left;
-}
-html[data-m3-nav-swipe]::view-transition-new(root) {
-  animation: 340ms cubic-bezier(0.05, 0.7, 0.1, 1) 60ms both m3-nav-in-right;
-}
-html[data-m3-nav-swipe="prev"]::view-transition-old(root) {
-  animation-name: m3-nav-out-right;
-}
-html[data-m3-nav-swipe="prev"]::view-transition-new(root) {
-  animation-name: m3-nav-in-left;
-}
-html[data-m3-nav-swipe]::view-transition-group(m3-nav-bar) {
-  animation-duration: 0s;
-}
-html[data-m3-nav-swipe]::view-transition-old(m3-nav-bar) {
-  display: none;
-}
-html[data-m3-nav-swipe]::view-transition-new(m3-nav-bar) {
-  animation: none;
-}
-`;
-
-function ensureTransitionStyle(): void {
-  if (document.getElementById(STYLE_ID)) return;
-  const style = document.createElement("style");
-  style.id = STYLE_ID;
-  style.textContent = TRANSITION_CSS;
-  document.head.appendChild(style);
+/**
+ * Everything on the page beside `card`: at each level from it up to the view,
+ * the visible siblings of the branch it is in. Stops below `hui-view`, so the
+ * view's background stays where it is.
+ */
+export function contentBeside(card: Element): HTMLElement[] {
+  const out: HTMLElement[] = [];
+  let node: Element = card;
+  for (let depth = 0; depth < 24; depth++) {
+    const container = node.parentNode;
+    if (!container || node.localName === "hui-view") break;
+    for (const sibling of Array.from(container.children)) {
+      if (sibling === node || !(sibling instanceof HTMLElement)) continue;
+      if (sibling.localName === "style" || sibling.getClientRects().length === 0) continue;
+      out.push(sibling);
+    }
+    node = container instanceof ShadowRoot ? container.host : (container as Element);
+  }
+  return out;
 }
 
-type StartViewTransition = (cb: () => Promise<void> | void) => {
-  finished: Promise<void>;
-};
-
-/** Whether this browser can slide the page at all. */
-export function canSlidePages(): boolean {
-  return typeof (document as unknown as { startViewTransition?: unknown }).startViewTransition === "function";
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Two frames: long enough for Home Assistant to have put the new view in. */
-export function settleFrames(): Promise<void> {
-  return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+type UpdateCallback = () => Promise<unknown> | unknown;
+type StartViewTransition = (arg?: UpdateCallback | { update?: UpdateCallback }) => unknown;
+
+/**
+ * Home Assistant cross-fades between views with a View Transition of its own,
+ * which would lay a still picture of the new page over the slide. While ours
+ * runs, a request for one just runs its update.
+ */
+function withoutViewTransitions(): () => void {
+  const doc = document as unknown as { startViewTransition?: StartViewTransition };
+  if (typeof doc.startViewTransition !== "function") return () => undefined;
+  const hadOwn = Object.prototype.hasOwnProperty.call(document, "startViewTransition");
+  const own = doc.startViewTransition;
+  doc.startViewTransition = (arg) => {
+    const update = typeof arg === "function" ? arg : arg?.update;
+    const done = Promise.resolve()
+      .then(() => update?.())
+      .then(() => undefined);
+    return { finished: done, ready: done, updateCallbackDone: done, skipTransition: () => undefined, types: new Set() };
+  };
+  return () => {
+    if (hadOwn) doc.startViewTransition = own;
+    else delete doc.startViewTransition;
+  };
 }
 
 /**
- * Run `navigate` inside a view transition that slides in `direction`. The
- * callbacks name the bar: `nameBars(true)` is called before the old page is
- * captured and again after navigating, so the new page's bar carries the name
- * too; `nameBars(false)` once it is over. Without the API, it just navigates.
+ * Slide the page beside `from` out, navigate, and slide the page beside the
+ * nav card that arrives in. `findArrived` returns that card once it is on
+ * screen (it may be `from` itself, when the bar survives the navigation).
  */
 export async function slideToPage(
   direction: SwipeDirection,
+  from: Element,
   navigate: () => void,
-  nameBars: (on: boolean) => void,
+  findArrived: () => Element | undefined,
 ): Promise<void> {
-  const start = (document as unknown as { startViewTransition?: StartViewTransition }).startViewTransition;
-  if (typeof start !== "function") {
-    navigate();
-    return;
-  }
-  ensureTransitionStyle();
-  const root = document.documentElement;
-  root.dataset.m3NavSwipe = direction;
-  nameBars(true);
+  const sign = direction === "next" ? -1 : 1;
+  const leaving = contentBeside(from);
+  const outs = leaving.map((el) =>
+    el.animate(
+      [
+        { transform: "none", opacity: 1 },
+        { transform: `translateX(${sign * SHIFT_PX}px)`, opacity: 0 },
+      ],
+      { duration: OUT_MS, easing: OUT_EASING, fill: "forwards" },
+    ),
+  );
+  await Promise.all(outs.map((a) => a.finished.catch(() => undefined)));
+
+  const restore = withoutViewTransitions();
+  let arrived: Element | undefined;
   try {
-    const transition = start.call(document, async () => {
-      navigate();
-      await settleFrames();
-      nameBars(true);
-    });
-    await transition.finished;
-  } catch {
-    // A transition that could not run still ran its callback — the page has
-    // changed either way, which is what matters.
+    navigate();
+    const started = performance.now();
+    // The old view leaves the document; the new one, with its own bar, comes in.
+    while (performance.now() - started < ARRIVE_CAP_MS) {
+      await wait(16);
+      const card = findArrived();
+      if (card && (card !== from || !leaving.some((el) => el.isConnected))) {
+        arrived = card;
+        break;
+      }
+    }
   } finally {
-    delete root.dataset.m3NavSwipe;
-    nameBars(false);
+    restore();
+    // Home Assistant keeps the old view to show again later: it must come back
+    // as it was, not faded out.
+    for (const a of outs) a.cancel();
+  }
+  if (!arrived) return;
+  // At once, in the same task that found it: a frame later the new page
+  // would already have been painted in place.
+  for (const el of contentBeside(arrived)) {
+    el.animate(
+      [
+        { transform: `translateX(${-sign * SHIFT_PX}px)`, opacity: 0 },
+        { transform: "none", opacity: 1 },
+      ],
+      { duration: IN_MS, easing: IN_EASING, fill: "backwards" },
+    );
   }
 }

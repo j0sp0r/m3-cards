@@ -358,7 +358,7 @@ without a breaking config change.
 | `radius` | capsule | Corner radius of the bar. Left unset the ends are fully round whatever the bar's height, which is what the reference bars do; a number fixes it instead. Beware of a value just under half the bar's height (31 px unscaled) — that reads as a squashed capsule rather than as a rounded rectangle |
 | `submenu_trigger` | `tap` | `tap` or `hold` |
 | `haptics` | `true` | Fire Home Assistant's haptic event on a tap |
-| `swipe_navigation` | `false` | A sideways swipe along the bar goes to the neighbouring entry that navigates. The active pill follows the finger; on release the page slides over (View Transitions, where the browser has them) while the bar stays put. Off on a bar that scrolls sideways, where the swipe is the bar's own |
+| `swipe_navigation` | `false` | A sideways swipe along the bar goes to the neighbouring entry that navigates. The active pill follows the finger; on release the page beside the bar slides out and the new one in, while the bar and the view's background stay put. Off on a bar that scrolls sideways, where the swipe is the bar's own |
 | `auto_hide_on_scroll` | `false` | Hide while scrolling down, show on the way up |
 | `hidden` | — | Jinja2 boolean; hides the whole card |
 | `styles` | — | Free CSS applied to the bar. Advanced |

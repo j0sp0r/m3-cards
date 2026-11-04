@@ -1563,19 +1563,13 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       navigate();
       return;
     }
-    void slideToPage(outcome, navigate, (on) => {
-      // The bar keeps still while the page slides: one bar on screen carries
-      // the name — two would cancel the transition.
-      let named = false;
+    void slideToPage(outcome, this, navigate, () => {
+      // The bar on the new page — another instance of this card, as a rule.
       for (const card of connectedSheets) {
-        const bar = card.renderRoot?.querySelector<HTMLElement>(".bar");
-        if (!bar) continue;
-        const take = on && !named && card.isConnected && bar.getClientRects().length > 0;
-        bar.style.viewTransitionName = take ? "m3-nav-bar" : "";
-        if (take) named = true;
+        if (card.isConnected && card.getClientRects().length > 0) return card;
       }
-      if (!on) settle();
-    });
+      return undefined;
+    }).finally(settle);
   }
 
   // ---- sheet ---------------------------------------------------------------
