@@ -34,6 +34,15 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   without one the row reads "last active …" and never warns. An unavailable
   sensor still warns as before. `stale_hours` now defaults to 24 instead of
   6, since many battery-powered Z-Wave sensors wake only every 12–24 hours.
+- **A swipe that starts on a slider can scroll the page** (#27). Sliders used
+  `touch-action: none`, so on a view full of lights scrolling mostly changed
+  some light's brightness. Now the browser keeps vertical panning, and a
+  touch first shows its direction: along the slider it drags, up or down it
+  scrolls and the value stays as it was. A tap sets the value on release.
+  This covers the light card's brightness and colour temperature, the button
+  card with `show_slider`, the cover, media (seek and volume), humidifier and
+  appliance sliders, and the vacuum card's stepped suction slider.
+  Mouse and pen drag at once, as before.
 
 ## [2.6.0] – 2026-11-03
 

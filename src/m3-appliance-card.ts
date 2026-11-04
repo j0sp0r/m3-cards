@@ -10,6 +10,7 @@ import {
   type TemplateResult,
 } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { sliderPointer, capturePointer, SLIDER_TOUCH_ACTION } from "./shared/slider-intent";
 import type {
   ApplianceBlock,
   ApplianceButtonConfig,
@@ -1221,6 +1222,25 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       this._drag = { entity: cfg.entity, value: next };
       this._throttleFor(cfg.entity).call(next);
     };
+    // Drag and tap only; a vertical swipe scrolls the page (#27).
+    const slide = sliderPointer({
+      down: (e) => {
+        e.preventDefault();
+        const el = e.currentTarget as HTMLElement;
+        capturePointer(el, e);
+        commit(valueFromX(e.clientX, el));
+      },
+      move: (e) => {
+        const next = valueFromX(e.clientX, e.currentTarget as HTMLElement);
+        if (next !== this._drag?.value) commit(next);
+      },
+      up: (e) => {
+        const next = valueFromX(e.clientX, e.currentTarget as HTMLElement);
+        this._drag = { entity: cfg.entity, value: next };
+        this._throttleFor(cfg.entity).flush(next);
+        this._scheduleDragEnd();
+      },
+    });
 
     return html`
       <div class="block" style=${cfg.color ? buildCssVars({ "m3a-accent": resolveThemeColor(cfg.color) }) : nothing}>
@@ -1250,27 +1270,10 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
           @mousedown=${stopSwipe}
           @mousemove=${stopSwipe}
           @mouseup=${stopSwipe}
-          @pointerdown=${(e: PointerEvent) => {
-            e.preventDefault();
-            const el = e.currentTarget as HTMLElement;
-            el.setPointerCapture(e.pointerId);
-            commit(valueFromX(e.clientX, el));
-          }}
-          @pointermove=${(e: PointerEvent) => {
-            const el = e.currentTarget as HTMLElement;
-            if (!el.hasPointerCapture(e.pointerId)) return;
-            const next = valueFromX(e.clientX, el);
-            if (next !== this._drag?.value) commit(next);
-          }}
-          @pointerup=${(e: PointerEvent) => {
-            const el = e.currentTarget as HTMLElement;
-            if (!el.hasPointerCapture(e.pointerId)) return;
-            const next = valueFromX(e.clientX, el);
-            this._drag = { entity: cfg.entity, value: next };
-            this._throttleFor(cfg.entity).flush(next);
-            this._scheduleDragEnd();
-          }}
-          @pointercancel=${() => this._scheduleDragEnd()}
+          @pointerdown=${slide.down}
+          @pointermove=${slide.move}
+          @pointerup=${slide.up}
+          @pointercancel=${slide.cancel}
           @keydown=${(e: KeyboardEvent) => {
             const dir = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key];
             if (dir === undefined) return;
@@ -1828,7 +1831,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
       position: relative;
       height: ${APPLIANCE_SLIDER_HEIGHT}px;
       cursor: pointer;
-      touch-action: none;
+      touch-action: ${unsafeCSS(SLIDER_TOUCH_ACTION)};
       outline: none;
     }
 

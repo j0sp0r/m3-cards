@@ -1,5 +1,6 @@
-import { html, css, nothing, type TemplateResult } from "lit";
+import { html, css, nothing, unsafeCSS, type TemplateResult } from "lit";
 import { stopSwipe } from "./swipe";
+import { sliderPointer, capturePointer, SLIDER_TOUCH_ACTION } from "./slider-intent";
 
 // A Material 3 Expressive discrete slider, for the case this suite keeps
 // running into: a short, *ordered* list of named steps.
@@ -115,6 +116,27 @@ export function renderLevelSlider(
     return (e.clientX - rect.left) / rect.width;
   };
 
+  // Only a drag along the track or a tap reaches these (#27): a touch that
+  // turns out to be a vertical scroll leaves the value alone.
+  const slide = sliderPointer({
+    down: (e) => {
+      if (disabled) return;
+      capturePointer(e.currentTarget as HTMLElement, e);
+      setPressed(true);
+      commit(fractionFromEvent(e, e.currentTarget as HTMLElement));
+    },
+    move: (e) => {
+      if (disabled) return;
+      commit(fractionFromEvent(e, e.currentTarget as HTMLElement));
+    },
+    up: (e) => {
+      if (disabled) return;
+      const el = e.currentTarget as HTMLElement;
+      if (el.hasPointerCapture?.(e.pointerId)) el.releasePointerCapture(e.pointerId);
+      setPressed(false);
+    },
+  });
+
   return html`
     <div class="level" ?data-disabled=${disabled}>
       <div class="level-head">
@@ -137,23 +159,10 @@ export function renderLevelSlider(
         @mousedown=${stopSwipe}
         @mousemove=${stopSwipe}
         @mouseup=${stopSwipe}
-        @pointerdown=${(e: PointerEvent) => {
-          if (disabled) return;
-          const el = e.currentTarget as HTMLElement;
-          el.setPointerCapture(e.pointerId);
-          setPressed(true);
-          commit(fractionFromEvent(e, el));
-        }}
-        @pointermove=${(e: PointerEvent) => {
-          if (disabled || !pressed) return;
-          commit(fractionFromEvent(e, e.currentTarget as HTMLElement));
-        }}
-        @pointerup=${(e: PointerEvent) => {
-          if (disabled) return;
-          (e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId);
-          setPressed(false);
-        }}
-        @pointercancel=${() => setPressed(false)}
+        @pointerdown=${slide.down}
+        @pointermove=${slide.move}
+        @pointerup=${slide.up}
+        @pointercancel=${slide.cancel}
         @keydown=${(e: KeyboardEvent) => {
           if (disabled) return;
           const step = (delta: number) => {
@@ -250,8 +259,10 @@ export const levelSliderStyles = css`
     align-items: center;
     cursor: pointer;
     /* The browser must not pan the page while this is being dragged; the
-       dashboard's swipe-navigation is shielded separately, via stopSwipe. */
-    touch-action: none;
+       dashboard's swipe-navigation is shielded separately, via stopSwipe.
+       Vertical panning stays the browser's, so a scroll that starts here
+       still scrolls (#27; shared/slider-intent.ts). */
+    touch-action: ${unsafeCSS(SLIDER_TOUCH_ACTION)};
   }
 
   .level-track-wrap:focus-visible {

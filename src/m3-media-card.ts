@@ -1,5 +1,6 @@
 import { LitElement, html, css, svg, unsafeCSS, nothing, type PropertyValues } from "lit";
 import { customElement, property, state, query } from "lit/decorators.js";
+import { sliderPointer, capturePointer, SLIDER_TOUCH_ACTION } from "./shared/slider-intent";
 import type {
   HomeAssistant,
   M3MediaCardConfig,
@@ -661,7 +662,7 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
   private _handleSeekPointerDown = (e: PointerEvent): void => {
     if (!this._progressSliderEl || this._duration <= 0) return;
     e.preventDefault();
-    this._progressSliderEl.setPointerCapture(e.pointerId);
+    capturePointer(this._progressSliderEl, e);
     this._seeking = true;
     this._seekPosition = this._positionFromClientX(e.clientX);
   };
@@ -693,6 +694,14 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
       this._callService("media_seek", { seek_position: Math.round(this._seekPosition) });
     }, wait);
   }
+
+  // Drag and tap only; a touch that turns into a vertical scroll reaches none
+  // of these (#27, shared/slider-intent.ts).
+  private readonly _seekPointer = sliderPointer({
+    down: (e) => this._handleSeekPointerDown(e),
+    move: (e) => this._handleSeekPointerMove(e),
+    up: () => this._handleSeekPointerUp(),
+  });
 
   private _handleSeekPointerUp = (): void => {
     if (!this._seeking) return;
@@ -841,7 +850,7 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
   private _handleVolumePointerDown = (e: PointerEvent): void => {
     if (!this._volumeSliderEl) return;
     e.preventDefault();
-    this._volumeSliderEl.setPointerCapture(e.pointerId);
+    capturePointer(this._volumeSliderEl, e);
     this._dragging = true;
     const value = this._volumeFromClientX(e.clientX);
     this._dragVolume = value;
@@ -855,6 +864,12 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
     this._dragVolume = value;
     this._throttledSetVolume(value);
   };
+
+  private readonly _volumePointer = sliderPointer({
+    down: (e) => this._handleVolumePointerDown(e),
+    move: (e) => this._handleVolumePointerMove(e),
+    up: () => this._handleVolumePointerUp(),
+  });
 
   private _handleVolumePointerUp = (): void => {
     if (!this._dragging) return;
@@ -1574,10 +1589,10 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
         aria-valuemax=${Math.round(duration)}
         aria-valuenow=${Math.round(pos)}
         tabindex="0"
-        @pointerdown=${this._handleSeekPointerDown}
-        @pointermove=${this._handleSeekPointerMove}
-        @pointerup=${this._handleSeekPointerUp}
-        @pointercancel=${this._handleSeekPointerUp}
+        @pointerdown=${this._seekPointer.down}
+        @pointermove=${this._seekPointer.move}
+        @pointerup=${this._seekPointer.up}
+        @pointercancel=${this._seekPointer.cancel}
         @touchstart=${stopSwipe}
         @touchmove=${stopSwipe}
         @mousedown=${stopSwipe}
@@ -1624,10 +1639,10 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
           aria-valuemax="100"
           aria-valuenow=${Math.round(volume * 100)}
           tabindex="0"
-          @pointerdown=${this._handleVolumePointerDown}
-          @pointermove=${this._handleVolumePointerMove}
-          @pointerup=${this._handleVolumePointerUp}
-          @pointercancel=${this._handleVolumePointerUp}
+          @pointerdown=${this._volumePointer.down}
+          @pointermove=${this._volumePointer.move}
+          @pointerup=${this._volumePointer.up}
+          @pointercancel=${this._volumePointer.cancel}
           @touchstart=${stopSwipe}
           @touchmove=${stopSwipe}
           @mousedown=${stopSwipe}
@@ -1874,7 +1889,7 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
         width: 100%;
         height: ${MEDIA_PROGRESS_HEIGHT}px;
         cursor: pointer;
-        touch-action: none;
+        touch-action: ${unsafeCSS(SLIDER_TOUCH_ACTION)};
         outline: none;
       }
 
@@ -2107,7 +2122,7 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
         flex: 1;
         height: ${MEDIA_VOLUME_WAVE_HEIGHT}px;
         cursor: pointer;
-        touch-action: none;
+        touch-action: ${unsafeCSS(SLIDER_TOUCH_ACTION)};
         outline: none;
       }
 

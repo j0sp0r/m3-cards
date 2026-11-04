@@ -1,5 +1,6 @@
 import { LitElement, html, css, svg, nothing, unsafeCSS, type PropertyValues, type TemplateResult } from "lit";
 import { customElement, property, state, query } from "lit/decorators.js";
+import { sliderPointer, capturePointer, SLIDER_TOUCH_ACTION } from "./shared/slider-intent";
 import type {
   HomeAssistant,
   HassEntity,
@@ -660,7 +661,7 @@ export class M3HumidifierCard extends TemplatedCard(LitElement) implements Lovel
   private _handlePointerDown = (e: PointerEvent): void => {
     if (this._unavailable) return;
     e.preventDefault();
-    this._sliderEl?.setPointerCapture(e.pointerId);
+    capturePointer(this._sliderEl, e);
     this._dragging = true;
     const value = this._valueFromClientX(e.clientX);
     this._dragValue = value;
@@ -674,6 +675,14 @@ export class M3HumidifierCard extends TemplatedCard(LitElement) implements Lovel
     this._dragValue = value;
     this._targetThrottle.call(value);
   };
+
+  // Drag and tap only; a touch that turns into a vertical scroll reaches none
+  // of these (#27, shared/slider-intent.ts).
+  private readonly _sliderPointer = sliderPointer({
+    down: (e) => this._handlePointerDown(e),
+    move: (e) => this._handlePointerMove(e),
+    up: (e) => this._handlePointerUp(e),
+  });
 
   private _handlePointerUp = (e: PointerEvent): void => {
     if (!this._dragging) return;
@@ -839,10 +848,10 @@ export class M3HumidifierCard extends TemplatedCard(LitElement) implements Lovel
           aria-valuenow=${target}
           aria-disabled=${unavailable ? "true" : "false"}
           tabindex=${unavailable ? -1 : 0}
-          @pointerdown=${this._handlePointerDown}
-          @pointermove=${this._handlePointerMove}
-          @pointerup=${this._handlePointerUp}
-          @pointercancel=${this._handlePointerUp}
+          @pointerdown=${this._sliderPointer.down}
+          @pointermove=${this._sliderPointer.move}
+          @pointerup=${this._sliderPointer.up}
+          @pointercancel=${this._sliderPointer.cancel}
           @keydown=${this._handleKeydown}
         >
           <svg
@@ -1181,7 +1190,7 @@ export class M3HumidifierCard extends TemplatedCard(LitElement) implements Lovel
       position: relative;
       height: ${HUMIDIFIER_SLIDER_HEIGHT}px;
       cursor: pointer;
-      touch-action: none;
+      touch-action: ${unsafeCSS(SLIDER_TOUCH_ACTION)};
       outline: none;
     }
 

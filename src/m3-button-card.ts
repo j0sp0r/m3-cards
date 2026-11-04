@@ -54,6 +54,7 @@ import { TapHoldGesture } from "./shared/gestures";
 import { openActionUrl, toggleSidebar } from "./shared/actions";
 import { SUPPORTS_CONTAINER_UNITS } from "./shared/css-support";
 import { openEntityDetail } from "./shared/entity-detail";
+import { SliderIntent, capturePointer, SLIDER_TOUCH_ACTION } from "./shared/slider-intent";
 
 const HOLD_DURATION_MS = 500;
 const DOUBLE_TAP_WINDOW_MS = 250;
@@ -95,6 +96,7 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
   private _lastTap = 0;
   private _dragStartX = 0;
   private _dragActive = false;
+  private readonly _intent = new SliderIntent();
   private _suppressClick = false;
 
   private _iconHoldTimer?: number;
@@ -371,15 +373,26 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
 
     const info = this._sliderInfo();
     if (info) {
-      const el = e.currentTarget as HTMLElement;
-      el.setPointerCapture(e.pointerId);
+      // A touch waits until it shows its direction, so a vertical swipe that
+      // starts on the button scrolls the page instead (#27). Mouse and pen
+      // drag at once.
       this._dragStartX = e.clientX;
-      this._dragActive = true;
-      this._dragPercent = this._percentFromEvent(e, el);
+      if (this._intent.down(e)) this._startDrag(e);
     }
   };
 
+  private _startDrag(e: PointerEvent): void {
+    const el = e.currentTarget as HTMLElement;
+    capturePointer(el, e);
+    this._dragActive = true;
+    this._dragPercent = this._percentFromEvent(e, el);
+  }
+
   private _onPointerMove = (e: PointerEvent): void => {
+    if (this._intent.move(e) === "start") {
+      window.clearTimeout(this._holdTimer);
+      this._startDrag(e);
+    }
     if (!this._dragActive) return;
     if (Math.abs(e.clientX - this._dragStartX) > DRAG_THRESHOLD_PX) {
       window.clearTimeout(this._holdTimer);
@@ -387,8 +400,18 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
     this._dragPercent = this._percentFromEvent(e, e.currentTarget as HTMLElement);
   };
 
+  // The browser took the touch to scroll the page: nothing was set, and the
+  // hold must not fire under a scrolling finger. A drag already under way
+  // ends as it always did.
+  private _onPointerCancel = (e: PointerEvent): void => {
+    window.clearTimeout(this._holdTimer);
+    if (this._intent.cancel(e)) this._onPointerUp(e);
+  };
+
   private _onPointerUp = (e: PointerEvent): void => {
     window.clearTimeout(this._holdTimer);
+    // A touch that never moved is a tap; it sets the value only now.
+    if (this._intent.up(e) === "tap") this._startDrag(e);
     if (!this._dragActive) return;
     this._dragActive = false;
     const el = e.currentTarget as HTMLElement;
@@ -750,7 +773,7 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
           @pointerdown=${this._onPointerDown}
           @pointermove=${this._onPointerMove}
           @pointerup=${this._onPointerUp}
-          @pointercancel=${this._onPointerUp}
+          @pointercancel=${this._onPointerCancel}
           @pointerleave=${this._onPointerUp}
           @touchstart=${this._stopSwipe}
           @touchmove=${this._stopSwipe}
@@ -927,7 +950,7 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
     }
 
     .card-inner.sliderable {
-      touch-action: none;
+      touch-action: ${unsafeCSS(SLIDER_TOUCH_ACTION)};
     }
 
     .slider-fill-bg {

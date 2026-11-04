@@ -1,5 +1,6 @@
 import { LitElement, html, css, svg, unsafeCSS, nothing, type PropertyValues } from "lit";
 import { customElement, property, state, query } from "lit/decorators.js";
+import { sliderPointer, capturePointer, SLIDER_TOUCH_ACTION } from "./shared/slider-intent";
 import type {
   HomeAssistant,
   M3LightCardConfig,
@@ -300,7 +301,7 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
   private _handlePointerDown = (e: PointerEvent): void => {
     if (!this._config || this._unavailable) return;
     e.preventDefault();
-    this._sliderEl?.setPointerCapture(e.pointerId);
+    capturePointer(this._sliderEl, e);
     this._dragging = true;
     const value = this._pctFromClientX(e.clientX, this._sliderEl, LIGHT_MIN_BRIGHTNESS_PCT);
     this._dragValue = value;
@@ -314,6 +315,14 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
     this._dragValue = value;
     this._brightnessThrottle.call(value);
   };
+
+  // Drag and tap only; a touch that turns into a vertical scroll reaches none
+  // of these (#27, shared/slider-intent.ts).
+  private readonly _briPointer = sliderPointer({
+    down: (e) => this._handlePointerDown(e),
+    move: (e) => this._handlePointerMove(e),
+    up: (e) => this._handlePointerUp(e),
+  });
 
   private _handlePointerUp = (e: PointerEvent): void => {
     if (!this._dragging) return;
@@ -377,7 +386,7 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
     if (!this._config || this._unavailable) return;
     e.preventDefault();
     const el = e.currentTarget as HTMLElement;
-    el.setPointerCapture(e.pointerId);
+    capturePointer(el, e);
     this._tempDragging = true;
     const pct = this._pctFromClientX(e.clientX, el);
     const value = Math.round(minK + (pct / 100) * (maxK - minK));
@@ -667,10 +676,10 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
         aria-valuenow=${pct}
         aria-disabled=${unavailable ? "true" : "false"}
         tabindex=${unavailable ? -1 : 0}
-        @pointerdown=${this._handlePointerDown}
-        @pointermove=${this._handlePointerMove}
-        @pointerup=${this._handlePointerUp}
-        @pointercancel=${this._handlePointerUp}
+        @pointerdown=${this._briPointer.down}
+        @pointermove=${this._briPointer.move}
+        @pointerup=${this._briPointer.up}
+        @pointercancel=${this._briPointer.cancel}
         @touchstart=${stopSwipe}
         @touchmove=${stopSwipe}
         @mousedown=${stopSwipe}
@@ -702,6 +711,11 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
   private _renderColorTemp(entity: { attributes: Record<string, unknown> }, unavailable: boolean) {
     const minK = (entity.attributes.min_color_temp_kelvin as number) ?? LIGHT_COLOR_TEMP_MIN_KELVIN;
     const maxK = (entity.attributes.max_color_temp_kelvin as number) ?? LIGHT_COLOR_TEMP_MAX_KELVIN;
+    const tempPointer = sliderPointer({
+      down: (e) => this._handleTempPointerDown(e, minK, maxK),
+      move: (e) => this._handleTempPointerMove(e, minK, maxK),
+      up: () => this._handleTempPointerUp(),
+    });
     const currentK =
       this._tempDragging && this._tempDragValue !== undefined
         ? this._tempDragValue
@@ -744,10 +758,10 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
         aria-valuemax=${maxK}
         aria-valuenow=${Math.round(currentK)}
         tabindex=${unavailable ? -1 : 0}
-        @pointerdown=${(e: PointerEvent) => this._handleTempPointerDown(e, minK, maxK)}
-        @pointermove=${(e: PointerEvent) => this._handleTempPointerMove(e, minK, maxK)}
-        @pointerup=${this._handleTempPointerUp}
-        @pointercancel=${this._handleTempPointerUp}
+        @pointerdown=${tempPointer.down}
+        @pointermove=${tempPointer.move}
+        @pointerup=${tempPointer.up}
+        @pointercancel=${tempPointer.cancel}
         @touchstart=${stopSwipe}
         @touchmove=${stopSwipe}
         @mousedown=${stopSwipe}
@@ -936,7 +950,7 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
         width: 100%;
         height: ${LIGHT_WAVE_HEIGHT}px;
         cursor: pointer;
-        touch-action: none;
+        touch-action: ${unsafeCSS(SLIDER_TOUCH_ACTION)};
         outline: none;
       }
 
@@ -1031,7 +1045,7 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
         border-radius: 12px;
         background: linear-gradient(90deg, #ff9c4a, #fff1de 50%, #a8c9ff);
         cursor: pointer;
-        touch-action: none;
+        touch-action: ${unsafeCSS(SLIDER_TOUCH_ACTION)};
         outline: none;
       }
 

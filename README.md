@@ -1574,8 +1574,10 @@ The "next" arrow is disabled once the current (running) period is reached.
 
 Light control with a header (icon, name, power button) and a wave slider
 for brightness — drag with mouse or finger, tap to jump, arrow keys for
-±5% (Shift for ±1%). The slider uses `touch-action: none`, so swiping on a
-phone doesn't conflict with page scrolling.
+±5% (Shift for ±1%). On a phone a swipe that starts on the slider decides by
+its direction: sideways sets the brightness, up or down scrolls the page and
+leaves the light alone. A tap sets the value when the finger lifts. Every
+slider in the suite works this way.
 
 <img src="docs/images/light-card.png" alt="Light Card" width="440">
 

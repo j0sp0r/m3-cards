@@ -1,5 +1,6 @@
-import { LitElement, html, css, svg, nothing, type PropertyValues } from "lit";
+import { LitElement, html, css, svg, nothing, unsafeCSS, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { sliderPointer, capturePointer, SLIDER_TOUCH_ACTION } from "./shared/slider-intent";
 import type {
   HomeAssistant,
   M3CoverCardConfig,
@@ -297,7 +298,7 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
 
   private _onSliderDown(m: CoverModel, ev: PointerEvent): void {
     const track = ev.currentTarget as HTMLElement;
-    track.setPointerCapture(ev.pointerId);
+    capturePointer(track, ev);
     this._dragEntity = m.entity;
     this._dragPosition = this._sliderFromEvent(ev, track);
   }
@@ -435,6 +436,12 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
     const pos = this._displayPosition(m) ?? 0;
     const accent = this._accent();
     const wavy = this._config?.slider_style === "wavy";
+    // Drag and tap only; a vertical swipe scrolls the page (#27).
+    const slide = sliderPointer({
+      down: (e) => this._onSliderDown(m, e),
+      move: (e) => this._onSliderMove(m, e),
+      up: (e) => this._onSliderUp(m, e),
+    });
     return html`
       <div
         class="slider"
@@ -444,9 +451,10 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
         aria-valuemax="100"
         aria-valuenow=${pos}
         aria-label=${m.name}
-        @pointerdown=${(e: PointerEvent) => this._onSliderDown(m, e)}
-        @pointermove=${(e: PointerEvent) => this._onSliderMove(m, e)}
-        @pointerup=${(e: PointerEvent) => this._onSliderUp(m, e)}
+        @pointerdown=${slide.down}
+        @pointermove=${slide.move}
+        @pointerup=${slide.up}
+        @pointercancel=${slide.cancel}
         @keydown=${(e: KeyboardEvent) => this._onSliderKey(m, e)}
         style=${`--cv-accent: ${accent};`}
       >
@@ -783,7 +791,7 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
         position: relative;
         height: 46px;
         cursor: pointer;
-        touch-action: none;
+        touch-action: ${unsafeCSS(SLIDER_TOUCH_ACTION)};
         color: var(--cv-accent);
       }
       .slider-track {
