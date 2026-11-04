@@ -80,6 +80,7 @@ Lovelace card built from `popup.card`, with `[[area_id]]`, `[[entity_id]]`,
 | `sort` | `name` \| `area` \| `on_first` | `name` | Tile order |
 | `show_header` | boolean | `true` | Card header |
 | `show_count` | boolean | `true` | "N/total on" on a multi-light tile |
+| `shape_by_state` | boolean | `false` | A tile whose lights are all off rounds out; one with a light on keeps its corners |
 | `show_area` | boolean | `true` | Room name caption in `entities` view |
 | `hide_empty_rooms` | boolean | `false` | Drop rooms with no matching lights |
 | `toggle_filter` | object (same fields as the display filter) | – | Narrower filter for what a tap actually switches |

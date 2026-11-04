@@ -170,6 +170,7 @@ export class M3CoverCardEditor extends LitElement implements LovelaceCardEditor 
   private _behaviorSchema(): SchemaEntry[] {
     return [
       { name: "invert_position", selector: { boolean: {} } },
+      { name: "shape_by_state", selector: { boolean: {} } },
       { name: "tilt_step", selector: { number: { min: 1, max: 90, mode: "box" } } },
       { name: "travel_time", selector: { number: { min: 0, max: 300, mode: "box", unit_of_measurement: "s" } } },
     ];
@@ -177,6 +178,7 @@ export class M3CoverCardEditor extends LitElement implements LovelaceCardEditor 
 
   private _computeLabel = (schema: SchemaEntry): string => {
     const map: Record<string, TranslationKey> = {
+      shape_by_state: "editor_shape_by_state",
       mode: "editor_cover_mode",
       entity_type: "editor_cover_entity_type",
       entity: "editor_entity",
@@ -294,6 +296,7 @@ export class M3CoverCardEditor extends LitElement implements LovelaceCardEditor 
     };
     const behaviorData = {
       invert_position: this._config.invert_position ?? false,
+      shape_by_state: this._config.shape_by_state ?? false,
       tilt_step: this._config.tilt_step ?? 15,
       travel_time: this._config.travel_time ?? 0,
     };

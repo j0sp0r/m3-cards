@@ -371,6 +371,7 @@ export class M3RoomCardEditor extends LitElement implements LovelaceCardEditor {
     const schema: SchemaEntry[] = [
       { name: "collapsible", selector: { boolean: {} } },
       { name: "show_active_names", selector: { boolean: {} } },
+      { name: "shape_by_state", selector: { boolean: {} } },
     ];
     if (this._config?.collapsible) {
       schema.push(
@@ -533,6 +534,7 @@ export class M3RoomCardEditor extends LitElement implements LovelaceCardEditor {
 
   private _computeLabel = (schema: SchemaEntry): string => {
     const labelMap: Record<string, TranslationKey> = {
+      shape_by_state: "editor_shape_by_state",
       area: "editor_room_area",
       name: "editor_name",
       icon: "editor_icon",
@@ -934,6 +936,7 @@ export class M3RoomCardEditor extends LitElement implements LovelaceCardEditor {
               .data=${{
                 collapsible: cfg.collapsible ?? false,
                 show_active_names: cfg.show_active_names ?? false,
+                shape_by_state: cfg.shape_by_state ?? false,
                 default_collapsed: cfg.default_collapsed ?? false,
                 scroll_on_expand: cfg.scroll_on_expand ?? false,
                 scroll_duration: cfg.scroll_duration ?? ROOM_SCROLL_MS,

@@ -281,6 +281,14 @@ export const BUTTON_SHAPE_ON_ICON_RADIUS = "28%";
 /** How long a button takes to change between the two shapes. */
 export const BUTTON_SHAPE_MS = 300;
 /**
+ * `shape_by_state` on a tile taller than a row (room, lights overview): while
+ * off the tile rounds out to the card's own radius, while on it keeps its
+ * usual one. A capsule would read as a pill on a tile that tall.
+ */
+export const SHAPE_OFF_TILE_RADIUS = 28;
+/** `shape_by_state` on a chip: its corner radius while the entity is on. */
+export const CHIP_SHAPE_ON_RADIUS = 10;
+/**
  * How long a slider button holds the value it just set while the device has
  * not confirmed it. A Zigbee light answers in a few hundred ms, often through
  * an intermediate brightness; without the hold the fill snaps back to the old

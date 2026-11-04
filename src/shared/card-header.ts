@@ -23,6 +23,11 @@ export function renderCardHeader(params: {
    * a cut-out picture of the car rather than a glyph for one.
    */
   image?: string;
+  /**
+   * `shape_by_state`: true draws the swatch as a rounded square (on), false as
+   * a circle (off); left out, the swatch keeps its usual shape.
+   */
+  shape?: boolean;
 }): TemplateResult {
   const interactive = !!params.onClick;
   const iconInteractive = !!params.onIconClick;
@@ -44,7 +49,7 @@ export function renderCardHeader(params: {
       @keydown=${interactive && params.onClick ? activateOnKey(params.onClick) : nothing}
     >
       <div
-        class="m3-icon-swatch ${iconInteractive ? "interactive" : ""} ${params.image ? "has-image" : ""}"
+        class="m3-icon-swatch ${iconInteractive ? "interactive" : ""} ${params.image ? "has-image" : ""} ${params.shape === undefined ? "" : params.shape ? "shaped on" : "shaped"}"
         style=${params.image ? `background-image: ${params.image};` : nothing}
         role=${iconInteractive ? "button" : nothing}
         tabindex=${iconInteractive ? "0" : nothing}
@@ -87,6 +92,22 @@ export const cardHeaderStyles = css`
     justify-content: center;
     background: var(--m3p-icon-bg);
     color: var(--m3p-icon-color);
+  }
+
+  /* shape_by_state: a circle while off, the usual rounded square while on. */
+  .m3-icon-swatch.shaped {
+    border-radius: 50%;
+    transition:
+      background-color 0.25s ease,
+      border-radius 300ms cubic-bezier(0.2, 0, 0, 1);
+  }
+
+  .m3-icon-swatch.shaped.on {
+    border-radius: 16px;
+  }
+
+  .no-animations .m3-icon-swatch.shaped {
+    transition: none;
   }
 
   .m3-icon-swatch.has-image {

@@ -44,6 +44,7 @@ export class M3LightCardEditor extends LitElement implements LovelaceCardEditor 
       { name: "transition", selector: { number: { min: 0, step: 0.1, mode: "box", unit_of_measurement: "s" } } },
       { name: "compact", selector: { boolean: {} } },
       { name: "use_light_color", selector: { boolean: {} } },
+      { name: "shape_by_state", selector: { boolean: {} } },
       {
         name: "wave_style",
         selector: {
@@ -120,6 +121,7 @@ export class M3LightCardEditor extends LitElement implements LovelaceCardEditor 
 
   private _computeLabel = (schema: SchemaEntry): string => {
     const labelMap: Record<string, TranslationKey> = {
+      shape_by_state: "editor_shape_by_state",
       entity: "editor_entity",
       name: "editor_name",
       icon: "editor_icon",
@@ -279,6 +281,7 @@ export class M3LightCardEditor extends LitElement implements LovelaceCardEditor 
       transition: this._config.transition,
       compact: this._config.compact ?? false,
       use_light_color: this._config.use_light_color ?? true,
+      shape_by_state: this._config.shape_by_state ?? false,
       wave_style: this._config.wave_style ?? "wavy",
     };
     const showColorTemp = this._config.show_color_temp !== false;

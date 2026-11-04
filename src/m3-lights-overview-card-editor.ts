@@ -170,6 +170,7 @@ export class M3LightsOverviewCardEditor extends LitElement implements LovelaceCa
       },
       { name: "show_header", selector: { boolean: {} } },
       { name: "show_count", selector: { boolean: {} } },
+      { name: "shape_by_state", selector: { boolean: {} } },
       { name: "show_area", selector: { boolean: {} } },
       { name: "hide_empty_rooms", selector: { boolean: {} } },
     ];
@@ -235,6 +236,7 @@ export class M3LightsOverviewCardEditor extends LitElement implements LovelaceCa
 
   private _computeLabel = (schema: SchemaEntry): string => {
     const labelMap: Record<string, TranslationKey> = {
+      shape_by_state: "editor_shape_by_state",
       auto_discover: "editor_lights_auto_discover",
       include_domains: "editor_lights_include_domains",
       include_area: "editor_lights_include_area",
@@ -446,6 +448,7 @@ export class M3LightsOverviewCardEditor extends LitElement implements LovelaceCa
       sort: cfg.sort ?? "name",
       show_header: cfg.show_header ?? true,
       show_count: cfg.show_count ?? true,
+      shape_by_state: cfg.shape_by_state ?? false,
       show_area: cfg.show_area ?? true,
       hide_empty_rooms: cfg.hide_empty_rooms ?? false,
     };

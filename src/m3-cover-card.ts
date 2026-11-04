@@ -522,6 +522,7 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
         icon: m.icon,
         name: m.name,
         subtitle: this._statusText(m),
+        shape: this._config?.shape_by_state === true ? m.available && this._isOpen(m) : undefined,
         onClick: () => this._moreInfo(m.entity),
         right: posChip,
       })}
@@ -585,16 +586,21 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
     `;
   }
 
+  /** Open, for the group count and `shape_by_state`: any position above 0, else the state. */
+  private _isOpen(m: CoverModel): boolean {
+    return m.position !== undefined ? m.position > 0 : m.state === "open" || m.state === "opening";
+  }
+
   private _renderGroup(): unknown {
     const models = this._groupModels();
-    const openCount = models.filter((m) => (m.position !== undefined ? m.position > 0 : m.state === "open")).length;
+    const openCount = models.filter((m) => this._isOpen(m)).length;
     const name = this._config?.name || this._t("cover_group_default_name");
     const icon = this._config?.icon || COVER_DEVICE_ICONS[this._deviceClass()] || DEFAULT_COVER_ICON;
     const subtitle = this._t("cover_group_subtitle")
       .replace("{n}", String(models.length))
       .replace("{m}", String(openCount));
     return html`
-      ${renderCardHeader({ icon, name, subtitle })}
+      ${renderCardHeader({ icon, name, subtitle, shape: this._config?.shape_by_state === true ? openCount > 0 : undefined })}
       ${this._config?.show_master !== false
         ? html`
             <div class="master-row">

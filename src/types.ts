@@ -698,6 +698,8 @@ export interface LightSceneConfig {
 }
 
 export interface M3LightCardConfig extends DetailModeConfig {
+  /** The outline follows the state: rounder while off, squarer while on. */
+  shape_by_state?: boolean;
   type: string;
   entity: string;
   name?: string;
@@ -1817,6 +1819,8 @@ export interface CoverEntityConfig {
 }
 
 export interface M3CoverCardConfig extends DetailModeConfig {
+  /** The outline follows the state: rounder while off, squarer while on. */
+  shape_by_state?: boolean;
   type: string;
   mode?: "single" | "group";
   /** single mode: the cover (or, with entity_type switch_pair, ignored). */
@@ -2357,6 +2361,8 @@ export interface RoomCategoryConfig {
 export type RoomCardMode = "auto" | "manual";
 
 export interface M3RoomCardConfig extends DetailModeConfig {
+  /** The outline follows the state: rounder while off, squarer while on. */
+  shape_by_state?: boolean;
   type: string;
   /** HA area id. Everything else is discovered from it. */
   area: string;
@@ -2981,6 +2987,8 @@ export interface ChipButtonConfig {
 
 export interface ChipButtonsRowConfig {
   buttons: ChipButtonConfig[];
+  /** A chip squares off while its entity is on and is a capsule while off. */
+  shape_by_state?: boolean;
   /** Wrap to a new line instead of scrolling the row sideways. */
   wrap?: boolean;
   justify?: "start" | "center" | "end" | "space-between";
@@ -3042,6 +3050,8 @@ export interface LightsOverviewPopupConfig extends EntityFilterConfig {
 }
 
 export interface M3LightsOverviewCardConfig extends EntityFilterConfig, DetailModeConfig {
+  /** The outline follows the state: rounder while off, squarer while on. */
+  shape_by_state?: boolean;
   type: string;
   auto_discover?: boolean;
   /** Domains auto-discovery sweeps, default `["light"]`. Add `switch` to pick

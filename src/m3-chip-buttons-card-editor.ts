@@ -75,6 +75,7 @@ export class M3ChipButtonsCardEditor
         },
       },
       { name: "wrap", selector: { boolean: {} } },
+      { name: "shape_by_state", selector: { boolean: {} } },
       {
         name: "justify",
         selector: {
@@ -112,6 +113,7 @@ export class M3ChipButtonsCardEditor
 
   private _computeLabel = (schema: SchemaEntry): string => {
     const labelMap: Record<string, TranslationKey> = {
+      shape_by_state: "editor_shape_by_state",
       ...chipButtonLabelMap,
       ...radiusLabelMap,
       stretch: "editor_chip_buttons_stretch",
@@ -192,6 +194,7 @@ export class M3ChipButtonsCardEditor
       stretch:
         this._config.stretch === "smart" ? "smart" : this._config.stretch ? "equal" : "off",
       wrap: this._config.wrap ?? false,
+      shape_by_state: this._config.shape_by_state ?? false,
       justify: this._config.justify ?? "start",
     };
     const animationData = { animation: this._config.animation ?? "auto" };

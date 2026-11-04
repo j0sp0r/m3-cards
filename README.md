@@ -1631,6 +1631,7 @@ member list all still render, and the header still opens more-info.
 | `icon` | string | entity icon | Icon in the icon tile |
 | `transition` | number | – | Transition duration (seconds) for `light.turn_on` calls |
 | `compact` | boolean | `false` | Drop the power button and make the header icon the toggle instead |
+| `shape_by_state` | boolean | `false` | The header icon is a circle while the light is off and a rounded square while it is on, as on the button card |
 | `wave_style` | `wavy` \| `flat` | `wavy` | Slider wave shape |
 | `show_color_temp` | boolean | `true` | Show the color temperature row; `false` hides it even on a light that supports it |
 | `accent_color` / `track_color` / `handle_color` | string | theme default | Slider colors |
@@ -3018,6 +3019,7 @@ entity: cover.living_room
 | `show_preview` | boolean | `true` | Window preview with fill level |
 | `slider_style` | `plain` \| `wavy` | `plain` | Position slider style |
 | `invert_position` | boolean | `false` | For integrations with reversed position |
+| `shape_by_state` | boolean | `false` | The header icon is a circle while closed and a rounded square while open (any position above 0); a group counts as open when one cover is |
 | `tilt_step` | number | `15` | Tilt stepper size (°) |
 | `travel_time` | number | `0` | Seconds end-to-end for position-less devices (optimistic feedback) |
 | `show_master` | boolean | `true` | Master controls in group mode |
@@ -3621,6 +3623,7 @@ which opens on a hold of a tile.
 | `presence_entity` | string | discovered | |
 | `presence_style` | `tint` \| `dot_only` \| `none` | `tint` | |
 | `collapsible` | boolean | `false` | Fold the card down to its header |
+| `shape_by_state` | boolean | `false` | An idle category tile rounds out and its icon well becomes a circle; an active one keeps its corners and squircle, as on the button card |
 | `default_collapsed` | boolean | `false` | |
 | `collapse_state_entity` | string | – | An `input_boolean` holding the folded state |
 | `strip_area_name` | boolean | `false` | Remove the room's name from a single device's name. Off because it assumes a convention |
@@ -4953,6 +4956,7 @@ Lovelace card built from `popup.card`, with `[[area_id]]`, `[[entity_id]]`,
 | `sort` | `name` \| `area` \| `on_first` | `name` | Tile order |
 | `show_header` | boolean | `true` | Card header |
 | `show_count` | boolean | `true` | "N/total on" on a multi-light tile |
+| `shape_by_state` | boolean | `false` | A tile whose lights are all off rounds out; one with a light on keeps its corners |
 | `show_area` | boolean | `true` | Room name caption in `entities` view |
 | `hide_empty_rooms` | boolean | `false` | Drop rooms with no matching lights |
 | `toggle_filter` | object (same fields as the display filter) | – | Narrower filter for what a tap actually switches |
@@ -5042,6 +5046,7 @@ radius: 28
 | `buttons[].double_tap_action` | Action | `none` | Double-tap action |
 | `stretch` | `false` \| `true` \| `smart` | `false` | Fill the row's full width. `true` gives every chip the same width; `smart` sizes each chip to its content and shares out only the leftover space; when the row is too narrow, short chips keep their full width and only the long ones give up room (their label then scrolls). Round icon chips keep their size. Ignores `wrap` and `justify` |
 | `wrap` | boolean | `false` | Wrap chips onto multiple lines instead of scrolling horizontally |
+| `shape_by_state` | boolean | `false` | A chip is a capsule while its entity is off and squares off while it is on |
 | `justify` | `start` \| `center` \| `end` \| `space-between` | `start` | Horizontal alignment of the chip row |
 | `radius` | number (px) | `28` | Card corner radius |
 | `corners` | object | – | Optional per-corner override, same as every other card |

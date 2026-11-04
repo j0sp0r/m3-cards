@@ -76,6 +76,7 @@ radius: 28
 | `buttons[].double_tap_action` | Action | `none` | Double-tap action |
 | `stretch` | `false` \| `true` \| `smart` | `false` | Fill the row's full width. `true` gives every chip the same width; `smart` sizes each chip to its content and shares out only the leftover space; when the row is too narrow, short chips keep their full width and only the long ones give up room (their label then scrolls). Round icon chips keep their size. Ignores `wrap` and `justify` |
 | `wrap` | boolean | `false` | Wrap chips onto multiple lines instead of scrolling horizontally |
+| `shape_by_state` | boolean | `false` | A chip is a capsule while its entity is off and squares off while it is on |
 | `justify` | `start` \| `center` \| `end` \| `space-between` | `start` | Horizontal alignment of the chip row |
 | `radius` | number (px) | `28` | Card corner radius |
 | `corners` | object | – | Optional per-corner override, same as every other card |

@@ -51,6 +51,7 @@ entity: cover.living_room
 | `show_preview` | boolean | `true` | Window preview with fill level |
 | `slider_style` | `plain` \| `wavy` | `plain` | Position slider style |
 | `invert_position` | boolean | `false` | For integrations with reversed position |
+| `shape_by_state` | boolean | `false` | The header icon is a circle while closed and a rounded square while open (any position above 0); a group counts as open when one cover is |
 | `tilt_step` | number | `15` | Tilt stepper size (°) |
 | `travel_time` | number | `0` | Seconds end-to-end for position-less devices (optimistic feedback) |
 | `show_master` | boolean | `true` | Master controls in group mode |

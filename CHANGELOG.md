@@ -32,6 +32,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   card: squarer at home, round while away — the pill and avatar in the
   compact layout, the avatar in the grid.
 
+- **`shape_by_state` on five more cards.** The button card's "shape follows
+  the state" now also works on the lights overview and room card tiles (off
+  rounds out, on keeps its corners; the room tile's well goes from circle to
+  squircle), the chip buttons (a capsule off, squarer on), and the header icon
+  of the light and cover cards (a circle off or closed, a rounded square on or
+  open). Off by default everywhere.
+
 ### Changed
 
 - **A row's fill glides to a new value.** On the battery, power list, NAS and

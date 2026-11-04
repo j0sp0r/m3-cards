@@ -63,6 +63,7 @@ import {
   ROOM_TILE_TINT_IDLE,
   resolveCornerRadius,
   type RoomCategoryDef,
+  SHAPE_OFF_TILE_RADIUS,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { STANDARD_EASING, shouldAnimate } from "./shared/animation";
@@ -1378,7 +1379,7 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
 
     return html`
       <div
-        class="tile ${category.active ? "on" : ""} ${dead ? "dead" : ""}"
+        class="tile ${category.active ? "on" : ""} ${dead ? "dead" : ""} ${this._config?.shape_by_state === true ? "shaped" : ""}"
         style=${`background: ${background};`}
         role=${dead ? nothing : "button"}
         tabindex=${dead ? nothing : "0"}
@@ -1743,6 +1744,22 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
 
       .tile.dead {
         opacity: 0.4;
+      }
+
+      /* shape_by_state: an idle tile rounds out and its well is a circle; an
+         active one keeps its corners and its squircle well. */
+      .tile.shaped:not(.on) {
+        border-radius: ${SHAPE_OFF_TILE_RADIUS}px;
+      }
+      .tile.shaped:not(.on) .well {
+        border-radius: 50%;
+      }
+      .tile.shaped .well {
+        transition: border-radius ${unsafeCSS(ROOM_TILE_MORPH_MS)}ms ${EASING};
+      }
+      /* The press still squeezes the corners, idle or not. */
+      .tile.shaped[role="button"]:active {
+        border-radius: ${ROOM_TILE_RADIUS_ACTIVE}px;
       }
 
       .well {

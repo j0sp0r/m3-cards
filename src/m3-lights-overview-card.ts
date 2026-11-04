@@ -1,4 +1,4 @@
-import { LitElement, html, css, nothing, type PropertyValues } from "lit";
+import { LitElement, html, css, nothing, unsafeCSS, type PropertyValues } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type {
   HomeAssistant,
@@ -20,11 +20,13 @@ import {
   LIGHTS_OVERVIEW_COLOR_ON,
   LIGHTS_OVERVIEW_COLOR_OFF,
   resolveCornerRadius,
+  SHAPE_OFF_TILE_RADIUS,
+  BUTTON_SHAPE_MS,
 } from "./const";
 import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, foregroundOn } from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
-import { shouldAnimate } from "./shared/animation";
+import { shouldAnimate, STANDARD_EASING } from "./shared/animation";
 import { discoverLightRooms, type DiscoveredLightRoom } from "./shared/ha-registry";
 import {
   buildStatePredicate,
@@ -584,7 +586,9 @@ export class M3LightsOverviewCard extends TemplatedCard(LitElement) implements L
       <div
         class="room-tile ${tile.unavailable ? "unavailable" : ""} ${tile.switchable.length === 0
           ? "not-switchable"
-          : ""} ${on ? "is-on" : ""} ${this._pressedKey === tile.key ? "pressed" : ""}"
+          : ""} ${on ? "is-on" : ""} ${this._pressedKey === tile.key ? "pressed" : ""} ${this._config?.shape_by_state === true
+          ? "shaped"
+          : ""}"
         style=${`--tile-color: ${color}; background: ${tintOn(this, color, this._config?.tile_tint_opacity, on ? 20 : 10)};`}
         role="button"
         tabindex="0"
@@ -656,6 +660,16 @@ export class M3LightsOverviewCard extends TemplatedCard(LitElement) implements L
          reads as an unresponsive tile. */
       .room-tile.pressed {
         transform: scale(0.96);
+      }
+
+      /* shape_by_state: a tile whose lights are all off rounds out. */
+      .room-tile.shaped {
+        transition:
+          transform 120ms ease-out,
+          border-radius ${unsafeCSS(BUTTON_SHAPE_MS)}ms ${unsafeCSS(STANDARD_EASING)};
+      }
+      .room-tile.shaped:not(.is-on) {
+        border-radius: ${SHAPE_OFF_TILE_RADIUS}px;
       }
 
       .no-animations .room-tile {

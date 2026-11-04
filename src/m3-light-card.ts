@@ -605,6 +605,7 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
             icon,
             name,
             subtitle,
+            shape: this._config.shape_by_state === true ? !unavailable && effectiveOn : undefined,
             onClick: () => this._fireMoreInfo(),
             // Compact drops the power button and moves the toggle onto the icon
             // — the same split the native tile card makes. The swatch already

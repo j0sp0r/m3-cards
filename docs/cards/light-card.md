@@ -66,6 +66,7 @@ member list all still render, and the header still opens more-info.
 | `icon` | string | entity icon | Icon in the icon tile |
 | `transition` | number | – | Transition duration (seconds) for `light.turn_on` calls |
 | `compact` | boolean | `false` | Drop the power button and make the header icon the toggle instead |
+| `shape_by_state` | boolean | `false` | The header icon is a circle while the light is off and a rounded square while it is on, as on the button card |
 | `wave_style` | `wavy` \| `flat` | `wavy` | Slider wave shape |
 | `show_color_temp` | boolean | `true` | Show the color temperature row; `false` hides it even on a light that supports it |
 | `accent_color` / `track_color` / `handle_color` | string | theme default | Slider colors |

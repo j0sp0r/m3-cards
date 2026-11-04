@@ -1,7 +1,15 @@
-import { html, css, nothing, type TemplateResult } from "lit";
+import { html, css, nothing, unsafeCSS, type TemplateResult } from "lit";
+import { STANDARD_EASING } from "./animation";
 import type { HomeAssistant, HassEntity, ChipButtonConfig, ChipButtonsRowConfig } from "../types";
 import { cssIdent } from "./css-safe";
-import { STATELESS_DOMAINS, ACTIVE_STATES, CHIP_BUTTON_HEIGHT, CHIP_BUTTON_ICON_SIZE } from "../const";
+import {
+  STATELESS_DOMAINS,
+  ACTIVE_STATES,
+  CHIP_BUTTON_HEIGHT,
+  CHIP_BUTTON_ICON_SIZE,
+  BUTTON_SHAPE_MS,
+  CHIP_SHAPE_ON_RADIUS,
+} from "../const";
 import { RADIUS } from "./tokens";
 import { resolveThemeColor, tintOn, foregroundOn } from "./color-config";
 import { runHaAction, navigateTo, type RunActionContext } from "./actions";
@@ -94,7 +102,7 @@ export function renderChipButtons(
   const layoutClass = chipRowLayoutClass(config);
   return html`
     <div
-      class="m3-chip-buttons ${layoutClass}"
+      class="m3-chip-buttons ${layoutClass} ${config.shape_by_state === true ? "shaped" : ""}"
       style=${`justify-content: ${config.justify ?? "start"};`}
       @touchstart=${stopSwipe}
       @touchmove=${stopSwipe}
@@ -180,7 +188,7 @@ function renderChipButton(
   // keyboard handlers, no button role — it isn't tappable.
   if (button.interactive === false) {
     return html`
-      <div class="m3-chip-button static ${iconOnly ? "icon-only" : ""}" style=${cssVars}>
+      <div class="m3-chip-button static ${iconOnly ? "icon-only" : ""} ${highlighted ? "on" : ""}" style=${cssVars}>
         ${entity
           ? html`<ha-state-icon .hass=${hass} .icon=${button.icon} .stateObj=${entity}></ha-state-icon>`
           : html`<ha-icon icon=${icon}></ha-icon>`}
@@ -213,7 +221,7 @@ function renderChipButton(
 
   return html`
     <div
-      class="m3-chip-button ${iconOnly ? "icon-only" : ""} ${state.pressedKey === key ? "pressed" : ""}"
+      class="m3-chip-button ${iconOnly ? "icon-only" : ""} ${highlighted ? "on" : ""} ${state.pressedKey === key ? "pressed" : ""}"
       style=${cssVars}
       role="button"
       tabindex="0"
@@ -568,6 +576,16 @@ export const chipButtonsStyles = css`
     display: inline-flex;
     width: ${CHIP_BUTTON_ICON_SIZE}px;
     height: ${CHIP_BUTTON_ICON_SIZE}px;
+  }
+
+  /* shape_by_state: a capsule while off, squarer while on. */
+  .m3-chip-buttons.shaped .m3-chip-button {
+    transition:
+      transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
+      border-radius ${BUTTON_SHAPE_MS}ms ${unsafeCSS(STANDARD_EASING)};
+  }
+  .m3-chip-buttons.shaped .m3-chip-button.on {
+    border-radius: ${CHIP_SHAPE_ON_RADIUS}px;
   }
 
   .m3-chip-button.static {

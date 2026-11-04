@@ -184,6 +184,7 @@ which opens on a hold of a tile.
 | `presence_entity` | string | discovered | |
 | `presence_style` | `tint` \| `dot_only` \| `none` | `tint` | |
 | `collapsible` | boolean | `false` | Fold the card down to its header |
+| `shape_by_state` | boolean | `false` | An idle category tile rounds out and its icon well becomes a circle; an active one keeps its corners and squircle, as on the button card |
 | `default_collapsed` | boolean | `false` | |
 | `collapse_state_entity` | string | – | An `input_boolean` holding the folded state |
 | `strip_area_name` | boolean | `false` | Remove the room's name from a single device's name. Off because it assumes a convention |
