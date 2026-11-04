@@ -3037,7 +3037,7 @@ whichever sensor is wet has to be on screen without another tap.
 | `valve_entity` | string | – | Shut-off valve (valve/switch/cover) — only then is the shut-off button shown |
 | `confirm_shutoff` | boolean | `false` | Ask before shutting off |
 | `siren_entity` / `ack_entity` | string | – | Silenced / acknowledged on the ack button |
-| `stale_hours` | number | `6` | A sensor silent longer than this counts as "stale" |
+| `stale_hours` | number | `24` | A sensor that has not reported for longer than this counts as unreachable — only where Home Assistant gives the card a `last_reported` time; otherwise the row shows when the device was last active and never warns |
 | `battery_warn` / `battery_critical` | number | `40` / `20` | Battery chip thresholds |
 | `test_interval_days` | number | `0` | Show a "test due" chip after N days (with `last_test_entity`) |
 | `max_visible` | number | – | Show only this many sensors, the rest behind a toggle |

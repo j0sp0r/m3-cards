@@ -6,7 +6,7 @@ import type {
   M3LeakCardConfig,
   LeakSensorConfig,
 } from "./types";
-import { DEFAULT_LEAK_RADIUS } from "./const";
+import { DEFAULT_LEAK_RADIUS, DEFAULT_LEAK_STALE_HOURS } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { fireEvent, colorRow, listRow, editorStyles, type SchemaEntry } from "./shared/editor-helpers";
 import { radiusLabelMap } from "./shared/radius-editor";
@@ -321,7 +321,7 @@ export class M3LeakCardEditor extends LitElement implements LovelaceCardEditor {
       ack_entity: this._config.ack_entity,
     };
     const monitorData = {
-      stale_hours: this._config.stale_hours ?? 6,
+      stale_hours: this._config.stale_hours ?? DEFAULT_LEAK_STALE_HOURS,
       battery_warn: this._config.battery_warn ?? 40,
       battery_critical: this._config.battery_critical ?? 20,
       test_interval_days: this._config.test_interval_days ?? 0,

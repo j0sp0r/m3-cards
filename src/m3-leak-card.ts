@@ -37,6 +37,7 @@ import { renderListRow, listRowStyles , listRowSurface} from "./shared/list-row"
 import { formatSince } from "./shared/formatting";
 import { discoverLeakSensors } from "./shared/ha-registry";
 import { localize, type TranslationKey } from "./localize";
+import { lastSeen, deviceSiblings } from "./shared/last-seen";
 import { discoveryChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
 import { openEntityDetail } from "./shared/entity-detail";
@@ -55,7 +56,12 @@ interface LeakRow {
   name: string;
   icon: string;
   rowState: RowState;
-  lastUpdated?: string;
+  /** Newest sign of life from the device (see shared/last-seen.ts). */
+  lastSeen?: string;
+  /** Whether `lastSeen` rests on a `last_reported`, i.e. can prove silence. */
+  reported: boolean;
+  /** When the state itself last changed: how long wet, how long unavailable. */
+  changedAt?: string;
   battery?: number;
 }
 
@@ -188,14 +194,23 @@ export class M3LeakCard extends TemplatedCard(LitElement) implements LovelaceCar
         const st = hass.states[c.entity];
         const name = c.name || (st?.attributes?.friendly_name as string) || c.entity;
         const icon = this._iconFor(name, c.icon);
+        const seen = st ? lastSeen(hass, c.entity, [c.battery_entity]) : undefined;
         let rowState: RowState;
         if (!st || st.state === "unavailable") rowState = "unavailable";
         else if (st.state === "on") rowState = "wet";
-        else {
-          const age = this._now - Date.parse(st.last_updated);
-          rowState = age > staleMs ? "stale" : "dry";
-        }
-        return { entity: c.entity, name, icon, rowState, lastUpdated: st?.last_updated, battery: this._batteryOf(c) };
+        // Silence counts only where HA can prove it (#25): an unchanged dry
+        // sensor is the normal case, not a fault.
+        else rowState = seen?.reported && this._now - seen.at > staleMs ? "stale" : "dry";
+        return {
+          entity: c.entity,
+          name,
+          icon,
+          rowState,
+          lastSeen: seen ? new Date(seen.at).toISOString() : undefined,
+          reported: !!seen?.reported,
+          changedAt: st?.last_changed,
+          battery: this._batteryOf(c),
+        };
       });
   }
 
@@ -300,14 +315,14 @@ export class M3LeakCard extends TemplatedCard(LitElement) implements LovelaceCar
   }
 
   private _renderRow(r: LeakRow): unknown {
+    // "reported" only where a `last_reported` backs it; otherwise the card
+    // knows when the device was last active, not when it last reported.
     const staleAge =
-      r.rowState === "stale" && r.lastUpdated
-        ? this._t("leak_reported_since").replace("{t}", this._since(r.lastUpdated))
-        : r.rowState === "unavailable"
-          ? this._t("leak_unreachable")
-          : r.lastUpdated
-            ? this._t("leak_reported_since").replace("{t}", this._since(r.lastUpdated))
-            : "";
+      r.rowState === "unavailable"
+        ? this._t("leak_unreachable")
+        : r.lastSeen
+          ? this._t(r.reported ? "leak_reported_since" : "leak_active_since").replace("{t}", this._since(r.lastSeen))
+          : "";
     const statusLabel =
       r.rowState === "wet"
         ? this._t("leak_status_wet")
@@ -375,7 +390,12 @@ export class M3LeakCard extends TemplatedCard(LitElement) implements LovelaceCar
   // Each sensor contributes two entities: the moisture sensor and, if set, the
   // battery sensor whose level the row shows.
   private _watchedEntities(): (string | undefined)[] {
-    return this._sensors.flatMap((c) => [c.entity, c.battery_entity]);
+    const hass = this.hass;
+    return this._sensors.flatMap((c) => [
+      c.entity,
+      c.battery_entity,
+      ...(hass && c.entity ? deviceSiblings(hass, c.entity) : []),
+    ]);
   }
 
   protected shouldUpdate(changed: PropertyValues): boolean {
@@ -428,18 +448,19 @@ export class M3LeakCard extends TemplatedCard(LitElement) implements LovelaceCar
       title = this._t("leak_alarm_title");
       subtitle =
         wetRows.length === 1
-          ? `${wetRows[0].name} — ${this._t("leak_alarm_since").replace("{t}", this._duration(wetRows[0].lastUpdated))}`
+          ? `${wetRows[0].name} — ${this._t("leak_alarm_since").replace("{t}", this._duration(wetRows[0].changedAt))}`
           : this._t("leak_alarm_multi").replace("{n}", String(wetRows.length));
     } else if (state === "stale") {
       bannerIcon = "mdi:shield-alert";
       title = this._t("leak_stale_title");
       const s = staleRows[0];
-      subtitle = s ? this._t("leak_stale_sub").replace("{name}", s.name).replace("{t}", this._duration(s.lastUpdated)) : "";
+      const since = s?.rowState === "stale" ? s.lastSeen : s?.changedAt;
+      subtitle = s ? this._t("leak_stale_sub").replace("{name}", s.name).replace("{t}", this._duration(since)) : "";
     } else {
       bannerIcon = this._config.icon || "mdi:shield-check";
       title = this._t("leak_ok_title");
       const newest = rows
-        .map((r) => (r.lastUpdated ? Date.parse(r.lastUpdated) : 0))
+        .map((r) => (r.lastSeen ? Date.parse(r.lastSeen) : 0))
         .reduce((a, b) => Math.max(a, b), 0);
       subtitle = this._t("leak_ok_sub")
         .replace("{n}", String(rows.length))

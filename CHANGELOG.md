@@ -25,6 +25,15 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   asks for one, and `show_map` silently drew nothing on a view without a
   native `map` card. The card now has HA load it, and says so in the console
   if that fails.
+- **The leak card no longer calls a quiet sensor unreachable** (#25). It
+  judged silence by `last_updated`, which only moves when the state or an
+  attribute changes — and a dry sensor changes nothing for days. A row now
+  shows the newest sign of life from the whole device (link quality, battery
+  and the like count too), and a sensor counts as unreachable only when Home
+  Assistant gives the card a `last_reported` time that proves the gap;
+  without one the row reads "last active …" and never warns. An unavailable
+  sensor still warns as before. `stale_hours` now defaults to 24 instead of
+  6, since many battery-powered Z-Wave sensors wake only every 12–24 hours.
 
 ## [2.6.0] – 2026-11-03
 
