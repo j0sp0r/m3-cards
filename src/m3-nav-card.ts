@@ -130,6 +130,8 @@ import {
 } from "./shared/template-sub";
 import { TapHold, fireHaptic } from "./shared/tap-hold";
 import { stopSwipe } from "./shared/swipe";
+import { SliderIntent, capturePointer } from "./shared/slider-intent";
+import { swipeOutcome, swipeShown, slideToPage, type SwipeDirection } from "./shared/nav-swipe";
 
 const EASING = unsafeCSS(STANDARD_EASING);
 
@@ -505,6 +507,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     this._closeActionMenu();
     this._detachGesture();
     connectedSheets.delete(this);
+    this._swipe = undefined;
     window.clearTimeout(this._pressTimer);
     for (const h of this._tapHolds.values()) h.destroy();
     this._tapHolds.clear();
@@ -792,6 +795,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
 
   protected updated(changed: PropertyValues): void {
     super.updated(changed);
+    if (this._config?.swipe_navigation === true) this._syncBarOverflow();
     if (this._settling) {
       // One frame later, so the corrected marker has been painted with the
       // transition still off before it is turned back on. The timer is the
@@ -1410,6 +1414,168 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     this._pressTimer = window.setTimeout(() => {
       this._pressed = undefined;
     }, NAV_PRESS_MS);
+  }
+
+  // ---- swipe navigation ----------------------------------------------------
+
+  private readonly _swipeIntent = new SliderIntent();
+  /** The swipe under way: where it started, how fast it moves, what it would reach. */
+  private _swipe?: {
+    x0: number;
+    lastX: number;
+    lastT: number;
+    velocity: number;
+    dx: number;
+    prev?: { index: number; path: string; distance: number };
+    next?: { index: number; path: string; distance: number };
+    moved: HTMLElement;
+    baseTransform: string;
+  };
+  /** Whether the bar scrolls sideways — then a swipe is the bar's, not ours. */
+  @state() private _barOverflows = false;
+
+  private get _swipeEnabled(): boolean {
+    return this._config?.swipe_navigation === true && !this._editing && !this._barOverflows;
+  }
+
+  /** The entries a swipe can land on, in bar order: visible, enabled, navigating. */
+  private _swipeTargets(): { index: number; path: string; active: boolean }[] {
+    const out: { index: number; path: string; active: boolean }[] = [];
+    for (const item of this._resolvedItems) {
+      if (item.disabled) continue;
+      const tap = item.config.tap_action ?? this._defaultTap(item.config);
+      if (tap?.action !== "navigate" || !tap.navigation_path) continue;
+      out.push({ index: item.index, path: tap.navigation_path, active: item.active });
+    }
+    return out;
+  }
+
+  private _syncBarOverflow(): void {
+    const bar = this.renderRoot.querySelector<HTMLElement>(".bar");
+    if (!bar) return;
+    const overflows = bar.scrollWidth - bar.clientWidth > 1;
+    if (overflows !== this._barOverflows) this._barOverflows = overflows;
+  }
+
+  private _onSwipeDown = (e: PointerEvent): void => {
+    if (!this._swipeEnabled || e.pointerType !== "touch") return;
+    this._swipeIntent.down(e);
+  };
+
+  private _onSwipeMove = (e: PointerEvent): void => {
+    if (!this._swipeEnabled) return;
+    const phase = this._swipeIntent.move(e);
+    if (phase === "start") this._beginSwipe(e);
+    if (!this._swipe || phase === "none") return;
+    const s = this._swipe;
+    const now = e.timeStamp;
+    const dt = Math.max(1, now - s.lastT);
+    // Smoothed, so one jittery sample does not decide a flick.
+    s.velocity = s.velocity * 0.6 + ((e.clientX - s.lastX) / dt) * 0.4;
+    s.lastX = e.clientX;
+    s.lastT = now;
+    s.dx = e.clientX - s.x0;
+    const toward = s.dx < 0 ? s.next : s.prev;
+    const shown = swipeShown({
+      dx: s.dx,
+      distance: toward?.distance ?? 0,
+      hasPrev: !!s.prev,
+      hasNext: !!s.next,
+    });
+    // The pill runs the opposite way to the finger: dragging left pulls the
+    // next entry in, so the pill moves right to meet it.
+    s.moved.style.transform = `${s.baseTransform} translateX(${-shown}px)`;
+  };
+
+  private _beginSwipe(e: PointerEvent): void {
+    const bar = this.renderRoot.querySelector<HTMLElement>(".bar");
+    const targets = this._swipeTargets();
+    const at = targets.findIndex((t) => t.active);
+    if (!bar || at === -1) return;
+    const el = (index: number) => bar.querySelector<HTMLElement>(`.item[data-index="${index}"]`);
+    const active = el(targets[at].index);
+    if (!active) return;
+    const centre = (node: HTMLElement) => {
+      const r = node.getBoundingClientRect();
+      return r.left + r.width / 2;
+    };
+    const neighbour = (t?: { index: number; path: string }) => {
+      const node = t ? el(t.index) : null;
+      return t && node ? { ...t, distance: Math.abs(centre(node) - centre(active)) } : undefined;
+    };
+    const moved = this._sliding ? bar.querySelector<HTMLElement>(".marker") : active;
+    if (!moved) return;
+    capturePointer(bar, e);
+    // The entry under the finger saw the press, not the rest of it.
+    for (const h of this._tapHolds.values()) h.abandon();
+    moved.style.transition = "none";
+    this._swipe = {
+      x0: e.clientX,
+      lastX: e.clientX,
+      lastT: e.timeStamp,
+      velocity: 0,
+      dx: 0,
+      prev: neighbour(targets[at - 1]),
+      next: neighbour(targets[at + 1]),
+      moved,
+      baseTransform: moved === active ? "" : moved.style.transform,
+    };
+    this._closeSubmenu();
+  }
+
+  private _onSwipeUp = (e: PointerEvent): void => {
+    this._swipeIntent.up(e);
+    this._endSwipe();
+  };
+
+  private _onSwipeCancel = (e: PointerEvent): void => {
+    this._swipeIntent.cancel(e);
+    this._endSwipe(true);
+  };
+
+  private _endSwipe(cancelled = false): void {
+    const s = this._swipe;
+    if (!s) return;
+    this._swipe = undefined;
+    const outcome: SwipeDirection | undefined = cancelled
+      ? undefined
+      : swipeOutcome({
+          dx: s.dx,
+          velocity: s.velocity,
+          distance: (s.dx < 0 ? s.next : s.prev)?.distance ?? 0,
+          hasPrev: !!s.prev,
+          hasNext: !!s.next,
+        });
+    const settle = () => {
+      // Back to the stylesheet's transition, then to where it belongs.
+      s.moved.style.transition = "";
+      s.moved.style.transform = s.baseTransform;
+    };
+    if (!outcome) {
+      settle();
+      return;
+    }
+    const target = outcome === "next" ? s.next! : s.prev!;
+    if (this._config?.haptics !== false) fireHaptic(this, "light");
+    const navigate = () => this._dispatch({ action: "navigate", navigation_path: target.path });
+    if (!shouldAnimate(this._config?.animation) || matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      settle();
+      navigate();
+      return;
+    }
+    void slideToPage(outcome, navigate, (on) => {
+      // The bar keeps still while the page slides: one bar on screen carries
+      // the name — two would cancel the transition.
+      let named = false;
+      for (const card of connectedSheets) {
+        const bar = card.renderRoot?.querySelector<HTMLElement>(".bar");
+        if (!bar) continue;
+        const take = on && !named && card.isConnected && bar.getClientRects().length > 0;
+        bar.style.viewTransitionName = take ? "m3-nav-bar" : "";
+        if (take) named = true;
+      }
+      if (!on) settle();
+    });
   }
 
   // ---- sheet ---------------------------------------------------------------
@@ -2330,9 +2496,13 @@ export class M3NavCard extends LitElement implements LovelaceCard {
           ? "auto-hidden"
           : ""} ${animated ? "" : "no-animations"} ${
           this._settling ? "settling" : ""
-        }"
+        } ${this._swipeEnabled ? "swipeable" : ""}"
         style=${`${cssVars} ${freeStyles}`}
         aria-label=${cfg.name || this._t("nav_label")}
+        @pointerdown=${this._onSwipeDown}
+        @pointermove=${this._onSwipeMove}
+        @pointerup=${this._onSwipeUp}
+        @pointercancel=${this._onSwipeCancel}
       >
         ${marker}${items.map((item) => this._renderItem(item))}
       </nav>
@@ -3530,6 +3700,12 @@ export class M3NavCard extends LitElement implements LovelaceCard {
        placed from measurements rather than laid out, so it sits outside the
        flow and under the entries — the icon and the label have to stay on top
        of it. */
+    /* swipe_navigation: the browser keeps vertical panning, the sideways
+       drag is the card's. */
+    .bar.swipeable {
+      touch-action: pan-y;
+    }
+
     .marker {
       position: absolute;
       left: 0;

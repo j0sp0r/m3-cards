@@ -2829,6 +2829,12 @@ export type NavSheetItemStyle = "grid" | "list";
 
 export interface M3NavCardConfig extends DetailModeConfig {
   type: string;
+  /**
+   * A sideways swipe along the bar goes to the neighbouring entry, with the
+   * page sliding over where the browser can. Only on a bar that does not
+   * scroll sideways itself.
+   */
+  swipe_navigation?: boolean;
   style?: NavVariant;
   position?: NavPosition;
   items?: NavItemConfig[];

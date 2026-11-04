@@ -32,6 +32,14 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   card: squarer at home, round while away — the pill and avatar in the
   compact layout, the avatar in the grid.
 
+- **Swipe along the nav bar to change page** (`swipe_navigation: true`).
+  A sideways swipe on the bar goes to the neighbouring entry: the active pill
+  follows the finger with a rubber band at either end, and on release the old
+  page slides out and the new one in while the bar stays still (View
+  Transitions; a browser without them just navigates). A flick is enough; a
+  short slow drag springs back. Off by default, and off on a bar that
+  scrolls sideways.
+
 - **`shape_by_state` on five more cards.** The button card's "shape follows
   the state" now also works on the lights overview and room card tiles (off
   rounds out, on keeps its corners; the room tile's well goes from circle to

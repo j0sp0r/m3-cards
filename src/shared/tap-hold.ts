@@ -70,6 +70,15 @@ export class TapHold {
     window.clearTimeout(this.holdTimer);
   };
 
+  /**
+   * Someone else took the gesture (the nav bar's swipe captured the pointer):
+   * no hold, and the click that may still arrive is not a tap.
+   */
+  readonly abandon = (): void => {
+    this.moved = true;
+    window.clearTimeout(this.holdTimer);
+  };
+
   /** Wire as `@click=${h.click}`. Returns without acting on a drag or after a hold. */
   readonly click = (): void => {
     if (this.moved) {
