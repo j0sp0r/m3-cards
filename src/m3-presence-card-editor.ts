@@ -51,9 +51,27 @@ export class M3PresenceCardEditor extends LitElement implements LovelaceCardEdit
   }
 
   private _contentSchema(): SchemaEntry[] {
+    const compact = this._config?.layout === "compact";
     return [
-      { name: "name", selector: { text: {} } },
-      { name: "icon", selector: { icon: {} } },
+      {
+        name: "layout",
+        selector: {
+          select: {
+            mode: "list",
+            options: [
+              { value: "grid", label: this._t("editor_presence_layout_grid") },
+              { value: "compact", label: this._t("editor_presence_layout_compact") },
+            ],
+          },
+        },
+      },
+      // The compact layout has no header to put a name or icon in.
+      ...(compact
+        ? []
+        : [
+            { name: "name", selector: { text: {} } },
+            { name: "icon", selector: { icon: {} } },
+          ]),
       { name: "show_distance", selector: { boolean: {} } },
       { name: "show_since", selector: { boolean: {} } },
       { name: "show_map", selector: { boolean: {} } },
@@ -114,6 +132,7 @@ export class M3PresenceCardEditor extends LitElement implements LovelaceCardEdit
       show_since: "editor_presence_show_since",
       show_map: "editor_presence_show_map",
       sort: "editor_presence_sort",
+      layout: "editor_presence_layout",
       tap_action: "editor_tap_action",
       hold_action: "editor_hold_action",
       animation: "editor_progress_animation",
@@ -246,6 +265,7 @@ export class M3PresenceCardEditor extends LitElement implements LovelaceCardEdit
       entities: this._config.entities ?? [],
     };
     const contentData = {
+      layout: this._config.layout ?? "grid",
       name: this._config.name,
       icon: this._config.icon,
       show_distance: this._config.show_distance ?? true,

@@ -1266,6 +1266,11 @@ export interface M3PresenceCardConfig extends DetailModeConfig {
   /** How far it may be zoomed. Defaults to 4×. */
   map_max_zoom?: number;
   sort?: PresenceSortMode;
+  /**
+   * `grid` (default): header plus an avatar grid. `compact`: no header, one
+   * pill per person — avatar, name and status in a 44px row.
+   */
+  layout?: "grid" | "compact";
   home_color?: string;
   not_home_color?: string;
   zone_color?: string;

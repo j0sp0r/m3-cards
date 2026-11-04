@@ -6,6 +6,15 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Added
+
+- **A compact presence card.** `layout: compact` shows one pill per person —
+  avatar with its status ring, name, and "away · 2 h" — in a card 68px tall
+  for up to two people, instead of a header and an avatar grid. The pills take
+  each person's status colour and wrap on a narrow card. Everything else the
+  card does (actions, popups, sorting, colours, the map) carries over. Asked
+  for on Reddit: the grid is "too big for that little information".
+
 ### Changed
 
 - **A row's fill glides to a new value.** On the battery, power list, NAS and

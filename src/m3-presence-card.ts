@@ -20,6 +20,10 @@ import {
   PRESENCE_RING_WIDTH,
   PRESENCE_GRID_GAP,
   PRESENCE_GRID_MIN_COL,
+  PRESENCE_PILL_HEIGHT,
+  PRESENCE_PILL_AVATAR,
+  PRESENCE_PILL_MIN_WIDTH,
+  PRESENCE_PILL_GAP,
   PRESENCE_COLOR_HOME,
   PRESENCE_COLOR_NOT_HOME,
   PRESENCE_COLOR_ZONE,
@@ -111,12 +115,16 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
     };
   }
 
+  private get _compact(): boolean {
+    return this._config?.layout === "compact";
+  }
+
   public getCardSize(): number {
-    return 3;
+    return this._compact ? 1 : 3;
   }
 
   public getGridOptions(): LovelaceGridOptions {
-    return { columns: "full", rows: "auto", min_rows: 3 };
+    return { columns: "full", rows: "auto", min_rows: this._compact ? 1 : 3 };
   }
 
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
@@ -287,17 +295,22 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
     return (parts[0][0] + parts[1][0]).toUpperCase();
   }
 
-  private _relativeSince(row: PersonRow): string | undefined {
+  /**
+   * `short` drops the "since": a pill already says "away", and "away · 2 h"
+   * fits where "away · since 2 h" would be cut off.
+   */
+  private _relativeSince(row: PersonRow, short = false): string | undefined {
     if (!this._config?.show_since || row.status === "home") return undefined;
     const changed = new Date(row.entity.last_changed).getTime();
     if (Number.isNaN(changed)) return undefined;
     const elapsedMin = Math.max(0, Math.round((Date.now() - changed) / 60000));
     if (elapsedMin < 1) return undefined;
-    if (elapsedMin < 60) return this._t("since_minutes").replace("{n}", String(elapsedMin));
+    const t = (long: TranslationKey, brief: TranslationKey, n: number) =>
+      this._t(short ? brief : long).replace("{n}", String(n));
+    if (elapsedMin < 60) return t("since_minutes", "presence_for_minutes", elapsedMin);
     const hours = Math.round(elapsedMin / 60);
-    if (hours < 24) return this._t("since_hours").replace("{n}", String(hours));
-    const days = Math.round(hours / 24);
-    return this._t("since_days").replace("{n}", String(days));
+    if (hours < 24) return t("since_hours", "presence_for_hours", hours);
+    return t("since_days", "presence_for_days", Math.round(hours / 24));
   }
 
   private _popupConfigFor(entityId: string): PresencePersonPopupConfig | undefined {
@@ -485,7 +498,9 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
           class="card-inner ${glassCardClass(this._config.glass_background)} ${animClass}"
           style=${`border-radius: ${radius};${cardBackgroundCss ? ` background: ${cardBackgroundCss};` : ""}`}
         >
-          ${renderCardHeader({
+          ${this._compact
+            ? nothing
+            : renderCardHeader({
             icon,
             name,
             subtitle,
@@ -501,7 +516,9 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
 
           ${rows.length === 0
             ? html`<div class="empty-state">${this._t("presence_empty")}</div>`
-            : html`<div class="person-grid">${rows.map((r) => this._renderPerson(r))}</div>`}
+            : this._compact
+              ? html`<div class="person-pills">${rows.map((r) => this._renderPill(r))}</div>`
+              : html`<div class="person-grid">${rows.map((r) => this._renderPerson(r))}</div>`}
 
           ${this._config.show_map && rows.length > 0 ? html`<div class="map-wrap"></div>` : nothing}
         </div>
@@ -510,16 +527,79 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
     `;
   }
 
+  private _statusText(row: PersonRow): string {
+    return row.status === "home"
+      ? this._t("presence_home")
+      : row.status === "zone"
+        ? row.zoneName!
+        : row.status === "not_home"
+          ? this._t("presence_not_home")
+          : this._t("unavailable");
+  }
+
+  private _distance(row: PersonRow): string | undefined {
+    return this._config?.show_distance && row.status === "not_home" && typeof row.entity.attributes.distance === "number"
+      ? `${this._formatNumber(row.entity.attributes.distance)} km`
+      : undefined;
+  }
+
+  /** The colour variables and press handling every person element shares. */
+  private _personStyle(row: PersonRow): string {
+    const opacity = this._config?.presence_tint_opacity;
+    return `--presence-color: ${row.color}; --presence-tint: ${tintOn(this, row.color, opacity, 18)}; --presence-ink: ${tintInk(this, row.color, opacity, 18)};`;
+  }
+
+  private _cancelHold = (): void => {
+    if (this._holdTimer !== undefined) {
+      window.clearTimeout(this._holdTimer);
+      this._holdTimer = undefined;
+    }
+  };
+
+  private _onKey(row: PersonRow) {
+    return activateOnKey(() => this._runAction(this._config?.tap_action ?? this._defaultTapAction(row.entityId), row.entityId));
+  }
+
+  /**
+   * `layout: compact` — one pill per person: the avatar with its status ring,
+   * the name, and one status line. The pill takes the person's status tint, so
+   * who is home reads from across the room without the avatar grid's height.
+   * The status line carries what the grid spreads over two lines: the zone or
+   * "away", then how long, else the distance.
+   */
+  private _renderPill(row: PersonRow) {
+    const picture = cssUrl(row.entity.attributes.entity_picture as string | undefined);
+    const extra = this._relativeSince(row, true) ?? this._distance(row);
+    return html`
+      <div
+        class="pill"
+        role="button"
+        tabindex="0"
+        aria-label=${`${row.name}, ${this._statusText(row)}`}
+        style=${this._personStyle(row)}
+        @pointerdown=${this._handlePointerDown(row)}
+        @pointerup=${this._handlePointerUp(row)}
+        @pointercancel=${this._cancelHold}
+        @keydown=${this._onKey(row)}
+      >
+        <div class="pill-avatar" style=${picture ? `background-image: ${picture};` : ""}>
+          ${!picture ? html`<span class="pill-initials">${this._initials(row.name)}</span>` : nothing}
+        </div>
+        <div class="pill-text">
+          <span class="pill-name">${row.name}</span>
+          <span class="pill-status">${this._statusText(row)}${extra ? ` · ${extra}` : ""}</span>
+        </div>
+      </div>
+    `;
+  }
+
   private _renderPerson(row: PersonRow) {
     // Checked once: a picture the card will not load is one it does not
     // have, so the initials stand in rather than leaving an empty circle.
     const picture = cssUrl(row.entity.attributes.entity_picture as string | undefined);
     const since = this._relativeSince(row);
-    const distance =
-      this._config?.show_distance && row.status === "not_home" && typeof row.entity.attributes.distance === "number"
-        ? `${this._formatNumber(row.entity.attributes.distance)} km`
-        : undefined;
-    const statusText = row.status === "home" ? this._t("presence_home") : row.status === "zone" ? row.zoneName! : row.status === "not_home" ? this._t("presence_not_home") : this._t("unavailable");
+    const distance = this._distance(row);
+    const statusText = this._statusText(row);
 
     return html`
       <div
@@ -527,16 +607,11 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
         role="button"
         tabindex="0"
         aria-label=${row.name}
-        style=${`--presence-color: ${row.color}; --presence-tint: ${tintOn(this, row.color, this._config?.presence_tint_opacity, 18)}; --presence-ink: ${tintInk(this, row.color, this._config?.presence_tint_opacity, 18)};`}
+        style=${this._personStyle(row)}
         @pointerdown=${this._handlePointerDown(row)}
         @pointerup=${this._handlePointerUp(row)}
-        @pointercancel=${() => {
-          if (this._holdTimer !== undefined) {
-            window.clearTimeout(this._holdTimer);
-            this._holdTimer = undefined;
-          }
-        }}
-        @keydown=${activateOnKey(() => this._runAction(this._config?.tap_action ?? this._defaultTapAction(row.entityId), row.entityId))}
+        @pointercancel=${this._cancelHold}
+        @keydown=${this._onKey(row)}
       >
         <div class="avatar-wrap">
           <div class="avatar" style=${picture ? `background-image: ${picture};` : ""}>
@@ -684,6 +759,85 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
         font-size: 9px;
         opacity: 0.45;
         color: var(--m3p-text);
+      }
+
+      .person-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: ${PRESENCE_PILL_GAP}px;
+      }
+
+      .pill {
+        flex: 1 1 ${PRESENCE_PILL_MIN_WIDTH}px;
+        min-width: 0;
+        height: ${PRESENCE_PILL_HEIGHT}px;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 14px 0 6px;
+        border-radius: ${PRESENCE_PILL_HEIGHT / 2}px;
+        background: var(--presence-tint);
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        transition: background-color 320ms ease;
+      }
+
+      .no-animations .pill {
+        transition: none;
+      }
+
+      .pill:focus-visible {
+        outline: 2px solid var(--presence-color);
+        outline-offset: 2px;
+      }
+
+      .pill-avatar {
+        flex-shrink: 0;
+        width: ${PRESENCE_PILL_AVATAR}px;
+        height: ${PRESENCE_PILL_AVATAR}px;
+        border-radius: 50%;
+        border: 2px solid var(--presence-color);
+        box-sizing: border-box;
+        background-color: var(--presence-tint);
+        background-size: cover;
+        background-position: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .pill-initials {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--presence-ink, var(--presence-color));
+      }
+
+      .pill-text {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        line-height: 1.25;
+      }
+
+      .pill-name,
+      .pill-status {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .pill-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--m3p-text);
+      }
+
+      .pill-status {
+        font-size: 11px;
+        font-weight: 500;
+        /* The status line sits on the person's tint and carries its colour. */
+        color: var(--presence-ink, var(--presence-color));
       }
 
       .map-wrap {

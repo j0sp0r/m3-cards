@@ -23,6 +23,22 @@ type: custom:m3-presence-card
 auto_discover: true
 ```
 
+### Compact layout
+
+`layout: compact` drops the header and the avatar grid for one pill per
+person: the avatar with its status ring, the name, and one status line — the
+zone or "away", then how long, else the distance. Each pill takes its
+person's status colour, and the pills share the row and wrap when the card is
+narrow, so two people fit on one 68px card.
+
+```yaml
+type: custom:m3-presence-card
+layout: compact
+```
+
+Actions, popups, sorting, colours and `show_map` work as in the grid; `name`
+and `icon` have no header to go in.
+
 ### Entity source
 
 - **`auto_discover: true`** (default): automatically finds every `person`
@@ -133,6 +149,7 @@ to their more-info rather than opening an empty dialog.
 | `show_distance` | boolean | `false` | Distance to the home zone (if available) |
 | `show_since` | boolean | `true` | Relative time since the last state change |
 | `show_map` | boolean | `false` | Embedded map below the avatar grid |
+| `layout` | `grid` \| `compact` | `grid` | `grid`: header and avatar grid. `compact`: one pill per person, no header |
 | `sort` | `home_first` \| `name` | `home_first` | Sort order: home first or alphabetical |
 | `home_color` / `not_home_color` / `zone_color` / `unknown_color` | string | green/blue/purple/gray | Status ring colors |
 | `zone_colors` | object (zone name → color) | – | Override per named zone |
