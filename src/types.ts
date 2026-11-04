@@ -1077,6 +1077,172 @@ export interface PrinterAmsSlotConfig {
 
 export type PrinterSecondaryAction = "stop" | "files" | "filament" | "preheat";
 
+// ---- Vehicle card ----------------------------------------------------------
+
+/**
+ * One value the vehicle card reads: an entity id as the short form, or an
+ * object. The card knows no manufacturer, only meanings, so every reading is a
+ * slot that a config (and, later, a preset) fills.
+ */
+export type VehicleSlot = string | VehicleSlotConfig;
+
+export interface VehicleSlotConfig {
+  entity?: string;
+  /**
+   * Jinja2. Rendered live by the card's template subscription (TemplatedCard),
+   * and preferred over `entity` for the value; `entity` still supplies the
+   * timestamps and the more-info target when both are given.
+   */
+  template?: string;
+  /** Read this attribute instead of the state. */
+  attribute?: string;
+  name?: string;
+  icon?: string;
+  /** Overrides the entity's unit_of_measurement. */
+  unit?: string;
+  /** Shown in the warning colour below or above these values. */
+  warn_below?: number;
+  warn_above?: number;
+}
+
+export interface VehicleChargingSlotConfig extends VehicleSlotConfig {
+  /**
+   * States that mean "charging" for an entity that is not a binary_sensor.
+   * Compared case-insensitively. Default: charging, on, true.
+   */
+  charging_states?: string[];
+}
+
+export interface VehicleEnergyConfig {
+  battery?: VehicleSlot;
+  /** Electric range. */
+  range?: VehicleSlot;
+  charging?: string | VehicleChargingSlotConfig;
+  /** Cable plugged in — tells "plugged in" from "parked" when not charging. */
+  plugged?: VehicleSlot;
+  /** Charging power; W is recognised by its unit and shown as kW. */
+  charge_power?: VehicleSlot;
+  /** Target state of charge in %. */
+  charge_limit?: VehicleSlot;
+  /** When charging ends, as a timestamp. Preferred over any estimate. */
+  charge_end?: VehicleSlot;
+  /**
+   * Usable battery capacity. Only with it does the card estimate when
+   * charging ends; without it, and without `charge_end`, it shows no time.
+   */
+  capacity_kwh?: number;
+  fuel_level?: VehicleSlot;
+  fuel_range?: VehicleSlot;
+}
+
+/**
+ * A condition in the suite's rule vocabulary (`StatusRule`): an exact value,
+ * a pattern, or a threshold — plus a template and a minimum duration. A
+ * condition that names only an entity is met while the entity is on.
+ */
+export interface VehicleCondition {
+  /** Default: the battery entity (fuel level on `drive: fuel`). */
+  entity?: string;
+  attribute?: string;
+  value?: string | string[];
+  regex?: string;
+  above?: number;
+  below?: number;
+  /** Jinja2; met when it renders to true/on/yes/1. */
+  template?: string;
+  /** Only once the entity has held its state this long. */
+  for_minutes?: number;
+}
+
+export interface VehicleActionConfig {
+  name?: string;
+  icon?: string;
+  /** Only honoured on the first entry: a wide tonal button with its name. */
+  primary?: boolean;
+  /** Target of toggle / more-info / a service call without its own target. */
+  entity?: string;
+  tap_action?: HaActionConfig;
+  hold_action?: HaActionConfig;
+  /** Shown only while this holds — "stop charging" only while charging. */
+  visible?: VehicleCondition | VehicleCondition[];
+}
+
+export interface VehicleAlertConfig {
+  /** A list means every condition must hold. */
+  when: VehicleCondition | VehicleCondition[];
+  /** May be a template. */
+  text: string;
+  icon?: string;
+  /** `warn` (default) is amber; `info` is neutral. */
+  severity?: "warn" | "info";
+  action?: { name: string; entity?: string; tap_action: HaActionConfig };
+}
+
+/** The blocks under the header, in the order they are drawn. */
+export type VehicleBlock = "energy" | "alerts" | "chips" | "actions" | "footer";
+
+export type VehicleDrive = "ev" | "fuel" | "hybrid";
+
+export interface M3VehicleCardConfig extends NotifyConfigBase, DetailModeConfig {
+  type: string;
+  name?: string;
+  /** Default mdi:car (mdi:car-electric is not used: the card is for every drive). */
+  icon?: string;
+  /** A cut-out picture in the header's icon well, instead of the icon. */
+  image?: string;
+  /** Which energy slots the card expects. Default `ev`. */
+  drive?: VehicleDrive;
+  energy?: VehicleEnergyConfig;
+  /** A lock entity, or a binary_sensor with device_class lock (on = unlocked). */
+  lock?: VehicleSlot;
+  /** A device_tracker, person, or a sensor that names the place. */
+  location?: VehicleSlot;
+  /** When the car last reported. Default: the battery or fuel entity's last report. */
+  last_updated?: VehicleSlot;
+  /** After this many minutes without a report the footer warns. 0/unset = never. */
+  stale_after_minutes?: number;
+  chips?: ((ApplianceChipConfig & { warn_below?: number; warn_above?: number }) | InfoChipHeading)[];
+  chip_style?: "pill" | "tile";
+  actions?: VehicleActionConfig[];
+  alerts?: VehicleAlertConfig[];
+  /** Order and visibility of the blocks under the header. */
+  layout?: VehicleBlock[];
+  /** Header tap. Default: the battery's (or fuel level's) more-info. */
+  tap_action?: HaActionConfig;
+
+  /** Folding: the lock pill (or the round chevron without one) folds the card. */
+  collapsible?: boolean;
+  /** What the fold takes. Default: chips, actions and footer. Alerts always stay. */
+  collapse_blocks?: VehicleBlock[];
+  default_collapsed?: boolean;
+  collapse_state_entity?: string;
+  collapse_memory?: CollapseMemory;
+
+  /** Notifications — written as an automation by the editor (shared/vehicle-notify.ts). */
+  notify_charge_done?: boolean;
+  /** Battery (or fuel) below this percentage. */
+  notify_low_below?: number;
+  /** Unlocked for this many minutes. */
+  notify_unlocked_minutes?: number;
+  /** "HH:MM": remind if the car is not plugged in and below `notify_plug_below`. */
+  notify_plug_time?: string;
+  notify_plug_below?: number;
+
+  /** Reserved for integration presets; ignored for now. */
+  preset?: string;
+
+  accent_color?: string;
+  accent_opacity?: number;
+  text_color?: string;
+  secondary_text_color?: string;
+  card_background?: string;
+  glass_background?: boolean;
+  animation?: "auto" | "on" | "off";
+  radius?: number;
+  corners?: CornerRadiusConfig;
+  haptics?: boolean;
+}
+
 export interface M3PrinterCardConfig extends NotifyConfigBase, DetailModeConfig {
   /**
    * The entity whose state drives the layout — a status or stage sensor. Any
@@ -1876,7 +2042,8 @@ export type M3CardConfig =
   | M3RoomCardConfig
   | M3RouterCardConfig
   | M3RouterDiagnosticsCardConfig
-  | M3RemoteCardConfig;
+  | M3RemoteCardConfig
+  | M3VehicleCardConfig;
 
 export interface SupplyItemConfig {
   /** A `counter.*` or `input_number.*` helper holding the remaining count. */

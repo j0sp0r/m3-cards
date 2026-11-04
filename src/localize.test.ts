@@ -59,6 +59,11 @@ const SUBSTITUTED_ELSEWHERE = new Map<string, string>([
   // `template` const that fillStatus() then fills.
   ["checkin_status_in", "fillStatus() on the `template` const"],
   ["checkin_status_out", "fillStatus() on the `template` const"],
+  // Handed to buildVehicleNotifyAutomation, which fills {name}, {level} and {n}.
+  ["vehicle_notify_charge_done", "buildVehicleNotifyAutomation()"],
+  ["vehicle_notify_low", "buildVehicleNotifyAutomation()"],
+  ["vehicle_notify_unlocked", "buildVehicleNotifyAutomation()"],
+  ["vehicle_notify_plug", "buildVehicleNotifyAutomation()"],
 ]);
 
 /**

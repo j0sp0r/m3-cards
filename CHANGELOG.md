@@ -8,6 +8,19 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **A vehicle card** (`m3-vehicle-card`, the 52nd). One car — charge or tank,
+  range, lock, where it stands, alerts and actions — for any integration: the
+  card knows meanings, not manufacturers, and every reading is a slot filled
+  with an entity or a template. Parked, the charge is one line; charging, it
+  becomes the hero over the suite's wave, with the limit marked on the track
+  and "11 kW · full at 18:40" underneath. Electric, combustion and plug-in
+  hybrid. It never guesses: unavailable is a dash, not 0 %; "parked" needs a
+  sensor that says so; a charge end is shown only when the car reports one or
+  `capacity_kwh` allows working it out. Alerts appear only while their
+  condition holds, the card folds through its lock pill, and the editor can
+  write a notification automation (charging finished, low, unlocked, not
+  plugged in). Asked for on Reddit.
+
 - **A compact presence card.** `layout: compact` shows one pill per person —
   avatar with its status ring, name, and "away · 2 h" — in a card 68px tall
   for up to two people, instead of a header and an avatar grid. The pills take

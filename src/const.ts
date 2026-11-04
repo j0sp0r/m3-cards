@@ -2569,6 +2569,52 @@ export const PRINTER_WAVE_SVG_HEIGHT = 20;
 export const PRINTER_PROGRESS_PILL_HEIGHT = VACUUM_BATTERY_HEIGHT;
 export const PRINTER_PROGRESS_PILL_RADIUS = VACUUM_BATTERY_RADIUS;
 
+// ---- vehicle card -------------------------------------------------------------
+// One car: charge or tank, range, lock, where it is, and what to do about it.
+// The wave, the buttons and the pills are the printer's, so the two read alike.
+export const DEFAULT_VEHICLE_RADIUS = RADIUS.card;
+export const DEFAULT_VEHICLE_ICON = "mdi:car";
+export const VEHICLE_ICON_TINT = 16;
+/** The car's own colour: green while all is well. */
+export const VEHICLE_COLOR_OK = PALETTE.ok;
+/** Amber: unlocked, low, an alert, stale data. */
+export const VEHICLE_COLOR_WARN = PALETTE.solar;
+export const VEHICLE_COLOR_NEUTRAL = PALETTE.off;
+/** The hero figure: large while charging, smaller beside the parked bar. */
+export const VEHICLE_HERO_SIZE = 52;
+export const VEHICLE_HERO_SIZE_COMPACT = 30;
+export const VEHICLE_HERO_WEIGHT = 700;
+export const VEHICLE_BAR_HEIGHT = 8;
+export const VEHICLE_BAR_HEIGHT_HYBRID = 6;
+export const VEHICLE_WAVE_SVG_HEIGHT = PRINTER_WAVE_SVG_HEIGHT;
+export const VEHICLE_WAVE_STROKE = PRINTER_WAVE_STROKE;
+export const VEHICLE_WAVE_AMPLITUDE = PRINTER_WAVE_AMPLITUDE;
+export const VEHICLE_WAVE_WAVELENGTH = PRINTER_WAVE_WAVELENGTH;
+export const VEHICLE_WAVE_GAP = PRINTER_WAVE_GAP;
+export const VEHICLE_WAVE_PHASE_SPEED = PRINTER_WAVE_PHASE_SPEED;
+export const VEHICLE_WAVE_AMPLITUDE_LERP = PRINTER_WAVE_AMPLITUDE_LERP;
+/** The charge-limit marker: a short upright stroke across the track. */
+export const VEHICLE_LIMIT_MARK_HEIGHT = 16;
+export const VEHICLE_LIMIT_MARK_WIDTH = 3;
+export const VEHICLE_PILL_HEIGHT = VACUUM_BATTERY_HEIGHT;
+export const VEHICLE_PILL_RADIUS = VACUUM_BATTERY_RADIUS;
+export const VEHICLE_PILL_TINT = 18;
+export const VEHICLE_BUTTON_HEIGHT = PRINTER_BUTTON_HEIGHT;
+export const VEHICLE_PRIMARY_RADIUS = PRINTER_BUTTON_HEIGHT / 2;
+export const VEHICLE_SECONDARY_RADIUS = PRINTER_SECONDARY_RADIUS;
+export const VEHICLE_BUTTON_RADIUS_PRESSED = PRINTER_BUTTON_RADIUS_PRESSED;
+export const VEHICLE_BUTTON_PRESS_MS = PRINTER_BUTTON_PRESS_MS;
+export const VEHICLE_PRIMARY_TINT = 24;
+export const VEHICLE_SECONDARY_TINT = PRINTER_SECONDARY_TINT;
+/** Active (the entity behind a button is on): the squircle closes in. */
+export const VEHICLE_BUTTON_RADIUS_ACTIVE = 16;
+export const VEHICLE_ALERT_RADIUS = 18;
+export const VEHICLE_ALERT_TINT = 14;
+export const VEHICLE_ALERT_MIN_HEIGHT = 48;
+export const VEHICLE_ALERT_ACTION_HEIGHT = 32;
+/** How long the charging ↔ parked change takes; the fold's duration. */
+export const VEHICLE_MORPH_MS = 320;
+
 // ---- confirm dialog ---------------------------------------------------------
 // The shared "are you sure?" sheet. Sized like a small card rather than a
 // system alert: it sits on top of a card, so it should look like it came from

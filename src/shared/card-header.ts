@@ -18,6 +18,11 @@ export function renderCardHeader(params: {
   onIconClick?: (e: Event) => void;
   iconLabel?: string;
   right?: TemplateResult;
+  /**
+   * A CSS `url(...)` (from `cssUrl`) drawn in the swatch instead of the icon —
+   * a cut-out picture of the car rather than a glyph for one.
+   */
+  image?: string;
 }): TemplateResult {
   const interactive = !!params.onClick;
   const iconInteractive = !!params.onIconClick;
@@ -39,14 +44,15 @@ export function renderCardHeader(params: {
       @keydown=${interactive && params.onClick ? activateOnKey(params.onClick) : nothing}
     >
       <div
-        class="m3-icon-swatch ${iconInteractive ? "interactive" : ""}"
+        class="m3-icon-swatch ${iconInteractive ? "interactive" : ""} ${params.image ? "has-image" : ""}"
+        style=${params.image ? `background-image: ${params.image};` : nothing}
         role=${iconInteractive ? "button" : nothing}
         tabindex=${iconInteractive ? "0" : nothing}
         aria-label=${iconInteractive ? (params.iconLabel ?? params.name) : nothing}
         @click=${onIconClick}
         @keydown=${onIconClick ? activateOnKey(onIconClick) : nothing}
       >
-        <ha-icon icon=${params.icon}></ha-icon>
+        ${params.image ? nothing : html`<ha-icon icon=${params.icon}></ha-icon>`}
       </div>
       <div class="m3-text-block">
         <div class="m3-name">${params.name}</div>
@@ -81,6 +87,12 @@ export const cardHeaderStyles = css`
     justify-content: center;
     background: var(--m3p-icon-bg);
     color: var(--m3p-icon-color);
+  }
+
+  .m3-icon-swatch.has-image {
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
   }
 
   .m3-icon-swatch ha-icon {
