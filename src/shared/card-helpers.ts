@@ -64,6 +64,51 @@ export async function createCards(
   return out;
 }
 
+/**
+ * Makes sure one of HA's own lazy-loaded cards is defined, so a caller can
+ * create it with `document.createElement(tag)`.
+ *
+ * HA registers most of its built-in cards (`hui-map-card` among them) only the
+ * first time a dashboard asks for one. A card that embeds one and merely checks
+ * `customElements.get(tag)` therefore works only on a page where some native
+ * card of that type happened to load first. Asking the card helpers to build
+ * one — the element is thrown away — makes HA import the module; the promise
+ * resolves once the tag is defined.
+ *
+ * `config` must be one HA accepts for that type, or HA may not import it.
+ * Resolves `false` (with a console warning) if the helpers are missing or the
+ * tag is still undefined after `timeoutMs`.
+ */
+export async function ensureHaCardDefined(
+  tag: string,
+  config: Record<string, unknown>,
+  timeoutMs = 10_000,
+): Promise<boolean> {
+  if (customElements.get(tag)) return true;
+  const loader = window.loadCardHelpers;
+  if (!loader) {
+    console.warn(`m3-cards: cannot load ${tag} — window.loadCardHelpers is missing`);
+    return false;
+  }
+  try {
+    const helpers = await loader();
+    helpers.createCardElement(config);
+  } catch (e) {
+    console.warn(`m3-cards: loading ${tag} failed`, e);
+    return false;
+  }
+  let timer: number | undefined;
+  const defined = await Promise.race([
+    customElements.whenDefined(tag).then(() => true),
+    new Promise<boolean>((resolve) => {
+      timer = window.setTimeout(() => resolve(false), timeoutMs);
+    }),
+  ]);
+  window.clearTimeout(timer);
+  if (!defined) console.warn(`m3-cards: ${tag} was not defined after ${timeoutMs} ms`);
+  return defined;
+}
+
 /** Pushes a fresh `hass` into each nested card. Cheap enough to call per tick. */
 export function updateCardsHass(
   cards: HTMLElement[],

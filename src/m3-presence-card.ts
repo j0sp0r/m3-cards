@@ -47,6 +47,7 @@ import { discoveryChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
 import { cssUrl } from "./shared/css-safe";
 import { openEntityDetail } from "./shared/entity-detail";
+import { ensureHaCardDefined } from "./shared/card-helpers";
 
 console.info(
   `%c M3-PRESENCE-CARD %c v${CARD_VERSION} `,
@@ -86,6 +87,8 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
   private readonly _popupCard = new DetailCardController();
   private _mapCardEl?: HTMLElement & { hass?: HomeAssistant; setConfig?: (c: unknown) => void };
   private _mapEntityKey?: string;
+  /** Set once the map card has been asked to load; never retried. */
+  private _mapLoading = false;
 
   public static getStubConfig(): M3PresenceCardConfig {
     return {
@@ -148,8 +151,21 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
     const entityIds = rows.map((r) => r.entityId);
     const key = entityIds.join(",");
     if (!this._mapCardEl) {
-      const ctor = customElements.get("hui-map-card");
-      if (!ctor) return;
+      if (!customElements.get("hui-map-card")) {
+        // HA defines the map card only when a dashboard first asks for one;
+        // without a native map card on the page it is not there yet (#26).
+        // Load it once, then come back through `updated`.
+        if (!this._mapLoading) {
+          this._mapLoading = true;
+          void ensureHaCardDefined("hui-map-card", {
+            type: "map",
+            entities: entityIds.map((id) => ({ entity: id })),
+          }).then((ok) => {
+            if (ok) this.requestUpdate();
+          });
+        }
+        return;
+      }
       try {
         this._mapCardEl = document.createElement("hui-map-card") as HTMLElement & {
           hass?: HomeAssistant;

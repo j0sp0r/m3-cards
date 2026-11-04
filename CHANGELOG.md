@@ -20,6 +20,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   button, check-in, chip buttons, group, openings, printer, system, vacuum and
   vacuum maintenance cards — printed no banner, so "which version do you
   run?" had no quick answer for them. A test now fails for a card without one.
+- **The presence card's map appears without a native map card on the page**
+  (#26). Home Assistant defines its map card only the first time a dashboard
+  asks for one, and `show_map` silently drew nothing on a view without a
+  native `map` card. The card now has HA load it, and says so in the console
+  if that fails.
 
 ## [2.6.0] – 2026-11-03
 
