@@ -38,6 +38,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **The bug report form lists every card.** Its dropdown was kept by hand and
+  named 17 of 52; `npm run docs` now writes it from the card docs, and CI
+  checks it stays in step.
 - **Every card says its version in the browser console.** Nine of them — the
   button, check-in, chip buttons, group, openings, printer, system, vacuum and
   vacuum maintenance cards — printed no banner, so "which version do you
@@ -52,9 +55,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   attribute changes — and a dry sensor changes nothing for days. A row now
   shows the newest sign of life from the whole device (link quality, battery
   and the like count too), and a sensor counts as unreachable only when Home
-  Assistant gives the card a `last_reported` time that proves the gap;
-  without one the row reads "last active …" and never warns. An unavailable
-  sensor still warns as before. `stale_hours` now defaults to 24 instead of
+  something proves the gap — a `last_reported` time, or a "last seen"
+  timestamp sensor on the device (Zigbee2MQTT's `*_last_seen`, found on its
+  own, or named per sensor as `last_seen_entity`). Without proof the row reads
+  "last active …" and does not warn; `stale_check: activity` opts back into
+  warning on mere inactivity, `stale_check: off` leaves only `unavailable`.
+  The frontend's states carry no `last_reported`, so on most setups proof means
+  a last-seen sensor. An unavailable sensor still warns as before. `stale_hours` now defaults to 24 instead of
   6, since many battery-powered Z-Wave sensors wake only every 12–24 hours.
 - **A swipe that starts on a slider can scroll the page** (#27). Sliders used
   `touch-action: none`, so on a view full of lights scrolling mostly changed

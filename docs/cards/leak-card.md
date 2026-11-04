@@ -35,11 +35,12 @@ whichever sensor is wet has to be on screen without another tap.
 | --- | --- | --- | --- |
 | `auto_discover` | boolean | `true` | Find `device_class: moisture` sensors |
 | `include_area` / `exclude_entities` | list | – | Narrow discovery |
-| `sensors` | list | – | Manual list: `{ entity, name, icon, battery_entity }` |
+| `sensors` | list | – | Manual list: `{ entity, name, icon, battery_entity, last_seen_entity }` — `last_seen_entity` is a timestamp sensor whose state is the device's last message |
 | `valve_entity` | string | – | Shut-off valve (valve/switch/cover) — only then is the shut-off button shown |
 | `confirm_shutoff` | boolean | `false` | Ask before shutting off |
 | `siren_entity` / `ack_entity` | string | – | Silenced / acknowledged on the ack button |
-| `stale_hours` | number | `24` | A sensor that has not reported for longer than this counts as unreachable — only where Home Assistant gives the card a `last_reported` time; otherwise the row shows when the device was last active and never warns |
+| `stale_check` | `proof` / `activity` / `off` | `proof` | When a quiet sensor counts as unreachable. `proof`: only when a last-seen time proves the gap — a sensor ending in `_last_seen` with `device_class: timestamp` on the same device (Zigbee2MQTT, with `last_seen` enabled), a `last_seen_entity`, or a `last_reported` on the state. `activity`: also when nothing on the device has changed for `stale_hours` — this can flag a healthy dry sensor whose device has no frequently changing entity. `off`: only `unavailable` warns |
+| `stale_hours` | number | `24` | How long a silence lasts before `stale_check` counts it |
 | `battery_warn` / `battery_critical` | number | `40` / `20` | Battery chip thresholds |
 | `test_interval_days` | number | `0` | Show a "test due" chip after N days (with `last_test_entity`) |
 | `max_visible` | number | – | Show only this many sensors, the rest behind a toggle |

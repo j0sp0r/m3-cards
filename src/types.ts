@@ -1855,7 +1855,17 @@ export interface LeakSensorConfig {
   icon?: string;
   area?: string;
   battery_entity?: string;
+  /** A timestamp sensor whose state is the device's last message (Zigbee2MQTT's `*_last_seen`). */
+  last_seen_entity?: string;
 }
+
+/**
+ * When a quiet sensor counts as unreachable:
+ * - `proof` (default): only when a last-seen time proves silence
+ * - `activity`: when nothing on the device has changed for `stale_hours`
+ * - `off`: never; only `unavailable` warns
+ */
+export type LeakStaleCheck = "proof" | "activity" | "off";
 
 export interface M3LeakCardConfig extends NotifyConfigBase, DetailModeConfig {
   type: string;
@@ -1869,6 +1879,7 @@ export interface M3LeakCardConfig extends NotifyConfigBase, DetailModeConfig {
   ack_entity?: string;
   confirm_shutoff?: boolean;
   stale_hours?: number;
+  stale_check?: LeakStaleCheck;
   battery_warn?: number;
   battery_critical?: number;
   test_interval_days?: number;

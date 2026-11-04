@@ -78,3 +78,33 @@ describe("deviceSiblings", () => {
     expect(deviceSiblings(hass({}, { "sensor.x": "d1" }), "binary_sensor.leak")).toEqual([]);
   });
 });
+
+describe("lastSeen: last-seen sensors", () => {
+  it("a sibling *_last_seen timestamp sensor proves silence by its state", () => {
+    const h = hass(
+      {
+        "binary_sensor.leak": { last_updated: T(1) },
+        "sensor.leak_last_seen": { state: T(8), last_updated: T(2) },
+      },
+      { "binary_sensor.leak": "d1", "sensor.leak_last_seen": "d1" },
+    );
+    (h.states["sensor.leak_last_seen"].attributes as Record<string, unknown>).device_class = "timestamp";
+    expect(lastSeen(h, "binary_sensor.leak")).toEqual({ at: Date.parse(T(8)), reported: true });
+  });
+
+  it("a named last-seen entity counts even off the device", () => {
+    const h = hass({
+      "binary_sensor.leak": { last_updated: T(1) },
+      "sensor.bridge_seen": { state: T(5), last_updated: T(5) },
+    });
+    expect(lastSeen(h, "binary_sensor.leak", [], ["sensor.bridge_seen"])).toEqual({ at: Date.parse(T(5)), reported: true });
+  });
+
+  it("a last-seen sensor without a parseable time proves nothing", () => {
+    const h = hass({
+      "binary_sensor.leak": { last_updated: T(1) },
+      "sensor.bridge_seen": { state: "never", last_updated: T(5) },
+    });
+    expect(lastSeen(h, "binary_sensor.leak", [], ["sensor.bridge_seen"])).toEqual({ at: Date.parse(T(1)), reported: false });
+  });
+});

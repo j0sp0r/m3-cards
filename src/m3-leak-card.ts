@@ -188,19 +188,25 @@ export class M3LeakCard extends TemplatedCard(LitElement) implements LovelaceCar
     const hass = this.hass;
     if (!hass) return [];
     const staleMs = (this._config?.stale_hours ?? DEFAULT_LEAK_STALE_HOURS) * 3600_000;
+    const check = this._config?.stale_check ?? "proof";
     return this._sensors
       .filter((c) => c.entity)
       .map((c): LeakRow => {
         const st = hass.states[c.entity];
         const name = c.name || (st?.attributes?.friendly_name as string) || c.entity;
         const icon = this._iconFor(name, c.icon);
-        const seen = st ? lastSeen(hass, c.entity, [c.battery_entity]) : undefined;
+        const seen = st ? lastSeen(hass, c.entity, [c.battery_entity], [c.last_seen_entity]) : undefined;
         let rowState: RowState;
         if (!st || st.state === "unavailable") rowState = "unavailable";
         else if (st.state === "on") rowState = "wet";
-        // Silence counts only where HA can prove it (#25): an unchanged dry
-        // sensor is the normal case, not a fault.
-        else rowState = seen?.reported && this._now - seen.at > staleMs ? "stale" : "dry";
+        // Silence counts only where it can be proven (#25): an unchanged dry
+        // sensor is the normal case, not a fault. `activity` lets the author
+        // accept "nothing changed" as silence, `off` never claims it.
+        else {
+          const quiet = !!seen && this._now - seen.at > staleMs;
+          const counts = check === "activity" ? quiet : check === "proof" ? quiet && seen!.reported : false;
+          rowState = counts ? "stale" : "dry";
+        }
         return {
           entity: c.entity,
           name,
@@ -394,6 +400,7 @@ export class M3LeakCard extends TemplatedCard(LitElement) implements LovelaceCar
     return this._sensors.flatMap((c) => [
       c.entity,
       c.battery_entity,
+      c.last_seen_entity,
       ...(hass && c.entity ? deviceSiblings(hass, c.entity) : []),
     ]);
   }

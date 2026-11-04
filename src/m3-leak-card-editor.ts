@@ -86,6 +86,7 @@ export class M3LeakCardEditor extends LitElement implements LovelaceCardEditor {
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },
       { name: "battery_entity", selector: { entity: { domain: "sensor", device_class: "battery" } } },
+      { name: "last_seen_entity", selector: { entity: { domain: "sensor", device_class: "timestamp" } } },
     ];
   }
 
@@ -100,7 +101,21 @@ export class M3LeakCardEditor extends LitElement implements LovelaceCardEditor {
 
   private _monitorSchema(): SchemaEntry[] {
     return [
-      { name: "stale_hours", selector: { number: { min: 1, max: 168, mode: "box", unit_of_measurement: "h" } } },
+      {
+        name: "stale_check",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: (["proof", "activity", "off"] as const).map((value) => ({
+              value,
+              label: this._t(`editor_leak_stale_check_${value}`),
+            })),
+          },
+        },
+      },
+      ...((this._config?.stale_check ?? "proof") === "off"
+        ? []
+        : [{ name: "stale_hours", selector: { number: { min: 1, max: 168, mode: "box", unit_of_measurement: "h" } } }]),
       { name: "battery_warn", selector: { number: { min: 0, max: 100, mode: "box", unit_of_measurement: "%" } } },
       { name: "battery_critical", selector: { number: { min: 0, max: 100, mode: "box", unit_of_measurement: "%" } } },
       { name: "test_interval_days", selector: { number: { min: 0, max: 365, mode: "box", unit_of_measurement: "d" } } },
@@ -212,7 +227,11 @@ export class M3LeakCardEditor extends LitElement implements LovelaceCardEditor {
   /** The explanation belongs on the field, not in a paragraph under the
    *  form: what people miss is that the rest stays reachable. */
   private _computeHelper = (schema: SchemaEntry): string | undefined =>
-    schema.name === "max_visible" ? this._t("editor_leak_max_visible_helper") : undefined;
+    schema.name === "max_visible"
+      ? this._t("editor_leak_max_visible_helper")
+      : schema.name === "stale_check"
+        ? this._t("editor_leak_stale_check_helper")
+        : undefined;
 
   private _computeLabel = (schema: SchemaEntry): string => {
     const map: Record<string, TranslationKey> = {
@@ -231,6 +250,8 @@ export class M3LeakCardEditor extends LitElement implements LovelaceCardEditor {
       siren_entity: "editor_leak_siren_entity",
       ack_entity: "editor_leak_ack_entity",
       stale_hours: "editor_leak_stale_hours",
+      stale_check: "editor_leak_stale_check",
+      last_seen_entity: "editor_leak_last_seen_entity",
       battery_warn: "editor_leak_battery_warn",
       battery_critical: "editor_leak_battery_critical",
       test_interval_days: "editor_leak_test_interval",
@@ -322,6 +343,7 @@ export class M3LeakCardEditor extends LitElement implements LovelaceCardEditor {
     };
     const monitorData = {
       stale_hours: this._config.stale_hours ?? DEFAULT_LEAK_STALE_HOURS,
+      stale_check: this._config.stale_check ?? "proof",
       battery_warn: this._config.battery_warn ?? 40,
       battery_critical: this._config.battery_critical ?? 20,
       test_interval_days: this._config.test_interval_days ?? 0,

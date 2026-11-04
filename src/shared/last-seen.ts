@@ -20,6 +20,12 @@ import type { HomeAssistant } from "../types";
 //   - `reported` says whether a `last_reported` was among them. Only then is a
 //     long gap evidence that the device has gone quiet; without one, the card
 //     must not claim it.
+//
+// The frontend's state objects do not carry `last_reported` (checked on a
+// live instance), so the proof usually comes from elsewhere: a "last seen"
+// timestamp sensor — Zigbee2MQTT's `sensor.<device>_last_seen` — whose state
+// is the time of the device's last message. One on the same device is found
+// on its own; any other can be named by the caller.
 
 export interface LastSeen {
   /** Newest activity, ms since the epoch. */
@@ -28,7 +34,17 @@ export interface LastSeen {
   reported: boolean;
 }
 
-type StateWithReport = { last_updated?: string; last_reported?: string; state?: string };
+type StateWithReport = {
+  last_updated?: string;
+  last_reported?: string;
+  state?: string;
+  attributes?: Record<string, unknown>;
+};
+
+/** A sibling that states when the device last sent anything. */
+function isLastSeenSensor(id: string, st: StateWithReport): boolean {
+  return id.startsWith("sensor.") && /last_seen$/.test(id) && st.attributes?.device_class === "timestamp";
+}
 
 // Domains whose state moves without the device saying anything: an update
 // entity follows a firmware feed, a button's state is when someone pressed it.
@@ -61,23 +77,39 @@ export function deviceSiblings(hass: HomeAssistant, entityId: string): string[] 
   );
 }
 
+/**
+ * @param extra    further entities whose activity counts (a battery sensor)
+ * @param seenBy   timestamp sensors named by the user whose *state* is the
+ *                 device's last message; they prove silence like a sibling
+ *                 `*_last_seen` sensor does
+ */
 export function lastSeen(
   hass: HomeAssistant,
   entityId: string,
   extra: (string | undefined)[] = [],
+  seenBy: (string | undefined)[] = [],
 ): LastSeen | undefined {
-  const ids = [entityId, ...deviceSiblings(hass, entityId), ...extra.filter((x): x is string => !!x)];
+  const named = new Set(seenBy.filter((x): x is string => !!x));
+  const ids = [entityId, ...deviceSiblings(hass, entityId), ...extra.filter((x): x is string => !!x), ...named];
   let at = 0;
   let reported = false;
+  const take = (iso: unknown) => {
+    const t = typeof iso === "string" ? Date.parse(iso) : NaN;
+    if (!isNaN(t) && t > at) at = t;
+    return !isNaN(t);
+  };
   for (const id of new Set(ids)) {
     const st = hass.states[id] as StateWithReport | undefined;
     if (!st) continue;
     // An entity that is itself unavailable says nothing about the device.
     if (id !== entityId && (st.state === "unavailable" || st.state === "unknown")) continue;
-    for (const iso of [st.last_updated, st.last_reported]) {
-      const t = iso ? Date.parse(iso) : NaN;
-      if (!isNaN(t) && t > at) at = t;
+    if (named.has(id) || isLastSeenSensor(id, st)) {
+      // Its state is the time of the last message — the proof we need.
+      if (take(st.state)) reported = true;
+      continue;
     }
+    take(st.last_updated);
+    take(st.last_reported);
     if (st.last_reported) reported = true;
   }
   return at ? { at, reported } : undefined;
