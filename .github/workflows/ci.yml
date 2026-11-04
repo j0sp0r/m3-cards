@@ -38,10 +38,11 @@ jobs:
       # package.json is in the check because the generator also writes the
       # card count into its description — one of the four places TESTING.md's
       # release checklist has to keep honest, now counted rather than counted on.
+      # The bug report's card dropdown is generated too, for the same reason.
       - name: Docs up to date
         run: |
           npm run docs
-          git diff --exit-code -- README.md package.json docs/
+          git diff --exit-code -- README.md package.json docs/ .github/ISSUE_TEMPLATE/bug_report.yml
 
       # Runs on CI rather than in release.yml on purpose: a failure here is
       # seen before a release exists, where the same failure would leave a

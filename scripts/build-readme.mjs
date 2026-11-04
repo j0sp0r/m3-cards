@@ -136,3 +136,21 @@ console.log(`README.md generated (${cardCount} cards).`);
 const pkgRaw = readFileSync('package.json', 'utf8');
 const pkgPatched = pkgRaw.replace(/(\d+) cards across/, `${cardCount} cards across`);
 if (pkgPatched !== pkgRaw) writeFileSync('package.json', pkgPatched);
+
+// --- keep the bug report's card dropdown in sync ---
+// It was a hand-kept list and fell behind (17 of 52 cards); now every
+// registered card is an option, alphabetically, with its type so a reporter
+// can match it against their YAML.
+const BUG_TEMPLATE = '.github/ISSUE_TEMPLATE/bug_report.yml';
+const OTHER = 'Not card-specific / other';
+const cardOptions = cards
+  .flatMap((c) => [[c.display, c.type], c.also_type ? [c.also_display, c.also_type] : null])
+  .filter(Boolean)
+  .sort(([a], [b]) => a.localeCompare(b, 'en', { sensitivity: 'base' }))
+  .map(([display, type]) => `        - ${display} (${type})`);
+const bugRaw = readFileSync(BUG_TEMPLATE, 'utf8');
+const optionsBlock = /(      label: Affected card\n      options:\n)[\s\S]*?(        - Not card-specific \/ other\n)/;
+if (!optionsBlock.test(bugRaw)) throw new Error(`${BUG_TEMPLATE}: card dropdown not found (label "Affected card", last option "${OTHER}")`);
+const bugPatched = bugRaw.replace(optionsBlock, (_, head, tail) => `${head}${cardOptions.join('\n')}\n${tail}`);
+if (bugPatched !== bugRaw) writeFileSync(BUG_TEMPLATE, bugPatched);
+console.log(`${BUG_TEMPLATE}: ${cardOptions.length} cards in the dropdown.`);

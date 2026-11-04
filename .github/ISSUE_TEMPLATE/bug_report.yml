@@ -7,23 +7,58 @@ body:
     attributes:
       label: Affected card
       options:
-        - M3 Climate Card
-        - M3 Climate Card Mini
-        - M3 Button Card
-        - M3 Progress Card
-        - M3 Energy Card
-        - M3 Gauge Card
-        - M3 Energy Flow Card
-        - M3 Counter Card
-        - M3 Power List Card
-        - M3 Power Summary Card
-        - M3 Top Consumers Card
-        - M3 Cost Card
-        - M3 Light Card
-        - M3 Battery Card
-        - M3 Weather Card
-        - M3 Presence Card
-        - M3 Media Card
+        - 3D printer (m3-printer-card)
+        - Appliance (m3-appliance-card)
+        - Aquarium (m3-aquarium-card)
+        - Battery (m3-battery-card)
+        - Button (m3-button-card)
+        - Calendar (m3-calendar-card)
+        - Check-in (m3-checkin-card)
+        - Chip Buttons (m3-chip-buttons-card)
+        - Climate (m3-climate-card)
+        - Climate Mini (m3-climate-card-mini)
+        - Climate Overview (m3-climate-overview-card)
+        - Clock (m3-clock-card)
+        - Cost (m3-cost-card)
+        - Counter (m3-counter-card)
+        - Cover (m3-cover-card)
+        - Detail (m3-detail-card)
+        - Energy (m3-energy-card)
+        - Energy Flow (m3-energy-flow-card)
+        - Gauge (m3-gauge-card)
+        - Group (m3-group-card)
+        - Heading (m3-heading-card)
+        - Humidifier (m3-humidifier-card)
+        - Leak (m3-leak-card)
+        - Light (m3-light-card)
+        - Lights Overview (m3-lights-overview-card)
+        - Media (m3-media-card)
+        - NAS (m3-nas-card)
+        - Nav (m3-nav-card)
+        - Occupancy (m3-occupancy-card)
+        - Openings (m3-openings-card)
+        - Popup (m3-popup-card)
+        - Power List (m3-power-list-card)
+        - Power Summary (m3-power-summary-card)
+        - Presence (m3-presence-card)
+        - Progress (m3-progress-card)
+        - Remote (m3-remote-card)
+        - Room (m3-room-card)
+        - Router (m3-router-card)
+        - Router diagnostics (m3-router-diagnostics-card)
+        - Search (m3-search-card)
+        - Status (m3-status-card)
+        - Supply (m3-supply-card)
+        - System (m3-system-card)
+        - Time (m3-time-card)
+        - Todo (m3-todo-card)
+        - Top Consumers (m3-top-consumers-card)
+        - Updates (m3-updates-card)
+        - Vacuum (m3-vacuum-card)
+        - Vacuum maintenance (m3-vacuum-maintenance-card)
+        - Vehicle (m3-vehicle-card)
+        - Waste (m3-waste-card)
+        - Weather (m3-weather-card)
         - Not card-specific / other
     validations:
       required: true
