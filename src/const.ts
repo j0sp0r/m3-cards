@@ -725,10 +725,13 @@ export const PRESENCE_DOT_SIZE = 14;
 export const PRESENCE_RING_WIDTH = 2.5;
 export const PRESENCE_GRID_GAP = 10;
 export const PRESENCE_GRID_MIN_COL = 84;
-/** `layout: compact` — one pill per person, as tall as a card header. */
-export const PRESENCE_PILL_HEIGHT = 44;
-export const PRESENCE_PILL_AVATAR = 32;
-export const PRESENCE_PILL_MIN_WIDTH = 136;
+/**
+ * `layout: compact` — one tile per person, built like a button card one grid
+ * row tall: the button's 56px height and its 44px icon well.
+ */
+export const PRESENCE_PILL_HEIGHT = BUTTON_CQ_BASE_PX;
+export const PRESENCE_PILL_AVATAR = 44;
+export const PRESENCE_PILL_MIN_WIDTH = 150;
 export const PRESENCE_PILL_GAP = 8;
 export const PRESENCE_COLOR_HOME = PALETTE.ok;
 export const PRESENCE_COLOR_NOT_HOME = PALETTE.home;

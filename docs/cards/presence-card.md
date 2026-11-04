@@ -25,11 +25,14 @@ auto_discover: true
 
 ### Compact layout
 
-`layout: compact` drops the header and the avatar grid for one pill per
-person: the avatar with its status ring, the name, and one status line — the
-zone or "away", then how long, else the distance. Each pill takes its
-person's status colour, and the pills share the row and wrap when the card is
-narrow, so two people fit on one 68px card.
+`layout: compact` drops the header and the avatar grid for one tile per
+person, built like a button card one row tall: the avatar in a 44px well, the
+name, and one status line — the zone or "away", then how long, else the
+distance. The well says the status: filled solid in the person's colour at
+home, a tint with a coloured ring elsewhere, the way a button's icon well says
+"on". The tiles share the row and wrap when the card is narrow, so two people
+fit on one 80px card. With `shape_by_state: true` a tile and its well square
+off while the person is home.
 
 ```yaml
 type: custom:m3-presence-card

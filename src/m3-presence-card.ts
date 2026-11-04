@@ -33,7 +33,17 @@ import {
   PRESENCE_COLOR_UNKNOWN,
   resolveCornerRadius,
 } from "./const";
-import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, foregroundOn, tintInk } from "./shared/color-config";
+import {
+  resolveThemeColor,
+  buildCssVars,
+  resolveCommonColors,
+  tintOn,
+  foregroundOn,
+  tintInk,
+  fillColor,
+  inkOn,
+} from "./shared/color-config";
+import { listRowSurface } from "./shared/list-row";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { STANDARD_EASING } from "./shared/animation";
 import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
@@ -551,7 +561,12 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
   /** The colour variables and press handling every person element shares. */
   private _personStyle(row: PersonRow): string {
     const opacity = this._config?.presence_tint_opacity;
-    return `--presence-color: ${row.color}; --presence-tint: ${tintOn(this, row.color, opacity, 18)}; --presence-ink: ${tintInk(this, row.color, opacity, 18)};`;
+    const base = `--presence-color: ${row.color}; --presence-tint: ${tintOn(this, row.color, opacity, 18)}; --presence-ink: ${tintInk(this, row.color, opacity, 18)};`;
+    if (!this._compact) return base;
+    // The compact tile is the button card's: a neutral surface, and the
+    // avatar well filled solid in the person's colour while they are home.
+    const fill = fillColor(this, row.color);
+    return `${base} --presence-fill: ${fill}; --presence-fill-ink: ${inkOn(fill, this)}; --presence-surface: ${listRowSurface(this)};`;
   }
 
   private _cancelHold = (): void => {
@@ -566,9 +581,10 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
   }
 
   /**
-   * `layout: compact` — one pill per person: the avatar with its status ring,
-   * the name, and one status line. The pill takes the person's status tint, so
-   * who is home reads from across the room without the avatar grid's height.
+   * `layout: compact` — one tile per person, built like a button card one
+   * grid row tall: a 44px avatar well, the name, and one status line. The
+   * well says the status — filled solid in the person's colour at home, a
+   * tint with a ring elsewhere — the way a button's icon well says "on".
    * The status line carries what the grid spreads over two lines: the zone or
    * "away", then how long, else the distance.
    */
@@ -779,41 +795,27 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
         box-sizing: border-box;
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 0 14px 0 6px;
+        gap: 14px;
+        padding: 0 16px 0 ${(PRESENCE_PILL_HEIGHT - PRESENCE_PILL_AVATAR) / 2}px;
         border-radius: ${PRESENCE_PILL_HEIGHT / 2}px;
-        background: var(--presence-tint);
+        background: var(--presence-surface);
         cursor: pointer;
         -webkit-tap-highlight-color: transparent;
-        transition: background-color 320ms ease;
+        transition:
+          transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+          border-radius ${unsafeCSS(BUTTON_SHAPE_MS)}ms ${unsafeCSS(STANDARD_EASING)};
+      }
+
+      .pill:active {
+        transform: scale(0.96);
       }
 
       .no-animations .pill {
         transition: none;
       }
 
-      /* shape_by_state: the outline says who is home, as on the button card —
-         a capsule and a round avatar while away, squarer at home. */
-      .shaped .pill,
-      .shaped .pill-avatar,
-      .shaped .avatar {
-        transition:
-          background-color 320ms ease,
-          border-radius ${unsafeCSS(BUTTON_SHAPE_MS)}ms ${unsafeCSS(STANDARD_EASING)};
-      }
-      .shaped .pill.home {
-        border-radius: ${BUTTON_SHAPE_ON_RADIUS}px;
-      }
-      .shaped .pill.home .pill-avatar {
-        border-radius: ${unsafeCSS(BUTTON_SHAPE_ON_ICON_RADIUS)};
-      }
-      .shaped .person:not(.home) .avatar {
-        border-radius: 50%;
-      }
-      .no-animations .shaped .pill,
-      .no-animations .shaped .pill-avatar,
-      .no-animations .shaped .avatar {
-        transition: none;
+      .no-animations .pill:active {
+        transform: none;
       }
 
       .pill:focus-visible {
@@ -834,17 +836,50 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
         display: flex;
         align-items: center;
         justify-content: center;
+        transition:
+          background-color 0.25s ease,
+          border-radius ${unsafeCSS(BUTTON_SHAPE_MS)}ms ${unsafeCSS(STANDARD_EASING)};
+      }
+
+      .pill.home .pill-avatar {
+        background-color: var(--presence-fill);
+        border-color: var(--presence-fill);
       }
 
       .pill-initials {
-        font-size: 12px;
+        font-size: 15px;
         font-weight: 700;
         color: var(--presence-ink, var(--presence-color));
+      }
+
+      .pill.home .pill-initials {
+        color: var(--presence-fill-ink);
+      }
+
+      /* shape_by_state: the outline says who is home, as on the button card —
+         a capsule and a round well while away, squarer at home. */
+      .shaped .pill.home {
+        border-radius: ${BUTTON_SHAPE_ON_RADIUS}px;
+      }
+      .shaped .pill.home .pill-avatar {
+        border-radius: ${unsafeCSS(BUTTON_SHAPE_ON_ICON_RADIUS)};
+      }
+      .shaped .avatar {
+        transition: border-radius ${unsafeCSS(BUTTON_SHAPE_MS)}ms ${unsafeCSS(STANDARD_EASING)};
+      }
+      .shaped .person:not(.home) .avatar {
+        border-radius: 50%;
+      }
+      .no-animations .pill-avatar,
+      .no-animations .shaped .avatar {
+        transition: none;
       }
 
       .pill-text {
         display: flex;
         flex-direction: column;
+        justify-content: center;
+        gap: 2px;
         min-width: 0;
         line-height: 1.25;
       }
@@ -856,17 +891,17 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
         white-space: nowrap;
       }
 
+      /* Name and state as on the button card. */
       .pill-name {
-        font-size: 13px;
-        font-weight: 600;
+        font-size: 15px;
+        font-weight: 700;
         color: var(--m3p-text);
       }
 
       .pill-status {
-        font-size: 11px;
-        font-weight: 500;
-        /* The status line sits on the person's tint and carries its colour. */
-        color: var(--presence-ink, var(--presence-color));
+        font-size: 13px;
+        color: var(--m3p-text);
+        opacity: 0.7;
       }
 
       .map-wrap {

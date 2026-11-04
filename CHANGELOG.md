@@ -21,10 +21,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   write a notification automation (charging finished, low, unlocked, not
   plugged in). Asked for on Reddit.
 
-- **A compact presence card.** `layout: compact` shows one pill per person —
-  avatar with its status ring, name, and "away · 2 h" — in a card 68px tall
-  for up to two people, instead of a header and an avatar grid. The pills take
-  each person's status colour and wrap on a narrow card. Everything else the
+- **A compact presence card.** `layout: compact` shows one tile per person,
+  built like a button card one row tall — the avatar in a 44px well, name,
+  and "away · 2 h" — in a card 80px tall for up to two people, instead of a
+  header and an avatar grid. The well is filled solid in the person's colour
+  at home and tinted elsewhere; the tiles wrap on a narrow card. Everything else the
   card does (actions, popups, sorting, colours, the map) carries over. Asked
   for on Reddit: the grid is "too big for that little information".
   `shape_by_state: true` lets the shape say who is home, as on the button
