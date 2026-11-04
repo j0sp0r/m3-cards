@@ -1,4 +1,4 @@
-import { LitElement, html, css, nothing, type PropertyValues } from "lit";
+import { LitElement, html, css, nothing, unsafeCSS, type PropertyValues } from "lit";
 import { customElement, property, state, query } from "lit/decorators.js";
 import type {
   HaActionConfig,
@@ -24,6 +24,9 @@ import {
   PRESENCE_PILL_AVATAR,
   PRESENCE_PILL_MIN_WIDTH,
   PRESENCE_PILL_GAP,
+  BUTTON_SHAPE_MS,
+  BUTTON_SHAPE_ON_RADIUS,
+  BUTTON_SHAPE_ON_ICON_RADIUS,
   PRESENCE_COLOR_HOME,
   PRESENCE_COLOR_NOT_HOME,
   PRESENCE_COLOR_ZONE,
@@ -32,6 +35,7 @@ import {
 } from "./const";
 import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, foregroundOn, tintInk } from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
+import { STANDARD_EASING } from "./shared/animation";
 import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
 import { shouldAnimate } from "./shared/animation";
 import { activateOnKey } from "./shared/a11y";
@@ -492,6 +496,7 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
       "m3p-secondary-text": secondaryTextColorCss,
     });
 
+    const shaped = this._config.shape_by_state === true ? "shaped" : "";
     return html`
       <ha-card style=${`${cssVars} border-radius: ${radius};`}>
         <div
@@ -517,8 +522,8 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
           ${rows.length === 0
             ? html`<div class="empty-state">${this._t("presence_empty")}</div>`
             : this._compact
-              ? html`<div class="person-pills">${rows.map((r) => this._renderPill(r))}</div>`
-              : html`<div class="person-grid">${rows.map((r) => this._renderPerson(r))}</div>`}
+              ? html`<div class="person-pills ${shaped}">${rows.map((r) => this._renderPill(r))}</div>`
+              : html`<div class="person-grid ${shaped}">${rows.map((r) => this._renderPerson(r))}</div>`}
 
           ${this._config.show_map && rows.length > 0 ? html`<div class="map-wrap"></div>` : nothing}
         </div>
@@ -572,7 +577,7 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
     const extra = this._relativeSince(row, true) ?? this._distance(row);
     return html`
       <div
-        class="pill"
+        class="pill ${row.status === "home" ? "home" : ""}"
         role="button"
         tabindex="0"
         aria-label=${`${row.name}, ${this._statusText(row)}`}
@@ -603,7 +608,7 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
 
     return html`
       <div
-        class="person"
+        class="person ${row.status === "home" ? "home" : ""}"
         role="button"
         tabindex="0"
         aria-label=${row.name}
@@ -784,6 +789,30 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
       }
 
       .no-animations .pill {
+        transition: none;
+      }
+
+      /* shape_by_state: the outline says who is home, as on the button card —
+         a capsule and a round avatar while away, squarer at home. */
+      .shaped .pill,
+      .shaped .pill-avatar,
+      .shaped .avatar {
+        transition:
+          background-color 320ms ease,
+          border-radius ${unsafeCSS(BUTTON_SHAPE_MS)}ms ${unsafeCSS(STANDARD_EASING)};
+      }
+      .shaped .pill.home {
+        border-radius: ${BUTTON_SHAPE_ON_RADIUS}px;
+      }
+      .shaped .pill.home .pill-avatar {
+        border-radius: ${unsafeCSS(BUTTON_SHAPE_ON_ICON_RADIUS)};
+      }
+      .shaped .person:not(.home) .avatar {
+        border-radius: 50%;
+      }
+      .no-animations .shaped .pill,
+      .no-animations .shaped .pill-avatar,
+      .no-animations .shaped .avatar {
         transition: none;
       }
 

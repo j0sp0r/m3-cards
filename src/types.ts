@@ -1437,6 +1437,8 @@ export interface M3PresenceCardConfig extends DetailModeConfig {
    * pill per person — avatar, name and status in a 44px row.
    */
   layout?: "grid" | "compact";
+  /** The shape says who is home: a rounder pill and avatar while away, squarer at home. */
+  shape_by_state?: boolean;
   home_color?: string;
   not_home_color?: string;
   zone_color?: string;

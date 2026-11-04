@@ -27,6 +27,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   each person's status colour and wrap on a narrow card. Everything else the
   card does (actions, popups, sorting, colours, the map) carries over. Asked
   for on Reddit: the grid is "too big for that little information".
+  `shape_by_state: true` lets the shape say who is home, as on the button
+  card: squarer at home, round while away — the pill and avatar in the
+  compact layout, the avatar in the grid.
 
 ### Changed
 

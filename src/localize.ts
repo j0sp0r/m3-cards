@@ -283,6 +283,8 @@ const translations = {
     editor_align_icons_helper: "Standardmäßig rückt der Abstand vom linken Rand zum Icon bei kleineren Kacheln etwas näher zusammen. Aktivieren, damit alle Icons unabhängig von der Kartenhöhe am gleichen Abstand vom linken Rand sitzen (z.B. für saubere Ausrichtung übereinander liegender Karten unterschiedlicher Höhe). Die vertikale Zentrierung bleibt davon unberührt.",
     editor_vertical: "Vertikales Layout (Icon oben)",
     editor_shape_by_state: "Form folgt dem Zustand",
+    editor_presence_shape_by_state_helper:
+      "Wer zu Hause ist, bekommt eine eckigere Form – das Avatar wird zum abgerundeten Quadrat, im kompakten Layout auch die Pille. Wer weg ist, bleibt rund. Der Wechsel wird weich animiert.",
     editor_icon_off: "Icon im Aus-Zustand",
     editor_icon_fill: "Füllung hinter dem Icon",
     editor_icon_fill_tint: "Zart — helle Fläche, farbiges Icon",
@@ -3242,6 +3244,8 @@ const translations = {
     editor_align_icons_helper: "By default the gap between the left edge and the icon shrinks slightly on smaller tiles. Enable this so all icons sit at the same distance from the left edge regardless of tile height (e.g. for clean alignment between stacked tiles of different heights). Vertical centering is unaffected.",
     editor_vertical: "Vertical layout (icon on top)",
     editor_shape_by_state: "Shape follows the state",
+    editor_presence_shape_by_state_helper:
+      "Whoever is home gets a squarer shape — the avatar becomes a rounded square, and in the compact layout the pill does too. Whoever is away stays round. The change is animated.",
     editor_icon_off: "Icon while off",
     editor_icon_fill: "Fill behind the icon",
     editor_icon_fill_tint: "Soft — pale well, coloured glyph",

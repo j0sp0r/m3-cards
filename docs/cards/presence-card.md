@@ -150,6 +150,7 @@ to their more-info rather than opening an empty dialog.
 | `show_since` | boolean | `true` | Relative time since the last state change |
 | `show_map` | boolean | `false` | Embedded map below the avatar grid |
 | `layout` | `grid` \| `compact` | `grid` | `grid`: header and avatar grid. `compact`: one pill per person, no header |
+| `shape_by_state` | boolean | `false` | The shape says who is home, as on the button card: at home the avatar is a rounded square (and the pill squarer in `compact`), away it is round. Animated |
 | `sort` | `home_first` \| `name` | `home_first` | Sort order: home first or alphabetical |
 | `home_color` / `not_home_color` / `zone_color` / `unknown_color` | string | green/blue/purple/gray | Status ring colors |
 | `zone_colors` | object (zone name → color) | – | Override per named zone |

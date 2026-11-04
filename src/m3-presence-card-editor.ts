@@ -72,6 +72,7 @@ export class M3PresenceCardEditor extends LitElement implements LovelaceCardEdit
             { name: "name", selector: { text: {} } },
             { name: "icon", selector: { icon: {} } },
           ]),
+      { name: "shape_by_state", selector: { boolean: {} } },
       { name: "show_distance", selector: { boolean: {} } },
       { name: "show_since", selector: { boolean: {} } },
       { name: "show_map", selector: { boolean: {} } },
@@ -119,6 +120,9 @@ export class M3PresenceCardEditor extends LitElement implements LovelaceCardEdit
     ];
   }
 
+  private _computeHelper = (schema: SchemaEntry): string | undefined =>
+    schema.name === "shape_by_state" ? this._t("editor_presence_shape_by_state_helper") : undefined;
+
   private _computeLabel = (schema: SchemaEntry): string => {
     const labelMap: Record<string, TranslationKey> = {
       auto_discover: "editor_presence_auto_discover",
@@ -133,6 +137,7 @@ export class M3PresenceCardEditor extends LitElement implements LovelaceCardEdit
       show_map: "editor_presence_show_map",
       sort: "editor_presence_sort",
       layout: "editor_presence_layout",
+      shape_by_state: "editor_shape_by_state",
       tap_action: "editor_tap_action",
       hold_action: "editor_hold_action",
       animation: "editor_progress_animation",
@@ -266,6 +271,7 @@ export class M3PresenceCardEditor extends LitElement implements LovelaceCardEdit
     };
     const contentData = {
       layout: this._config.layout ?? "grid",
+      shape_by_state: this._config.shape_by_state ?? false,
       name: this._config.name,
       icon: this._config.icon,
       show_distance: this._config.show_distance ?? true,
@@ -302,6 +308,7 @@ export class M3PresenceCardEditor extends LitElement implements LovelaceCardEdit
               .data=${contentData}
               .schema=${this._contentSchema()}
               .computeLabel=${this._computeLabel}
+              .computeHelper=${this._computeHelper}
               @value-changed=${this._valueChanged}
             ></ha-form>
             ${contentData.show_map ? html`<div class="hint">${this._t("editor_presence_show_map_helper")}</div>` : nothing}
