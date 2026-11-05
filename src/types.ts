@@ -2827,6 +2827,8 @@ export interface NavSheetItem {
  */
 export type NavSheetItemStyle = "grid" | "list";
 
+export type NavSwipeDirection = "follow" | "inverted";
+
 export interface M3NavCardConfig extends DetailModeConfig {
   type: string;
   /**
@@ -2835,6 +2837,12 @@ export interface M3NavCardConfig extends DetailModeConfig {
    * scroll sideways itself.
    */
   swipe_navigation?: boolean;
+  /**
+   * Which way the swipe goes. `follow` (default): the pill follows the finger,
+   * so a swipe to the left lands on the entry to the left. `inverted`: the
+   * finger pulls the bar, so a swipe to the left brings the entry on the right.
+   */
+  swipe_direction?: NavSwipeDirection;
   style?: NavVariant;
   position?: NavPosition;
   items?: NavItemConfig[];

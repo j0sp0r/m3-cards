@@ -796,6 +796,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
   protected updated(changed: PropertyValues): void {
     super.updated(changed);
     if (this._config?.swipe_navigation === true) this._syncBarOverflow();
+    if (this._swipeInk) this._paintSwipeInk();
     if (this._settling) {
       // One frame later, so the corrected marker has been painted with the
       // transition still off before it is turned back on. The timer is the
@@ -1430,9 +1431,53 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     next?: { index: number; path: string; distance: number };
     moved: HTMLElement;
     baseTransform: string;
+    radius: string;
   };
   /** Whether the bar scrolls sideways — then a swipe is the bar's, not ours. */
   @state() private _barOverflows = false;
+  /**
+   * While a travelling pill is dragged, each entry carries a second copy of
+   * its icon and label in the active ink, cut to the pill's outline. Where the
+   * pill covers an entry — all of it, half of it, a letter of it — the ink is
+   * the one that belongs on the pill, and outside it the one that belongs on
+   * the bar. Swapping the active class instead would turn a whole word over at
+   * once, with half of it still on the wrong background.
+   */
+  @state() private _swipeInk = false;
+
+  /**
+   * Which way the finger has gone, in the sense the swipe helpers count it:
+   * negative is toward the next entry. With the pill following the finger a
+   * swipe to the left goes left; inverted, the finger pulls the next one in.
+   */
+  private _swipeAlong(fingerDx: number): number {
+    return this._config?.swipe_direction === "inverted" ? fingerDx : -fingerDx;
+  }
+
+  /** The fill of the travelling marker. */
+  private _markerFill(): string {
+    const cfg = this._config;
+    const accent = resolveThemeColor(cfg?.accent_color ?? DEFAULT_NAV_COLOR);
+    return (cfg?.active_style ?? "tint") === "solid"
+      ? fillColor(this, accent)
+      : tintOn(this, accent, cfg?.accent_opacity, NAV_ITEM_TINT);
+  }
+
+  /** Cuts every entry's pill-ink copy to where the pill is now. */
+  private _paintSwipeInk(): void {
+    const s = this._swipe;
+    if (!s) return;
+    const pill = s.moved.getBoundingClientRect();
+    for (const ink of this.renderRoot.querySelectorAll<HTMLElement>(".swipe-ink")) {
+      const r = (ink.parentElement ?? ink).getBoundingClientRect();
+      ink.style.setProperty(
+        "--swipe-clip",
+        `inset(${pill.top - r.top}px ${r.right - pill.right}px ${r.bottom - pill.bottom}px ${
+          pill.left - r.left
+        }px round ${s.radius})`,
+      );
+    }
+  }
 
   private get _swipeEnabled(): boolean {
     return this._config?.swipe_navigation === true && !this._editing && !this._barOverflows;
@@ -1475,16 +1520,18 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     s.lastX = e.clientX;
     s.lastT = now;
     s.dx = e.clientX - s.x0;
-    const toward = s.dx < 0 ? s.next : s.prev;
+    const along = this._swipeAlong(s.dx);
+    const toward = along < 0 ? s.next : s.prev;
     const shown = swipeShown({
-      dx: s.dx,
+      dx: along,
       distance: toward?.distance ?? 0,
       hasPrev: !!s.prev,
       hasNext: !!s.next,
     });
-    // The pill runs the opposite way to the finger: dragging left pulls the
-    // next entry in, so the pill moves right to meet it.
+    // Toward the next entry is negative in the helpers' count and rightwards
+    // on screen.
     s.moved.style.transform = `${s.baseTransform} translateX(${-shown}px)`;
+    if (this._swipeInk) this._paintSwipeInk();
   };
 
   private _beginSwipe(e: PointerEvent): void {
@@ -1519,7 +1566,11 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       next: neighbour(targets[at + 1]),
       moved,
       baseTransform: moved === active ? "" : moved.style.transform,
+      radius: getComputedStyle(moved).borderRadius || "0px",
     };
+    // Only a marker of its own can be cut out of the entries: without one the
+    // active entry itself travels, label and all.
+    this._swipeInk = moved !== active;
     this._closeSubmenu();
   }
 
@@ -1537,17 +1588,19 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     const s = this._swipe;
     if (!s) return;
     this._swipe = undefined;
+    const along = this._swipeAlong(s.dx);
     const outcome: SwipeDirection | undefined = cancelled
       ? undefined
       : swipeOutcome({
-          dx: s.dx,
-          velocity: s.velocity,
-          distance: (s.dx < 0 ? s.next : s.prev)?.distance ?? 0,
+          dx: along,
+          velocity: this._swipeAlong(s.velocity),
+          distance: (along < 0 ? s.next : s.prev)?.distance ?? 0,
           hasPrev: !!s.prev,
           hasNext: !!s.next,
         });
     const settle = () => {
       // Back to the stylesheet's transition, then to where it belongs.
+      this._swipeInk = false;
       s.moved.style.transition = "";
       s.moved.style.transform = s.baseTransform;
     };
@@ -2314,11 +2367,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     const fill = solid
       ? fillColor(this, item.color)
       : tintOn(this, item.color, this._config?.accent_opacity, NAV_ITEM_TINT);
-    const ink = item.active
-      ? solid
-        ? inkOn(fill, this)
-        : foregroundOn(item.color, fill, 4.5, this)
-      : "var(--nav-ink)";
+    const activeInk = solid ? inkOn(fill, this) : foregroundOn(item.color, fill, 4.5, this);
+    // Mid-swipe the pill can be anywhere, so the entry itself wears the bar's
+    // ink and the copy on top the pill's (see _swipeInk).
+    const ink = item.active && !this._swipeInk ? activeInk : "var(--nav-ink)";
     // The pill goes round the glyph in the stacked variants and round the whole
     // entry in the horizontal ones, so the inline colours are set on whichever
     // element is carrying it.
@@ -2373,6 +2425,21 @@ export class M3NavCard extends LitElement implements LovelaceCard {
           ? html`<span class="label">${item.name}</span>`
           : nothing}
         ${showIcon ? nothing : this._renderBadge(item)}
+        ${this._swipeInk && !item.disabled
+          ? html`<span
+              class="swipe-ink"
+              aria-hidden="true"
+              style=${`background: ${this._markerFill()}; color: ${
+                solid ? inkOn(this._markerFill(), this) : foregroundOn(item.color, this._markerFill(), 4.5, this)
+              };`}
+            >
+              ${showIcon
+                ? html`<span class="glyph"><ha-icon icon=${item.icon}></ha-icon>${this._renderBadge(item)}</span>`
+                : nothing}
+              ${showLabel ? html`<span class="label">${item.name}</span>` : nothing}
+              ${showIcon ? nothing : this._renderBadge(item)}
+            </span>`
+          : nothing}
       </div>
     `;
   }
@@ -2473,14 +2540,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     const marker = this._sliding
       ? html`<div
           class="marker ${this._settling ? "settling" : ""}"
-          style=${(() => {
-            const accent = resolveThemeColor(cfg.accent_color ?? DEFAULT_NAV_COLOR);
-            return `background: ${
-              (cfg.active_style ?? "tint") === "solid"
-                ? fillColor(this, accent)
-                : tintOn(this, accent, cfg.accent_opacity, NAV_ITEM_TINT)
-            };`;
-          })()}
+          style=${`background: ${this._markerFill()};`}
         ></div>`
       : nothing;
 
@@ -2490,7 +2550,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
           ? "auto-hidden"
           : ""} ${animated ? "" : "no-animations"} ${
           this._settling ? "settling" : ""
-        } ${this._swipeEnabled ? "swipeable" : ""}"
+        } ${this._swipeEnabled ? "swipeable" : ""} ${this._swipeInk ? "swipe-inked" : ""}"
         style=${`${cssVars} ${freeStyles}`}
         aria-label=${cfg.name || this._t("nav_label")}
         @pointerdown=${this._onSwipeDown}
@@ -3698,6 +3758,35 @@ export class M3NavCard extends LitElement implements LovelaceCard {
        drag is the card's. */
     .bar.swipeable {
       touch-action: pan-y;
+    }
+
+    /* Mid-swipe every entry is drawn as an inactive one, and its pill-ink copy
+       on top is cut to the pill (see _swipeInk). The entry's opacity moves to
+       its contents, or the copy would be faded with it. */
+    .bar.swipe-inked .item:not(.disabled) {
+      opacity: 1;
+    }
+
+    .bar.swipe-inked .item:not(.disabled) > :not(.swipe-ink) {
+      opacity: ${NAV_ITEM_INACTIVE_OPACITY};
+    }
+
+    .swipe-ink {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: inherit;
+      align-items: inherit;
+      justify-content: inherit;
+      gap: inherit;
+      padding: inherit;
+      pointer-events: none;
+      z-index: 1;
+      clip-path: var(--swipe-clip, inset(100%));
+    }
+
+    .bar .item .swipe-ink .glyph {
+      background: none !important;
     }
 
     .marker {

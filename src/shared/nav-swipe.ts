@@ -1,7 +1,7 @@
 // Swiping along the nav bar moves to the neighbouring entry (m3-nav-card
 // `swipe_navigation`).
 //
-// The finger only ever moves the bar: the active pill follows it toward the
+// The finger only ever moves the bar: the active pill travels toward the
 // entry it would land on, with a rubber band at either end. Once the swipe is
 // committed the page slides — but not as one piece. The bar is
 // `position: fixed` inside the view it would be sliding, and a transform on
@@ -23,9 +23,10 @@ export const SWIPE_FLICK_VELOCITY = 0.45;
 export const SWIPE_RUBBER_BAND = 0.25;
 
 /**
- * Where a release lands. `dx` is the finger's travel (negative: leftwards,
- * which brings the next entry in), `distance` the gap to the neighbour on that
- * side, `velocity` the speed over the last few moves in px/ms.
+ * Where a release lands. `dx` is the travel along the bar, negative toward
+ * the next entry — the card turns the finger's travel into it, per
+ * `swipe_direction`. `distance` is the gap to the neighbour on that side,
+ * `velocity` the speed over the last few moves in px/ms, counted the same way.
  */
 export function swipeOutcome(p: {
   dx: number;

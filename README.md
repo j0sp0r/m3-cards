@@ -4861,6 +4861,7 @@ without a breaking config change.
 | `submenu_trigger` | `tap` | `tap` or `hold` |
 | `haptics` | `true` | Fire Home Assistant's haptic event on a tap |
 | `swipe_navigation` | `false` | A sideways swipe along the bar goes to the neighbouring entry that navigates. The active pill follows the finger; on release the page beside the bar slides out and the new one in, while the bar and the view's background stay put. Off on a bar that scrolls sideways, where the swipe is the bar's own |
+| `swipe_direction` | `follow` | `follow`: the pill follows the finger, so a swipe to the left goes to the entry on the left. `inverted`: the finger pulls the bar, so a swipe to the left brings in the entry on the right. While the pill travels, the ink under it is already the active ink, letter by letter |
 | `auto_hide_on_scroll` | `false` | Hide while scrolling down, show on the way up |
 | `hidden` | — | Jinja2 boolean; hides the whole card |
 | `styles` | — | Free CSS applied to the bar. Advanced |

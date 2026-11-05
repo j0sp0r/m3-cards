@@ -775,6 +775,22 @@ export class M3NavCardEditor extends LitElement implements LovelaceCardEditor {
     const schema: SchemaEntry[] = [
       { name: "haptics", selector: { boolean: {} } },
       { name: "swipe_navigation", selector: { boolean: {} } },
+      ...(this._config?.swipe_navigation === true
+        ? [
+            {
+              name: "swipe_direction",
+              selector: {
+                select: {
+                  mode: "dropdown" as const,
+                  options: [
+                    { value: "follow", label: this._t("editor_nav_swipe_direction_follow") },
+                    { value: "inverted", label: this._t("editor_nav_swipe_direction_inverted") },
+                  ],
+                },
+              },
+            },
+          ]
+        : []),
       { name: "auto_hide_on_scroll", selector: { boolean: {} } },
       // What happens when a page changes is behaviour, not appearance: the
       // marker's own movement lives under Appearance because it is part of how
@@ -1120,6 +1136,7 @@ export class M3NavCardEditor extends LitElement implements LovelaceCardEditor {
       radius: "editor_radius",
       haptics: "editor_nav_haptics",
       swipe_navigation: "editor_nav_swipe_navigation",
+      swipe_direction: "editor_nav_swipe_direction",
       auto_hide_on_scroll: "editor_nav_auto_hide",
       submenu_trigger: "editor_nav_submenu_trigger",
       preload_views: "editor_nav_preload_views",
@@ -1665,6 +1682,7 @@ export class M3NavCardEditor extends LitElement implements LovelaceCardEditor {
               .data=${{
                 haptics: cfg.haptics ?? true,
                 swipe_navigation: cfg.swipe_navigation ?? false,
+                swipe_direction: cfg.swipe_direction ?? "follow",
                 auto_hide_on_scroll: cfg.auto_hide_on_scroll ?? false,
                 page_transition: cfg.page_transition ?? "none",
                 page_transition_ms: cfg.page_transition_ms ?? 180,
