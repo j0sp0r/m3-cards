@@ -40,9 +40,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   scrolls sideways. By default a swipe to the left goes to the entry on the
   left; `swipe_direction: inverted` turns that round. While the pill travels,
   whatever it covers is drawn in the active ink, so the colours are right
-  mid-swipe and not only once the pill has settled. The pill takes on the
-  width of the entry it heads for as it goes, and on release glides the rest
-  of the way before the page changes.
+  mid-swipe and not only once the pill has settled. Under the pill the entry
+  it heads for is already drawn as it will be once active — its icon, its
+  weight, its place after the bar has reflowed — and the pill takes on that
+  size as it goes, so letting go changes nothing; it glides the rest of the
+  way before the page changes. The page itself slides by a full screen width
+  without fading, so frosted cards keep their blur throughout.
 
 - **`shape_by_state` on five more cards.** The button card's "shape follows
   the state" now also works on the lights overview and room card tiles (off

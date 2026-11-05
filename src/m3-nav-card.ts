@@ -244,6 +244,20 @@ interface ResolvedItem {
   badge?: { text: string; dot: boolean; color: string };
 }
 
+interface SwipeNeighbour {
+  index: number;
+  path: string;
+  /** From the active entry's middle to the middle of where the pill will be. */
+  distance: number;
+  /** The pill's width there. */
+  width: number;
+  /** Where the entry's icon and label will start, in viewport px. */
+  glyphLeft?: number;
+  labelLeft?: number;
+  /** The label's type once active. */
+  labelFont?: { size: string; weight: string };
+}
+
 @customElement("m3-nav-card")
 export class M3NavCard extends LitElement implements LovelaceCard {
   private _hass?: HomeAssistant;
@@ -796,7 +810,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
   protected updated(changed: PropertyValues): void {
     super.updated(changed);
     if (this._config?.swipe_navigation === true) this._syncBarOverflow();
-    if (this._swipeInk && this._swipe) this._paintSwipeInk(this._swipe);
+    if (this._swipeInk && this._swipe) {
+      this._placeSwipeCopies(this._swipe);
+      this._paintSwipeInk(this._swipe);
+    }
     if (this._settling) {
       // One frame later, so the corrected marker has been painted with the
       // transition still off before it is turned back on. The timer is the
@@ -1427,14 +1444,85 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     lastT: number;
     velocity: number;
     dx: number;
-    prev?: { index: number; path: string; distance: number; width: number };
-    next?: { index: number; path: string; distance: number; width: number };
+    prev?: SwipeNeighbour;
+    next?: SwipeNeighbour;
     moved: HTMLElement;
     baseTransform: string;
     /** The travelling marker's width at rest, and its corner radius in px. */
     width: number;
     radius: number;
   };
+  /**
+   * Lays the bar out as it will be with `to` active instead of `from`, on a
+   * hidden copy in the same place, and reads off the box the marker will
+   * cover and where the entry's first piece of ink (icon, else label) starts.
+   */
+  private _futureLayout(
+    bar: HTMLElement,
+    from: number,
+    to: number,
+  ): Pick<SwipeNeighbour, "glyphLeft" | "labelLeft" | "labelFont"> & { box: DOMRect } | undefined {
+    const outer = (bar.parentElement?.classList.contains("bar-row") ? bar.parentElement : bar) as HTMLElement;
+    const parent = outer.parentNode;
+    if (!parent) return undefined;
+    const place = (outer.parentElement ?? outer).getBoundingClientRect();
+    const wrap = document.createElement("div");
+    wrap.setAttribute("aria-hidden", "true");
+    wrap.style.cssText = `position: fixed; left: ${place.left}px; top: ${place.top}px; width: ${place.width}px; visibility: hidden; pointer-events: none; contain: layout style;`;
+    const copy = outer.cloneNode(true) as HTMLElement;
+    wrap.append(copy);
+    const visibleFor = (rule: NavLabelVisibility, active: boolean): boolean =>
+      rule === "always" || (rule === "active_only" && active) || (rule === "inactive_only" && !active);
+    const item = (index: number) => copy.querySelector<HTMLElement>(`.item[data-index="${index}"]`);
+    const was = item(from);
+    const will = item(to);
+    if (!was || !will) return undefined;
+    copy.querySelectorAll(".swipe-ink, .marker").forEach((n) => n.remove());
+    // A cloned icon has not drawn itself yet, and has no size until it does.
+    const real = bar.querySelector<HTMLElement>(".item .glyph ha-icon");
+    if (real) {
+      const r = real.getBoundingClientRect();
+      copy.querySelectorAll<HTMLElement>("ha-icon").forEach((n) => {
+        n.style.cssText = `display: inline-block; width: ${r.width}px; height: ${r.height}px;`;
+      });
+    }
+    copy.querySelectorAll(".swipe-unseen").forEach((n) => n.classList.remove("swipe-unseen"));
+    copy.classList.remove("swipe-inked");
+    const glyph = was.querySelector(":scope > .glyph");
+    was.classList.remove("active");
+    will.classList.add("active");
+    if (!visibleFor(this._iconVisibility, false)) glyph?.remove();
+    if (visibleFor(this._iconVisibility, true) && !will.querySelector(":scope > .glyph") && glyph) {
+      const icon = glyph.cloneNode(true) as HTMLElement;
+      const name = this._resolvedItems.find((i) => i.index === to)?.icon;
+      if (name) icon.querySelector("ha-icon")?.setAttribute("icon", name);
+      icon.querySelectorAll(".badge").forEach((n) => n.remove());
+      will.prepend(icon);
+    }
+    for (const node of [was, will]) {
+      const hasGlyph = !!node.querySelector(":scope > .glyph");
+      node.classList.toggle("labels-only", !hasGlyph);
+      node.classList.toggle("icons-only", hasGlyph && !node.querySelector(":scope > .label"));
+    }
+    parent.append(wrap);
+    try {
+      const box = ((this._stacked ? will.querySelector<HTMLElement>(":scope > .glyph") : null) ?? will).getBoundingClientRect();
+      const glyphEl = will.querySelector<HTMLElement>(":scope > .glyph");
+      const labelEl = will.querySelector<HTMLElement>(":scope > .label");
+      // Relative to the copy's own frame, then put back where the bar's is.
+      const dx = place.left - wrap.getBoundingClientRect().left;
+      const font = labelEl ? getComputedStyle(labelEl) : undefined;
+      return {
+        box: new DOMRect(box.left + dx, box.top, box.width, box.height),
+        glyphLeft: glyphEl ? glyphEl.getBoundingClientRect().left + dx : undefined,
+        labelLeft: labelEl ? labelEl.getBoundingClientRect().left + dx : undefined,
+        labelFont: font ? { size: font.fontSize, weight: font.fontWeight } : undefined,
+      };
+    } finally {
+      wrap.remove();
+    }
+  }
+
   /** Whether the bar scrolls sideways — then a swipe is the bar's, not ours. */
   @state() private _barOverflows = false;
   /**
@@ -1494,10 +1582,44 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     }
   }
 
+  /**
+   * Moves the copies of the entries a swipe can land on to where their ink
+   * will be once they are active, so what shows under the pill is exactly
+   * what stays when it is let go.
+   */
+  private _placeSwipeCopies(s: NonNullable<typeof this._swipe>): void {
+    for (const n of [s.prev, s.next]) {
+      if (!n) continue;
+      const copy = this.renderRoot.querySelector<HTMLElement>(`.item[data-index="${n.index}"] > .swipe-ink`);
+      if (!copy) continue;
+      const glyph = copy.querySelector<HTMLElement>(":scope > .glyph");
+      const label = copy.querySelector<HTMLElement>(":scope > .label");
+      if (label && n.labelFont) {
+        label.style.fontSize = n.labelFont.size;
+        label.style.fontWeight = n.labelFont.weight;
+      }
+      // Each piece on its own: the gap between them may differ, too.
+      // Measured against where each sits untranslated, every frame, so a late
+      // change of layout corrects itself.
+      const moves: [HTMLElement, number | undefined][] = [
+        [glyph as HTMLElement, n.glyphLeft],
+        [label as HTMLElement, n.labelLeft],
+      ];
+      for (const [node, future] of moves) {
+        if (!node || future === undefined) continue;
+        const applied = parseFloat(node.dataset.by ?? "0");
+        const by = future - (node.getBoundingClientRect().left - applied);
+        node.dataset.by = String(by);
+        node.style.translate = `${by}px 0`;
+      }
+    }
+  }
+
   /** Repaints the cut-outs every frame while the marker glides on its own. */
   private _followSwipeInk(s: NonNullable<typeof this._swipe>): void {
     const tick = () => {
       if (!this._swipeInk) return;
+      this._placeSwipeCopies(s);
       this._paintSwipeInk(s);
       requestAnimationFrame(tick);
     };
@@ -1561,7 +1683,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       hasNext: !!s.next,
     });
     this._placeSwipePill(s, -shown, toward);
-    if (this._swipeInk) this._paintSwipeInk(s);
+    if (this._swipeInk) {
+      this._placeSwipeCopies(s);
+      this._paintSwipeInk(s);
+    }
   };
 
   /**
@@ -1595,34 +1720,23 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       const r = node.getBoundingClientRect();
       return r.left + r.width / 2;
     };
-    // The marker covers the glyph in the stacked variants, the entry elsewhere.
-    const boxOf = (node: HTMLElement) =>
-      (this._stacked ? node.querySelector<HTMLElement>(".glyph") : null) ?? node;
-    // An entry that shows its icon only while active grows by it on arrival;
-    // the pill heads for that width, not the one the entry has now.
-    const activeGlyph = active.querySelector<HTMLElement>(":scope > .glyph");
-    const glyphRoom = (node: HTMLElement): number => {
-      if (this._stacked || !activeGlyph || node.querySelector(":scope > .glyph")) return 0;
-      const gap = parseFloat(getComputedStyle(active).columnGap) || 0;
-      return activeGlyph.getBoundingClientRect().width + (node.querySelector(":scope > .label") ? gap : 0);
-    };
-    // The icon is added in front of the label, so the label keeps its place
-    // and the pill's middle moves left by half the icon's room.
+    // Where the pill and the entry's ink will be once the page has changed:
+    // laid out for real on a hidden copy of the bar, because the entries
+    // reflow when one gains its icon and another loses it.
     const neighbour = (t?: { index: number; path: string }) => {
-      const node = t ? el(t.index) : null;
-      if (!t || !node) return undefined;
-      const room = glyphRoom(node);
+      if (!t || !el(t.index)) return undefined;
+      const future = this._futureLayout(bar, targets[at].index, t.index);
+      if (!future) return undefined;
+      const box = future.box;
       return {
         ...t,
-        distance: Math.abs(centre(node) - room / 2 - centre(active)),
-        width: boxOf(node).getBoundingClientRect().width + room,
+        distance: Math.abs(box.left + box.width / 2 - centre(active)),
+        width: box.width,
+        glyphLeft: future.glyphLeft,
+        labelLeft: future.labelLeft,
+        labelFont: future.labelFont,
       };
     };
-    const room = targets
-      .filter((t) => !t.active)
-      .map((t) => el(t.index))
-      .reduce((max, node) => Math.max(max, node ? glyphRoom(node) : 0), 0);
-    this.style.setProperty("--swipe-room", `${room}px`);
     const moved = this._sliding ? bar.querySelector<HTMLElement>(".marker") : active;
     if (!moved) return;
     capturePointer(bar, e);
@@ -2517,7 +2631,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
         ${showIcon ? nothing : this._renderBadge(item)}
         ${this._swipeInk && !item.disabled
           ? html`<span
-              class="swipe-ink ${inkIcon && !showIcon && !this._stacked ? "grows" : ""}"
+              class="swipe-ink"
               aria-hidden="true"
               style=${`color: ${
                 solid ? inkOn(this._markerFill(), this) : foregroundOn(item.color, this._markerFill(), 4.5, this)
@@ -3880,10 +3994,17 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       background: none !important;
     }
 
-    /* An entry whose icon only shows while active: under the pill the icon is
-       put in front of the label, which stays exactly over its own. */
-    .swipe-ink.grows {
-      transform: translateX(calc(var(--swipe-room, 0px) / -2));
+    /* The copy is drawn as the active entry, which may be wider than the
+       entry it sits in: it must not be squeezed to fit. Its pieces are then
+       moved to where the active entry will have them (_placeSwipeCopies). */
+    .swipe-ink > * {
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .swipe-ink > .label {
+      max-width: none;
+      overflow: visible;
     }
 
     .bar.swipe-inked .item > .swipe-unseen {
