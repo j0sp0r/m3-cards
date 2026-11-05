@@ -54,3 +54,40 @@ export function hexToHs(hex: string): [number, number] | undefined {
   const rgb = hexToRgb(hex);
   return rgb ? rgbToHs(...rgb) : undefined;
 }
+
+/**
+ * RGB of a black body at `kelvin`, for a light that reports only its colour
+ * temperature (Tanner Helland's fit, good to a few percent from 1000 K to
+ * 40000 K).
+ */
+export function kelvinToRgb(kelvin: number): [number, number, number] {
+  const t = Math.max(1000, Math.min(40000, kelvin)) / 100;
+  const clamp = (v: number) => Math.max(0, Math.min(255, v));
+  const r = t <= 66 ? 255 : clamp(329.698727446 * Math.pow(t - 60, -0.1332047592));
+  const g =
+    t <= 66
+      ? clamp(99.4708025861 * Math.log(t) - 161.1195681661)
+      : clamp(288.1221695283 * Math.pow(t - 60, -0.0755148492));
+  const b = t >= 66 ? 255 : t <= 19 ? 0 : clamp(138.5177312231 * Math.log(t - 10) - 305.0447927307);
+  return [r, g, b];
+}
+
+/**
+ * The colour a light is shining in, as hex — from `rgb_color`, which Home
+ * Assistant fills in for every colour mode including colour temperature, then
+ * from `hs_color`, then from the colour temperature itself. Undefined for a
+ * light that reports none of them (on/off or brightness only).
+ */
+export function lightColorHex(attributes: Record<string, unknown>): string | undefined {
+  const rgb = attributes.rgb_color;
+  if (Array.isArray(rgb) && rgb.length === 3 && rgb.every((v) => typeof v === "number")) {
+    return rgbToHex(rgb[0], rgb[1], rgb[2]);
+  }
+  const hs = attributes.hs_color;
+  if (Array.isArray(hs) && hs.length === 2 && hs.every((v) => typeof v === "number")) {
+    return rgbToHex(...hsToRgb(hs[0], hs[1]));
+  }
+  const kelvin = attributes.color_temp_kelvin;
+  if (typeof kelvin === "number" && kelvin > 0) return rgbToHex(...kelvinToRgb(kelvin));
+  return undefined;
+}

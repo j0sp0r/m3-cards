@@ -69,6 +69,7 @@ member list all still render, and the header still opens more-info.
 | `shape_by_state` | boolean | `false` | The header icon is a circle while the light is off and a rounded square while it is on, as on the button card |
 | `wave_style` | `wavy` \| `flat` | `wavy` | Slider wave shape |
 | `show_color_temp` | boolean | `true` | Show the color temperature row; `false` hides it even on a light that supports it |
+| `use_light_color` | boolean | `true` | While the light is on, the slider, icon and power button take the colour it shines in (colour or colour temperature); `false`, or a light without colour, uses `accent_color` |
 | `accent_color` / `track_color` / `handle_color` | string | theme default | Slider colors |
 | `text_color` / `secondary_text_color` | string | theme default | Name / subtitle |
 | `card_background` | string | glass/solid background | Card background |

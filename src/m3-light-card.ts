@@ -50,7 +50,7 @@ import { renderListRow, listRowStyles } from "./shared/list-row";
 import { shouldAnimate, isReducedMotion, STANDARD_EASING } from "./shared/animation";
 import { buildWavePath } from "./shared/wave";
 import { stopSwipe } from "./shared/swipe";
-import { hexToHs, hsToRgb, rgbToHex, rgbToHs } from "./shared/color-picker";
+import { hexToHs, hsToRgb, lightColorHex, rgbToHex, rgbToHs } from "./shared/color-picker";
 import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
 import { DragThrottle } from "./shared/drag-throttle";
@@ -534,9 +534,18 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
       this._config.name || entity.attributes.friendly_name || this._config.entity;
     const icon = this._config.icon || entity.attributes.icon || DEFAULT_LIGHT_ICON;
 
-    const accentColor = this._config.accent_color
+    const configuredAccent = this._config.accent_color
       ? resolveThemeColor(this._config.accent_color)
       : DEFAULT_LIGHT_ACCENT;
+    // The light's own colour, while it is on and says what it is; the wheel's
+    // pick shows at once, before the light has reported it back.
+    const ownColor =
+      this._config.use_light_color === false
+        ? undefined
+        : this._wheelDragging && this._wheelDragValue
+          ? rgbToHex(...hsToRgb(...this._wheelDragValue))
+          : lightColorHex(entity.attributes);
+    const accentColor = ownColor ?? configuredAccent;
     const activeColor = unavailable || !effectiveOn ? LIGHT_OFF_COLOR : accentColor;
     const trackColorCss = this._config.track_color
       ? resolveThemeColor(this._config.track_color)

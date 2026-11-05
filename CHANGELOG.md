@@ -80,6 +80,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   button, check-in, chip buttons, group, openings, printer, system, vacuum and
   vacuum maintenance cards — printed no banner, so "which version do you
   run?" had no quick answer for them. A test now fails for a card without one.
+- **The light card takes the light's own colour** (#28). `use_light_color`
+  was offered in the editor and on by default, but the card never read it:
+  slider, icon and power button always showed the accent colour. While the
+  light is on they now show the colour it shines in — `rgb_color`, which Home
+  Assistant also fills in for a colour temperature, else `hs_color`, else the
+  temperature itself — and follow the colour wheel as it is dragged. A light
+  that reports no colour, and `use_light_color: false`, keep `accent_color`.
 - **The presence card's map appears without a native map card on the page**
   (#26). Home Assistant defines its map card only the first time a dashboard
   asks for one, and `show_map` silently drew nothing on a view without a
