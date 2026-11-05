@@ -1782,22 +1782,35 @@ export class M3NavCard extends LitElement implements LovelaceCard {
    */
   private _inkFollowing = false;
 
+  /** The swipe whose drawing is up — the one the frame loop paints. */
+  private _inkFor?: NonNullable<typeof this._swipe>;
+
   private _followSwipeInk(s: NonNullable<typeof this._swipe>): void {
+    // Always the latest swipe: one begun while the last still glides home
+    // takes the loop over rather than leaving it painting the old one.
+    this._inkFor = s;
     if (this._inkFollowing) return;
     this._inkFollowing = true;
     const tick = () => {
-      if (!this._swipeInk) {
+      if (!this._swipeInk || !this._inkFor) {
         this._inkFollowing = false;
         return;
       }
-      this._paintSwipeInk(s);
+      this._paintSwipeInk(this._inkFor);
       requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
   }
 
 
-  private _endSwipeInk(): void {
+  /**
+   * Takes the swipe's drawing down — for `s` only, when given: a timer or a
+   * finished slide of an earlier swipe must not take down the one now under
+   * the finger.
+   */
+  private _endSwipeInk(s?: NonNullable<typeof this._swipe>): void {
+    if (s && this._inkFor !== s) return;
+    this._inkFor = undefined;
     this._swipeInk = false;
     // The entries hand their dimming back from their parts to themselves; an
     // entry fading its own opacity back in over that would flash every
@@ -1989,7 +2002,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       if (this._swipeInk) {
         this._followSwipeInk(s);
         // Home, and the icons and labels glided back after it.
-        setTimeout(() => this._endSwipeInk(), NAV_MARKER_SLIDE_MS + SWIPE_SETTLE_MS);
+        setTimeout(() => this._endSwipeInk(s), NAV_MARKER_SLIDE_MS + SWIPE_SETTLE_MS);
       }
       return;
     }
@@ -1998,7 +2011,9 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     this._placeSwipePill(s, outcome === "next" ? target.distance : -target.distance, target);
     if (this._swipeInk) this._followSwipeInk(s);
     const settle = () => {
-      this._endSwipeInk();
+      this._endSwipeInk(s);
+      // A new swipe has the pill now.
+      if (this._swipe) return;
       // Wherever the page now says it belongs.
       if (s.moved.classList.contains("marker")) this._placeMarker();
       else s.moved.style.transform = s.baseTransform;
