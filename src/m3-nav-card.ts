@@ -248,11 +248,40 @@ interface ResolvedItem {
   badge?: { text: string; dot: boolean; color: string };
 }
 
+/**
+ * Scrolls a bar wider than its box by the least that brings `item` fully
+ * into view, with a little air, or leaves it exactly where it is.
+ */
+function scrollIntoBar(bar: HTMLElement, item: HTMLElement): void {
+  const barBox = bar.getBoundingClientRect();
+  const itemBox = item.getBoundingClientRect();
+  // A little air, so the entry does not end up flush against the edge
+  // looking like it was cut off.
+  const margin = NAV_BAR_GAP * 2;
+  const overLeft = barBox.left - itemBox.left + margin;
+  const overRight = itemBox.right - barBox.right + margin;
+
+  let delta = 0;
+  if (overLeft > 0) delta = -overLeft;
+  else if (overRight > 0) delta = overRight;
+  else return; // already fully in view: leave the bar exactly where it is
+
+  const max = bar.scrollWidth - bar.clientWidth;
+  const left = Math.max(0, Math.min(max, bar.scrollLeft + delta));
+  if (Math.abs(left - bar.scrollLeft) < 1) return;
+  bar.scrollLeft = left;
+}
+
 interface SwipeNeighbour {
   index: number;
   path: string;
-  /** From the active entry's middle to the middle of where the pill will be. */
+  /** From the active entry's middle to this one's, as the bar stands. */
   distance: number;
+  /**
+   * How far the pill's middle moves to where it will be, either way: on a bar
+   * that scrolls to bring this entry in, it may hardly move at all.
+   */
+  shift: number;
   /** The pill's width there. */
   width: number;
   /** Where the entry's icon and label will start, in viewport px. */
@@ -699,23 +728,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     if (bar.scrollWidth - bar.clientWidth <= 1) return;
     this._scrolledFor = this._path;
 
-    const barBox = bar.getBoundingClientRect();
-    const itemBox = active.getBoundingClientRect();
-    // A little air, so the entry does not end up flush against the edge
-    // looking like it was cut off.
-    const margin = NAV_BAR_GAP * 2;
-    const overLeft = barBox.left - itemBox.left + margin;
-    const overRight = itemBox.right - barBox.right + margin;
-
-    let delta = 0;
-    if (overLeft > 0) delta = -overLeft;
-    else if (overRight > 0) delta = overRight;
-    else return; // already fully in view: leave the bar exactly where it is
-
-    const max = bar.scrollWidth - bar.clientWidth;
-    const left = Math.max(0, Math.min(max, bar.scrollLeft + delta));
-    if (Math.abs(left - bar.scrollLeft) < 1) return;
-    bar.scrollLeft = left;
+    scrollIntoBar(bar, active);
   }
 
   private _measureDock = (): void => {
@@ -1494,6 +1507,8 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     glide?: { going?: SwipeNeighbour; t0: number; from: Map<string, number> };
     /** Let go toward a neighbour: the page is about to change. */
     committed?: boolean;
+    /** The neighbour the finger is taking the bar to, once it has moved. */
+    going?: SwipeNeighbour;
     offsets: Map<string, number>;
     /** An inactive label's weight, for the entry being left. */
     restWeight: string;
@@ -1551,6 +1566,11 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       node.classList.toggle("icons-only", hasGlyph && !node.querySelector(":scope > .label"));
     }
     parent.append(wrap);
+    // A bar wider than the screen: the next page's bar takes this one's
+    // scroll, then brings its active entry into view — so does the copy.
+    const ghostBar = (copy.classList.contains("bar") ? copy : copy.querySelector<HTMLElement>(".bar")) ?? copy;
+    ghostBar.scrollLeft = bar.scrollLeft;
+    if (ghostBar.scrollWidth - ghostBar.clientWidth > 1) scrollIntoBar(ghostBar, will);
     try {
       const box = ((this._stacked ? will.querySelector<HTMLElement>(":scope > .glyph") : null) ?? will).getBoundingClientRect();
       const glyphEl = will.querySelector<HTMLElement>(":scope > .glyph");
@@ -1662,10 +1682,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
    * to, once it has moved at all.
    */
   private _swipeGoing(s: NonNullable<typeof this._swipe>): SwipeNeighbour | undefined {
-    const r = s.moved.getBoundingClientRect();
-    const off = r.left + r.width / 2 - s.home;
-    if (Math.abs(off) < SWIPE_GOING_PX) return undefined;
-    return off > 0 ? s.next : s.prev;
+    return s.going;
   }
 
   /**
@@ -1829,8 +1846,17 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     }
   }
 
+  /** The bar does not scroll under the finger: swiping has it to itself. */
+  private get _barScrollLocked(): boolean {
+    return this._config?.swipe_navigation === true && this._config.bar_scroll === false && !this._editing;
+  }
+
   private get _swipeEnabled(): boolean {
-    return this._config?.swipe_navigation === true && !this._editing && !this._barOverflows;
+    return (
+      this._config?.swipe_navigation === true &&
+      !this._editing &&
+      (!this._barOverflows || this._barScrollLocked)
+    );
   }
 
   /** The entries a swipe can land on, in bar order: visible, enabled, navigating. */
@@ -1878,7 +1904,12 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       hasPrev: !!s.prev,
       hasNext: !!s.next,
     });
-    this._placeSwipePill(s, -shown, toward);
+    // The finger says where the bar is going, not the pill: on a bar that
+    // scrolls to bring the next entry in, the pill may barely move.
+    s.going = Math.abs(s.dx) >= SWIPE_GOING_PX ? toward : undefined;
+    if (toward && toward.distance > 0) this._placeSwipePill(s, toward, Math.min(1, Math.abs(shown) / toward.distance));
+    // Past either end: a damped give, toward nothing.
+    else s.moved.style.transform = `${s.baseTransform} translateX(${-shown}px)`;
     if (this._swipeInk) this._paintSwipeInk(s);
   };
 
@@ -1887,18 +1918,14 @@ export class M3NavCard extends LitElement implements LovelaceCard {
    * the next entry). A travelling marker also takes on the width of the entry
    * it is heading for, in proportion, so it arrives the size it will stay.
    */
-  private _placeSwipePill(
-    s: NonNullable<typeof this._swipe>,
-    shift: number,
-    toward?: { distance: number; width: number },
-  ): void {
-    if (s.moved.classList.contains("marker") && toward && toward.distance > 0) {
-      const share = Math.min(1, Math.abs(shift) / toward.distance);
+  private _placeSwipePill(s: NonNullable<typeof this._swipe>, toward: SwipeNeighbour, share: number): void {
+    let left = toward.shift * share;
+    if (s.moved.classList.contains("marker")) {
       const width = s.width + (toward.width - s.width) * share;
       s.moved.style.width = `${width}px`;
-      shift -= (width - s.width) / 2;
+      left -= (width - s.width) / 2;
     }
-    s.moved.style.transform = `${s.baseTransform} translateX(${shift}px)`;
+    s.moved.style.transform = `${s.baseTransform} translateX(${left}px)`;
   }
 
   private _beginSwipe(e: PointerEvent): void {
@@ -1921,9 +1948,11 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       const future = this._futureLayout(bar, targets[at].index, t.index);
       if (!future) return undefined;
       const box = future.box;
+      const node = el(t.index)!;
       return {
         ...t,
-        distance: Math.abs(box.left + box.width / 2 - centre(active)),
+        distance: Math.abs(centre(node) - centre(active)),
+        shift: box.left + box.width / 2 - centre(active),
         width: box.width,
         glyphLeft: future.glyphLeft,
         labelLeft: future.labelLeft,
@@ -1997,6 +2026,8 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     // way — home, or on to the entry it was sent to — with the ink following.
     s.moved.style.transition = "";
     if (!outcome) {
+      // Home: the bar goes back to the layout it has.
+      s.going = undefined;
       if (s.moved.classList.contains("marker")) s.moved.style.width = `${s.width}px`;
       s.moved.style.transform = s.baseTransform;
       if (this._swipeInk) {
@@ -2008,7 +2039,8 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     }
     const target = outcome === "next" ? s.next! : s.prev!;
     s.committed = true;
-    this._placeSwipePill(s, outcome === "next" ? target.distance : -target.distance, target);
+    s.going = target;
+    this._placeSwipePill(s, target, 1);
     if (this._swipeInk) this._followSwipeInk(s);
     const settle = () => {
       this._endSwipeInk(s);
@@ -2968,7 +3000,9 @@ export class M3NavCard extends LitElement implements LovelaceCard {
           ? "auto-hidden"
           : ""} ${animated ? "" : "no-animations"} ${
           this._settling ? "settling" : ""
-        } ${this._swipeEnabled ? "swipeable" : ""} ${this._swipeInk ? "swipe-inked" : ""} ${
+        } ${this._swipeEnabled ? "swipeable" : ""} ${this._barScrollLocked ? "scroll-locked" : ""} ${
+          this._swipeInk ? "swipe-inked" : ""
+        } ${
           this._swipeEnding ? "swipe-ending" : ""
         }"
         style=${`${cssVars} ${freeStyles}`}
@@ -4203,6 +4237,12 @@ export class M3NavCard extends LitElement implements LovelaceCard {
        drag is the card's. */
     .bar.swipeable {
       touch-action: pan-y;
+    }
+
+    /* bar_scroll: false — still scrolled by the card to keep the active entry
+       in view, never by the finger. */
+    .bar.scroll-locked {
+      overflow-x: hidden;
     }
 
     /* Mid-swipe every entry is drawn as an inactive one with the pill cut out

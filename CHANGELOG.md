@@ -46,6 +46,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   size as it goes, so letting go changes nothing; it glides the rest of the
   way before the page changes. The page itself slides by a full screen width
   without fading, so frosted cards keep their blur throughout.
+  On a narrow screen where the bar is wider than the screen, the bar scrolls
+  and swiping is off; `bar_scroll: false` stops the finger scrolling it, so
+  a swipe changes the page there too and the bar keeps the active entry in
+  view by itself.
 
 - **`shape_by_state` on five more cards.** The button card's "shape follows
   the state" now also works on the lights overview and room card tiles (off

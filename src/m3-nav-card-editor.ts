@@ -789,6 +789,7 @@ export class M3NavCardEditor extends LitElement implements LovelaceCardEditor {
                 },
               },
             },
+            { name: "bar_scroll", selector: { boolean: {} } },
           ]
         : []),
       { name: "auto_hide_on_scroll", selector: { boolean: {} } },
@@ -1087,6 +1088,7 @@ export class M3NavCardEditor extends LitElement implements LovelaceCardEditor {
     if (schema.name === "pill_size") return this._t("editor_nav_pill_size_helper");
     if (schema.name === "marker_motion") return this._t("editor_nav_marker_motion_helper");
     if (schema.name === "page_transition") return this._t("editor_nav_page_transition_helper");
+    if (schema.name === "bar_scroll") return this._t("editor_nav_bar_scroll_helper");
     if (schema.name === "match") return this._t("editor_nav_item_match_hint");
     return undefined;
   };
@@ -1137,6 +1139,7 @@ export class M3NavCardEditor extends LitElement implements LovelaceCardEditor {
       haptics: "editor_nav_haptics",
       swipe_navigation: "editor_nav_swipe_navigation",
       swipe_direction: "editor_nav_swipe_direction",
+      bar_scroll: "editor_nav_bar_scroll",
       auto_hide_on_scroll: "editor_nav_auto_hide",
       submenu_trigger: "editor_nav_submenu_trigger",
       preload_views: "editor_nav_preload_views",
@@ -1683,6 +1686,7 @@ export class M3NavCardEditor extends LitElement implements LovelaceCardEditor {
                 haptics: cfg.haptics ?? true,
                 swipe_navigation: cfg.swipe_navigation ?? false,
                 swipe_direction: cfg.swipe_direction ?? "follow",
+                bar_scroll: cfg.bar_scroll ?? true,
                 auto_hide_on_scroll: cfg.auto_hide_on_scroll ?? false,
                 page_transition: cfg.page_transition ?? "none",
                 page_transition_ms: cfg.page_transition_ms ?? 180,

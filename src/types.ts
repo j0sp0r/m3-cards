@@ -2843,6 +2843,12 @@ export interface M3NavCardConfig extends DetailModeConfig {
    * finger pulls the bar, so a swipe to the left brings the entry on the right.
    */
   swipe_direction?: NavSwipeDirection;
+  /**
+   * With `swipe_navigation`: `false` stops a bar wider than the screen from
+   * scrolling under the finger, so a sideways swipe always changes the page;
+   * the bar keeps the active entry in view by itself. Default `true`.
+   */
+  bar_scroll?: boolean;
   style?: NavVariant;
   position?: NavPosition;
   items?: NavItemConfig[];

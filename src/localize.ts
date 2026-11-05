@@ -2074,6 +2074,9 @@ const translations = {
     editor_nav_behavior: "Verhalten",
     editor_nav_haptics: "Kurz vibrieren beim Antippen (nur in der App)",
     editor_nav_swipe_navigation: "Über die Leiste wischen wechselt die Seite",
+    editor_nav_bar_scroll: "Leiste per Finger seitlich scrollen",
+    editor_nav_bar_scroll_helper:
+      "Aus: Ist die Leiste breiter als der Bildschirm, wechselt ein Wisch trotzdem die Seite statt die Leiste zu scrollen. Die Leiste rollt dann selbst mit, damit der aktive Eintrag sichtbar bleibt.",
     editor_nav_swipe_direction: "Wischrichtung",
     editor_nav_swipe_direction_follow: "Pille folgt dem Finger (nach links wischen → linker Eintrag)",
     editor_nav_swipe_direction_inverted: "Invertiert (nach links wischen → rechter Eintrag)",
@@ -5037,6 +5040,9 @@ const translations = {
     editor_nav_behavior: "Behaviour",
     editor_nav_haptics: "Short vibration on tap (companion app only)",
     editor_nav_swipe_navigation: "Swiping along the bar changes the page",
+    editor_nav_bar_scroll: "Scroll the bar sideways by finger",
+    editor_nav_bar_scroll_helper:
+      "Off: on a bar wider than the screen a swipe still changes the page instead of scrolling the bar. The bar then scrolls by itself to keep the active entry in view.",
     editor_nav_swipe_direction: "Swipe direction",
     editor_nav_swipe_direction_follow: "Pill follows the finger (swipe left → entry on the left)",
     editor_nav_swipe_direction_inverted: "Inverted (swipe left → entry on the right)",
