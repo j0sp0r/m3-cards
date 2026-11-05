@@ -59,6 +59,7 @@ import {
   NAV_ITEM_TINT,
   NAV_PRESS_MS,
   NAV_MARKER_SLIDE_MS,
+  NAV_ARRIVAL_QUIET_MS,
   NAV_PAGE_FADE_MS,
   NAV_PAGE_SLIDE_PX,
   NAV_PAGE_OUT_SHARE,
@@ -256,6 +257,8 @@ interface SwipeNeighbour {
   labelLeft?: number;
   /** The label's type once active. */
   labelFont?: { size: string; weight: string };
+  /** Where every entry's icon and label will start (`<index>:glyph|label`). */
+  parts: Map<string, number>;
 }
 
 @customElement("m3-nav-card")
@@ -460,6 +463,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     // something else forced a re-read.
     this._path = location.pathname;
     this._settling = true;
+    this._arrivedAt = performance.now();
     window.addEventListener("location-changed", this._onLocationChanged);
     window.addEventListener("popstate", this._onLocationChanged);
 
@@ -490,6 +494,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       if (!this.isConnected) return;
       this._startObserving();
       this._measureDock();
+      this._watchArrival();
       // Attached in edit mode too; the gesture asks about edit mode itself.
       if (this._variant === "sheet") this._attachGesture();
     });
@@ -616,9 +621,29 @@ export class M3NavCard extends LitElement implements LovelaceCard {
    * callback is a loop with no bottom to it.
    */
   private _markerSettled = false;
+  /** When this card last came on screen. */
+  private _arrivedAt = 0;
+
+  /**
+   * Re-places the marker whenever the active entry changes size in the first
+   * moments on screen — its icon draws itself a little after the first layout,
+   * and the label's weight can land late as well — so the pill is not seen
+   * growing into its place.
+   */
+  private _watchArrival(): void {
+    const active = this.renderRoot.querySelector<HTMLElement>(".bar .item.active");
+    if (!active || typeof ResizeObserver === "undefined") return;
+    const watch = new ResizeObserver(() => this._placeMarker(true));
+    watch.observe(active);
+    const glyph = active.querySelector(".glyph");
+    if (glyph) watch.observe(glyph);
+    window.setTimeout(() => watch.disconnect(), NAV_ARRIVAL_QUIET_MS);
+  }
 
   private _placeMarker(again = false): void {
     if (!this._sliding) return;
+    // Mid-swipe the marker is the finger's.
+    if (this._swipe) return;
     const bar = this.renderRoot.querySelector<HTMLElement>(".bar");
     const marker = bar?.querySelector<HTMLElement>(".marker");
     if (!bar || !marker) return;
@@ -635,6 +660,9 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     const rect = box.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     marker.style.opacity = "1";
+    // A correction of where it first went, not a move: it happens unseen.
+    const quiet = again || performance.now() - this._arrivedAt < NAV_ARRIVAL_QUIET_MS;
+    if (quiet) marker.style.transition = "none";
     // Offsets are taken against the scrolled content, not the viewport, so the
     // marker stays put when the bar is scrolled sideways.
     marker.style.width = `${rect.width}px`;
@@ -645,6 +673,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       rect.left - barRect.left - bar.clientLeft + bar.scrollLeft
     }px, ${rect.top - barRect.top - bar.clientTop + bar.scrollTop}px)`;
     marker.style.borderRadius = getComputedStyle(box).borderRadius;
+    if (quiet) {
+      void marker.offsetWidth;
+      marker.style.transition = "";
+    }
 
     if (!again && !this._markerSettled) {
       this._markerSettled = true;
@@ -1133,6 +1165,9 @@ export class M3NavCard extends LitElement implements LovelaceCard {
   private _onLocationChanged = (): void => {
     if (this._path === location.pathname) return;
     this._path = location.pathname;
+    // A swipe that sent us here drew the bar as it would be on arrival; from
+    // now on the real layout is that, and the drawing on top must go.
+    if (this._swipeInk) this._endSwipeInk();
     // A menu left standing over the page someone just navigated to is in the
     // way of the thing they navigated for.
     this._closeSubmenu();
@@ -1451,6 +1486,9 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     /** The travelling marker's width at rest, and its corner radius in px. */
     width: number;
     radius: number;
+    /** The marker's middle at rest, and every entry's icon and label start. */
+    home: number;
+    parts: Map<string, number>;
   };
   /**
    * Lays the bar out as it will be with `to` active instead of `from`, on a
@@ -1461,7 +1499,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     bar: HTMLElement,
     from: number,
     to: number,
-  ): Pick<SwipeNeighbour, "glyphLeft" | "labelLeft" | "labelFont"> & { box: DOMRect } | undefined {
+  ): Pick<SwipeNeighbour, "glyphLeft" | "labelLeft" | "labelFont" | "parts"> & { box: DOMRect } | undefined {
     const outer = (bar.parentElement?.classList.contains("bar-row") ? bar.parentElement : bar) as HTMLElement;
     const parent = outer.parentNode;
     if (!parent) return undefined;
@@ -1512,7 +1550,15 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       // Relative to the copy's own frame, then put back where the bar's is.
       const dx = place.left - wrap.getBoundingClientRect().left;
       const font = labelEl ? getComputedStyle(labelEl) : undefined;
+      const parts = new Map<string, number>();
+      for (const node of copy.querySelectorAll<HTMLElement>(".item")) {
+        for (const kind of ["glyph", "label"]) {
+          const part = node.querySelector<HTMLElement>(`:scope > .${kind}`);
+          if (part) parts.set(`${node.dataset.index}:${kind}`, part.getBoundingClientRect().left + dx);
+        }
+      }
       return {
+        parts,
         box: new DOMRect(box.left + dx, box.top, box.width, box.height),
         glyphLeft: glyphEl ? glyphEl.getBoundingClientRect().left + dx : undefined,
         labelLeft: labelEl ? labelEl.getBoundingClientRect().left + dx : undefined,
@@ -1561,6 +1607,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
    * would square off wherever the pill is wider than the entry.
    */
   private _paintSwipeInk(s: NonNullable<typeof this._swipe>): void {
+    this._shiftSwipeBase(s);
     const pill = s.moved.getBoundingClientRect();
     const shape = (box: DOMRect): string => {
       const x = pill.left - box.left;
@@ -1615,6 +1662,28 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     }
   }
 
+  /**
+   * Moves every entry's own icon and label part of the way to where the bar
+   * will have them once the page has changed — as far as the pill has gone
+   * toward its new place, read off the pill itself so the glide after
+   * release, or back home, carries them along. By the time the pill arrives,
+   * nothing is left to jump.
+   */
+  private _shiftSwipeBase(s: NonNullable<typeof this._swipe>): void {
+    const r = s.moved.getBoundingClientRect();
+    const off = r.left + r.width / 2 - s.home;
+    const toward = off > 0 ? s.next : s.prev;
+    const share = toward && toward.distance > 0 ? Math.min(1, Math.abs(off) / toward.distance) : 0;
+    for (const part of this.renderRoot.querySelectorAll<HTMLElement>(".bar .item > .glyph, .bar .item > .label")) {
+      const key = `${(part.parentElement as HTMLElement).dataset.index}:${
+        part.classList.contains("glyph") ? "glyph" : "label"
+      }`;
+      const now = s.parts.get(key);
+      const then = toward?.parts.get(key);
+      part.style.translate = now !== undefined && then !== undefined && share > 0 ? `${(then - now) * share}px 0` : "";
+    }
+  }
+
   /** Repaints the cut-outs every frame while the marker glides on its own. */
   private _followSwipeInk(s: NonNullable<typeof this._swipe>): void {
     const tick = () => {
@@ -1630,6 +1699,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     this._swipeInk = false;
     for (const part of this.renderRoot.querySelectorAll<HTMLElement>(".bar .item > *")) {
       part.style.removeProperty("--swipe-hole");
+      part.style.translate = "";
     }
   }
 
@@ -1735,6 +1805,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
         glyphLeft: future.glyphLeft,
         labelLeft: future.labelLeft,
         labelFont: future.labelFont,
+        parts: future.parts,
       };
     };
     const moved = this._sliding ? bar.querySelector<HTMLElement>(".marker") : active;
@@ -1755,6 +1826,13 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       baseTransform: moved === active ? "" : moved.style.transform,
       width: moved.getBoundingClientRect().width,
       radius: parseFloat(getComputedStyle(moved).borderTopLeftRadius) || 0,
+      home: centre(moved),
+      parts: new Map(
+        Array.from(bar.querySelectorAll<HTMLElement>(".item > .glyph, .item > .label")).map((part) => [
+          `${(part.parentElement as HTMLElement).dataset.index}:${part.classList.contains("glyph") ? "glyph" : "label"}`,
+          part.getBoundingClientRect().left,
+        ]),
+      ),
     };
     // Only a marker of its own can be cut out of the entries: without one the
     // active entry itself travels, label and all.
@@ -3157,6 +3235,16 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     .item:focus-visible {
       outline: 2px solid var(--nav-ink, var(--primary-text-color));
       outline-offset: 2px;
+    }
+
+    /* An icon has no size until it has drawn itself, which is a frame or two
+       after the bar is first laid out: the marker measured then came out one
+       icon too narrow and was seen growing into place. */
+    .glyph ha-icon {
+      display: inline-flex;
+      flex: none;
+      width: var(--mdc-icon-size);
+      height: var(--mdc-icon-size);
     }
 
     .glyph {

@@ -1979,6 +1979,8 @@ export const NAV_PRESS_MS = 200;
 
 /** How long the marker takes to travel from one entry to the next. */
 export const NAV_MARKER_SLIDE_MS = 280;
+/** How long after a nav card comes on screen its marker settles without animating. */
+export const NAV_ARRIVAL_QUIET_MS = 600;
 
 /**
  * Default length of the page cross-fade.
