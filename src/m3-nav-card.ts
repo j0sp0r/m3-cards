@@ -1598,16 +1598,31 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     // The marker covers the glyph in the stacked variants, the entry elsewhere.
     const boxOf = (node: HTMLElement) =>
       (this._stacked ? node.querySelector<HTMLElement>(".glyph") : null) ?? node;
+    // An entry that shows its icon only while active grows by it on arrival;
+    // the pill heads for that width, not the one the entry has now.
+    const activeGlyph = active.querySelector<HTMLElement>(":scope > .glyph");
+    const glyphRoom = (node: HTMLElement): number => {
+      if (this._stacked || !activeGlyph || node.querySelector(":scope > .glyph")) return 0;
+      const gap = parseFloat(getComputedStyle(active).columnGap) || 0;
+      return activeGlyph.getBoundingClientRect().width + (node.querySelector(":scope > .label") ? gap : 0);
+    };
+    // The icon is added in front of the label, so the label keeps its place
+    // and the pill's middle moves left by half the icon's room.
     const neighbour = (t?: { index: number; path: string }) => {
       const node = t ? el(t.index) : null;
-      return t && node
-        ? {
-            ...t,
-            distance: Math.abs(centre(node) - centre(active)),
-            width: boxOf(node).getBoundingClientRect().width,
-          }
-        : undefined;
+      if (!t || !node) return undefined;
+      const room = glyphRoom(node);
+      return {
+        ...t,
+        distance: Math.abs(centre(node) - room / 2 - centre(active)),
+        width: boxOf(node).getBoundingClientRect().width + room,
+      };
     };
+    const room = targets
+      .filter((t) => !t.active)
+      .map((t) => el(t.index))
+      .reduce((max, node) => Math.max(max, node ? glyphRoom(node) : 0), 0);
+    this.style.setProperty("--swipe-room", `${room}px`);
     const moved = this._sliding ? bar.querySelector<HTMLElement>(".marker") : active;
     if (!moved) return;
     capturePointer(bar, e);
@@ -2421,12 +2436,18 @@ export class M3NavCard extends LitElement implements LovelaceCard {
   }
 
   private _renderItem(item: ResolvedItem): TemplateResult {
-    const visible = (rule: NavLabelVisibility): boolean =>
-      rule === "always" ||
-      (rule === "active_only" && item.active) ||
-      (rule === "inactive_only" && !item.active);
+    const visibleFor = (rule: NavLabelVisibility, active: boolean): boolean =>
+      rule === "always" || (rule === "active_only" && active) || (rule === "inactive_only" && !active);
+    const visible = (rule: NavLabelVisibility): boolean => visibleFor(rule, item.active);
     const showLabel = !!item.name && visible(this._labelVisibility);
     const showIcon = visible(this._iconVisibility);
+    // Mid-swipe the entry is drawn as an inactive one; what only the active
+    // entry shows keeps its room but goes unseen, so nothing reflows.
+    const hideIcon = this._swipeInk && item.active && !visibleFor(this._iconVisibility, false);
+    const hideLabel = this._swipeInk && item.active && !visibleFor(this._labelVisibility, false);
+    // Under the pill every entry is drawn as the active one it would become.
+    const inkIcon = visibleFor(this._iconVisibility, true);
+    const inkLabel = !!item.name && visibleFor(this._labelVisibility, true);
     const handler = this._tapHoldFor(item);
     const pressed = this._pressed === item.index;
     // A solid fill is the reference look; the ink on it is chosen between the
@@ -2484,29 +2505,29 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       >
         ${showIcon
           ? html`
-              <span class="glyph" style=${this._stacked ? indicator : nothing}>
+              <span class="glyph ${hideIcon ? "swipe-unseen" : ""}" style=${this._stacked ? indicator : nothing}>
                 <ha-icon icon=${item.icon}></ha-icon>
                 ${this._renderBadge(item)}
               </span>
             `
           : nothing}
         ${showLabel
-          ? html`<span class="label">${item.name}</span>`
+          ? html`<span class="label ${hideLabel ? "swipe-unseen" : ""}">${item.name}</span>`
           : nothing}
         ${showIcon ? nothing : this._renderBadge(item)}
         ${this._swipeInk && !item.disabled
           ? html`<span
-              class="swipe-ink"
+              class="swipe-ink ${inkIcon && !showIcon && !this._stacked ? "grows" : ""}"
               aria-hidden="true"
               style=${`color: ${
                 solid ? inkOn(this._markerFill(), this) : foregroundOn(item.color, this._markerFill(), 4.5, this)
               };`}
             >
-              ${showIcon
+              ${inkIcon
                 ? html`<span class="glyph"><ha-icon icon=${item.icon}></ha-icon>${this._renderBadge(item)}</span>`
                 : nothing}
-              ${showLabel ? html`<span class="label">${item.name}</span>` : nothing}
-              ${showIcon ? nothing : this._renderBadge(item)}
+              ${inkLabel ? html`<span class="label">${item.name}</span>` : nothing}
+              ${inkIcon ? nothing : this._renderBadge(item)}
             </span>`
           : nothing}
       </div>
@@ -3857,6 +3878,16 @@ export class M3NavCard extends LitElement implements LovelaceCard {
 
     .bar .item .swipe-ink .glyph {
       background: none !important;
+    }
+
+    /* An entry whose icon only shows while active: under the pill the icon is
+       put in front of the label, which stays exactly over its own. */
+    .swipe-ink.grows {
+      transform: translateX(calc(var(--swipe-room, 0px) / -2));
+    }
+
+    .bar.swipe-inked .item > .swipe-unseen {
+      visibility: hidden;
     }
 
     .marker {

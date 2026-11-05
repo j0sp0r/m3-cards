@@ -55,9 +55,8 @@ export function swipeShown(p: { dx: number; distance: number; hasPrev: boolean; 
 }
 
 /** Out: short and accelerating; in: longer and decelerating, as M3 pairs them. */
-const OUT_MS = 150;
-const IN_MS = 320;
-const SHIFT_PX = 40;
+const OUT_MS = 180;
+const IN_MS = 340;
 const OUT_EASING = "cubic-bezier(0.3, 0, 0.8, 0.15)";
 const IN_EASING = "cubic-bezier(0.05, 0.7, 0.1, 1)";
 /** How long the new page's nav card may take to appear. */
@@ -126,13 +125,35 @@ export async function slideToPage(
   findArrived: () => Element | undefined,
 ): Promise<void> {
   const sign = direction === "next" ? -1 : 1;
+  // A whole screen's width, and transform only. Fading would need opacity on
+  // the sections, and an ancestor below full opacity cuts the frosted cards
+  // inside it off from what is behind them: their blur drops out for as long
+  // as the fade runs and snaps back when it ends. Moved the full width, the
+  // content leaves and enters at the screen's edge, so nothing pops either.
+  const shift = Math.max(window.innerWidth, 1);
+  // Content a screen to the right widens the page, and a phone lets a page
+  // that is wider than the screen be panned sideways. Clipping is not one of
+  // the things that cut the frosted cards off from their backdrop.
+  const root = document.documentElement;
+  const overflowX = root.style.overflowX;
+  root.style.overflowX = "clip";
+  try {
+    await slide(sign * shift, from, navigate, findArrived);
+  } finally {
+    root.style.overflowX = overflowX;
+  }
+}
+
+async function slide(
+  by: number,
+  from: Element,
+  navigate: () => void,
+  findArrived: () => Element | undefined,
+): Promise<void> {
   const leaving = contentBeside(from);
   const outs = leaving.map((el) =>
     el.animate(
-      [
-        { transform: "none", opacity: 1 },
-        { transform: `translateX(${sign * SHIFT_PX}px)`, opacity: 0 },
-      ],
+      [{ transform: "none" }, { transform: `translateX(${by}px)` }],
       { duration: OUT_MS, easing: OUT_EASING, fill: "forwards" },
     ),
   );
@@ -155,19 +176,17 @@ export async function slideToPage(
   } finally {
     restore();
     // Home Assistant keeps the old view to show again later: it must come back
-    // as it was, not faded out.
+    // as it was, not slid away.
     for (const a of outs) a.cancel();
   }
   if (!arrived) return;
   // At once, in the same task that found it: a frame later the new page
   // would already have been painted in place.
-  for (const el of contentBeside(arrived)) {
+  const ins = contentBeside(arrived).map((el) =>
     el.animate(
-      [
-        { transform: `translateX(${-sign * SHIFT_PX}px)`, opacity: 0 },
-        { transform: "none", opacity: 1 },
-      ],
+      [{ transform: `translateX(${-by}px)` }, { transform: "none" }],
       { duration: IN_MS, easing: IN_EASING, fill: "backwards" },
-    );
-  }
+    ),
+  );
+  await Promise.all(ins.map((a) => a.finished.catch(() => undefined)));
 }
