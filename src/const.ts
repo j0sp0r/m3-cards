@@ -1985,6 +1985,8 @@ export const NAV_ARRIVAL_QUIET_MS = 600;
 export const SWIPE_GOING_PX = 2;
 /** How long the bar's icons and labels take to glide into that layout. */
 export const SWIPE_SETTLE_MS = 220;
+/** How long the icon of the entry being left takes to fade once a swipe is let go. */
+export const SWIPE_ICON_FADE_MS = 150;
 
 /**
  * Default length of the page cross-fade.

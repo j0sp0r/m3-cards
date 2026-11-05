@@ -62,6 +62,7 @@ import {
   NAV_ARRIVAL_QUIET_MS,
   SWIPE_GOING_PX,
   SWIPE_SETTLE_MS,
+  SWIPE_ICON_FADE_MS,
   NAV_PAGE_FADE_MS,
   NAV_PAGE_SLIDE_PX,
   NAV_PAGE_OUT_SHARE,
@@ -1490,6 +1491,8 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     parts: Map<string, number>;
     /** The glide of icons and labels toward the layout of `going`. */
     glide?: { going?: SwipeNeighbour; t0: number; from: Map<string, number> };
+    /** Let go toward a neighbour: the page is about to change. */
+    committed?: boolean;
     offsets: Map<string, number>;
   };
   /**
@@ -1671,6 +1674,9 @@ export class M3NavCard extends LitElement implements LovelaceCard {
         const own = item0.querySelector<HTMLElement>(":scope > .glyph");
         const shown = heading || current || (!!own && !own.classList.contains("swipe-unseen"));
         glyph.style.visibility = shown ? "" : "hidden";
+        // Once let go, the entry being left fades its icon out on the way —
+        // the next page's bar does not have it — rather than lose it at once.
+        glyph.style.opacity = current && s.committed ? "0" : "";
       }
       // Where it sits untranslated, read afresh every frame: cached once, it
       // was taken before the copy's own layout had settled on a first swipe.
@@ -1942,6 +1948,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       return;
     }
     const target = outcome === "next" ? s.next! : s.prev!;
+    s.committed = true;
     this._placeSwipePill(s, outcome === "next" ? target.distance : -target.distance, target);
     if (this._swipeInk) this._followSwipeInk(s);
     const settle = () => {
@@ -4158,6 +4165,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     .swipe-ink > .label {
       max-width: none;
       overflow: visible;
+    }
+
+    .swipe-ink > .glyph {
+      transition: opacity ${unsafeCSS(SWIPE_ICON_FADE_MS)}ms linear;
     }
 
     .bar.swipe-inked .item > .swipe-unseen {
