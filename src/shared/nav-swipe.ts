@@ -67,7 +67,7 @@ const ARRIVE_CAP_MS = 800;
  * the visible siblings of the branch it is in. Stops below `hui-view`, so the
  * view's background stays where it is.
  */
-export function contentBeside(card: Element): HTMLElement[] {
+export function contentBeside(card: Element, unlaid = false): HTMLElement[] {
   const out: HTMLElement[] = [];
   let node: Element = card;
   for (let depth = 0; depth < 24; depth++) {
@@ -75,7 +75,10 @@ export function contentBeside(card: Element): HTMLElement[] {
     if (!container || node.localName === "hui-view") break;
     for (const sibling of Array.from(container.children)) {
       if (sibling === node || !(sibling instanceof HTMLElement)) continue;
-      if (sibling.localName === "style" || sibling.getClientRects().length === 0) continue;
+      if (sibling.localName === "style") continue;
+      // Not laid out yet is not the same as hidden: a page that has only just
+      // arrived is moved before its first frame, or it shows at rest for one.
+      if (!unlaid && sibling.getClientRects().length === 0) continue;
       out.push(sibling);
     }
     node = container instanceof ShadowRoot ? container.host : (container as Element);
@@ -83,8 +86,32 @@ export function contentBeside(card: Element): HTMLElement[] {
   return out;
 }
 
-function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+/** Told of every nav card that comes into the page while a slide waits. */
+let arrivalHook: ((card: Element) => void) | undefined;
+
+/**
+ * Called by a nav card as it is connected. The new page's bar is put into the
+ * document in the same task that draws it at the next frame — sometimes after
+ * a frame callback has already looked for it — so being told is the only way
+ * to start its slide before that frame for certain.
+ */
+export function noteNavArrival(card: Element): void {
+  arrivalHook?.(card);
+}
+
+/**
+ * The next moment to look: just before the next frame is drawn, so a page
+ * that has arrived is caught before it is ever painted at rest — or after a
+ * short timer, for a tab that draws no frames.
+ */
+function beforeNextFrame(): Promise<void> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(resolve, 50);
+    requestAnimationFrame(() => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
 }
 
 type UpdateCallback = () => Promise<unknown> | unknown;
@@ -151,22 +178,39 @@ async function slide(
   findArrived: () => Element | undefined,
 ): Promise<void> {
   const leaving = contentBeside(from);
-  const outs = leaving.map((el) =>
-    el.animate(
-      [{ transform: "none" }, { transform: `translateX(${by}px)` }],
+  const outs = leaving.map((el) => {
+    // A swipe on a page still sliding in: out from where it is now, not from
+    // where that slide would have ended.
+    const now = getComputedStyle(el).transform;
+    for (const a of el.getAnimations()) a.cancel();
+    return el.animate(
+      [{ transform: now === "none" ? "none" : now }, { transform: `translateX(${by}px)` }],
       { duration: OUT_MS, easing: OUT_EASING, fill: "forwards" },
-    ),
-  );
+    );
+  });
   await Promise.all(outs.map((a) => a.finished.catch(() => undefined)));
 
   const restore = withoutViewTransitions();
   let arrived: Element | undefined;
+  let told: (() => void) | undefined;
+  // A microtask after the card is connected: the rest of its page has been
+  // put in by then, and nothing has been drawn yet.
+  const heard = new Promise<void>((resolve) => {
+    told = resolve;
+  });
+  arrivalHook = (card) => {
+    if (card === from) return;
+    arrived = card;
+    queueMicrotask(() => told?.());
+  };
   try {
     navigate();
     const started = performance.now();
-    // The old view leaves the document; the new one, with its own bar, comes in.
-    while (performance.now() - started < ARRIVE_CAP_MS) {
-      await wait(16);
+    // The old view leaves the document; the new one, with its own bar, comes
+    // in — heard as it connects, or found on a later look.
+    while (!arrived && performance.now() - started < ARRIVE_CAP_MS) {
+      await Promise.race([beforeNextFrame(), heard]);
+      if (arrived) break;
       const card = findArrived();
       if (card && (card !== from || !leaving.some((el) => el.isConnected))) {
         arrived = card;
@@ -174,19 +218,28 @@ async function slide(
       }
     }
   } finally {
+    arrivalHook = undefined;
     restore();
-    // Home Assistant keeps the old view to show again later: it must come back
-    // as it was, not slid away.
-    for (const a of outs) a.cancel();
   }
-  if (!arrived) return;
+  // Home Assistant keeps the old view to show again later: it must come back
+  // as it was, not slid away. But only once it is off screen — the new page's
+  // bar is taken before it has drawn, while the old page may still be up for
+  // a frame, and cancelled then it would flash back into place.
+  const release = () => {
+    for (const a of outs) a.cancel();
+  };
+  if (!arrived) {
+    release();
+    return;
+  }
   // At once, in the same task that found it: a frame later the new page
   // would already have been painted in place.
-  const ins = contentBeside(arrived).map((el) =>
+  const ins = contentBeside(arrived, true).map((el) =>
     el.animate(
       [{ transform: `translateX(${-by}px)` }, { transform: "none" }],
       { duration: IN_MS, easing: IN_EASING, fill: "backwards" },
     ),
   );
   await Promise.all(ins.map((a) => a.finished.catch(() => undefined)));
+  release();
 }

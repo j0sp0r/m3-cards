@@ -135,7 +135,7 @@ import {
 import { TapHold, fireHaptic } from "./shared/tap-hold";
 import { stopSwipe } from "./shared/swipe";
 import { SliderIntent, capturePointer } from "./shared/slider-intent";
-import { swipeOutcome, swipeShown, slideToPage, type SwipeDirection } from "./shared/nav-swipe";
+import { swipeOutcome, swipeShown, slideToPage, noteNavArrival, type SwipeDirection } from "./shared/nav-swipe";
 
 const EASING = unsafeCSS(STANDARD_EASING);
 
@@ -467,6 +467,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     this._path = location.pathname;
     this._settling = true;
     this._arrivedAt = performance.now();
+    noteNavArrival(this);
     window.addEventListener("location-changed", this._onLocationChanged);
     window.addEventListener("popstate", this._onLocationChanged);
 
@@ -1494,6 +1495,8 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     /** Let go toward a neighbour: the page is about to change. */
     committed?: boolean;
     offsets: Map<string, number>;
+    /** An inactive label's weight, for the entry being left. */
+    restWeight: string;
   };
   /**
    * Lays the bar out as it will be with `to` active instead of `from`, on a
@@ -1585,6 +1588,8 @@ export class M3NavCard extends LitElement implements LovelaceCard {
    * once, with half of it still on the wrong background.
    */
   @state() private _swipeInk = false;
+  /** The frame or two after a swipe's drawing is taken down (see _endSwipeInk). */
+  @state() private _swipeEnding = false;
 
   /**
    * Which way the finger has gone, in the sense the swipe helpers count it:
@@ -1627,12 +1632,27 @@ export class M3NavCard extends LitElement implements LovelaceCard {
         x + w - r
       } ${y + h}H${x + r}A${r} ${r} 0 0 1 ${x} ${y + h - r}V${y + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`;
     };
+    // Only what the pill touches is cut. Everything else keeps no clip at
+    // all, and is not written to: a clip path rewritten every frame has the
+    // text under it redrawn every frame, and on a phone that shimmers.
+    const touches = (box: DOMRect) => box.right > pill.left - 1 && box.left < pill.right + 1;
+    const set = (node: HTMLElement, name: string, value: string | null) => {
+      if (node.style.getPropertyValue(name) === (value ?? "")) return;
+      if (value === null) node.style.removeProperty(name);
+      else node.style.setProperty(name, value);
+    };
     for (const ink of this.renderRoot.querySelectorAll<HTMLElement>(".swipe-ink")) {
-      ink.style.setProperty("--swipe-clip", `path('${shape(ink.getBoundingClientRect())}')`);
+      const pieces = Array.from(ink.children).map((c) => c.getBoundingClientRect());
+      const near = pieces.some(touches);
+      set(ink, "--swipe-clip", near ? `path('${shape(ink.getBoundingClientRect())}')` : null);
       for (const part of Array.from(ink.parentElement?.children ?? [])) {
         if (part === ink || !(part instanceof HTMLElement)) continue;
         const box = part.getBoundingClientRect();
-        part.style.setProperty("--swipe-hole", `path(evenodd, 'M-9999 -9999H9999V9999H-9999Z${shape(box)}')`);
+        set(
+          part,
+          "--swipe-hole",
+          touches(box) ? `path(evenodd, 'M-9999 -9999H9999V9999H-9999Z${shape(box)}')` : null,
+        );
       }
     }
   }
@@ -1668,7 +1688,8 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       const current = item0.classList.contains("active");
       if (label) {
         label.style.fontSize = heading && going?.labelFont ? going.labelFont.size : "";
-        label.style.fontWeight = heading && going?.labelFont ? going.labelFont.weight : "";
+        label.style.fontWeight =
+          heading && going?.labelFont ? going.labelFont.weight : current && going ? s.restWeight : "";
       }
       if (glyph) {
         const own = item0.querySelector<HTMLElement>(":scope > .glyph");
@@ -1743,6 +1764,12 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       const at = Math.round((from + (to - from) * ease) * dpr) / dpr;
       s.offsets.set(key, at);
       part.style.translate = at ? `${at}px 0` : "";
+      // The entry being left takes its resting weight as soon as the way is
+      // clear, as it takes its resting place; each label holds the room of
+      // its heavier self, so nothing moves for it.
+      if (part.classList.contains("label") && part.parentElement?.classList.contains("active")) {
+        part.style.fontWeight = going ? s.restWeight : "";
+      }
     }
   }
 
@@ -1772,12 +1799,20 @@ export class M3NavCard extends LitElement implements LovelaceCard {
 
   private _endSwipeInk(): void {
     this._swipeInk = false;
+    // The entries hand their dimming back from their parts to themselves; an
+    // entry fading its own opacity back in over that would flash every
+    // inactive label brighter for a moment.
+    this._swipeEnding = true;
+    requestAnimationFrame(() => requestAnimationFrame(() => (this._swipeEnding = false)));
     // The glide off first: clearing the shifts with it still on would glide
     // them back over the layout the bar now really has.
-    this.renderRoot.querySelector(".bar")?.classList.remove("swipe-inked");
+    const bar = this.renderRoot.querySelector(".bar");
+    bar?.classList.add("swipe-ending");
+    bar?.classList.remove("swipe-inked");
     for (const part of this.renderRoot.querySelectorAll<HTMLElement>(".bar .item > *")) {
       part.style.removeProperty("--swipe-hole");
       part.style.translate = "";
+      part.style.fontWeight = "";
     }
   }
 
@@ -1903,6 +1938,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       radius: parseFloat(getComputedStyle(moved).borderTopLeftRadius) || 0,
       home: centre(moved),
       offsets: new Map(),
+      restWeight: (() => {
+        const rest = bar.querySelector<HTMLElement>(".item:not(.active) > .label");
+        return rest ? getComputedStyle(rest).fontWeight : "400";
+      })(),
       parts: new Map(
         Array.from(bar.querySelectorAll<HTMLElement>(".item > .glyph, .item > .label")).map((part) => [
           `${(part.parentElement as HTMLElement).dataset.index}:${part.classList.contains("glyph") ? "glyph" : "label"}`,
@@ -1972,11 +2011,14 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       return;
     }
     void slideToPage(outcome, this, navigate, () => {
-      // The bar on the new page — another instance of this card, as a rule.
+      // The bar on the new page — another instance of this card, as a rule —
+      // taken as soon as it is in the page, before it has drawn: the page
+      // around it is drawn a frame earlier, and must not be seen at rest.
       for (const card of connectedSheets) {
-        if (card.isConnected && card.getClientRects().length > 0) return card;
+        if (card !== this && card.isConnected) return card;
       }
-      return undefined;
+      // Or this one, when the bar outlives the navigation.
+      return this.isConnected && this.getClientRects().length > 0 ? this : undefined;
     }).finally(settle);
   }
 
@@ -2783,7 +2825,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
             `
           : nothing}
         ${showLabel
-          ? html`<span class="label ${hideLabel ? "swipe-unseen" : ""}">${item.name}</span>`
+          ? html`<span class="label ${hideLabel ? "swipe-unseen" : ""}" data-text=${item.name}>${item.name}</span>`
           : nothing}
         ${showIcon ? nothing : this._renderBadge(item)}
         ${this._swipeInk && !item.disabled
@@ -2797,7 +2839,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
               ${inkIcon
                 ? html`<span class="glyph"><ha-icon icon=${item.icon}></ha-icon>${this._renderBadge(item)}</span>`
                 : nothing}
-              ${inkLabel ? html`<span class="label">${item.name}</span>` : nothing}
+              ${inkLabel ? html`<span class="label" data-text=${item.name}>${item.name}</span>` : nothing}
               ${inkIcon ? nothing : this._renderBadge(item)}
             </span>`
           : nothing}
@@ -2911,7 +2953,9 @@ export class M3NavCard extends LitElement implements LovelaceCard {
           ? "auto-hidden"
           : ""} ${animated ? "" : "no-animations"} ${
           this._settling ? "settling" : ""
-        } ${this._swipeEnabled ? "swipeable" : ""} ${this._swipeInk ? "swipe-inked" : ""}"
+        } ${this._swipeEnabled ? "swipeable" : ""} ${this._swipeInk ? "swipe-inked" : ""} ${
+          this._swipeEnding ? "swipe-ending" : ""
+        }"
         style=${`${cssVars} ${freeStyles}`}
         aria-label=${cfg.name || this._t("nav_label")}
         @pointerdown=${this._onSwipeDown}
@@ -3378,6 +3422,21 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      text-align: center;
+    }
+
+    /* Every label holds the room its active, heavier self needs. Otherwise
+       an entry turning active widens by a few tenths of a pixel, a bar that
+       fits its content re-centres by half of that, and every other label
+       shifts by a fraction of a pixel — drawn as a flicker at each change of
+       page. */
+    .label[data-text]::after {
+      content: attr(data-text);
+      display: block;
+      height: 0;
+      overflow: hidden;
+      visibility: hidden;
+      font-weight: 600;
     }
 
     .badge {
@@ -4136,6 +4195,13 @@ export class M3NavCard extends LitElement implements LovelaceCard {
        its contents, or the copy would be faded with it. */
     .bar.swipe-inked .item:not(.disabled) {
       opacity: 1;
+    }
+
+    /* The dimming moves between an entry and its parts at once, both ways:
+       faded, it flashes every inactive label. */
+    .bar.swipe-inked .item,
+    .bar.swipe-ending .item {
+      transition: none;
     }
 
     .bar.swipe-inked .item:not(.disabled) > :not(.swipe-ink) {
