@@ -1705,7 +1705,9 @@ export class M3NavCard extends LitElement implements LovelaceCard {
         [label, labelAt],
       ] as const) {
         if (!node) continue;
-        const by = at === undefined || Number.isNaN(at) ? 0 : at - homeOf(node);
+        const dpr = window.devicePixelRatio || 1;
+        const raw = at === undefined || Number.isNaN(at) ? 0 : at - homeOf(node);
+        const by = Math.round(raw * dpr) / dpr;
         node.dataset.by = String(by);
         node.style.translate = by ? `${by}px 0` : "";
       }
@@ -1731,11 +1733,16 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       }`;
       const home = s.parts.get(key);
       const then = going?.parts.get(key);
-      const to = home !== undefined && then !== undefined ? then - home : 0;
+      // Less than a pixel is the layout's rounding, not a move: an entry the
+      // swipe does not change stays exactly where it is. A shift lands on
+      // whole device pixels, or text redrawn at a fraction of one shimmers.
+      const raw = home !== undefined && then !== undefined ? then - home : 0;
+      const to = Math.abs(raw) < 1 ? 0 : raw;
       const from = s.glide.from.get(key) ?? 0;
-      const at = from + (to - from) * ease;
+      const dpr = window.devicePixelRatio || 1;
+      const at = Math.round((from + (to - from) * ease) * dpr) / dpr;
       s.offsets.set(key, at);
-      part.style.translate = Math.abs(at) > 0.01 ? `${at}px 0` : "";
+      part.style.translate = at ? `${at}px 0` : "";
     }
   }
 
