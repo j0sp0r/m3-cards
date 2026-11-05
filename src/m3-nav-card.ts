@@ -796,7 +796,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
   protected updated(changed: PropertyValues): void {
     super.updated(changed);
     if (this._config?.swipe_navigation === true) this._syncBarOverflow();
-    if (this._swipeInk) this._paintSwipeInk();
+    if (this._swipeInk && this._swipe) this._paintSwipeInk(this._swipe);
     if (this._settling) {
       // One frame later, so the corrected marker has been painted with the
       // transition still off before it is turned back on. The timer is the
@@ -1427,11 +1427,13 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     lastT: number;
     velocity: number;
     dx: number;
-    prev?: { index: number; path: string; distance: number };
-    next?: { index: number; path: string; distance: number };
+    prev?: { index: number; path: string; distance: number; width: number };
+    next?: { index: number; path: string; distance: number; width: number };
     moved: HTMLElement;
     baseTransform: string;
-    radius: string;
+    /** The travelling marker's width at rest, and its corner radius in px. */
+    width: number;
+    radius: number;
   };
   /** Whether the bar scrolls sideways — then a swipe is the bar's, not ours. */
   @state() private _barOverflows = false;
@@ -1463,19 +1465,49 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       : tintOn(this, accent, cfg?.accent_opacity, NAV_ITEM_TINT);
   }
 
-  /** Cuts every entry's pill-ink copy to where the pill is now. */
-  private _paintSwipeInk(): void {
-    const s = this._swipe;
-    if (!s) return;
+  /**
+   * Cuts the pill out of every entry: the pill-ink copy is shown only inside
+   * it, the entry's own icon and label only outside it. Both are clip paths in
+   * each element's own box, so nothing is painted that the marker does not
+   * already show — the copy carries no fill of its own, which an entry's box
+   * would square off wherever the pill is wider than the entry.
+   */
+  private _paintSwipeInk(s: NonNullable<typeof this._swipe>): void {
     const pill = s.moved.getBoundingClientRect();
+    const shape = (box: DOMRect): string => {
+      const x = pill.left - box.left;
+      const y = pill.top - box.top;
+      const w = pill.width;
+      const h = pill.height;
+      const r = Math.max(0, Math.min(s.radius, w / 2, h / 2));
+      return `M${x + r} ${y}H${x + w - r}A${r} ${r} 0 0 1 ${x + w} ${y + r}V${y + h - r}A${r} ${r} 0 0 1 ${
+        x + w - r
+      } ${y + h}H${x + r}A${r} ${r} 0 0 1 ${x} ${y + h - r}V${y + r}A${r} ${r} 0 0 1 ${x + r} ${y}Z`;
+    };
     for (const ink of this.renderRoot.querySelectorAll<HTMLElement>(".swipe-ink")) {
-      const r = (ink.parentElement ?? ink).getBoundingClientRect();
-      ink.style.setProperty(
-        "--swipe-clip",
-        `inset(${pill.top - r.top}px ${r.right - pill.right}px ${r.bottom - pill.bottom}px ${
-          pill.left - r.left
-        }px round ${s.radius})`,
-      );
+      ink.style.setProperty("--swipe-clip", `path('${shape(ink.getBoundingClientRect())}')`);
+      for (const part of Array.from(ink.parentElement?.children ?? [])) {
+        if (part === ink || !(part instanceof HTMLElement)) continue;
+        const box = part.getBoundingClientRect();
+        part.style.setProperty("--swipe-hole", `path(evenodd, 'M-9999 -9999H9999V9999H-9999Z${shape(box)}')`);
+      }
+    }
+  }
+
+  /** Repaints the cut-outs every frame while the marker glides on its own. */
+  private _followSwipeInk(s: NonNullable<typeof this._swipe>): void {
+    const tick = () => {
+      if (!this._swipeInk) return;
+      this._paintSwipeInk(s);
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+
+  private _endSwipeInk(): void {
+    this._swipeInk = false;
+    for (const part of this.renderRoot.querySelectorAll<HTMLElement>(".bar .item > *")) {
+      part.style.removeProperty("--swipe-hole");
     }
   }
 
@@ -1528,11 +1560,28 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       hasPrev: !!s.prev,
       hasNext: !!s.next,
     });
-    // Toward the next entry is negative in the helpers' count and rightwards
-    // on screen.
-    s.moved.style.transform = `${s.baseTransform} translateX(${-shown}px)`;
-    if (this._swipeInk) this._paintSwipeInk();
+    this._placeSwipePill(s, -shown, toward);
+    if (this._swipeInk) this._paintSwipeInk(s);
   };
+
+  /**
+   * Puts the dragged pill `shift` px from home (rightwards positive, toward
+   * the next entry). A travelling marker also takes on the width of the entry
+   * it is heading for, in proportion, so it arrives the size it will stay.
+   */
+  private _placeSwipePill(
+    s: NonNullable<typeof this._swipe>,
+    shift: number,
+    toward?: { distance: number; width: number },
+  ): void {
+    if (s.moved.classList.contains("marker") && toward && toward.distance > 0) {
+      const share = Math.min(1, Math.abs(shift) / toward.distance);
+      const width = s.width + (toward.width - s.width) * share;
+      s.moved.style.width = `${width}px`;
+      shift -= (width - s.width) / 2;
+    }
+    s.moved.style.transform = `${s.baseTransform} translateX(${shift}px)`;
+  }
 
   private _beginSwipe(e: PointerEvent): void {
     const bar = this.renderRoot.querySelector<HTMLElement>(".bar");
@@ -1546,9 +1595,18 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       const r = node.getBoundingClientRect();
       return r.left + r.width / 2;
     };
+    // The marker covers the glyph in the stacked variants, the entry elsewhere.
+    const boxOf = (node: HTMLElement) =>
+      (this._stacked ? node.querySelector<HTMLElement>(".glyph") : null) ?? node;
     const neighbour = (t?: { index: number; path: string }) => {
       const node = t ? el(t.index) : null;
-      return t && node ? { ...t, distance: Math.abs(centre(node) - centre(active)) } : undefined;
+      return t && node
+        ? {
+            ...t,
+            distance: Math.abs(centre(node) - centre(active)),
+            width: boxOf(node).getBoundingClientRect().width,
+          }
+        : undefined;
     };
     const moved = this._sliding ? bar.querySelector<HTMLElement>(".marker") : active;
     if (!moved) return;
@@ -1566,7 +1624,8 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       next: neighbour(targets[at + 1]),
       moved,
       baseTransform: moved === active ? "" : moved.style.transform,
-      radius: getComputedStyle(moved).borderRadius || "0px",
+      width: moved.getBoundingClientRect().width,
+      radius: parseFloat(getComputedStyle(moved).borderTopLeftRadius) || 0,
     };
     // Only a marker of its own can be cut out of the entries: without one the
     // active entry itself travels, label and all.
@@ -1598,17 +1657,27 @@ export class M3NavCard extends LitElement implements LovelaceCard {
           hasPrev: !!s.prev,
           hasNext: !!s.next,
         });
-    const settle = () => {
-      // Back to the stylesheet's transition, then to where it belongs.
-      this._swipeInk = false;
-      s.moved.style.transition = "";
-      s.moved.style.transform = s.baseTransform;
-    };
+    // Back to the stylesheet's transition, so the pill glides the rest of the
+    // way — home, or on to the entry it was sent to — with the ink following.
+    s.moved.style.transition = "";
     if (!outcome) {
-      settle();
+      if (s.moved.classList.contains("marker")) s.moved.style.width = `${s.width}px`;
+      s.moved.style.transform = s.baseTransform;
+      if (this._swipeInk) {
+        this._followSwipeInk(s);
+        setTimeout(() => this._endSwipeInk(), NAV_MARKER_SLIDE_MS);
+      }
       return;
     }
     const target = outcome === "next" ? s.next! : s.prev!;
+    this._placeSwipePill(s, outcome === "next" ? target.distance : -target.distance, target);
+    if (this._swipeInk) this._followSwipeInk(s);
+    const settle = () => {
+      this._endSwipeInk();
+      // Wherever the page now says it belongs.
+      if (s.moved.classList.contains("marker")) this._placeMarker();
+      else s.moved.style.transform = s.baseTransform;
+    };
     if (this._config?.haptics !== false) fireHaptic(this, "light");
     const navigate = () => this._dispatch({ action: "navigate", navigation_path: target.path });
     if (!shouldAnimate(this._config?.animation) || matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -2429,7 +2498,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
           ? html`<span
               class="swipe-ink"
               aria-hidden="true"
-              style=${`background: ${this._markerFill()}; color: ${
+              style=${`color: ${
                 solid ? inkOn(this._markerFill(), this) : foregroundOn(item.color, this._markerFill(), 4.5, this)
               };`}
             >
@@ -3760,8 +3829,8 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       touch-action: pan-y;
     }
 
-    /* Mid-swipe every entry is drawn as an inactive one, and its pill-ink copy
-       on top is cut to the pill (see _swipeInk). The entry's opacity moves to
+    /* Mid-swipe every entry is drawn as an inactive one with the pill cut out
+       of it, and its pill-ink copy on top is cut to the pill (see _swipeInk). The entry's opacity moves to
        its contents, or the copy would be faded with it. */
     .bar.swipe-inked .item:not(.disabled) {
       opacity: 1;
@@ -3769,6 +3838,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
 
     .bar.swipe-inked .item:not(.disabled) > :not(.swipe-ink) {
       opacity: ${NAV_ITEM_INACTIVE_OPACITY};
+      clip-path: var(--swipe-hole, none);
     }
 
     .swipe-ink {
