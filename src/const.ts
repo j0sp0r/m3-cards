@@ -1981,6 +1981,10 @@ export const NAV_PRESS_MS = 200;
 export const NAV_MARKER_SLIDE_MS = 280;
 /** How long after a nav card comes on screen its marker settles without animating. */
 export const NAV_ARRIVAL_QUIET_MS = 600;
+/** How far the swipe pill must leave home before the bar takes its next layout. */
+export const SWIPE_GOING_PX = 2;
+/** How long the bar's icons and labels take to glide into that layout. */
+export const SWIPE_SETTLE_MS = 220;
 
 /**
  * Default length of the page cross-fade.

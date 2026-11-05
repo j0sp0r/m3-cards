@@ -60,6 +60,8 @@ import {
   NAV_PRESS_MS,
   NAV_MARKER_SLIDE_MS,
   NAV_ARRIVAL_QUIET_MS,
+  SWIPE_GOING_PX,
+  SWIPE_SETTLE_MS,
   NAV_PAGE_FADE_MS,
   NAV_PAGE_SLIDE_PX,
   NAV_PAGE_OUT_SHARE,
@@ -842,10 +844,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
   protected updated(changed: PropertyValues): void {
     super.updated(changed);
     if (this._config?.swipe_navigation === true) this._syncBarOverflow();
-    if (this._swipeInk && this._swipe) {
-      this._placeSwipeCopies(this._swipe);
-      this._paintSwipeInk(this._swipe);
-    }
+    if (this._swipeInk && this._swipe) this._paintSwipeInk(this._swipe);
     if (this._settling) {
       // One frame later, so the corrected marker has been painted with the
       // transition still off before it is turned back on. The timer is the
@@ -1489,6 +1488,9 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     /** The marker's middle at rest, and every entry's icon and label start. */
     home: number;
     parts: Map<string, number>;
+    /** The glide of icons and labels toward the layout of `going`. */
+    glide?: { going?: SwipeNeighbour; t0: number; from: Map<string, number> };
+    offsets: Map<string, number>;
   };
   /**
    * Lays the bar out as it will be with `to` active instead of `from`, on a
@@ -1607,7 +1609,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
    * would square off wherever the pill is wider than the entry.
    */
   private _paintSwipeInk(s: NonNullable<typeof this._swipe>): void {
+    // In this order, in one frame: the entries' own ink moves, the copies are
+    // pinned to it, and only then is the pill cut out of both.
     this._shiftSwipeBase(s);
+    this._placeSwipeCopies(s);
     const pill = s.moved.getBoundingClientRect();
     const shape = (box: DOMRect): string => {
       const x = pill.left - box.left;
@@ -1630,73 +1635,133 @@ export class M3NavCard extends LitElement implements LovelaceCard {
   }
 
   /**
-   * Moves the copies of the entries a swipe can land on to where their ink
-   * will be once they are active, so what shows under the pill is exactly
-   * what stays when it is let go.
+   * Where the bar is heading: the neighbour on the side the pill has moved
+   * to, once it has moved at all.
+   */
+  private _swipeGoing(s: NonNullable<typeof this._swipe>): SwipeNeighbour | undefined {
+    const r = s.moved.getBoundingClientRect();
+    const off = r.left + r.width / 2 - s.home;
+    if (Math.abs(off) < SWIPE_GOING_PX) return undefined;
+    return off > 0 ? s.next : s.prev;
+  }
+
+  /**
+   * Puts every entry's pill-ink copy where that entry's ink will be once the
+   * page has changed — the same place its own icon and label go to (see
+   * _shiftSwipeBase), so the two never show the same letters twice. The one
+   * the pill heads for is drawn as active, at the active type.
    */
   private _placeSwipeCopies(s: NonNullable<typeof this._swipe>): void {
-    for (const n of [s.prev, s.next]) {
-      if (!n) continue;
-      const copy = this.renderRoot.querySelector<HTMLElement>(`.item[data-index="${n.index}"] > .swipe-ink`);
-      if (!copy) continue;
+    const going = this._swipeGoing(s);
+    for (const copy of this.renderRoot.querySelectorAll<HTMLElement>(".bar .item > .swipe-ink")) {
+      const index = (copy.parentElement as HTMLElement).dataset.index;
       const glyph = copy.querySelector<HTMLElement>(":scope > .glyph");
       const label = copy.querySelector<HTMLElement>(":scope > .label");
-      if (label && n.labelFont) {
-        label.style.fontSize = n.labelFont.size;
-        label.style.fontWeight = n.labelFont.weight;
+      // Only the entry the pill is heading for is drawn as active — its icon,
+      // its type. Every other one looks under the pill as it does beside it,
+      // or an icon still to come would show at the pill's edge.
+      const item0 = copy.parentElement as HTMLElement;
+      const heading = going !== undefined && String(going.index) === index;
+      const current = item0.classList.contains("active");
+      if (label) {
+        label.style.fontSize = heading && going?.labelFont ? going.labelFont.size : "";
+        label.style.fontWeight = heading && going?.labelFont ? going.labelFont.weight : "";
       }
-      // Each piece on its own: the gap between them may differ, too.
-      // Measured against where each sits untranslated, every frame, so a late
-      // change of layout corrects itself.
-      const moves: [HTMLElement, number | undefined][] = [
-        [glyph as HTMLElement, n.glyphLeft],
-        [label as HTMLElement, n.labelLeft],
-      ];
-      for (const [node, future] of moves) {
-        if (!node || future === undefined) continue;
-        const applied = parseFloat(node.dataset.by ?? "0");
-        const by = future - (node.getBoundingClientRect().left - applied);
+      if (glyph) {
+        const own = item0.querySelector<HTMLElement>(":scope > .glyph");
+        const shown = heading || current || (!!own && !own.classList.contains("swipe-unseen"));
+        glyph.style.visibility = shown ? "" : "hidden";
+      }
+      // Where it sits untranslated, read afresh every frame: cached once, it
+      // was taken before the copy's own layout had settled on a first swipe.
+      const homeOf = (node: HTMLElement | null) =>
+        node ? node.getBoundingClientRect().left - parseFloat(node.dataset.by ?? "0") : NaN;
+      // Pinned to the entry's own label wherever that is this frame — gliding
+      // to its place or standing there — so copy and label never part.
+      const item = copy.parentElement as HTMLElement;
+      const own = item.querySelector<HTMLElement>(":scope > .label");
+      const ownGlyph = item.querySelector<HTMLElement>(":scope > .glyph");
+      const futureLabel = going?.parts.get(`${index}:label`);
+      const futureGlyph = going?.parts.get(`${index}:glyph`);
+      // The icon keeps the gap it will have, or the one the copy has.
+      const gap =
+        futureLabel !== undefined && futureGlyph !== undefined
+          ? futureLabel - futureGlyph
+          : homeOf(label) - homeOf(glyph);
+      let labelAt = own ? own.getBoundingClientRect().left : undefined;
+      let glyphAt = labelAt !== undefined ? labelAt - gap : undefined;
+      if (labelAt === undefined && ownGlyph) {
+        glyphAt = ownGlyph.getBoundingClientRect().left;
+        labelAt = glyphAt + gap;
+      }
+      for (const [node, at] of [
+        [glyph, glyphAt],
+        [label, labelAt],
+      ] as const) {
+        if (!node) continue;
+        const by = at === undefined || Number.isNaN(at) ? 0 : at - homeOf(node);
         node.dataset.by = String(by);
-        node.style.translate = `${by}px 0`;
+        node.style.translate = by ? `${by}px 0` : "";
       }
     }
   }
 
+
   /**
-   * Moves every entry's own icon and label part of the way to where the bar
-   * will have them once the page has changed — as far as the pill has gone
-   * toward its new place, read off the pill itself so the glide after
-   * release, or back home, carries them along. By the time the pill arrives,
-   * nothing is left to jump.
+   * Sends every entry's own icon and label to where the bar will have them
+   * once the page has changed, as soon as it is clear which way the swipe
+   * goes — they glide there once and stand, rather than creep along with the
+   * pill, and glide back if the pill returns home.
    */
   private _shiftSwipeBase(s: NonNullable<typeof this._swipe>): void {
-    const r = s.moved.getBoundingClientRect();
-    const off = r.left + r.width / 2 - s.home;
-    const toward = off > 0 ? s.next : s.prev;
-    const share = toward && toward.distance > 0 ? Math.min(1, Math.abs(off) / toward.distance) : 0;
+    const going = this._swipeGoing(s);
+    const now = performance.now();
+    if (!s.glide || s.glide.going !== going) s.glide = { going, t0: now, from: new Map(s.offsets) };
+    const t = Math.min(1, (now - s.glide.t0) / SWIPE_SETTLE_MS);
+    const ease = 1 - (1 - t) ** 3;
     for (const part of this.renderRoot.querySelectorAll<HTMLElement>(".bar .item > .glyph, .bar .item > .label")) {
       const key = `${(part.parentElement as HTMLElement).dataset.index}:${
         part.classList.contains("glyph") ? "glyph" : "label"
       }`;
-      const now = s.parts.get(key);
-      const then = toward?.parts.get(key);
-      part.style.translate = now !== undefined && then !== undefined && share > 0 ? `${(then - now) * share}px 0` : "";
+      const home = s.parts.get(key);
+      const then = going?.parts.get(key);
+      const to = home !== undefined && then !== undefined ? then - home : 0;
+      const from = s.glide.from.get(key) ?? 0;
+      const at = from + (to - from) * ease;
+      s.offsets.set(key, at);
+      part.style.translate = Math.abs(at) > 0.01 ? `${at}px 0` : "";
     }
   }
 
-  /** Repaints the cut-outs every frame while the marker glides on its own. */
+
+
+  /**
+   * Repaints the cut-outs every frame while the swipe is drawn: the pill
+   * glides on its own after release, and the icons and labels glide to their
+   * places, both without a pointer event to repaint on.
+   */
+  private _inkFollowing = false;
+
   private _followSwipeInk(s: NonNullable<typeof this._swipe>): void {
+    if (this._inkFollowing) return;
+    this._inkFollowing = true;
     const tick = () => {
-      if (!this._swipeInk) return;
-      this._placeSwipeCopies(s);
+      if (!this._swipeInk) {
+        this._inkFollowing = false;
+        return;
+      }
       this._paintSwipeInk(s);
       requestAnimationFrame(tick);
     };
     requestAnimationFrame(tick);
   }
 
+
   private _endSwipeInk(): void {
     this._swipeInk = false;
+    // The glide off first: clearing the shifts with it still on would glide
+    // them back over the layout the bar now really has.
+    this.renderRoot.querySelector(".bar")?.classList.remove("swipe-inked");
     for (const part of this.renderRoot.querySelectorAll<HTMLElement>(".bar .item > *")) {
       part.style.removeProperty("--swipe-hole");
       part.style.translate = "";
@@ -1753,10 +1818,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       hasNext: !!s.next,
     });
     this._placeSwipePill(s, -shown, toward);
-    if (this._swipeInk) {
-      this._placeSwipeCopies(s);
-      this._paintSwipeInk(s);
-    }
+    if (this._swipeInk) this._paintSwipeInk(s);
   };
 
   /**
@@ -1827,6 +1889,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       width: moved.getBoundingClientRect().width,
       radius: parseFloat(getComputedStyle(moved).borderTopLeftRadius) || 0,
       home: centre(moved),
+      offsets: new Map(),
       parts: new Map(
         Array.from(bar.querySelectorAll<HTMLElement>(".item > .glyph, .item > .label")).map((part) => [
           `${(part.parentElement as HTMLElement).dataset.index}:${part.classList.contains("glyph") ? "glyph" : "label"}`,
@@ -1837,6 +1900,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     // Only a marker of its own can be cut out of the entries: without one the
     // active entry itself travels, label and all.
     this._swipeInk = moved !== active;
+    if (this._swipeInk) this._followSwipeInk(this._swipe);
     this._closeSubmenu();
   }
 
@@ -1872,7 +1936,8 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       s.moved.style.transform = s.baseTransform;
       if (this._swipeInk) {
         this._followSwipeInk(s);
-        setTimeout(() => this._endSwipeInk(), NAV_MARKER_SLIDE_MS);
+        // Home, and the icons and labels glided back after it.
+        setTimeout(() => this._endSwipeInk(), NAV_MARKER_SLIDE_MS + SWIPE_SETTLE_MS);
       }
       return;
     }
