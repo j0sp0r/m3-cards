@@ -96,7 +96,7 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   judged silence by `last_updated`, which only moves when the state or an
   attribute changes — and a dry sensor changes nothing for days. A row now
   shows the newest sign of life from the whole device (link quality, battery
-  and the like count too), and a sensor counts as unreachable only when Home
+  and the like count too), and a sensor counts as unreachable only when
   something proves the gap — a `last_reported` time, or a "last seen"
   timestamp sensor on the device (Zigbee2MQTT's `*_last_seen`, found on its
   own, or named per sensor as `last_seen_entity`). Without proof the row reads
