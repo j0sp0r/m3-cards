@@ -736,13 +736,15 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
           ? html`<span class="extreme" style=${`top: ${scale!.y(scale!.hi)}px;`}>${this._fmt(scale!.hi)}°</span>
               <span class="extreme" style=${`top: ${scale!.y(scale!.lo)}px;`}>${this._fmt(scale!.lo)}°</span>`
           : nothing}
-        ${scrubX !== undefined
-          ? html`<span
-              class="tooltip"
-              style=${`left: ${Math.min(Math.max(scrubX, 56), Math.max(56, plotW - 56))}px;`}
-              >${tooltip}</span
-            >`
-          : nothing}
+        ${scrubX !== undefined && scrub !== undefined && cfg.show_chips === false
+          ? this._renderScrubList(rows, focus, scrub, scrubX, plotW, scrubT!, range)
+          : scrubX !== undefined
+            ? html`<span
+                class="tooltip"
+                style=${`left: ${Math.min(Math.max(scrubX, 56), Math.max(56, plotW - 56))}px;`}
+                >${tooltip}</span
+              >`
+            : nothing}
       </div>
       ${cfg.show_axis === false
         ? nothing
@@ -754,6 +756,28 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
             )}
           </div>`}
     `;
+  }
+
+  /**
+   * Without chips nothing on the card names the rooms, so a finger on the
+   * graph lists them all: colour, name and reading at that moment, warmest
+   * first, the focused room in bold. It sits on the side away from the line.
+   */
+  private _renderScrubList(rows: Row[], focus: number, scrub: number, x: number, plotW: number, t: number, range: TempGraphRange) {
+    const items = rows
+      .map((row, i) => ({ row, i, v: row.foreign ? null : row.values[scrub] }))
+      .sort((a, b) => (b.v ?? -Infinity) - (a.v ?? -Infinity));
+    const right = x < plotW / 2;
+    return html`<div class="scrub-list ${right ? "right" : "left"}" style=${right ? `left: ${x + 10}px;` : `right: ${plotW - x + 10 + TEMP_GRAPH_PAD_RIGHT}px;`}>
+      <div class="scrub-time">${this._timeLabel(t, range)}</div>
+      ${items.map(
+        ({ row, i, v }) => html`<div class="scrub-row ${i === focus ? "focus" : ""}">
+          <span class="chip-dot" style=${buildCssVars({ "chip-dot": fillColor(this, row.color) })}></span>
+          <span class="scrub-name">${row.name}</span>
+          <span class="scrub-value">${v === null || v === undefined ? "–" : `${this._fmt(v)}°`}</span>
+        </div>`,
+      )}
+    </div>`;
   }
 
   private _renderFooter(row: Row, unit: string, range: TempGraphRange) {
@@ -980,6 +1004,48 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
         white-space: nowrap;
         font-variant-numeric: tabular-nums;
         pointer-events: none;
+      }
+      .scrub-list {
+        position: absolute;
+        /* Grows upward from the graph's foot: a short graph has the header's
+           room above it, and the card clips anything below. */
+        bottom: 0;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding: 8px 10px;
+        border-radius: 14px;
+        background: color-mix(in srgb, var(--card-background-color, #1c1c1c) 92%, transparent);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+        font-size: 12px;
+        white-space: nowrap;
+        pointer-events: none;
+        font-variant-numeric: tabular-nums;
+      }
+      .scrub-time {
+        margin-bottom: 2px;
+        color: var(--m3p-secondary-text, var(--secondary-text-color));
+        font-weight: 600;
+      }
+      .scrub-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .scrub-row .chip-dot {
+        width: 8px;
+        height: 8px;
+      }
+      .scrub-row.focus {
+        font-weight: 700;
+      }
+      .scrub-name {
+        flex: 1;
+      }
+      .scrub-value {
+        margin-left: 10px;
+        font-weight: 600;
       }
       .axis {
         position: relative;

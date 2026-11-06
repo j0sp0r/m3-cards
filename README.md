@@ -7474,7 +7474,7 @@ Every extra can be switched off, down to a header over the curves:
 
 ```yaml
 type: custom:m3-temperature-graph-card
-show_chips: false        # without chips, the focus stays on default_focus
+show_chips: false        # the focus stays on default_focus; a finger on the graph lists every room
 show_extremes: false
 show_axis: false
 show_focus_range: false
@@ -7493,7 +7493,9 @@ height: 90
 - **Graph:** dashed guide lines, the lowest and highest value as pills at
   the left edge, and a few time labels — "0, 6, 12, 18, now" for a day,
   weekdays for a week, Mondays for a month.
-- **Scrubbing:** tap or drag across the graph. A drag up or down still
+- **Scrubbing:** tap or drag across the graph. With `show_chips: false`,
+  which leaves nothing on the card naming the rooms, the pill becomes a list
+  of every room with its colour and reading at that moment, warmest first. A drag up or down still
   scrolls the page; a tap shows the reading for two seconds. With the graph
   focused, the arrow keys move along it.
 - **Footer:** the focused room's lowest and highest reading in the range,

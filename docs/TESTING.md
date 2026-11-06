@@ -1273,6 +1273,7 @@ Mit einem harmlosen `input_boolean` testen.
 | Automatisch | Karte ohne `rooms` anlegen | Pro Bereich ein Thermometer, Bereichsname als Chip — dieselben Räume wie in der Climate Overview mit gleichen Filtern; „Als feste Liste übernehmen“ im Editor schreibt sie nach `rooms` |
 | Raumliste übernehmen | `rooms` aus einer Climate-Overview-Karte hineinkopieren | Lädt ohne Fehler; `humidity_entity`/`climate_entity` werden ignoriert |
 | Zusatzinfos aus | `show_chips`, `show_extremes`, `show_axis`, `show_focus_range`, `show_ranges` je auf `false` | Das jeweilige Element verschwindet ohne Lücke; ohne beide Fußzeilen-Teile keine Fußzeile |
+| Ohne Chips scrubben | `show_chips: false`, `height: 90`, auf den Graph tippen und ziehen | Statt der Pill eine Liste aller Räume mit Farbpunkt, Name und Wert, wärmster zuerst, Fokus fett; liegt auf der dem Finger abgewandten Seite und wird nicht abgeschnitten |
 | Fünf Sensoren | Fünf Raumthermometer als `rooms` | Fünf Chips mit Farbpunkt, Raum (Bereichsname) und Wert; fünf Kurven auf einer Skala; Kopf „<Raum> am wärmsten“ und Durchschnitt rechts |
 | Fokus per Chip | Nacheinander jeden Chip antippen | Die Kurve des Chips wird dick mit Fläche und Endpunkt, die vorige blendet zurück; der Chip wird eckiger und getönt; kein Datenabruf im Netzwerk-Tab |
 | Tastatur | Tab auf die Chips, Pfeiltasten; Tab auf den Graph, Pfeiltasten, Escape; Tab auf den Zeitraum, Pfeiltasten | Fokus wandert und wechselt; Scrub-Linie wandert; Zeitraum wechselt |
