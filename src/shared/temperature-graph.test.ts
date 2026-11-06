@@ -7,7 +7,8 @@ import {
   graphScale,
   mean,
   median,
-  normalizeTempEntries,
+  roomsToEntries,
+  sortEntries,
   resolveFocus,
   resolveRanges,
   smoothCurve,
@@ -20,11 +21,29 @@ import {
 const H = 3_600_000;
 
 describe("entries, ranges, focus", () => {
-  it("takes bare ids and objects, and drops empty rows", () => {
-    expect(normalizeTempEntries(["sensor.a", { entity: "sensor.b", name: "B" }, { entity: "" }])).toEqual([
-      { entity: "sensor.a" },
-      { entity: "sensor.b", name: "B" },
+  it("reads a room list as the climate overview card writes it, and drops rooms without a sensor", () => {
+    expect(
+      roomsToEntries([
+        { name: "Wohnzimmer", temperature_entity: "sensor.a", humidity_entity: "sensor.h" },
+        { temperature_entity: "sensor.b", color: "#fff" },
+        { name: "Neu", temperature_entity: "" },
+      ]),
+    ).toEqual([
+      { entity: "sensor.a", name: "Wohnzimmer", color: undefined },
+      { entity: "sensor.b", name: undefined, color: "#fff" },
     ]);
+  });
+
+  it("sorts as the climate overview card does", () => {
+    const rows = [
+      { name: "Bad", live: 20 },
+      { name: "Flur", live: 23 },
+      { name: "Arbeitszimmer", live: null },
+    ];
+    expect(sortEntries(rows, "area", "de").map((r) => r.name)).toEqual(["Bad", "Flur", "Arbeitszimmer"]);
+    expect(sortEntries(rows, "name", "de").map((r) => r.name)).toEqual(["Arbeitszimmer", "Bad", "Flur"]);
+    expect(sortEntries(rows, "temp_desc", "de").map((r) => r.name)).toEqual(["Flur", "Bad", "Arbeitszimmer"]);
+    expect(sortEntries(rows, "temp_asc", "de").map((r) => r.name)).toEqual(["Bad", "Flur", "Arbeitszimmer"]);
   });
 
   it("keeps known ranges in order and falls back to the default", () => {

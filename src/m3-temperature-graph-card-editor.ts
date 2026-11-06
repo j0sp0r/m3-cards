@@ -1,7 +1,8 @@
 import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import type { HomeAssistant, LovelaceCardEditor, M3TemperatureGraphCardConfig, TempGraphEntityConfig } from "./types";
+import type { HomeAssistant, LovelaceCardEditor, M3TemperatureGraphCardConfig, TempGraphRoomConfig } from "./types";
 import {
+  DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP,
   DEFAULT_TEMP_GRAPH_DECIMALS,
   DEFAULT_TEMP_GRAPH_HEIGHT,
   DEFAULT_TEMP_GRAPH_RADIUS,
@@ -9,7 +10,7 @@ import {
   TEMP_GRAPH_PALETTE_TONAL,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
-import { fireEvent, colorRow, editorStyles, type SchemaEntry } from "./shared/editor-helpers";
+import { fireEvent, colorRow, listRow, editorStyles, type SchemaEntry } from "./shared/editor-helpers";
 import { radiusLabelMap } from "./shared/radius-editor";
 import {
   initAppearanceState,
@@ -18,26 +19,38 @@ import {
   renderAppearanceSection,
   type AppearanceState,
 } from "./shared/appearance-editor";
+import { discoverClimateRooms } from "./shared/ha-registry";
+import type { EntityFilterConfig } from "./shared/entity-filter";
 import { TEMP_GRAPH_RANGES, resolveFocus, resolveRanges } from "./shared/temperature-graph";
 
 type ColorField = "accent_color" | "text_color" | "secondary_text_color" | "card_background";
 
-const SENSOR_SELECTOR = { entity: { domain: "sensor", device_class: "temperature" } };
+const TEMP_SELECTOR = { entity: { domain: "sensor", device_class: "temperature" } };
 
 /** Values left out of the YAML rather than written: empty, or the default. */
 const DEFAULTS: Record<string, unknown> = {
   decimals: DEFAULT_TEMP_GRAPH_DECIMALS,
   height: DEFAULT_TEMP_GRAPH_HEIGHT,
   show_extremes: true,
+  show_header: true,
+  show_chips: true,
+  show_axis: true,
+  show_focus_range: true,
+  show_ranges: true,
   summary: "mean",
+  sort: "area",
   animation: "auto",
 };
 
+interface Room {
+  name: string;
+  entity: string;
+}
+
 /**
- * The temperature graph card's editor: the sensors as a list that can be
- * added to, reordered and renamed, each with its own colour, and the card's
- * options below. Sensors in another unit than the first are flagged at the
- * top, since the card leaves them out of the graph.
+ * The temperature graph card's editor, laid out as the climate overview
+ * card's: what the header says, which rooms (discovery with its filters, or a
+ * fixed list that can be reordered and coloured), then what the graph shows.
  */
 @customElement("m3-temperature-graph-card-editor")
 export class M3TemperatureGraphCardEditor extends LitElement implements LovelaceCardEditor {
@@ -45,10 +58,14 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
 
   @state() private _config?: M3TemperatureGraphCardConfig;
   @state() private _appearance: AppearanceState = { showCustomRadius: false, showCorners: false, cornerCustom: {} };
+  /** What discovery finds with the current filters, for the count and the focus list. */
+  @state() private _found?: Room[];
+  private _foundKey = "";
 
   public setConfig(config: M3TemperatureGraphCardConfig): void {
     this._config = config;
     this._appearance = initAppearanceState(config, DEFAULT_TEMP_GRAPH_RADIUS);
+    void this._refreshFound();
   }
 
   private get _language(): string {
@@ -59,9 +76,51 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
     return localize(key, this._language);
   }
 
+  private get _rooms(): TempGraphRoomConfig[] {
+    return this._config?.rooms ?? [];
+  }
+
+  private get _auto(): boolean {
+    return !this._rooms.length && this._config?.auto_discover !== false;
+  }
+
+  private _filter(): EntityFilterConfig {
+    const c = this._config ?? ({} as M3TemperatureGraphCardConfig);
+    return {
+      include_area: c.include_area,
+      exclude_area: c.exclude_area,
+      include_entities: c.include_entities,
+      exclude_entities: c.exclude_entities,
+      include_labels: c.include_labels,
+      exclude_labels: c.exclude_labels,
+      include_state: c.include_state,
+      exclude_state: c.exclude_state,
+    };
+  }
+
+  private async _refreshFound(): Promise<void> {
+    if (!this.hass || !this._config || !this._auto) {
+      this._found = undefined;
+      return;
+    }
+    const filter = this._filter();
+    const nameStrip = this._config.name_strip ?? DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP;
+    const key = JSON.stringify([filter, nameStrip]);
+    if (key === this._foundKey && this._found) return;
+    this._foundKey = key;
+    const rooms = await discoverClimateRooms(this.hass, { filter, nameStrip });
+    if (key !== this._foundKey) return;
+    this._found = rooms.filter((r) => !!r.temperatureEntity).map((r) => ({ name: r.name, entity: r.temperatureEntity! }));
+  }
+
+  protected updated(changed: Map<string, unknown>): void {
+    if (changed.has("hass") && !this._found) void this._refreshFound();
+  }
+
   private _emit(config: M3TemperatureGraphCardConfig): void {
     this._config = config;
     fireEvent(this, "config-changed", { config });
+    void this._refreshFound();
   }
 
   private _patch(values: Record<string, unknown>): void {
@@ -71,98 +130,229 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
       const unset =
         value === undefined ||
         value === "" ||
-        (Array.isArray(value) && value.length === 0 && key !== "entities") ||
+        (Array.isArray(value) && value.length === 0) ||
         (value !== null && typeof value === "object" && !Array.isArray(value) && Object.keys(value as object).length === 0) ||
         DEFAULTS[key] === value;
       if (unset) delete next[key];
       else next[key] = value;
     }
+    // Discovery is the default without a room list, so only "off" is written.
+    if (next.auto_discover === true) delete next.auto_discover;
     this._emit(next as unknown as M3TemperatureGraphCardConfig);
   }
 
   private _valueChanged(ev: CustomEvent): void {
+    this._patch({ ...(ev.detail.value as Record<string, unknown>) });
+  }
+
+  /** The graph panel: the range and focus are stored only when they differ from what the card picks itself. */
+  private _graphChanged(ev: CustomEvent): void {
     const value = { ...(ev.detail.value as Record<string, unknown>) };
-    // The default range and focus are stored only when they differ from what
-    // the card would pick on its own.
-    if ("ranges" in value) {
-      const ranges = value.ranges as string[] | undefined;
-      const same =
-        Array.isArray(ranges) &&
-        ranges.length === DEFAULT_TEMP_GRAPH_RANGES.length &&
-        ranges.every((r, i) => r === DEFAULT_TEMP_GRAPH_RANGES[i]);
-      if (same) value.ranges = undefined;
+    const ranges = value.ranges as string[] | undefined;
+    if (
+      Array.isArray(ranges) &&
+      ranges.length === DEFAULT_TEMP_GRAPH_RANGES.length &&
+      ranges.every((r, i) => r === DEFAULT_TEMP_GRAPH_RANGES[i])
+    ) {
+      value.ranges = undefined;
     }
-    if ("default_range" in value) {
-      const offered = resolveRanges((value.ranges as string[] | undefined) ?? this._config?.ranges, DEFAULT_TEMP_GRAPH_RANGES).ranges;
-      if (!offered.includes(value.default_range as never) || value.default_range === offered[0]) value.default_range = undefined;
-    }
-    if (value.default_focus === "0" || value.default_focus === 0) value.default_focus = undefined;
-    else if (typeof value.default_focus === "string" && /^\d+$/.test(value.default_focus)) value.default_focus = Number(value.default_focus);
+    const offered = resolveRanges((value.ranges as string[] | undefined) ?? this._config?.ranges, DEFAULT_TEMP_GRAPH_RANGES).ranges;
+    if (!offered.includes(value.default_range as never) || value.default_range === offered[0]) value.default_range = undefined;
+    const curves = this._curves();
+    if (!value.default_focus || value.default_focus === curves[0]?.entity) value.default_focus = undefined;
     this._patch(value);
   }
 
-  // ---- entries --------------------------------------------------------------
+  // ---- rooms ------------------------------------------------------------------
 
-  private get _entries(): TempGraphEntityConfig[] {
-    return (this._config?.entities ?? []).map((e) => (typeof e === "string" ? { entity: e } : { ...e }));
+  /** The curves as the editor knows them: the room list, or what discovery finds. */
+  private _curves(): Room[] {
+    if (!this._auto) return this._rooms.filter((r) => r.temperature_entity).map((r) => ({ name: r.name ?? "", entity: r.temperature_entity }));
+    return this._found ?? [];
   }
 
-  /** Writes the list back, keeping the short form for an entry that is only an id. */
-  private _setEntries(entries: TempGraphEntityConfig[]): void {
-    const list = entries.map((e) => {
-      const { entity, ...rest } = e;
-      const extra = Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined && v !== ""));
-      return Object.keys(extra).length ? { entity, ...extra } : entity;
-    });
-    this._patch({ entities: list });
+  private _setRooms(rooms: TempGraphRoomConfig[]): void {
+    const clean = rooms.map((r) =>
+      Object.fromEntries(Object.entries(r).filter(([, v]) => v !== undefined && v !== "")) as unknown as TempGraphRoomConfig,
+    );
+    this._patch({ rooms: clean });
   }
 
-  private _entryChanged(index: number, ev: CustomEvent): void {
+  private _roomChanged(index: number, ev: CustomEvent): void {
     ev.stopPropagation();
-    const entries = this._entries;
-    entries[index] = { ...entries[index], ...(ev.detail.value as TempGraphEntityConfig) };
-    this._setEntries(entries);
+    const rooms = [...this._rooms];
+    rooms[index] = { ...rooms[index], ...(ev.detail.value as TempGraphRoomConfig) };
+    this._setRooms(rooms);
   }
 
-  private _entryColor(index: number, color: string): void {
-    const entries = this._entries;
-    entries[index] = { ...entries[index], color: color || undefined };
-    this._setEntries(entries);
+  private _roomColor(index: number, color: string): void {
+    const rooms = [...this._rooms];
+    rooms[index] = { ...rooms[index], color: color || undefined };
+    this._setRooms(rooms);
   }
 
-  private _addEntry(): void {
-    this._setEntries([...this._entries, { entity: "" }]);
+  private _addRoom(): void {
+    this._setRooms([...this._rooms, { name: "", temperature_entity: "" }]);
   }
 
-  private _removeEntry(index: number): void {
-    this._setEntries(this._entries.filter((_, i) => i !== index));
+  private _removeRoom(index: number): void {
+    this._setRooms(this._rooms.filter((_, i) => i !== index));
   }
 
-  private _moveEntry(index: number, by: -1 | 1): void {
-    const entries = this._entries;
+  private _moveRoom(index: number, by: -1 | 1): void {
+    const rooms = [...this._rooms];
     const to = index + by;
-    if (to < 0 || to >= entries.length) return;
-    [entries[index], entries[to]] = [entries[to], entries[index]];
-    this._setEntries(entries);
+    if (to < 0 || to >= rooms.length) return;
+    [rooms[index], rooms[to]] = [rooms[to], rooms[index]];
+    this._setRooms(rooms);
+  }
+
+  /** Turns what discovery finds into a fixed list, to reorder, rename and colour. */
+  private _toManualList(): void {
+    const found = this._found ?? [];
+    if (!found.length) return;
+    this._setRooms(found.map((r) => ({ name: r.name, temperature_entity: r.entity })));
+  }
+
+  private _nameStripChanged(values: string[]): void {
+    this._patch({ name_strip: values });
   }
 
   /** Units the sensors report, when they are not all the same. */
   private _mixedUnits(): { units: string[]; unit: string } | undefined {
-    const units = this._entries
-      .map((e) => this.hass?.states[e.entity]?.attributes?.unit_of_measurement as string | undefined)
+    const units = this._curves()
+      .map((c) => this.hass?.states[c.entity]?.attributes?.unit_of_measurement as string | undefined)
       .filter((u): u is string => !!u);
     const distinct = [...new Set(units)];
     return distinct.length > 1 ? { units: distinct, unit: units[0] } : undefined;
   }
 
-  // ---- labels ---------------------------------------------------------------
+  // ---- schemas ----------------------------------------------------------------
+
+  private _stateSelector() {
+    return {
+      select: {
+        multiple: true,
+        custom_value: true,
+        options: [
+          { value: "unavailable", label: this._t("editor_climate_overview_state_unavailable") },
+          { value: "unknown", label: this._t("editor_climate_overview_state_unknown") },
+        ],
+      },
+    };
+  }
+
+  private _contentSchema(): SchemaEntry[] {
+    return [
+      { name: "name", selector: { text: {} } },
+      { name: "icon", selector: { icon: {} } },
+      { name: "show_header", selector: { boolean: {} } },
+      {
+        name: "sort",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "area", label: this._t("editor_climate_overview_sort_area") },
+              { value: "temp_desc", label: this._t("editor_climate_overview_sort_temp_desc") },
+              { value: "temp_asc", label: this._t("editor_climate_overview_sort_temp_asc") },
+              { value: "name", label: this._t("editor_climate_overview_sort_name") },
+            ],
+          },
+        },
+      },
+    ];
+  }
+
+  private _discoverySchema(): SchemaEntry[] {
+    const schema: SchemaEntry[] = [{ name: "auto_discover", selector: { boolean: {} } }];
+    if (this._config?.auto_discover !== false) {
+      schema.push(
+        { name: "include_area", selector: { area: { multiple: true } } },
+        { name: "exclude_area", selector: { area: { multiple: true } } },
+        { name: "include_labels", selector: { label: { multiple: true } } },
+        { name: "exclude_labels", selector: { label: { multiple: true } } },
+        { name: "include_entities", selector: { entity: { ...TEMP_SELECTOR.entity, multiple: true } } },
+        { name: "exclude_entities", selector: { entity: { ...TEMP_SELECTOR.entity, multiple: true } } },
+        { name: "include_state", selector: this._stateSelector() },
+        { name: "exclude_state", selector: this._stateSelector() },
+      );
+    }
+    return schema;
+  }
+
+  private _roomSchema(): SchemaEntry[] {
+    return [
+      { name: "name", selector: { text: {} } },
+      { name: "temperature_entity", required: true, selector: TEMP_SELECTOR },
+    ];
+  }
+
+  private _graphSchema(): SchemaEntry[] {
+    const cfg = this._config!;
+    const rangeOptions = TEMP_GRAPH_RANGES.map((r) => ({ value: r, label: this._t(`tempgraph_range_${r}` as TranslationKey) }));
+    const { ranges } = resolveRanges(cfg.ranges, DEFAULT_TEMP_GRAPH_RANGES);
+    const curves = this._curves();
+    const schema: SchemaEntry[] = [
+      { name: "ranges", selector: { select: { multiple: true, mode: "list", options: rangeOptions } } },
+      { name: "default_range", selector: { select: { mode: "dropdown", options: rangeOptions.filter((o) => ranges.includes(o.value)) } } },
+      {
+        name: "summary",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "mean", label: this._t("editor_tempgraph_summary_mean") },
+              { value: "median", label: this._t("editor_tempgraph_summary_median") },
+              { value: "entity", label: this._t("editor_tempgraph_summary_entity") },
+            ],
+          },
+        },
+      },
+    ];
+    if (cfg.summary === "entity") schema.push({ name: "summary_entity", selector: TEMP_SELECTOR });
+    if (curves.length > 1) {
+      schema.push({
+        name: "default_focus",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: curves.map((c) => ({
+              value: c.entity,
+              label: c.name || (this.hass?.states[c.entity]?.attributes?.friendly_name as string | undefined) || c.entity,
+            })),
+          },
+        },
+      });
+    }
+    schema.push(
+      { name: "decimals", selector: { number: { min: 0, max: 3, mode: "box" } } },
+      { name: "show_chips", selector: { boolean: {} } },
+      { name: "show_extremes", selector: { boolean: {} } },
+      { name: "show_axis", selector: { boolean: {} } },
+      { name: "show_focus_range", selector: { boolean: {} } },
+      { name: "show_ranges", selector: { boolean: {} } },
+      { name: "height", selector: { number: { min: 60, max: 400, step: 10, mode: "box", unit_of_measurement: "px" } } },
+    );
+    return schema;
+  }
 
   private _computeLabel = (schema: SchemaEntry): string => {
     const map: Record<string, TranslationKey> = {
-      entity: "editor_entity",
       name: "editor_name",
       icon: "editor_icon",
-      title: "editor_tempgraph_title",
+      show_header: "editor_show_header",
+      sort: "editor_climate_overview_sort",
+      auto_discover: "editor_climate_overview_auto_discover",
+      include_area: "editor_climate_overview_include_area",
+      exclude_area: "editor_climate_overview_exclude_area",
+      include_labels: "editor_climate_overview_include_labels",
+      exclude_labels: "editor_climate_overview_exclude_labels",
+      include_entities: "editor_climate_overview_include_entities",
+      exclude_entities: "editor_climate_overview_exclude_entities",
+      include_state: "editor_climate_overview_include_state",
+      exclude_state: "editor_climate_overview_exclude_state",
+      temperature_entity: "editor_climate_overview_room_temp_entity",
       ranges: "editor_tempgraph_ranges",
       default_range: "editor_tempgraph_default_range",
       summary: "editor_tempgraph_summary",
@@ -170,6 +360,10 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
       default_focus: "editor_tempgraph_default_focus",
       decimals: "editor_tempgraph_decimals",
       show_extremes: "editor_tempgraph_show_extremes",
+      show_chips: "editor_tempgraph_show_chips",
+      show_axis: "editor_tempgraph_show_axis",
+      show_focus_range: "editor_tempgraph_show_focus_range",
+      show_ranges: "editor_tempgraph_show_ranges",
       height: "editor_tempgraph_height",
       animation: "editor_progress_animation",
       glass_background: "editor_glass_background",
@@ -179,7 +373,7 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
     return key ? this._t(key) : schema.name;
   };
 
-  // ---- colours and appearance ----------------------------------------------
+  // ---- colours and appearance -------------------------------------------------
 
   private _colorChanged(field: ColorField, value: string): void {
     this._patch({ [field]: value || undefined });
@@ -215,74 +409,27 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
     this._emit({ ...this._config, corners: { ...(this._config.corners ?? {}), [key]: px } });
   }
 
-  // ---- render ---------------------------------------------------------------
+  // ---- render -----------------------------------------------------------------
 
-  private _form(data: Record<string, unknown>, schema: SchemaEntry[]) {
+  private _form(data: Record<string, unknown>, schema: SchemaEntry[], onChange: (ev: CustomEvent) => void = this._valueChanged) {
     return html`<ha-form
       .hass=${this.hass}
       .data=${data}
       .schema=${schema}
       .computeLabel=${this._computeLabel}
-      @value-changed=${this._valueChanged}
+      @value-changed=${onChange.bind(this)}
     ></ha-form>`;
-  }
-
-  private _optionsSchema(): SchemaEntry[] {
-    const cfg = this._config!;
-    const rangeOptions = TEMP_GRAPH_RANGES.map((r) => ({ value: r, label: this._t(`tempgraph_range_${r}` as TranslationKey) }));
-    const { ranges } = resolveRanges(cfg.ranges, DEFAULT_TEMP_GRAPH_RANGES);
-    const entries = this._entries;
-    const schema: SchemaEntry[] = [
-      { name: "title", selector: { text: {} } },
-      { name: "icon", selector: { icon: {} } },
-      { name: "ranges", selector: { select: { multiple: true, mode: "list", options: rangeOptions } } },
-      {
-        name: "default_range",
-        selector: { select: { mode: "dropdown", options: rangeOptions.filter((o) => ranges.includes(o.value)) } },
-      },
-      {
-        name: "summary",
-        selector: {
-          select: {
-            mode: "dropdown",
-            options: [
-              { value: "mean", label: this._t("editor_tempgraph_summary_mean") },
-              { value: "median", label: this._t("editor_tempgraph_summary_median") },
-              { value: "entity", label: this._t("editor_tempgraph_summary_entity") },
-            ],
-          },
-        },
-      },
-    ];
-    if (cfg.summary === "entity") schema.push({ name: "summary_entity", selector: SENSOR_SELECTOR });
-    if (entries.length > 1) {
-      schema.push({
-        name: "default_focus",
-        selector: {
-          select: {
-            mode: "dropdown",
-            options: entries.map((e, i) => ({
-              value: String(i),
-              label: e.name || (this.hass?.states[e.entity]?.attributes?.friendly_name as string | undefined) || e.entity || `#${i + 1}`,
-            })),
-          },
-        },
-      });
-    }
-    schema.push(
-      { name: "decimals", selector: { number: { min: 0, max: 3, mode: "box" } } },
-      { name: "show_extremes", selector: { boolean: {} } },
-      { name: "height", selector: { number: { min: 60, max: 400, step: 10, mode: "box", unit_of_measurement: "px" } } },
-    );
-    return schema;
   }
 
   protected render() {
     if (!this.hass || !this._config) return nothing;
     const cfg = this._config;
-    const entries = this._entries;
+    const rooms = this._rooms;
+    const auto = this._auto;
     const mixed = this._mixedUnits();
     const { ranges, initial } = resolveRanges(cfg.ranges, DEFAULT_TEMP_GRAPH_RANGES, cfg.default_range);
+    const curves = this._curves();
+    const focusIndex = resolveFocus(cfg.default_focus, curves.map((c) => ({ entity: c.entity })));
 
     return html`
       <div class="editor">
@@ -291,71 +438,108 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
               >${this._t("editor_tempgraph_mixed_units").replace("{units}", mixed.units.join(", ")).replace("{unit}", mixed.unit)}</ha-alert
             >`
           : nothing}
-        <ha-expansion-panel outlined .header=${this._t("editor_tempgraph_section_sensors")} expanded>
-          <ha-icon slot="leading-icon" icon="mdi:thermometer-lines"></ha-icon>
+
+        <ha-expansion-panel outlined .header=${this._t("editor_content")} expanded>
+          <ha-icon slot="leading-icon" icon="mdi:text-short"></ha-icon>
           <div class="panel-content">
-            ${entries.map(
-              (entry, index) => html`
+            ${this._form(
+              { name: cfg.name, icon: cfg.icon, show_header: cfg.show_header ?? true, sort: cfg.sort ?? "area" },
+              this._contentSchema(),
+            )}
+            ${listRow(this._t("editor_climate_overview_name_strip"), cfg.name_strip ?? DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP, (v) =>
+              this._nameStripChanged(v),
+            )}
+          </div>
+        </ha-expansion-panel>
+
+        <ha-expansion-panel outlined .header=${this._t("editor_entities")} expanded>
+          <ha-icon slot="leading-icon" icon="mdi:home-search-outline"></ha-icon>
+          <div class="panel-content">
+            ${this._form(
+              {
+                auto_discover: cfg.auto_discover ?? true,
+                include_area: cfg.include_area ?? [],
+                exclude_area: cfg.exclude_area ?? [],
+                include_labels: cfg.include_labels ?? [],
+                exclude_labels: cfg.exclude_labels ?? [],
+                include_entities: cfg.include_entities ?? [],
+                exclude_entities: cfg.exclude_entities ?? [],
+                include_state: cfg.include_state ?? [],
+                exclude_state: cfg.exclude_state ?? [],
+              },
+              this._discoverySchema(),
+            )}
+            ${auto && this._found
+              ? html`<div class="hint">
+                  ${this._t("editor_tempgraph_found").replace("{n}", String(this._found.length))}
+                  ${this._found.length
+                    ? html`<button class="link-btn" @click=${() => this._toManualList()}>${this._t("editor_openings_to_manual")}</button>`
+                    : nothing}
+                </div>`
+              : nothing}
+            <div class="hint">${this._t("editor_climate_overview_rooms_helper")}</div>
+            ${rooms.map(
+              (room, index) => html`
                 <div class="entry">
                   <div class="entry-row">
                     <ha-form
                       .hass=${this.hass}
-                      .data=${{ entity: entry.entity, name: entry.name }}
-                      .schema=${[
-                        { name: "entity", required: true, selector: SENSOR_SELECTOR },
-                        { name: "name", selector: { text: {} } },
-                      ]}
+                      .data=${{ name: room.name ?? "", temperature_entity: room.temperature_entity }}
+                      .schema=${this._roomSchema()}
                       .computeLabel=${this._computeLabel}
-                      @value-changed=${(ev: CustomEvent) => this._entryChanged(index, ev)}
+                      @value-changed=${(ev: CustomEvent) => this._roomChanged(index, ev)}
                     ></ha-form>
                     <div class="entry-actions">
-                      <button class="icon-btn" aria-label=${this._t("editor_tempgraph_move_up")} ?disabled=${index === 0} @click=${() => this._moveEntry(index, -1)}>
+                      <button class="icon-btn" aria-label=${this._t("editor_tempgraph_move_up")} ?disabled=${index === 0} @click=${() => this._moveRoom(index, -1)}>
                         <ha-icon icon="mdi:arrow-up"></ha-icon>
                       </button>
                       <button
                         class="icon-btn"
                         aria-label=${this._t("editor_tempgraph_move_down")}
-                        ?disabled=${index === entries.length - 1}
-                        @click=${() => this._moveEntry(index, 1)}
+                        ?disabled=${index === rooms.length - 1}
+                        @click=${() => this._moveRoom(index, 1)}
                       >
                         <ha-icon icon="mdi:arrow-down"></ha-icon>
                       </button>
-                      <button class="icon-btn" aria-label=${this._t("editor_tempgraph_remove")} @click=${() => this._removeEntry(index)}>
+                      <button class="icon-btn" aria-label=${this._t("editor_tempgraph_remove")} @click=${() => this._removeRoom(index)}>
                         <ha-icon icon="mdi:close"></ha-icon>
                       </button>
                     </div>
                   </div>
                   ${colorRow(
                     `${this._t("editor_tempgraph_color")} (${TEMP_GRAPH_PALETTE_TONAL[index % TEMP_GRAPH_PALETTE_TONAL.length]})`,
-                    entry.color,
-                    (v) => this._entryColor(index, v),
+                    room.color,
+                    (v) => this._roomColor(index, v),
                   )}
                 </div>
               `,
             )}
-            <button class="add-btn" @click=${() => this._addEntry()}>
-              <ha-icon icon="mdi:plus"></ha-icon>${this._t("editor_tempgraph_add")}
+            <button class="add-btn" @click=${() => this._addRoom()}>
+              <ha-icon icon="mdi:plus"></ha-icon>${this._t("editor_climate_overview_add_room")}
             </button>
           </div>
         </ha-expansion-panel>
 
-        <ha-expansion-panel outlined .header=${this._t("editor_supply_display")}>
+        <ha-expansion-panel outlined .header=${this._t("editor_tempgraph_section_graph")}>
           <ha-icon slot="leading-icon" icon="mdi:chart-bell-curve-cumulative"></ha-icon>
           <div class="panel-content">
             ${this._form(
               {
-                title: cfg.title,
-                icon: cfg.icon,
                 ranges,
                 default_range: initial,
                 summary: cfg.summary ?? "mean",
                 summary_entity: cfg.summary_entity,
-                default_focus: String(resolveFocus(cfg.default_focus, entries)),
+                default_focus: curves[focusIndex]?.entity,
                 decimals: cfg.decimals ?? DEFAULT_TEMP_GRAPH_DECIMALS,
                 show_extremes: cfg.show_extremes ?? true,
+                show_chips: cfg.show_chips ?? true,
+                show_axis: cfg.show_axis ?? true,
+                show_focus_range: cfg.show_focus_range ?? true,
+                show_ranges: cfg.show_ranges ?? true,
                 height: cfg.height ?? DEFAULT_TEMP_GRAPH_HEIGHT,
               },
-              this._optionsSchema(),
+              this._graphSchema(),
+              this._graphChanged,
             )}
           </div>
         </ha-expansion-panel>
@@ -470,6 +654,15 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
         gap: 6px;
         font-size: 14px;
         font-family: inherit;
+      }
+      .link-btn {
+        border: none;
+        background: none;
+        padding: 0 0 0 4px;
+        color: var(--primary-color);
+        font: inherit;
+        cursor: pointer;
+        text-decoration: underline;
       }
     `,
   ];

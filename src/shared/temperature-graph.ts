@@ -18,7 +18,7 @@
 
 import type { SeriesPoint } from "./entity-history";
 import type { XY } from "./smooth-path";
-import type { TempGraphEntityConfig, TempGraphRange } from "../types";
+import type { TempGraphEntityConfig, TempGraphRange, TempGraphRoomConfig, TempGraphSort } from "../types";
 
 export const TEMP_GRAPH_RANGE_MS: Record<TempGraphRange, number> = {
   "6h": 6 * 3_600_000,
@@ -35,11 +35,19 @@ export function isTempGraphRange(v: unknown): v is TempGraphRange {
   return typeof v === "string" && v in TEMP_GRAPH_RANGE_MS;
 }
 
-/** The list as objects, without empty rows (the editor adds one to fill in). */
-export function normalizeTempEntries(list: ReadonlyArray<string | TempGraphEntityConfig> | undefined): TempGraphEntityConfig[] {
-  return (list ?? [])
-    .map((e) => (typeof e === "string" ? { entity: e } : e))
-    .filter((e): e is TempGraphEntityConfig => !!e && typeof e.entity === "string" && e.entity.trim() !== "");
+/** A room list as curves, without rooms that name no sensor (the editor adds one to fill in). */
+export function roomsToEntries(rooms: readonly TempGraphRoomConfig[] | undefined): TempGraphEntityConfig[] {
+  return (rooms ?? [])
+    .filter((r) => !!r && typeof r.temperature_entity === "string" && r.temperature_entity.trim() !== "")
+    .map((r) => ({ entity: r.temperature_entity, name: r.name || undefined, color: r.color || undefined }));
+}
+
+/** Chip and curve order, as on the climate overview card: "area" keeps the order found or listed. */
+export function sortEntries<T extends { name: string; live: number | null }>(rows: readonly T[], sort: TempGraphSort | undefined, language: string): T[] {
+  if (sort === "name") return [...rows].sort((a, b) => a.name.localeCompare(b.name, language));
+  if (sort === "temp_desc") return [...rows].sort((a, b) => (b.live ?? -Infinity) - (a.live ?? -Infinity));
+  if (sort === "temp_asc") return [...rows].sort((a, b) => (a.live ?? Infinity) - (b.live ?? Infinity));
+  return [...rows];
 }
 
 /** The ranges on offer, in the order given and without unknown ones, and the first shown. */

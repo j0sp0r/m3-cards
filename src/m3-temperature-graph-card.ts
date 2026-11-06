@@ -16,6 +16,7 @@ import {
   DEFAULT_TEMP_GRAPH_HEIGHT,
   DEFAULT_TEMP_GRAPH_RADIUS,
   DEFAULT_TEMP_GRAPH_RANGES,
+  DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP,
   TEMP_GRAPH_AREA_TOP,
   TEMP_GRAPH_CHIP_HEIGHT,
   TEMP_GRAPH_CHIP_RADIUS_FOCUS,
@@ -52,12 +53,13 @@ import {
 } from "./shared/color-config";
 import { glassCardClass, glassCardStyles } from "./shared/glass-card";
 import { cardHeaderStyles, renderCardHeader } from "./shared/card-header";
-import { hassChangeMatters } from "./shared/should-update";
+import { discoveryChangeMatters, hassChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
 import { VisibleTicker } from "./shared/visible-ticker";
 import { SLIDER_TOUCH_ACTION, SliderIntent } from "./shared/slider-intent";
 import { stopSwipe } from "./shared/swipe";
-import { areaInfo } from "./shared/ha-registry";
+import { areaInfo, discoverClimateRooms } from "./shared/ha-registry";
+import { buildStatePredicate, type EntityFilterConfig } from "./shared/entity-filter";
 import { monotoneArea, monotonePath, niceTicks, type XY } from "./shared/smooth-path";
 import { fetchTempSeries, type TempSeries } from "./shared/multi-history";
 import {
@@ -70,7 +72,8 @@ import {
   graphScale,
   mean,
   median,
-  normalizeTempEntries,
+  roomsToEntries,
+  sortEntries,
   numericOf,
   resolveFocus,
   resolveRanges,
@@ -118,7 +121,11 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
   @property({ attribute: false }) public hass?: HomeAssistant;
   @state() private _config?: M3TemperatureGraphCardConfig;
   @state() private _range?: TempGraphRange;
-  @state() private _focus = 0;
+  /** The sensor in focus; unset means the configured default. */
+  @state() private _focusEntity?: string;
+  /** Rooms found by discovery, when the card has no room list. */
+  @state() private _discovered?: TempGraphEntityConfig[];
+  private _discoverKey = "";
   /** The bucket under the finger, while scrubbing. */
   @state() private _scrub?: number;
   @state() private _width = 0;
@@ -144,26 +151,22 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
     return document.createElement("m3-temperature-graph-card-editor") as unknown as LovelaceCardEditor;
   }
 
-  public static getStubConfig(hass?: HomeAssistant): M3TemperatureGraphCardConfig {
-    const ids = Object.values(hass?.states ?? {})
-      .filter((s) => s.entity_id.startsWith("sensor.") && s.attributes?.device_class === "temperature")
-      .slice(0, 5)
-      .map((s) => s.entity_id);
-    return { type: "custom:m3-temperature-graph-card", entities: ids };
+  public static getStubConfig(): M3TemperatureGraphCardConfig {
+    return { type: "custom:m3-temperature-graph-card", auto_discover: true };
   }
 
   public setConfig(config: M3TemperatureGraphCardConfig): void {
-    if (!config || !Array.isArray(config.entities)) {
-      throw new Error("m3-temperature-graph-card: `entities` must be a list of temperature sensors");
+    if (!config) throw new Error("m3-temperature-graph-card: invalid config");
+    if (config.rooms !== undefined && !Array.isArray(config.rooms)) {
+      throw new Error("m3-temperature-graph-card: `rooms` must be a list");
     }
     const before = this._config;
-    this._config = { glass_background: true, animation: "auto", ...config };
-    const entries = normalizeTempEntries(config.entities);
+    // As on the climate overview card: no room list means "find them".
+    this._config = { glass_background: true, animation: "auto", auto_discover: !config.rooms?.length, ...config };
     const { ranges, initial } = resolveRanges(config.ranges, DEFAULT_TEMP_GRAPH_RANGES, config.default_range);
     if (!this._range || !ranges.includes(this._range) || before?.default_range !== config.default_range) this._range = initial;
-    if (!before || before.default_focus !== config.default_focus || this._focus >= entries.length) {
-      this._focus = resolveFocus(config.default_focus, entries);
-    }
+    if (before?.default_focus !== config.default_focus) this._focusEntity = undefined;
+    this._discoverKey = "";
   }
 
   public getCardSize(): number {
@@ -196,8 +199,47 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
     return localize(key, this._language);
   }
 
+  private get _manual(): boolean {
+    return !!this._config?.rooms?.length || this._config?.auto_discover === false;
+  }
+
+  /** The curves, in the order listed or found, before `sort`. */
   private get _entries(): TempGraphEntityConfig[] {
-    return normalizeTempEntries(this._config?.entities);
+    if (this._manual) return roomsToEntries(this._config?.rooms);
+    const show = this.hass ? buildStatePredicate(this.hass, this._filter()) : () => true;
+    return (this._discovered ?? []).filter((e) => show(e.entity));
+  }
+
+  private _filter(): EntityFilterConfig {
+    const c = this._config ?? ({} as M3TemperatureGraphCardConfig);
+    return {
+      include_area: c.include_area,
+      exclude_area: c.exclude_area,
+      include_entities: c.include_entities,
+      exclude_entities: c.exclude_entities,
+      include_labels: c.include_labels,
+      exclude_labels: c.exclude_labels,
+      include_state: c.include_state,
+      exclude_state: c.exclude_state,
+    };
+  }
+
+  /** Finds a temperature sensor per room, the climate overview card's way. */
+  private _maybeDiscover(): void {
+    if (!this.hass || !this._config || this._manual) return;
+    const filter = this._filter();
+    const nameStrip = this._config.name_strip ?? DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP;
+    const key = JSON.stringify([filter, nameStrip, Object.keys(this.hass.states).length]);
+    if (key === this._discoverKey) return;
+    this._discoverKey = key;
+    discoverClimateRooms(this.hass, { filter, nameStrip })
+      .then((rooms) => {
+        if (key !== this._discoverKey) return;
+        this._discovered = rooms
+          .filter((r) => !!r.temperatureEntity)
+          .map((r) => ({ entity: r.temperatureEntity!, name: r.name }));
+      })
+      .catch((e) => console.error("m3-temperature-graph-card: auto-discovery failed", e));
   }
 
   private get _ranges(): TempGraphRange[] {
@@ -214,7 +256,10 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
   }
 
   protected shouldUpdate(changed: PropertyValues): boolean {
-    return hassChangeMatters(changed, this.hass, this._watched());
+    if (changed.size > 1 || !changed.has("hass")) return true;
+    return this._manual
+      ? hassChangeMatters(changed, this.hass, this._watched())
+      : discoveryChangeMatters(changed, this.hass, this._watched());
   }
 
   // ---- data ------------------------------------------------------------------
@@ -280,7 +325,17 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
     const devices = hass.devices as Record<string, { area_id?: string | null }> | undefined;
     const areaId = reg?.area_id ?? (reg?.device_id ? devices?.[reg.device_id]?.area_id : undefined);
     const area = areaId ? areaInfo(hass, areaId)?.name : undefined;
-    return area ?? (hass.states[entry.entity]?.attributes?.friendly_name as string | undefined) ?? entry.entity;
+    if (area) return area;
+    const friendly = (hass.states[entry.entity]?.attributes?.friendly_name as string | undefined) ?? entry.entity;
+    let name = friendly;
+    for (const pattern of this._config?.name_strip ?? DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP) {
+      try {
+        name = name.replace(new RegExp(pattern, "i"), "");
+      } catch {
+        // An invalid pattern from the config is skipped.
+      }
+    }
+    return name.trim() || friendly;
   }
 
   private _rows(t0: number, t1: number, n: number): { rows: Row[]; unit: string; shown?: TempGraphRange } {
@@ -295,7 +350,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
     const shown = ready(this._range) ? this._range : ready(this._shown) ? this._shown : undefined;
     if (shown) this._shown = shown;
     const loaded = shown ? this._loaded.get(shown) : undefined;
-    const rows = entries.map((entry, i) => {
+    const listed = entries.map((entry, i) => {
       const st = hass.states[entry.entity];
       const foreign = !!units[i] && units[i] !== unit;
       const series = loaded?.series.get(entry.entity);
@@ -311,7 +366,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
         values,
       };
     });
-    return { rows, unit, shown };
+    return { rows: sortEntries(listed, this._config?.sort, this._language), unit, shown };
   }
 
   private _summary(rows: Row[]): { value?: number; label: string } {
@@ -330,8 +385,9 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
 
   protected willUpdate(changed: PropertyValues): void {
     super.willUpdate?.(changed);
+    if (changed.has("hass") || changed.has("_config")) this._maybeDiscover();
     if (changed.has("hass")) this._appendLive();
-    if (changed.has("hass") || changed.has("_config") || changed.has("_range")) this._ensureData();
+    if (changed.has("hass") || changed.has("_config") || changed.has("_range") || changed.has("_discovered")) this._ensureData();
   }
 
   protected updated(changed: PropertyValues): void {
@@ -350,17 +406,17 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
 
   // ---- interaction -----------------------------------------------------------
 
-  private _pickFocus(i: number): void {
-    if (i === this._focus) return;
-    this._focus = i;
+  private _pickFocus(entity: string): void {
+    if (entity === this._focusEntity) return;
+    this._focusEntity = entity;
   }
 
-  private _onChipKey(e: KeyboardEvent, i: number, count: number): void {
+  private _onChipKey(e: KeyboardEvent, i: number, rows: Row[]): void {
     const step = e.key === "ArrowRight" || e.key === "ArrowDown" ? 1 : e.key === "ArrowLeft" || e.key === "ArrowUp" ? -1 : 0;
     if (!step) return;
     e.preventDefault();
-    const next = (i + step + count) % count;
-    this._pickFocus(next);
+    const next = (i + step + rows.length) % rows.length;
+    this._pickFocus(rows[next].entry.entity);
     void this.updateComplete.then(() => {
       (this.renderRoot.querySelectorAll<HTMLElement>(".chip")[next])?.focus();
     });
@@ -476,7 +532,8 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
     const t0 = t1 - span;
     void this._version;
     const { rows, unit, shown } = this._rows(t0, t1, n);
-    const focus = Math.min(this._focus, Math.max(0, rows.length - 1));
+    const picked = rows.findIndex((r) => r.entry.entity === this._focusEntity);
+    const focus = picked >= 0 ? picked : resolveFocus(cfg.default_focus, rows.map((r) => r.entry));
     const scrub = this._scrub !== undefined && this._scrub < n ? this._scrub : undefined;
 
     const accent = resolveThemeColor(cfg.accent_color ?? "primary");
@@ -514,9 +571,11 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
           class="card-inner ${glassCardClass(cfg.glass_background)} ${animate ? "" : "no-animations"}"
           style=${`border-radius: ${radius};${cardBackgroundCss ? ` background: ${cardBackgroundCss};` : ""}`}
         >
-          ${renderCardHeader({
+          ${cfg.show_header === false
+            ? nothing
+            : renderCardHeader({
             icon: cfg.icon ?? "mdi:thermometer",
-            name: cfg.title ?? this._t("tempgraph_title"),
+            name: cfg.name ?? this._t("tempgraph_title"),
             subtitle,
             right: html`<div class="hero">
               <div class="hero-value">
@@ -526,8 +585,8 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
               </div>
               <div class="hero-l">${summary.label}</div>
             </div>`,
-          })}
-          ${rows.length ? this._renderChips(rows, focus, scrub) : nothing}
+              })}
+          ${rows.length && cfg.show_chips !== false ? this._renderChips(rows, focus, scrub) : nothing}
           ${rows.length ? this._renderChart(rows, focus, scrub, range, shown, t0, t1, n) : nothing}
           ${rows.length ? this._renderFooter(rows[focus], unit, range) : nothing}
         </div>
@@ -555,8 +614,8 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
             aria-label=${`${row.name} ${v === null || v === undefined ? this._t("tempgraph_no_data") : `${this._fmt(v)} ${row.unit}`}`}
             tabindex=${selected ? "0" : "-1"}
             style=${style}
-            @click=${() => this._pickFocus(i)}
-            @keydown=${(e: KeyboardEvent) => this._onChipKey(e, i, rows.length)}
+            @click=${() => this._pickFocus(row.entry.entity)}
+            @keydown=${(e: KeyboardEvent) => this._onChipKey(e, i, rows)}
           >
             <span class="chip-dot"></span><span class="chip-name">${row.name}</span><span class="chip-value">${text}</span>
           </button>`;
@@ -686,29 +745,37 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
             >`
           : nothing}
       </div>
-      <div class="axis" aria-hidden="true" style=${`padding-right: ${TEMP_GRAPH_PAD_RIGHT}px;`}>
-        ${labels.map(
-          (l) => html`<span class="tick ${l.align}" style=${`left: calc(${(l.at * 100).toFixed(3)}% - ${l.at * TEMP_GRAPH_PAD_RIGHT}px);`}
-            >${l.label}</span
-          >`,
-        )}
-      </div>
+      ${cfg.show_axis === false
+        ? nothing
+        : html`<div class="axis" aria-hidden="true" style=${`padding-right: ${TEMP_GRAPH_PAD_RIGHT}px;`}>
+            ${labels.map(
+              (l) => html`<span class="tick ${l.align}" style=${`left: calc(${(l.at * 100).toFixed(3)}% - ${l.at * TEMP_GRAPH_PAD_RIGHT}px);`}
+                >${l.label}</span
+              >`,
+            )}
+          </div>`}
     `;
   }
 
   private _renderFooter(row: Row, unit: string, range: TempGraphRange) {
+    const cfg = this._config!;
     const ranges = this._ranges;
+    const showRanges = cfg.show_ranges !== false && ranges.length > 1;
+    const showFocus = cfg.show_focus_range !== false;
+    if (!showRanges && !showFocus) return nothing;
     const ext = row.foreign ? undefined : row.series?.extremes;
     const lo = ext && row.live !== null ? Math.min(ext.min, row.live) : ext?.min;
     const hi = ext && row.live !== null ? Math.max(ext.max, row.live) : ext?.max;
     const nameColor = foregroundColor(this, row.color, 4.5);
     return html`
       <div class="footer">
-        <div class="focus-range">
-          <span class="focus-name" style=${buildCssVars({ "tg-name": nameColor })}>${row.name}</span>
-          ${lo !== undefined && hi !== undefined ? html`<span> · ${this._fmt(lo)} – ${this._fmt(hi)} ${row.foreign ? row.unit : unit}</span>` : nothing}
-        </div>
-        ${ranges.length > 1
+        ${showFocus
+          ? html`<div class="focus-range">
+              <span class="focus-name" style=${buildCssVars({ "tg-name": nameColor })}>${row.name}</span>
+              ${lo !== undefined && hi !== undefined ? html`<span> · ${this._fmt(lo)} – ${this._fmt(hi)} ${row.foreign ? row.unit : unit}</span>` : nothing}
+            </div>`
+          : nothing}
+        ${showRanges
           ? html`<div class="segments" role="radiogroup" aria-label=${this._t("tempgraph_ranges_label")}>
               ${ranges.map(
                 (r, i) => html`<button

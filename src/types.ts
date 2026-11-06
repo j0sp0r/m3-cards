@@ -3246,21 +3246,45 @@ export type TempGraphSummary = "mean" | "median" | "entity";
 /** How the curves are coloured. Only "tonal" for now; "by_temperature" is planned. */
 export type TempGraphPalette = "tonal";
 
-export interface TempGraphEntityConfig {
-  entity: string;
-  /** Default: the entity's area, then its friendly name. */
+/**
+ * One room, written as on the climate overview card, so a room list can be
+ * copied between the two. `humidity_entity` and `climate_entity` are accepted
+ * and ignored: the graph draws temperature only.
+ */
+export interface TempGraphRoomConfig {
+  /** Default: the sensor's area, then its name with `name_strip` applied. */
   name?: string;
+  icon?: string;
+  temperature_entity: string;
+  humidity_entity?: string;
+  climate_entity?: string;
   /** Overrides the palette. */
   color?: string;
 }
 
-export interface M3TemperatureGraphCardConfig {
+export type TempGraphSort = "area" | "temp_desc" | "temp_asc" | "name";
+
+/** Resolved: one curve, from the room list or from discovery. */
+export interface TempGraphEntityConfig {
+  entity: string;
+  name?: string;
+  color?: string;
+}
+
+export interface M3TemperatureGraphCardConfig extends EntityFilterConfig {
   type: string;
   /** Default "Raumtemperatur" / "Room temperature". */
-  title?: string;
+  name?: string;
   icon?: string;
-  /** Temperature sensors; the bare id works too. */
-  entities: Array<string | TempGraphEntityConfig>;
+  show_header?: boolean;
+  /** Find a temperature sensor per room; on by default without `rooms`. */
+  auto_discover?: boolean;
+  /** A fixed room list instead of discovery. */
+  rooms?: TempGraphRoomConfig[];
+  /** Patterns removed from names found by discovery. */
+  name_strip?: string[];
+  /** Order of the chips and curves. Default "area" (as found or listed). */
+  sort?: TempGraphSort;
   /** The ranges offered below the graph. Default ["24h", "7d"]. */
   ranges?: TempGraphRange[];
   /** Default: the first of `ranges`. */
@@ -3269,16 +3293,24 @@ export interface M3TemperatureGraphCardConfig {
   summary?: TempGraphSummary;
   /** The sensor shown large when `summary` is "entity". */
   summary_entity?: string;
-  /** The curve in focus at first: its index in `entities`, or its entity id. Default 0. */
+  /** The curve in focus at first: its sensor, or its position. Default the first. */
   default_focus?: number | string;
   /** Default 1. */
   decimals?: number;
   /** The lowest and highest value as pills at the left edge. Default true. */
   show_extremes?: boolean;
+  /** The room chips (legend and focus picker). Default true. */
+  show_chips?: boolean;
+  /** The time labels below the graph. Default true. */
+  show_axis?: boolean;
+  /** The focused room's lowest and highest reading in the footer. Default true. */
+  show_focus_range?: boolean;
+  /** The range picker in the footer; hidden anyway with a single range. Default true. */
+  show_ranges?: boolean;
   /** Height of the graph alone, in px. Default 130. */
   height?: number;
   palette?: TempGraphPalette;
-  /** The active range and the hero value. Default: the theme's primary colour. */
+  /** The header icon, the large value and the active range. Default: the theme's primary colour. */
   accent_color?: string;
   animation?: "auto" | "on" | "off";
   haptics?: boolean;

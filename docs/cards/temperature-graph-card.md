@@ -21,41 +21,62 @@ read then.
 <details>
 <summary>Configuration, examples & options</summary>
 
-### Minimal
+### Find the rooms yourself
 
 ```yaml
 type: custom:m3-temperature-graph-card
-entities:
-  - sensor.living_room_temperature
-  - sensor.hallway_temperature
-  - sensor.office_temperature
 ```
 
-Each chip is named after the sensor's area, or its own name when it has none.
+Without `rooms` the card finds one temperature sensor per room, exactly as
+the climate overview card does: grouped by area (the area's name is the
+room's name), then by device, and a sensor with neither becomes a room of
+its own named after the sensor, with `name_strip` applied. The same filters
+narrow it down — `include_area` / `exclude_area`, `include_labels` /
+`exclude_labels`, `include_entities` / `exclude_entities`, `include_state` /
+`exclude_state`. In the editor, "Turn into a fixed list" copies what was
+found into `rooms`, to reorder, rename and colour.
 
-### Everything
+### Or list them
+
+The room list is written as on the climate overview card, so it can be
+copied over; `humidity_entity` and `climate_entity` are accepted and ignored.
 
 ```yaml
 type: custom:m3-temperature-graph-card
-title: Room temperature
+name: Room temperature
 icon: mdi:thermometer
-entities:
-  - sensor.living_room_temperature        # the bare id works
-  - entity: sensor.hallway_temperature
-    name: Hallway
-  - entity: sensor.office_temperature
-    name: Office
+rooms:
+  - name: Living room
+    temperature_entity: sensor.living_room_temperature
+  - name: Hallway
+    temperature_entity: sensor.hallway_temperature
+  - name: Office
+    temperature_entity: sensor.office_temperature
     color: "#f5b3a3"
-  - sensor.bathroom_temperature
-  - sensor.bedroom_temperature
+  - temperature_entity: sensor.bathroom_temperature   # named after its area
+  - temperature_entity: sensor.bedroom_temperature
+sort: area               # area | temp_desc | temp_asc | name
 ranges: [24h, 7d, 30d]
 default_range: 24h
 summary: mean            # mean | median | entity
 # summary_entity: sensor.indoor_average   # with summary: entity
-default_focus: sensor.office_temperature  # or its index, 2
+default_focus: sensor.office_temperature
 decimals: 1
-show_extremes: true
 height: 130
+```
+
+### Just the graph
+
+Every extra can be switched off, down to a header over the curves:
+
+```yaml
+type: custom:m3-temperature-graph-card
+show_chips: false        # without chips, the focus stays on default_focus
+show_extremes: false
+show_axis: false
+show_focus_range: false
+show_ranges: false
+height: 90
 ```
 
 ### What it shows
@@ -100,16 +121,27 @@ average; the editor warns about it.
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `entities` | — | Temperature sensors, as ids or `{entity, name, color}` |
-| `title` | `Room temperature` | Card title |
-| `icon` | `mdi:thermometer` | Header icon |
+| `auto_discover` | `true` without `rooms` | Find one temperature sensor per room |
+| `include_area` / `exclude_area` | — | Area filter for discovery |
+| `include_labels` / `exclude_labels` | — | Label filter for discovery |
+| `include_entities` / `exclude_entities` | — | Entity filter for discovery |
+| `include_state` / `exclude_state` | — | State filter (`unavailable`/`unknown`, or a custom value) |
+| `rooms` | — | Fixed room list (`name`, `temperature_entity`, `color`) instead of discovery |
+| `name_strip` | as on the climate overview card | Patterns removed from names found by discovery |
+| `name` / `icon` | `Room temperature` / `mdi:thermometer` | Header |
+| `show_header` | `true` | Card header |
+| `sort` | `area` | Chip and curve order: `area`, `temp_desc`, `temp_asc`, `name` |
 | `ranges` | `[24h, 7d]` | Ranges offered: `6h`, `12h`, `24h`, `48h`, `7d`, `30d` |
 | `default_range` | first of `ranges` | Range shown when the card opens |
 | `summary` | `mean` | The large value: `mean`, `median` or `entity` |
 | `summary_entity` | — | The sensor shown large with `summary: entity` |
-| `default_focus` | `0` | Curve in focus at first: index or entity id |
+| `default_focus` | first room | Curve in focus at first: its sensor, or its position |
 | `decimals` | `1` | Decimal places |
+| `show_chips` | `true` | Room chips (legend and focus picker) |
 | `show_extremes` | `true` | Lowest and highest value as pills at the left edge |
+| `show_axis` | `true` | Time labels below the graph |
+| `show_focus_range` | `true` | The focused room's lowest and highest reading in the footer |
+| `show_ranges` | `true` | Range picker in the footer (hidden anyway with a single range) |
 | `height` | `130` | Height of the graph in px |
 | `accent_color` | theme primary | The large value and the active range |
 | `text_color` / `secondary_text_color` | theme default | Title / subtitle and labels |
@@ -118,8 +150,8 @@ average; the editor warns about it.
 | `glass_background` | `true` | Frosted glass background |
 | `radius` / `corners` | `28` | Corner radius, optional per corner |
 
-Each sensor's colour comes from a tonal palette that is lifted for dark
-cards and darkened on light ones until it holds 3:1; `color` on an entry
-overrides it.
+Each room's colour comes from a tonal palette that is lifted for dark
+cards and darkened on light ones until it holds 3:1; `color` on a room
+overrides it. A room keeps its colour when `sort` reorders the chips.
 
 </details>
