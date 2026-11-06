@@ -21,7 +21,7 @@ import {
 } from "./shared/appearance-editor";
 import { discoverClimateRooms } from "./shared/ha-registry";
 import type { EntityFilterConfig } from "./shared/entity-filter";
-import { TEMP_GRAPH_RANGES, resolveFocus, resolveRanges } from "./shared/temperature-graph";
+import { TEMP_GRAPH_RANGES, graphRooms, resolveFocus, resolveRanges } from "./shared/temperature-graph";
 
 type ColorField = "accent_color" | "text_color" | "secondary_text_color" | "card_background";
 
@@ -110,7 +110,7 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
     this._foundKey = key;
     const rooms = await discoverClimateRooms(this.hass, { filter, nameStrip });
     if (key !== this._foundKey) return;
-    this._found = rooms.filter((r) => !!r.temperatureEntity).map((r) => ({ name: r.name, entity: r.temperatureEntity! }));
+    this._found = graphRooms(rooms, filter.include_entities).map((r) => ({ name: r.name, entity: r.temperatureEntity! }));
   }
 
   protected updated(changed: Map<string, unknown>): void {

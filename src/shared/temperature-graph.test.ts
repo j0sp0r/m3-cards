@@ -7,6 +7,7 @@ import {
   graphScale,
   mean,
   median,
+  graphRooms,
   roomsToEntries,
   sortEntries,
   resolveFocus,
@@ -214,5 +215,18 @@ describe("smoothCurve", () => {
 
   it("never averages across a hole", () => {
     expect(smoothCurve([20, 20, null, 30, 30], 2)).toEqual([20, 20, null, 30, 30]);
+  });
+});
+
+describe("graphRooms", () => {
+  it("keeps rooms with an area, and a sensor without one only when named", () => {
+    const rooms = [
+      { areaId: "flur", temperatureEntity: "sensor.flur" },
+      { temperatureEntity: "sensor.system_monitor" },
+      { temperatureEntity: "sensor.kammer" },
+      { areaId: "bad" },
+    ];
+    expect(graphRooms(rooms, undefined).map((r) => r.temperatureEntity)).toEqual(["sensor.flur"]);
+    expect(graphRooms(rooms, ["sensor.kammer"]).map((r) => r.temperatureEntity)).toEqual(["sensor.flur", "sensor.kammer"]);
   });
 });

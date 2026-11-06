@@ -338,3 +338,19 @@ export function smoothCurve(values: readonly (number | null)[], radius: number):
   }
   return out;
 }
+
+/**
+ * Which discovered rooms the graph draws. The climate overview card's
+ * discovery also turns every sensor without an area into a room of its own —
+ * on a real install that is the system monitor, a router, the mailbox and
+ * every thermostat's built-in sensor, forty curves on one graph. Here a room
+ * is an area; a sensor without one is drawn only when `include_entities`
+ * names it.
+ */
+export function graphRooms<T extends { areaId?: string; temperatureEntity?: string }>(
+  rooms: readonly T[],
+  includeEntities: readonly string[] | undefined,
+): T[] {
+  const named = new Set(includeEntities ?? []);
+  return rooms.filter((r) => !!r.temperatureEntity && (!!r.areaId || named.has(r.temperatureEntity)));
+}

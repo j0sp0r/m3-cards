@@ -7428,14 +7428,16 @@ read then.
 type: custom:m3-temperature-graph-card
 ```
 
-Without `rooms` the card finds one temperature sensor per room, exactly as
-the climate overview card does: grouped by area (the area's name is the
-room's name), then by device, and a sensor with neither becomes a room of
-its own named after the sensor, with `name_strip` applied. The same filters
-narrow it down — `include_area` / `exclude_area`, `include_labels` /
+Without `rooms` the card finds one temperature sensor per room with the
+climate overview card's discovery: one per area, named after the area, with
+the same filters — `include_area` / `exclude_area`, `include_labels` /
 `exclude_labels`, `include_entities` / `exclude_entities`, `include_state` /
-`exclude_state`. In the editor, "Turn into a fixed list" copies what was
-found into `rooms`, to reorder, rename and colour.
+`exclude_state`. Unlike the overview, a sensor without an area is left out:
+there that becomes a room of its own, and on a real install that means the
+system monitor, the router and every thermostat's built-in sensor as curves.
+Name it in `include_entities` to draw it anyway. In the editor, "Turn into a
+fixed list" copies what was found into `rooms`, to reorder, rename and
+colour.
 
 ### Or list them
 
@@ -7522,10 +7524,10 @@ average; the editor warns about it.
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `auto_discover` | `true` without `rooms` | Find one temperature sensor per room |
+| `auto_discover` | `true` without `rooms` | Find one temperature sensor per area |
 | `include_area` / `exclude_area` | — | Area filter for discovery |
 | `include_labels` / `exclude_labels` | — | Label filter for discovery |
-| `include_entities` / `exclude_entities` | — | Entity filter for discovery |
+| `include_entities` / `exclude_entities` | — | Entity filter for discovery; a sensor without an area is drawn only when named here |
 | `include_state` / `exclude_state` | — | State filter (`unavailable`/`unknown`, or a custom value) |
 | `rooms` | — | Fixed room list (`name`, `temperature_entity`, `color`) instead of discovery |
 | `name_strip` | as on the climate overview card | Patterns removed from names found by discovery |

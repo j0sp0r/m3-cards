@@ -72,6 +72,7 @@ import {
   graphScale,
   mean,
   median,
+  graphRooms,
   roomsToEntries,
   sortEntries,
   numericOf,
@@ -235,9 +236,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
     discoverClimateRooms(this.hass, { filter, nameStrip })
       .then((rooms) => {
         if (key !== this._discoverKey) return;
-        this._discovered = rooms
-          .filter((r) => !!r.temperatureEntity)
-          .map((r) => ({ entity: r.temperatureEntity!, name: r.name }));
+        this._discovered = graphRooms(rooms, filter.include_entities).map((r) => ({ entity: r.temperatureEntity!, name: r.name }));
       })
       .catch((e) => console.error("m3-temperature-graph-card: auto-discovery failed", e));
   }
