@@ -54,7 +54,7 @@ Beide Fehler ließen die Seite besser aussehen, als sie war.
 - Ein Handy oder ein per DevTools emuliertes Touch-Gerät für alle Drag-Interaktionen
   (Wave-Slider, Wischen) — Maus-Events allein decken `touch-action`-Konflikte nicht ab.
 
-## Cross-Cutting-Checkliste (für jede der 51 Karten)
+## Cross-Cutting-Checkliste (für jede der 52 Karten)
 
 Diese Punkte gelten kartenübergreifend, weil sie über gemeinsame `shared/*`-Module
 implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichzeitig.
@@ -256,6 +256,7 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Ohne Helligkeitsunterstützung | Entität ohne `brightness` in `supported_color_modes` | Wave-Slider wird nicht gerendert, nur Header + Power-Button |
 | Entität `unavailable` während Drag | Während des Ziehens Entität extern auf `unavailable` setzen | Kein Absturz, Drag-Session bricht sauber ab |
 | Helligkeit nur einmal im Bild | Eingeschaltete Lampe ansehen, dann am Regler ziehen | Die Prozentangabe steht **ausschließlich** unter dem Namen und folgt dem Ziehen; am Reglergriff steht keine zweite |
+| Eigene Lichtfarbe (#28) | Farblampe auf Rot, Lampe mit Farbtemperatur auf warm, Lampe nur mit Helligkeit — je eine Karte, `use_light_color` Standard | Slider, Icon und Power-Button rot bzw. warmweiß; die Lampe ohne Farbe zeigt `accent_color`. Am Farbrad ziehen: die Farbe folgt sofort. Mit `use_light_color: false` überall `accent_color` |
 
 ## M3 Battery Card
 
@@ -310,6 +311,8 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Auto-Discovery | Ohne `entities` konfigurieren | Alle `person`-Entitäten erscheinen |
 | Ohne Bild | Person ohne `entity_picture` | Initialen statt Avatar |
 | Kartenintegration | `show_map: true` | Karte lädt, keine Konsolenfehler bei fehlenden Koordinaten |
+| Karte ohne native Map-Card (#26) | `show_map: true` auf einer Ansicht ohne HA-Kartenkarte, Seite neu laden | Karte erscheint trotzdem |
+| Kompakt | `layout: compact` mit zwei und mit fünf Personen | Keine Kopfzeile, je Person eine 44px-Kachel (Avatar, Name, „unterwegs · 2 h“); bis zwei Personen 80px hoch; bricht auf schmaler Karte um; zu Hause solide Personenfarbe, sonst Tönung |
 
 ## M3 Climate Overview Card
 
@@ -828,6 +831,8 @@ Fallen woanders als bei den übrigen Karten.
 | Haptik | Auf dem Handy in der Companion-App tippen | Kurze Vibration; mit `haptics: false` keine |
 | Ausblenden beim Scrollen | `auto_hide_on_scroll: true`, lange Ansicht scrollen | Leiste fährt beim Runterscrollen weg und beim Hochscrollen zurück |
 | Untermenü öffnen | Eintrag mit `submenu` antippen | Menü wächst aus dem Knopf heraus; schließt bei Auswahl, Klick daneben und Escape |
+| Wischen (Handy) | `swipe_navigation: true`, auf der Leiste nach links und rechts wischen, loslassen und abbrechen | Pille folgt dem Finger (nach links wischen → linker Eintrag), unter der Pille Icon + Text in Endposition; unbeteiligte Einträge stehen still; Seite gleitet ohne Aufblitzen; Abbruch federt zurück. `swipe_direction: inverted` dreht es um |
+| Wischen, Leiste breiter als Schirm | Schmales Gerät, Leiste läuft über; einmal `bar_scroll` Standard, einmal `false` | Standard: Leiste scrollt, kein Seitenwechsel per Wischen. `false`: Wischen wechselt die Seite, die Leiste hält den aktiven Eintrag im Blick |
 | Untermenü am Rand | Denselben Eintrag ganz links und ganz rechts platzieren | Menü bleibt vollständig im Bild, statt über den Rand zu laufen |
 | Untermenü per Halten | `submenu_trigger: hold` | Tipp navigiert, langes Drücken öffnet das Menü |
 | Untermenü mit Tastatur | Menü öffnen, Tab drücken | Fokus erreicht die Menüzeilen; Escape schließt |
@@ -1249,6 +1254,18 @@ Mit einem harmlosen `input_boolean` testen.
 | Dauer nach Neustart | HA neu starten, während ein Fenster offen ist | Dauer kommt aus dem Recorder, beginnt nicht bei „2 Min." |
 | Am Handy | Karte in 390 px Breite | Chips brechen um, nichts läuft über den Rand |
 
+## M3 Vehicle Card
+
+| Test | Schritte | Erwartung |
+|---|---|---|
+| Elektro, geparkt | Ladestand, Reichweite, Schloss | Ladestand eine Zeile, Reichweite, Schloss-Pille |
+| Elektro, lädt | Lade-Entität auf laden | Ladestand wird Hero über der Welle, Limit am Track markiert, „11 kW · voll um 18:40“ nur mit gemeldetem Ende oder `capacity_kwh` |
+| Hybrid / Verbrenner | Tank und ggf. Akku | Beide Werte korrekt beschriftet, kein Ladezustand beim Verbrenner |
+| Nicht erreichbar | Ladestand-Entität `unavailable` | Strich statt 0 % |
+| Warnungen | Bedingung einer Warnung erfüllen und wieder aufheben | Erscheint nur, solange sie gilt |
+| Editor | Karte im HA-Dialog neu anlegen und bearbeiten | Alle Slots wählbar, Vorschau folgt, Benachrichtigungs-Automation lässt sich erzeugen |
+| Am Handy | 390 px Breite | Nichts läuft über, Schloss-Pille klappt die Karte |
+
 ## Bekannte Einschränkungen
 
 Beide Punkte, die hier bis 2.0 standen — die Akzentfarben im hellen Theme und
@@ -1268,7 +1285,7 @@ kleiner konfigurierte Kachel angehoben und nicht abgeschnitten wird.
 1. Alle Cross-Cutting-Punkte (C1–C15) auf mindestens 3 unterschiedlichen Karten
    durchgehen (eine einfache, eine mit Editor-Unterinhalten wie Battery/Power-List,
    eine mit Animation wie Progress/Light).
-2. Jede der 51 Karten mindestens einmal mit einer Minimal-Config und einmal mit
+2. Jede der 52 Karten mindestens einmal mit einer Minimal-Config und einmal mit
    einer voll ausgereizten Config (alle Farben/Optionen gesetzt) rendern.
 3. `CHANGELOG.md` gegen die tatsächlich getesteten Änderungen abgleichen.
 4. Die Kartenzahl abgleichen. Zwei der vier Stellen zählen sich seit der
