@@ -99,6 +99,8 @@ export const NO_DETAIL_CARDS: ReadonlySet<string> = new Set([
   // there has nothing to open.
   "m3-heading-card",
   "m3-search-card",
+  // Its chips pick the curve in focus; nothing on it opens an entity.
+  "m3-temperature-graph-card",
   "m3-humidifier-card",
   // Holds other cards; each of them opens its own details.
   "m3-popup-card",

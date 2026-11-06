@@ -3239,6 +3239,58 @@ export interface M3OpeningsCardConfig extends DetailModeConfig {
   card_version?: string;
 }
 
+// ---- m3-temperature-graph-card -----------------------------------------------
+
+export type TempGraphRange = "6h" | "12h" | "24h" | "48h" | "7d" | "30d";
+export type TempGraphSummary = "mean" | "median" | "entity";
+/** How the curves are coloured. Only "tonal" for now; "by_temperature" is planned. */
+export type TempGraphPalette = "tonal";
+
+export interface TempGraphEntityConfig {
+  entity: string;
+  /** Default: the entity's area, then its friendly name. */
+  name?: string;
+  /** Overrides the palette. */
+  color?: string;
+}
+
+export interface M3TemperatureGraphCardConfig {
+  type: string;
+  /** Default "Raumtemperatur" / "Room temperature". */
+  title?: string;
+  icon?: string;
+  /** Temperature sensors; the bare id works too. */
+  entities: Array<string | TempGraphEntityConfig>;
+  /** The ranges offered below the graph. Default ["24h", "7d"]. */
+  ranges?: TempGraphRange[];
+  /** Default: the first of `ranges`. */
+  default_range?: TempGraphRange;
+  /** The large value in the header. Default "mean". */
+  summary?: TempGraphSummary;
+  /** The sensor shown large when `summary` is "entity". */
+  summary_entity?: string;
+  /** The curve in focus at first: its index in `entities`, or its entity id. Default 0. */
+  default_focus?: number | string;
+  /** Default 1. */
+  decimals?: number;
+  /** The lowest and highest value as pills at the left edge. Default true. */
+  show_extremes?: boolean;
+  /** Height of the graph alone, in px. Default 130. */
+  height?: number;
+  palette?: TempGraphPalette;
+  /** The active range and the hero value. Default: the theme's primary colour. */
+  accent_color?: string;
+  animation?: "auto" | "on" | "off";
+  haptics?: boolean;
+  glass_background?: boolean;
+  card_background?: string;
+  text_color?: string;
+  secondary_text_color?: string;
+  radius?: number;
+  corners?: CornerRadiusConfig;
+  card_version?: string;
+}
+
 // ---- m3-popup-card -------------------------------------------------------
 
 export interface M3PopupCardConfig {

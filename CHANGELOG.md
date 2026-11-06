@@ -8,6 +8,22 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **A temperature graph card** (`m3-temperature-graph-card`, the 53rd).
+  Several temperature sensors as one graph on a shared scale: the room in
+  focus drawn thick with an area beneath it and a dot at now, the others thin
+  and faint behind it. Chips are the legend — colour, room, current value —
+  and pick the focus; the chosen one squares off and takes a tint. The header
+  names the warmest room and shows the average (or median, or one sensor).
+  Tap or drag across the graph for a line and a pill with the time and the
+  focused room's value, while the chips show every room's reading at that
+  moment; a vertical swipe still scrolls the page. Up to 48 hours it reads
+  the history in one request for all sensors, beyond that the hourly
+  statistics; each loaded range is kept, extended with live readings and
+  read again after ten minutes. Curves break where a sensor was unavailable.
+  Ranges from 6 hours to 30 days, a visual editor with a sortable sensor list
+  and per-sensor colours, and a warning when the sensors report different
+  units.
+
 - **A vehicle card** (`m3-vehicle-card`, the 52nd). One car — charge or tank,
   range, lock, where it stands, alerts and actions — for any integration: the
   card knows meanings, not manufacturers, and every reading is a slot filled

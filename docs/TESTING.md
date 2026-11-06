@@ -54,7 +54,7 @@ Beide Fehler ließen die Seite besser aussehen, als sie war.
 - Ein Handy oder ein per DevTools emuliertes Touch-Gerät für alle Drag-Interaktionen
   (Wave-Slider, Wischen) — Maus-Events allein decken `touch-action`-Konflikte nicht ab.
 
-## Cross-Cutting-Checkliste (für jede der 52 Karten)
+## Cross-Cutting-Checkliste (für jede der 53 Karten)
 
 Diese Punkte gelten kartenübergreifend, weil sie über gemeinsame `shared/*`-Module
 implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichzeitig.
@@ -1266,6 +1266,24 @@ Mit einem harmlosen `input_boolean` testen.
 | Editor | Karte im HA-Dialog neu anlegen und bearbeiten | Alle Slots wählbar, Vorschau folgt, Benachrichtigungs-Automation lässt sich erzeugen |
 | Am Handy | 390 px Breite | Nichts läuft über, Schloss-Pille klappt die Karte |
 
+## M3 Temperature Graph Card
+
+| Test | Schritte | Erwartung |
+|---|---|---|
+| Fünf Sensoren | Fünf Raumthermometer, Standard-Config | Fünf Chips mit Farbpunkt, Raum (Bereichsname) und Wert; fünf Kurven auf einer Skala; Kopf „<Raum> am wärmsten“ und Durchschnitt rechts |
+| Fokus per Chip | Nacheinander jeden Chip antippen | Die Kurve des Chips wird dick mit Fläche und Endpunkt, die vorige blendet zurück; der Chip wird eckiger und getönt; kein Datenabruf im Netzwerk-Tab |
+| Tastatur | Tab auf die Chips, Pfeiltasten; Tab auf den Graph, Pfeiltasten, Escape; Tab auf den Zeitraum, Pfeiltasten | Fokus wandert und wechselt; Scrub-Linie wandert; Zeitraum wechselt |
+| Zeitraumwechsel | 24 Std. → 7 Tage → zurück | 7 Tage holt `recorder/statistics_during_period` (period hour), 24 Std. `history/history_during_period` mit allen Sensoren in **einem** Aufruf; der alte Graph bleibt gedimmt stehen, bis die Daten da sind; zurück auf 24 Std. lädt nicht neu |
+| Scrubbing | Mit dem Finger waagerecht über den Graph ziehen | Senkrechte Linie, Pill mit Uhrzeit und Wert der Fokus-Kurve; Chips zeigen die Werte zu diesem Zeitpunkt; Loslassen stellt die aktuellen Werte wieder her |
+| Scrollen | Auf dem Graph senkrecht wischen | Die Seite scrollt, kein Scrubbing |
+| Lücke | Einen Sensor kurz `unavailable` werden lassen (oder einen mit Ausfall in der History wählen) | Die Kurve bricht dort ab, keine Verbindungslinie; beim Scrubbing in der Lücke zeigt der Chip „–“ |
+| Live | Warten, bis ein Sensor einen neuen Wert meldet | Chip und Kurvenende folgen ohne Neuladen |
+| Ohne Daten | Einen Sensor ohne Recorder-Daten und ohne Zustand eintragen | Gedimmter Chip mit „–“, keine Kurve, kein Fehler |
+| Einheiten | Einen °F-Sensor zu °C-Sensoren | Editor zeigt die Warnung; der °F-Sensor wird nicht gezeichnet und nicht gemittelt |
+| Editor | Sensor hinzufügen, umbenennen, Farbe setzen, hoch/runter, entfernen; Zeiträume und Hero-Wert ändern | Vorschau folgt; Standardwerte landen nicht im YAML |
+| Hell/Dunkel | Theme umschalten | Kurven und Chips bleiben unterscheidbar und lesbar |
+| Am Handy | 390 px Breite | Chips brechen um, Fußzeile bricht bei vielen Zeiträumen um, nichts läuft über |
+
 ## Bekannte Einschränkungen
 
 Beide Punkte, die hier bis 2.0 standen — die Akzentfarben im hellen Theme und
@@ -1285,7 +1303,7 @@ kleiner konfigurierte Kachel angehoben und nicht abgeschnitten wird.
 1. Alle Cross-Cutting-Punkte (C1–C15) auf mindestens 3 unterschiedlichen Karten
    durchgehen (eine einfache, eine mit Editor-Unterinhalten wie Battery/Power-List,
    eine mit Animation wie Progress/Light).
-2. Jede der 52 Karten mindestens einmal mit einer Minimal-Config und einmal mit
+2. Jede der 53 Karten mindestens einmal mit einer Minimal-Config und einmal mit
    einer voll ausgereizten Config (alle Farben/Optionen gesetzt) rendern.
 3. `CHANGELOG.md` gegen die tatsächlich getesteten Änderungen abgleichen.
 4. Die Kartenzahl abgleichen. Zwei der vier Stellen zählen sich seit der
