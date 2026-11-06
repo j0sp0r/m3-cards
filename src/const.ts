@@ -3175,9 +3175,9 @@ export const TEMP_GRAPH_PAD_RIGHT = 7;
 export const TEMP_GRAPH_LINE = 2;
 export const TEMP_GRAPH_LINE_FOCUS = 3.5;
 /** Opacity of a curve that is not in focus. */
-export const TEMP_GRAPH_LINE_DIM = 0.35;
+export const TEMP_GRAPH_LINE_DIM = 0.6;
 /** The focus curve's area: this opacity at the top, none at the bottom. */
-export const TEMP_GRAPH_AREA_TOP = 0.3;
+export const TEMP_GRAPH_AREA_TOP = 0.18;
 export const TEMP_GRAPH_DOT_R = 5;
 /** A loaded range is read again after this long. */
 export const TEMP_GRAPH_REFRESH_MS = 10 * 60_000;
