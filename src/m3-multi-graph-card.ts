@@ -6,39 +6,37 @@ import type {
   LovelaceCard,
   LovelaceCardEditor,
   LovelaceGridOptions,
-  M3TemperatureGraphCardConfig,
-  TempGraphEntityConfig,
-  TempGraphRange,
+  M3MultiGraphCardConfig,
+  MultiGraphEntityConfig,
+  MultiGraphRange,
 } from "./types";
 import {
   CARD_VERSION,
-  DEFAULT_TEMP_GRAPH_DECIMALS,
-  DEFAULT_TEMP_GRAPH_HEIGHT,
-  DEFAULT_TEMP_GRAPH_RADIUS,
-  DEFAULT_TEMP_GRAPH_RANGES,
-  DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP,
-  DEFAULT_HUMIDITY_NAME_STRIP,
-  TEMP_GRAPH_AREA_TOP,
-  TEMP_GRAPH_CHIP_HEIGHT,
-  TEMP_GRAPH_CHIP_RADIUS_FOCUS,
-  TEMP_GRAPH_CHIP_TINT,
-  TEMP_GRAPH_DOT_R,
-  TEMP_GRAPH_HERO_SIZE,
-  TEMP_GRAPH_HISTORY_MAX_MS,
-  TEMP_GRAPH_LINE,
-  TEMP_GRAPH_LINE_DIM,
-  TEMP_GRAPH_LINE_FOCUS,
-  TEMP_GRAPH_MAX_POINTS,
-  TEMP_GRAPH_MIN_POINTS,
-  TEMP_GRAPH_MOTION_MS,
-  TEMP_GRAPH_PAD_RIGHT,
-  TEMP_GRAPH_PAD_Y,
-  TEMP_GRAPH_PALETTE_TONAL,
-  TEMP_GRAPH_PX_PER_POINT,
-  TEMP_GRAPH_REFRESH_MS,
-  TEMP_GRAPH_SEGMENT_HEIGHT,
-  TEMP_GRAPH_SEGMENT_PADDING,
-  TEMP_GRAPH_TAP_LINGER_MS,
+  DEFAULT_MULTI_GRAPH_HEIGHT,
+  DEFAULT_MULTI_GRAPH_RADIUS,
+  DEFAULT_MULTI_GRAPH_RANGES,
+  DEFAULT_MULTI_GRAPH_NAME_STRIP,
+  MULTI_GRAPH_AREA_TOP,
+  MULTI_GRAPH_CHIP_HEIGHT,
+  MULTI_GRAPH_CHIP_RADIUS_FOCUS,
+  MULTI_GRAPH_CHIP_TINT,
+  MULTI_GRAPH_DOT_R,
+  MULTI_GRAPH_HERO_SIZE,
+  MULTI_GRAPH_HISTORY_MAX_MS,
+  MULTI_GRAPH_LINE,
+  MULTI_GRAPH_LINE_DIM,
+  MULTI_GRAPH_LINE_FOCUS,
+  MULTI_GRAPH_MAX_POINTS,
+  MULTI_GRAPH_MIN_POINTS,
+  MULTI_GRAPH_MOTION_MS,
+  MULTI_GRAPH_PAD_RIGHT,
+  MULTI_GRAPH_PAD_Y,
+  MULTI_GRAPH_PALETTE_TONAL,
+  MULTI_GRAPH_PX_PER_POINT,
+  MULTI_GRAPH_REFRESH_MS,
+  MULTI_GRAPH_SEGMENT_HEIGHT,
+  MULTI_GRAPH_SEGMENT_PADDING,
+  MULTI_GRAPH_TAP_LINGER_MS,
   resolveCornerRadius,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
@@ -59,42 +57,45 @@ import { TemplatedCard } from "./shared/templated-card";
 import { VisibleTicker } from "./shared/visible-ticker";
 import { SLIDER_TOUCH_ACTION, SliderIntent } from "./shared/slider-intent";
 import { stopSwipe } from "./shared/swipe";
-import { areaInfo, discoverClimateRooms } from "./shared/ha-registry";
+import { areaInfo, discoverAreaSensors, discoverClimateRooms } from "./shared/ha-registry";
 import { buildStatePredicate, type EntityFilterConfig } from "./shared/entity-filter";
 import { monotoneArea, monotonePath, niceTicks, type XY } from "./shared/smooth-path";
 import { fetchTempSeries, type TempSeries } from "./shared/multi-history";
 import {
-  TEMP_GRAPH_RANGE_MS,
+  MULTI_GRAPH_RANGE_MS,
   appendLive,
   axisLabels,
   bucketCount,
   curveRuns,
-  formatTemp,
+  classProfile,
+  formatValue,
   graphScale,
   mean,
   median,
   graphRooms,
+  normalizeEntities,
   roomsToEntries,
+  shortValue,
   sortEntries,
   numericOf,
   resolveFocus,
   resolveRanges,
   smoothCurve,
   stepMeans,
-  warmestIndex,
-} from "./shared/temperature-graph";
+  highestIndex,
+} from "./shared/multi-graph";
 
 const EASING = unsafeCSS(STANDARD_EASING);
 
 console.info(
-  `%c M3-TEMPERATURE-GRAPH-CARD %c v${CARD_VERSION} `,
+  `%c M3-MULTI-GRAPH-CARD %c v${CARD_VERSION} `,
   "color: #222; background: #f5b3a3; font-weight: 700; border-radius: 4px 0 0 4px;",
   "color: #f5b3a3; background: #222; font-weight: 700; border-radius: 0 4px 4px 0;",
 );
 
 /** One sensor as the card draws it. */
 interface Row {
-  entry: TempGraphEntityConfig;
+  entry: MultiGraphEntityConfig;
   name: string;
   color: string;
   live: number | null;
@@ -113,21 +114,23 @@ interface Loaded {
 }
 
 /**
- * Several temperature sensors as one graph: a curve per room on a shared
+ * Several sensors of one kind as one graph: a curve per sensor on a shared
  * scale, one of them in focus — thick, with an area beneath it and a dot at
  * now — and the rest thin and faint behind it. The chips are the legend and
  * pick the focus; a finger on the graph reads every curve at that moment.
  */
-@customElement("m3-temperature-graph-card")
-export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements LovelaceCard {
+@customElement("m3-multi-graph-card")
+export class M3MultiGraphCard extends TemplatedCard(LitElement) implements LovelaceCard {
   @property({ attribute: false }) public hass?: HomeAssistant;
-  @state() private _config?: M3TemperatureGraphCardConfig;
-  @state() private _range?: TempGraphRange;
+  @state() private _config?: M3MultiGraphCardConfig;
+  @state() private _range?: MultiGraphRange;
   /** The sensor in focus; unset means the configured default. */
   @state() private _focusEntity?: string;
   /** Rooms found by discovery, when the card has no room list. */
-  @state() private _discovered?: TempGraphEntityConfig[];
+  @state() private _discovered?: MultiGraphEntityConfig[];
   private _discoverKey = "";
+  /** The unit of the curves, from the first sensor that has one. */
+  private _unit = "";
   /** The bucket under the finger, while scrubbing. */
   @state() private _scrub?: number;
   @state() private _width = 0;
@@ -135,10 +138,10 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
   /** Bumped when data arrives or a live reading is added. */
   @state() private _version = 0;
 
-  private _loaded = new Map<TempGraphRange, Loaded>();
+  private _loaded = new Map<MultiGraphRange, Loaded>();
   private _fetching = new Set<string>();
   /** The range whose data is on screen while another one loads. */
-  private _shown?: TempGraphRange;
+  private _shown?: MultiGraphRange;
   private _resize?: ResizeObserver;
   private _observed?: Element;
   private _intent = new SliderIntent();
@@ -149,23 +152,23 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
   });
 
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
-    await import("./m3-temperature-graph-card-editor");
-    return document.createElement("m3-temperature-graph-card-editor") as unknown as LovelaceCardEditor;
+    await import("./m3-multi-graph-card-editor");
+    return document.createElement("m3-multi-graph-card-editor") as unknown as LovelaceCardEditor;
   }
 
-  public static getStubConfig(): M3TemperatureGraphCardConfig {
-    return { type: "custom:m3-temperature-graph-card", auto_discover: true };
+  public static getStubConfig(): M3MultiGraphCardConfig {
+    return { type: "custom:m3-multi-graph-card", auto_discover: true };
   }
 
-  public setConfig(config: M3TemperatureGraphCardConfig): void {
-    if (!config) throw new Error("m3-temperature-graph-card: invalid config");
+  public setConfig(config: M3MultiGraphCardConfig): void {
+    if (!config) throw new Error("m3-multi-graph-card: invalid config");
     if (config.rooms !== undefined && !Array.isArray(config.rooms)) {
-      throw new Error("m3-temperature-graph-card: `rooms` must be a list");
+      throw new Error("m3-multi-graph-card: `rooms` must be a list");
     }
     const before = this._config;
     // As on the climate overview card: no room list means "find them".
     this._config = { glass_background: true, animation: "auto", auto_discover: !config.rooms?.length, ...config };
-    const { ranges, initial } = resolveRanges(config.ranges, DEFAULT_TEMP_GRAPH_RANGES, config.default_range);
+    const { ranges, initial } = resolveRanges(config.ranges, DEFAULT_MULTI_GRAPH_RANGES, config.default_range);
     if (!this._range || !ranges.includes(this._range) || before?.default_range !== config.default_range) this._range = initial;
     if (before?.default_focus !== config.default_focus) this._focusEntity = undefined;
     this._discoverKey = "";
@@ -201,19 +204,25 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
     return localize(key, this._language);
   }
 
+  /** What is compared; temperature unless the config says otherwise. */
+  private get _class(): string {
+    return this._config?.device_class || "temperature";
+  }
+
   private get _manual(): boolean {
-    return !!this._config?.rooms?.length || this._config?.auto_discover === false;
+    return !!this._config?.entities?.length || !!this._config?.rooms?.length || this._config?.auto_discover === false;
   }
 
   /** The curves, in the order listed or found, before `sort`. */
-  private get _entries(): TempGraphEntityConfig[] {
-    if (this._manual) return roomsToEntries(this._config?.rooms, this._config?.measure);
+  private get _entries(): MultiGraphEntityConfig[] {
+    if (this._config?.entities?.length) return normalizeEntities(this._config.entities);
+    if (this._manual) return roomsToEntries(this._config?.rooms, this._class);
     const show = this.hass ? buildStatePredicate(this.hass, this._filter()) : () => true;
     return (this._discovered ?? []).filter((e) => show(e.entity));
   }
 
   private _filter(): EntityFilterConfig {
-    const c = this._config ?? ({} as M3TemperatureGraphCardConfig);
+    const c = this._config ?? ({} as M3MultiGraphCardConfig);
     return {
       include_area: c.include_area,
       exclude_area: c.exclude_area,
@@ -226,31 +235,42 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
     };
   }
 
-  /** Finds a temperature sensor per room, the climate overview card's way. */
+  /**
+   * Finds one sensor per area: temperature and humidity the climate overview
+   * card's way, any other class by its device class.
+   */
   private _maybeDiscover(): void {
     if (!this.hass || !this._config || this._manual) return;
     const filter = this._filter();
-    const nameStrip = this._config.name_strip ?? (this._config.measure === "humidity" ? DEFAULT_HUMIDITY_NAME_STRIP : DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP);
-    const key = JSON.stringify([filter, nameStrip, this._config.measure, Object.keys(this.hass.states).length]);
+    const nameStrip = this._config.name_strip ?? DEFAULT_MULTI_GRAPH_NAME_STRIP;
+    const cls = this._class;
+    const key = JSON.stringify([filter, nameStrip, cls, Object.keys(this.hass.states).length]);
     if (key === this._discoverKey) return;
     this._discoverKey = key;
-    discoverClimateRooms(this.hass, { filter, nameStrip })
-      .then((rooms) => {
+    const found =
+      cls === "temperature" || cls === "humidity"
+        ? discoverClimateRooms(this.hass, { filter, nameStrip }).then((rooms) => graphRooms(rooms, filter.include_entities, cls))
+        : discoverAreaSensors(this.hass, cls, { filter, nameStrip });
+    found
+      .then((list) => {
         if (key !== this._discoverKey) return;
-        this._discovered = graphRooms(rooms, filter.include_entities, this._config?.measure);
+        this._discovered = list.map((r) => ({ entity: r.entity, name: r.name }));
       })
-      .catch((e) => console.error("m3-temperature-graph-card: auto-discovery failed", e));
+      .catch((e) => console.error("m3-multi-graph-card: auto-discovery failed", e));
   }
 
-  private get _ranges(): TempGraphRange[] {
-    return resolveRanges(this._config?.ranges, DEFAULT_TEMP_GRAPH_RANGES).ranges;
+  private get _ranges(): MultiGraphRange[] {
+    return resolveRanges(this._config?.ranges, DEFAULT_MULTI_GRAPH_RANGES).ranges;
   }
 
   private get _decimals(): number {
     const d = this._config?.decimals;
     if (typeof d === "number" && d >= 0 && d <= 3) return Math.round(d);
-    // Humidity is read in whole percent; a tenth says nothing a hygrometer can.
-    return this._config?.measure === "humidity" ? 0 : DEFAULT_TEMP_GRAPH_DECIMALS;
+    // The precision the sensor is shown with elsewhere in Home Assistant, if set.
+    const first = this._entries[0]?.entity;
+    const precision = first ? (this.hass?.entities as Record<string, { display_precision?: number }> | undefined)?.[first]?.display_precision : undefined;
+    if (typeof precision === "number" && precision >= 0 && precision <= 3) return precision;
+    return classProfile(this._class).decimals;
   }
 
   private _watched(): (string | undefined)[] {
@@ -279,12 +299,12 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
     if (!key) return;
     const have = this._loaded.get(range);
     const now = Date.now();
-    if (have && have.key === key && now - have.at < TEMP_GRAPH_REFRESH_MS) return;
+    if (have && have.key === key && now - have.at < MULTI_GRAPH_REFRESH_MS) return;
     const token = `${range}|${key}`;
     if (this._fetching.has(token)) return;
     this._fetching.add(token);
     const ids = this._entries.map((e) => e.entity);
-    fetchTempSeries(hass, ids, TEMP_GRAPH_RANGE_MS[range], TEMP_GRAPH_HISTORY_MAX_MS, now)
+    fetchTempSeries(hass, ids, MULTI_GRAPH_RANGE_MS[range], MULTI_GRAPH_HISTORY_MAX_MS, now)
       .then((series) => {
         if (key !== this._dataKey) return;
         // What arrived ends at the moment it was asked for; the current
@@ -320,7 +340,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
 
   // ---- model -----------------------------------------------------------------
 
-  private _nameOf(entry: TempGraphEntityConfig): string {
+  private _nameOf(entry: MultiGraphEntityConfig): string {
     if (entry.name) return entry.name;
     const hass = this.hass!;
     const reg = (hass.entities as Record<string, { area_id?: string | null; device_id?: string | null }> | undefined)?.[entry.entity];
@@ -330,7 +350,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
     if (area) return area;
     const friendly = (hass.states[entry.entity]?.attributes?.friendly_name as string | undefined) ?? entry.entity;
     let name = friendly;
-    for (const pattern of this._config?.name_strip ?? (this._config?.measure === "humidity" ? DEFAULT_HUMIDITY_NAME_STRIP : DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP)) {
+    for (const pattern of this._config?.name_strip ?? DEFAULT_MULTI_GRAPH_NAME_STRIP) {
       try {
         name = name.replace(new RegExp(pattern, "i"), "");
       } catch {
@@ -340,15 +360,16 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
     return name.trim() || friendly;
   }
 
-  private _rows(t0: number, t1: number, n: number): { rows: Row[]; unit: string; shown?: TempGraphRange } {
+  private _rows(t0: number, t1: number, n: number): { rows: Row[]; unit: string; shown?: MultiGraphRange } {
     const hass = this.hass!;
     const entries = this._entries;
     const units = entries.map((e) => (hass.states[e.entity]?.attributes?.unit_of_measurement as string | undefined) ?? "");
-    const unit = units.find((u) => u) ?? (this._humidity ? "%" : "°C");
+    const unit = units.find((u) => u) ?? (this._class === "temperature" ? "°C" : this._class === "humidity" ? "%" : "");
+    this._unit = unit;
     // The range on screen: the chosen one once it has loaded, until then the
     // one before it, so a switch never blanks the graph.
     const key = this._dataKey;
-    const ready = (r?: TempGraphRange) => !!r && this._loaded.get(r)?.key === key;
+    const ready = (r?: MultiGraphRange) => !!r && this._loaded.get(r)?.key === key;
     const shown = ready(this._range) ? this._range : ready(this._shown) ? this._shown : undefined;
     if (shown) this._shown = shown;
     const loaded = shown ? this._loaded.get(shown) : undefined;
@@ -360,7 +381,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
       return {
         entry,
         name: this._nameOf(entry),
-        color: resolveThemeColor(entry.color ?? TEMP_GRAPH_PALETTE_TONAL[i % TEMP_GRAPH_PALETTE_TONAL.length]),
+        color: resolveThemeColor(entry.color ?? MULTI_GRAPH_PALETTE_TONAL[i % MULTI_GRAPH_PALETTE_TONAL.length]),
         live: numericOf(st?.state),
         unit: units[i] || unit,
         foreign,
@@ -379,8 +400,9 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
       const label = (st?.attributes?.friendly_name as string | undefined) ?? cfg.summary_entity;
       return { value: numericOf(st?.state) ?? undefined, label };
     }
-    if (cfg.summary === "median") return { value: median(lives), label: this._t("tempgraph_summary_median") };
-    return { value: mean(lives), label: this._t("tempgraph_summary_mean") };
+    if (cfg.summary === "median") return { value: median(lives), label: this._t("multigraph_summary_median") };
+    if (cfg.summary === "sum") return { value: lives.length ? lives.reduce((a, b) => a + b, 0) : undefined, label: this._t("multigraph_summary_sum") };
+    return { value: mean(lives), label: this._t("multigraph_summary_mean") };
   }
 
   // ---- lifecycle -------------------------------------------------------------
@@ -424,7 +446,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
     });
   }
 
-  private _pickRange(r: TempGraphRange): void {
+  private _pickRange(r: MultiGraphRange): void {
     if (r === this._range) return;
     this._scrub = undefined;
     this._range = r;
@@ -444,13 +466,13 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
 
   private _bucketAt(e: PointerEvent, n: number): number {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const plotW = Math.max(1, rect.width - TEMP_GRAPH_PAD_RIGHT);
+    const plotW = Math.max(1, rect.width - MULTI_GRAPH_PAD_RIGHT);
     const f = Math.min(0.9999, Math.max(0, (e.clientX - rect.left) / plotW));
     return Math.floor(f * n);
   }
 
   private _n(): number {
-    return bucketCount(this._width - TEMP_GRAPH_PAD_RIGHT, TEMP_GRAPH_PX_PER_POINT, TEMP_GRAPH_MIN_POINTS, TEMP_GRAPH_MAX_POINTS);
+    return bucketCount(this._width - MULTI_GRAPH_PAD_RIGHT, MULTI_GRAPH_PX_PER_POINT, MULTI_GRAPH_MIN_POINTS, MULTI_GRAPH_MAX_POINTS);
   }
 
   private _onPointerDown = (e: PointerEvent): void => {
@@ -477,7 +499,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
     if (r === "tap") {
       // A tap shows the reading for a moment, long enough to read it.
       this._scrub = this._bucketAt(e, this._n());
-      this._lingerTimer = window.setTimeout(() => (this._scrub = undefined), TEMP_GRAPH_TAP_LINGER_MS);
+      this._lingerTimer = window.setTimeout(() => (this._scrub = undefined), MULTI_GRAPH_TAP_LINGER_MS);
     } else if (e.pointerType !== "mouse") {
       this._scrub = undefined;
     }
@@ -511,21 +533,38 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
 
   // ---- render ----------------------------------------------------------------
 
-  private get _humidity(): boolean {
-    return this._config?.measure === "humidity";
+  /** A value as the chips and pills write it: "21,4°", "48 %", "612 ppm". */
+  private _short(v: number): string {
+    return shortValue(this._fmt(v), this._class, this._unit);
   }
 
-  /** A value as the chips and pills write it: "21,4°" or "48 %". */
-  private _short(v: number): string {
-    return this._humidity ? `${this._fmt(v)}\u202f%` : `${this._fmt(v)}°`;
+  /** The header's texts by device class: its own for the common ones, a generic one otherwise. */
+  private _classText(kind: "title" | "highest" | "chart"): string {
+    const cls = this._class;
+    const own: Record<string, Partial<Record<typeof kind, TranslationKey>>> = {
+      temperature: { title: "multigraph_title", highest: "multigraph_warmest", chart: "multigraph_chart_label" },
+      humidity: { title: "multigraph_title_humidity", highest: "multigraph_most_humid", chart: "multigraph_chart_label_humidity" },
+      carbon_dioxide: { title: "multigraph_title_co2" },
+      power: { title: "multigraph_title_power" },
+      illuminance: { title: "multigraph_title_illuminance" },
+      pm25: { title: "multigraph_title_pm25" },
+      pressure: { title: "multigraph_title_pressure" },
+      atmospheric_pressure: { title: "multigraph_title_pressure" },
+    };
+    const generic: Record<typeof kind, TranslationKey> = {
+      title: "multigraph_title_generic",
+      highest: "multigraph_highest",
+      chart: "multigraph_chart_label_generic",
+    };
+    return this._t(own[cls]?.[kind] ?? generic[kind]);
   }
 
   private _fmt(v: number): string {
-    return formatTemp(v, this._decimals, this._language);
+    return formatValue(v, this._decimals, this._language);
   }
 
-  private _timeLabel(t: number, range: TempGraphRange): string {
-    const short = TEMP_GRAPH_RANGE_MS[range] <= TEMP_GRAPH_HISTORY_MAX_MS / 2;
+  private _timeLabel(t: number, range: MultiGraphRange): string {
+    const short = MULTI_GRAPH_RANGE_MS[range] <= MULTI_GRAPH_HISTORY_MAX_MS / 2;
     const opts: Intl.DateTimeFormatOptions = short
       ? { hour: "numeric", minute: "2-digit" }
       : { weekday: "short", hour: "numeric", minute: "2-digit" };
@@ -539,7 +578,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
     const range = this._range ?? this._ranges[0];
     const n = this._n();
     const t1 = Math.max(this._now, Date.now());
-    const span = TEMP_GRAPH_RANGE_MS[range];
+    const span = MULTI_GRAPH_RANGE_MS[range];
     const t0 = t1 - span;
     void this._version;
     const { rows, unit, shown } = this._rows(t0, t1, n);
@@ -561,17 +600,17 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
       "tg-seg-ink": inkOn(segFill, this),
       "tg-seg-bg": tintOn(this, "var(--primary-text-color)", undefined, 6),
     });
-    const radius = resolveCornerRadius(cfg.radius ?? DEFAULT_TEMP_GRAPH_RADIUS, cfg.corners);
+    const radius = resolveCornerRadius(cfg.radius ?? DEFAULT_MULTI_GRAPH_RADIUS, cfg.corners);
     const animate = shouldAnimate(cfg.animation);
 
     const summary = this._summary(rows);
-    const warmest = warmestIndex(rows.map((r) => (r.foreign ? null : r.live)));
+    const highest = highestIndex(rows.map((r) => (r.foreign ? null : r.live)));
     const subtitle =
       rows.length === 0
-        ? this._t("tempgraph_no_entities")
-        : warmest >= 0
-          ? this._t(this._humidity ? "tempgraph_most_humid" : "tempgraph_warmest").replace("{name}", rows[warmest].name)
-          : this._t("tempgraph_no_data");
+        ? this._t("multigraph_no_entities")
+        : highest >= 0
+          ? this._classText("highest").replace("{name}", rows[highest].name)
+          : this._t("multigraph_no_data");
     const heroUnit = cfg.summary === "entity" && cfg.summary_entity
       ? ((this.hass.states[cfg.summary_entity]?.attributes?.unit_of_measurement as string | undefined) ?? unit)
       : unit;
@@ -585,8 +624,8 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
           ${cfg.show_header === false
             ? nothing
             : renderCardHeader({
-            icon: cfg.icon ?? (this._humidity ? "mdi:water-percent" : "mdi:thermometer"),
-            name: cfg.name ?? this._t(this._humidity ? "tempgraph_title_humidity" : "tempgraph_title"),
+            icon: cfg.icon ?? classProfile(this._class).icon,
+            name: cfg.name ?? this._classText("title"),
             subtitle,
             right: html`<div class="hero">
               <div class="hero-value">
@@ -607,7 +646,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
 
   private _renderChips(rows: Row[], focus: number, scrub: number | undefined) {
     return html`
-      <div class="chips" role="radiogroup" aria-label=${this._t("tempgraph_sensors_label")}>
+      <div class="chips" role="radiogroup" aria-label=${this._t("multigraph_sensors_label")}>
         ${rows.map((row, i) => {
           const v = scrub !== undefined ? row.values[scrub] : row.live;
           const hasData = row.live !== null || row.values.some((x) => x !== null);
@@ -616,13 +655,13 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
           const dot = fillColor(this, row.color);
           const style = buildCssVars({
             "chip-dot": dot,
-            "chip-tint": tintOn(this, row.color, undefined, TEMP_GRAPH_CHIP_TINT),
+            "chip-tint": tintOn(this, row.color, undefined, MULTI_GRAPH_CHIP_TINT),
           });
           return html`<button
             class="chip ${selected ? "focus" : ""} ${hasData && !row.foreign ? "" : "dim"}"
             role="radio"
             aria-checked=${selected ? "true" : "false"}
-            aria-label=${`${row.name} ${v === null || v === undefined ? this._t("tempgraph_no_data") : `${this._fmt(v)} ${row.unit}`}`}
+            aria-label=${`${row.name} ${v === null || v === undefined ? this._t("multigraph_no_data") : `${this._fmt(v)} ${row.unit}`}`}
             tabindex=${selected ? "0" : "-1"}
             style=${style}
             @click=${() => this._pickFocus(row.entry.entity)}
@@ -639,19 +678,19 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
     rows: Row[],
     focus: number,
     scrub: number | undefined,
-    range: TempGraphRange,
-    shown: TempGraphRange | undefined,
+    range: MultiGraphRange,
+    shown: MultiGraphRange | undefined,
     t0: number,
     t1: number,
     n: number,
   ) {
     const cfg = this._config!;
-    const height = Math.max(60, Math.min(400, cfg.height ?? DEFAULT_TEMP_GRAPH_HEIGHT));
+    const height = Math.max(60, Math.min(400, cfg.height ?? DEFAULT_MULTI_GRAPH_HEIGHT));
     const width = Math.max(1, this._width);
-    const plotW = Math.max(1, width - TEMP_GRAPH_PAD_RIGHT);
+    const plotW = Math.max(1, width - MULTI_GRAPH_PAD_RIGHT);
     const drawn = rows.filter((r) => !r.foreign);
     const curves = drawn.map((r) => [...r.values, r.live]);
-    const scale = graphScale(curves, height, TEMP_GRAPH_PAD_Y);
+    const scale = graphScale(curves, height, MULTI_GRAPH_PAD_Y);
     const x = (i: number) => ((i + 0.5) / n) * plotW;
     const stale = shown !== range;
 
@@ -669,7 +708,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
     const focusLine = focusRow && !focusRow.foreign ? lineOf(focusRow) : { runs: [] as XY[][] };
     const focusStroke = focusRow ? fillColor(this, focusRow.color) : "currentColor";
     const grid = scale ? niceTicks(scale.lo, scale.hi, 3).filter((v) => v > scale.lo && v < scale.hi) : [];
-    const labels = axisLabels(range, t0, t1, this._language, this._t("tempgraph_now"));
+    const labels = axisLabels(range, t0, t1, this._language, this._t("multigraph_now"));
 
     const scrubX = scrub !== undefined ? x(scrub) : undefined;
     const scrubV = scrub !== undefined && focusRow && !focusRow.foreign ? focusRow.values[scrub] : null;
@@ -696,21 +735,21 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
             svg`<g class="focus">
               <defs>
                 <linearGradient id="tg-area" x1="0" x2="0" y1="0" y2="1">
-                  <stop offset="0" stop-color=${focusStroke} stop-opacity=${TEMP_GRAPH_AREA_TOP}></stop>
+                  <stop offset="0" stop-color=${focusStroke} stop-opacity=${MULTI_GRAPH_AREA_TOP}></stop>
                   <stop offset="1" stop-color=${focusStroke} stop-opacity="0"></stop>
                 </linearGradient>
               </defs>
               ${focusLine.runs.map((r) => svg`<path class="area" d=${monotoneArea(r, height)}></path>`)}
               <path class="line-focus" d=${focusLine.runs.map((r) => monotonePath(r)).join("")} style=${`stroke: ${focusStroke};`}></path>
               ${focusLine.end && scrub === undefined
-                ? svg`<circle class="end" cx=${focusLine.end.x} cy=${focusLine.end.y} r=${TEMP_GRAPH_DOT_R} style=${`fill: ${focusStroke};`}></circle>`
+                ? svg`<circle class="end" cx=${focusLine.end.x} cy=${focusLine.end.y} r=${MULTI_GRAPH_DOT_R} style=${`fill: ${focusStroke};`}></circle>`
                 : nothing}
             </g>`,
           )}
           ${scrubX !== undefined
             ? svg`<line class="scrub" x1=${scrubX} x2=${scrubX} y1="0" y2=${height}></line>
                 ${scrubV !== null && scrubV !== undefined
-                  ? svg`<circle class="end" cx=${scrubX} cy=${scale.y(scrubV)} r=${TEMP_GRAPH_DOT_R} style=${`fill: ${focusStroke};`}></circle>`
+                  ? svg`<circle class="end" cx=${scrubX} cy=${scale.y(scrubV)} r=${MULTI_GRAPH_DOT_R} style=${`fill: ${focusStroke};`}></circle>`
                   : nothing}`
             : nothing}
         `
@@ -723,11 +762,11 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
         style=${`height: ${height}px; touch-action: ${SLIDER_TOUCH_ACTION};`}
         tabindex="0"
         role="slider"
-        aria-label=${this._t(this._humidity ? "tempgraph_chart_label_humidity" : "tempgraph_chart_label")}
+        aria-label=${this._classText("chart")}
         aria-valuemin="0"
         aria-valuemax=${n - 1}
         aria-valuenow=${scrub ?? n - 1}
-        aria-valuetext=${tooltip || this._t("tempgraph_now")}
+        aria-valuetext=${tooltip || this._t("multigraph_now")}
         @pointerdown=${this._onPointerDown}
         @pointermove=${this._onPointerMove}
         @pointerup=${this._onPointerUp}
@@ -760,9 +799,9 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
       </div>
       ${cfg.show_axis === false
         ? nothing
-        : html`<div class="axis" aria-hidden="true" style=${`padding-right: ${TEMP_GRAPH_PAD_RIGHT}px;`}>
+        : html`<div class="axis" aria-hidden="true" style=${`padding-right: ${MULTI_GRAPH_PAD_RIGHT}px;`}>
             ${labels.map(
-              (l) => html`<span class="tick ${l.align}" style=${`left: calc(${(l.at * 100).toFixed(3)}% - ${l.at * TEMP_GRAPH_PAD_RIGHT}px);`}
+              (l) => html`<span class="tick ${l.align}" style=${`left: calc(${(l.at * 100).toFixed(3)}% - ${l.at * MULTI_GRAPH_PAD_RIGHT}px);`}
                 >${l.label}</span
               >`,
             )}
@@ -772,15 +811,15 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
 
   /**
    * Without chips nothing on the card names the rooms, so a finger on the
-   * graph lists them all: colour, name and reading at that moment, warmest
+   * graph lists them all: colour, name and reading at that moment, highest
    * first, the focused room in bold. It sits on the side away from the line.
    */
-  private _renderScrubList(rows: Row[], focus: number, scrub: number, x: number, plotW: number, t: number, range: TempGraphRange) {
+  private _renderScrubList(rows: Row[], focus: number, scrub: number, x: number, plotW: number, t: number, range: MultiGraphRange) {
     const items = rows
       .map((row, i) => ({ row, i, v: row.foreign ? null : row.values[scrub] }))
       .sort((a, b) => (b.v ?? -Infinity) - (a.v ?? -Infinity));
     const right = x < plotW / 2;
-    return html`<div class="scrub-list ${right ? "right" : "left"}" style=${right ? `left: ${x + 10}px;` : `right: ${plotW - x + 10 + TEMP_GRAPH_PAD_RIGHT}px;`}>
+    return html`<div class="scrub-list ${right ? "right" : "left"}" style=${right ? `left: ${x + 10}px;` : `right: ${plotW - x + 10 + MULTI_GRAPH_PAD_RIGHT}px;`}>
       <div class="scrub-time">${this._timeLabel(t, range)}</div>
       ${items.map(
         ({ row, i, v }) => html`<div class="scrub-row ${i === focus ? "focus" : ""}">
@@ -792,7 +831,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
     </div>`;
   }
 
-  private _renderFooter(row: Row, unit: string, range: TempGraphRange) {
+  private _renderFooter(row: Row, unit: string, range: MultiGraphRange) {
     const cfg = this._config!;
     const ranges = this._ranges;
     const showRanges = cfg.show_ranges !== false && ranges.length > 1;
@@ -811,7 +850,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
             </div>`
           : nothing}
         ${showRanges
-          ? html`<div class="segments" role="radiogroup" aria-label=${this._t("tempgraph_ranges_label")}>
+          ? html`<div class="segments" role="radiogroup" aria-label=${this._t("multigraph_ranges_label")}>
               ${ranges.map(
                 (r, i) => html`<button
                   class="segment ${r === range ? "active" : ""}"
@@ -821,7 +860,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
                   @click=${() => this._pickRange(r)}
                   @keydown=${(e: KeyboardEvent) => this._onRangeKey(e, i)}
                 >
-                  ${this._t(`tempgraph_range_${r}` as TranslationKey)}
+                  ${this._t(`multigraph_range_${r}` as TranslationKey)}
                 </button>`,
               )}
             </div>`
@@ -863,7 +902,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
         color: var(--tg-hero);
       }
       .hero-n {
-        font-size: ${TEMP_GRAPH_HERO_SIZE}px;
+        font-size: ${MULTI_GRAPH_HERO_SIZE}px;
         font-weight: 500;
         letter-spacing: -0.02em;
         font-variant-numeric: tabular-nums;
@@ -888,10 +927,10 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
         display: inline-flex;
         align-items: center;
         gap: 7px;
-        height: ${TEMP_GRAPH_CHIP_HEIGHT}px;
+        height: ${MULTI_GRAPH_CHIP_HEIGHT}px;
         padding: 0 13px 0 11px;
         border: 1px solid color-mix(in srgb, var(--m3p-text, var(--primary-text-color)) 16%, transparent);
-        border-radius: ${TEMP_GRAPH_CHIP_HEIGHT / 2}px;
+        border-radius: ${MULTI_GRAPH_CHIP_HEIGHT / 2}px;
         background: transparent;
         color: inherit;
         font: inherit;
@@ -899,13 +938,13 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
         cursor: pointer;
         white-space: nowrap;
         transition:
-          border-radius ${TEMP_GRAPH_MOTION_MS}ms ${EASING},
-          background-color ${TEMP_GRAPH_MOTION_MS}ms ${EASING},
-          border-color ${TEMP_GRAPH_MOTION_MS}ms ${EASING},
-          opacity ${TEMP_GRAPH_MOTION_MS}ms ${EASING};
+          border-radius ${MULTI_GRAPH_MOTION_MS}ms ${EASING},
+          background-color ${MULTI_GRAPH_MOTION_MS}ms ${EASING},
+          border-color ${MULTI_GRAPH_MOTION_MS}ms ${EASING},
+          opacity ${MULTI_GRAPH_MOTION_MS}ms ${EASING};
       }
       .chip.focus {
-        border-radius: ${TEMP_GRAPH_CHIP_RADIUS_FOCUS}px;
+        border-radius: ${MULTI_GRAPH_CHIP_RADIUS_FOCUS}px;
         background: var(--chip-tint);
         border-color: transparent;
       }
@@ -936,7 +975,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
         cursor: crosshair;
         user-select: none;
         -webkit-user-select: none;
-        transition: opacity ${TEMP_GRAPH_MOTION_MS}ms ${EASING};
+        transition: opacity ${MULTI_GRAPH_MOTION_MS}ms ${EASING};
       }
       .chart:focus-visible {
         outline: 2px solid var(--tg-seg-fill);
@@ -949,7 +988,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
       .curves {
         display: block;
         overflow: visible;
-        animation: tg-in ${TEMP_GRAPH_MOTION_MS}ms ${EASING};
+        animation: tg-in ${MULTI_GRAPH_MOTION_MS}ms ${EASING};
       }
       .grid {
         stroke: currentColor;
@@ -964,22 +1003,22 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
         stroke-linejoin: round;
       }
       .line {
-        stroke-width: ${TEMP_GRAPH_LINE}px;
-        opacity: ${TEMP_GRAPH_LINE_DIM};
-        transition: opacity ${TEMP_GRAPH_MOTION_MS}ms ${EASING};
+        stroke-width: ${MULTI_GRAPH_LINE}px;
+        opacity: ${MULTI_GRAPH_LINE_DIM};
+        transition: opacity ${MULTI_GRAPH_MOTION_MS}ms ${EASING};
       }
       .line.hidden {
         opacity: 0;
       }
       .line-focus {
-        stroke-width: ${TEMP_GRAPH_LINE_FOCUS}px;
+        stroke-width: ${MULTI_GRAPH_LINE_FOCUS}px;
       }
       .area {
         fill: url(#tg-area);
         stroke: none;
       }
       .focus {
-        animation: tg-in ${TEMP_GRAPH_MOTION_MS}ms ${EASING};
+        animation: tg-in ${MULTI_GRAPH_MOTION_MS}ms ${EASING};
       }
       .end {
         stroke: var(--ha-card-background, var(--card-background-color, #1c1c1c));
@@ -1095,21 +1134,21 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
       .focus-name {
         color: var(--tg-name);
         font-weight: 600;
-        transition: color ${TEMP_GRAPH_MOTION_MS}ms ${EASING};
+        transition: color ${MULTI_GRAPH_MOTION_MS}ms ${EASING};
       }
       .segments {
         display: flex;
         gap: 2px;
-        padding: ${TEMP_GRAPH_SEGMENT_PADDING}px;
-        border-radius: ${TEMP_GRAPH_SEGMENT_HEIGHT / 2 + TEMP_GRAPH_SEGMENT_PADDING}px;
+        padding: ${MULTI_GRAPH_SEGMENT_PADDING}px;
+        border-radius: ${MULTI_GRAPH_SEGMENT_HEIGHT / 2 + MULTI_GRAPH_SEGMENT_PADDING}px;
         background: var(--tg-seg-bg);
         margin-left: auto;
       }
       .segment {
-        height: ${TEMP_GRAPH_SEGMENT_HEIGHT}px;
+        height: ${MULTI_GRAPH_SEGMENT_HEIGHT}px;
         border: none;
         padding: 0 14px;
-        border-radius: ${TEMP_GRAPH_SEGMENT_HEIGHT / 2}px;
+        border-radius: ${MULTI_GRAPH_SEGMENT_HEIGHT / 2}px;
         background: transparent;
         color: inherit;
         font: inherit;
@@ -1119,12 +1158,12 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
         cursor: pointer;
         white-space: nowrap;
         transition:
-          border-radius ${TEMP_GRAPH_MOTION_MS}ms ${EASING},
-          background-color ${TEMP_GRAPH_MOTION_MS}ms ${EASING},
-          opacity ${TEMP_GRAPH_MOTION_MS}ms ${EASING};
+          border-radius ${MULTI_GRAPH_MOTION_MS}ms ${EASING},
+          background-color ${MULTI_GRAPH_MOTION_MS}ms ${EASING},
+          opacity ${MULTI_GRAPH_MOTION_MS}ms ${EASING};
       }
       .segment.active {
-        border-radius: ${TEMP_GRAPH_CHIP_RADIUS_FOCUS}px;
+        border-radius: ${MULTI_GRAPH_CHIP_RADIUS_FOCUS}px;
         background: var(--tg-seg-fill);
         color: var(--tg-seg-ink);
         opacity: 1;
@@ -1170,16 +1209,16 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
 
 declare global {
   interface HTMLElementTagNameMap {
-    "m3-temperature-graph-card": M3TemperatureGraphCard;
+    "m3-multi-graph-card": M3MultiGraphCard;
   }
 }
 
 const windowWithCards = window as unknown as { customCards: Array<Record<string, unknown>> };
 windowWithCards.customCards = windowWithCards.customCards || [];
 windowWithCards.customCards.push({
-  type: "m3-temperature-graph-card",
-  name: "M3 Temperature Graph Card",
-  description: "Several temperature sensors as one graph, one room in focus, with a scrubbable timeline.",
+  type: "m3-multi-graph-card",
+  name: "M3 Multi Graph Card",
+  description: "Several sensors of one kind (temperature, humidity, CO₂, power …) as one graph, one in focus, with a scrubbable timeline.",
   preview: true,
   documentationURL: "https://github.com/j0sp0r/m3-cards",
 });

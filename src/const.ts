@@ -786,8 +786,8 @@ export const DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP = [
   "^Thermometer\\s*\\d*\\s*-?\\s*",
   "^Thermostat\\s+",
 ];
-/** The humidity graph's default: the overview's patterns and the humidity suffixes. */
-export const DEFAULT_HUMIDITY_NAME_STRIP = [
+/** The multi graph card's default: the overview's patterns and the humidity suffixes. */
+export const DEFAULT_MULTI_GRAPH_NAME_STRIP = [
   ...DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP,
   " Humidity$",
   " Luftfeuchtigkeit$",
@@ -3151,11 +3151,11 @@ export const OPENINGS_HISTORY_DAYS = 14;
 export const OPENINGS_MOTION = { moveMs: 320, leaveMs: 220, enterMs: 280, enterDelayMs: 120 } as const;
 
 
-// ---- m3-temperature-graph-card ----------------------------------------------
-export const DEFAULT_TEMP_GRAPH_RADIUS = RADIUS.card;
-export const DEFAULT_TEMP_GRAPH_HEIGHT = 130;
-export const DEFAULT_TEMP_GRAPH_DECIMALS = 1;
-export const DEFAULT_TEMP_GRAPH_RANGES = ["24h", "7d"] as const;
+// ---- m3-multi-graph-card ----------------------------------------------
+export const DEFAULT_MULTI_GRAPH_RADIUS = RADIUS.card;
+export const DEFAULT_MULTI_GRAPH_HEIGHT = 130;
+export const DEFAULT_MULTI_GRAPH_DECIMALS = 1;
+export const DEFAULT_MULTI_GRAPH_RANGES = ["24h", "7d"] as const;
 /**
  * The tonal palette: the suite's accents (PALETTE) lifted toward white, so the
  * thin lines stay apart on a dark card. On a light card each one is darkened
@@ -3163,7 +3163,7 @@ export const DEFAULT_TEMP_GRAPH_RANGES = ["24h", "7d"] as const;
  * first is a neutral, as the first room is usually the living room and needs
  * no hue to be found.
  */
-export const TEMP_GRAPH_PALETTE_TONAL = [
+export const MULTI_GRAPH_PALETTE_TONAL = [
   "#e3e8df", // neutral
   "#a9c7f5", // PALETTE.home, lifted
   "#f5b3a3", // PALETTE.heat, lifted
@@ -3174,31 +3174,31 @@ export const TEMP_GRAPH_PALETTE_TONAL = [
   "#efb1cf", // a rose, for an eighth room
 ] as const;
 /** Roughly one drawn point per this many px of width. */
-export const TEMP_GRAPH_PX_PER_POINT = 4;
-export const TEMP_GRAPH_MIN_POINTS = 24;
-export const TEMP_GRAPH_MAX_POINTS = 240;
+export const MULTI_GRAPH_PX_PER_POINT = 4;
+export const MULTI_GRAPH_MIN_POINTS = 24;
+export const MULTI_GRAPH_MAX_POINTS = 240;
 /** Above and below the curves, so a 3.5px line and its end dot are not clipped. */
-export const TEMP_GRAPH_PAD_Y = 10;
+export const MULTI_GRAPH_PAD_Y = 10;
 /** Kept free at the right for the end dot. */
-export const TEMP_GRAPH_PAD_RIGHT = 7;
-export const TEMP_GRAPH_LINE = 2;
-export const TEMP_GRAPH_LINE_FOCUS = 3.5;
+export const MULTI_GRAPH_PAD_RIGHT = 7;
+export const MULTI_GRAPH_LINE = 2;
+export const MULTI_GRAPH_LINE_FOCUS = 3.5;
 /** Opacity of a curve that is not in focus. */
-export const TEMP_GRAPH_LINE_DIM = 0.6;
+export const MULTI_GRAPH_LINE_DIM = 0.6;
 /** The focus curve's area: this opacity at the top, none at the bottom. */
-export const TEMP_GRAPH_AREA_TOP = 0.18;
-export const TEMP_GRAPH_DOT_R = 5;
+export const MULTI_GRAPH_AREA_TOP = 0.18;
+export const MULTI_GRAPH_DOT_R = 5;
 /** A loaded range is read again after this long. */
-export const TEMP_GRAPH_REFRESH_MS = 10 * 60_000;
+export const MULTI_GRAPH_REFRESH_MS = 10 * 60_000;
 /** History up to this window; beyond it, hourly statistics. */
-export const TEMP_GRAPH_HISTORY_MAX_MS = 48 * 3_600_000;
+export const MULTI_GRAPH_HISTORY_MAX_MS = 48 * 3_600_000;
 /** A tap on the graph shows its reading this long. */
-export const TEMP_GRAPH_TAP_LINGER_MS = 2000;
-export const TEMP_GRAPH_CHIP_HEIGHT = 34;
+export const MULTI_GRAPH_TAP_LINGER_MS = 2000;
+export const MULTI_GRAPH_CHIP_HEIGHT = 34;
 /** A chip is a full pill; the focused one squares off to this. */
-export const TEMP_GRAPH_CHIP_RADIUS_FOCUS = RADIUS.segmentInner + 2;
-export const TEMP_GRAPH_CHIP_TINT = 16;
-export const TEMP_GRAPH_HERO_SIZE = 40;
-export const TEMP_GRAPH_SEGMENT_HEIGHT = 32;
-export const TEMP_GRAPH_SEGMENT_PADDING = 4;
-export const TEMP_GRAPH_MOTION_MS = 300;
+export const MULTI_GRAPH_CHIP_RADIUS_FOCUS = RADIUS.segmentInner + 2;
+export const MULTI_GRAPH_CHIP_TINT = 16;
+export const MULTI_GRAPH_HERO_SIZE = 40;
+export const MULTI_GRAPH_SEGMENT_HEIGHT = 32;
+export const MULTI_GRAPH_SEGMENT_PADDING = 4;
+export const MULTI_GRAPH_MOTION_MS = 300;

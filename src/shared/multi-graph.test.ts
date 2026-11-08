@@ -9,6 +9,9 @@ import {
   median,
   graphRooms,
   roomsToEntries,
+  normalizeEntities,
+  classProfile,
+  shortValue,
   sortEntries,
   resolveFocus,
   resolveRanges,
@@ -16,8 +19,8 @@ import {
   statRowsToSteps,
   stepExtremes,
   stepMeans,
-  warmestIndex,
-} from "./temperature-graph";
+  highestIndex,
+} from "./multi-graph";
 
 const H = 3_600_000;
 
@@ -144,8 +147,8 @@ describe("summary figures", () => {
     expect(median([24, 20, 22, 30])).toBe(23);
     expect(median([])).toBeUndefined();
     // A tie goes to the first in the list.
-    expect(warmestIndex([21.9, 23.6, 23.6, null])).toBe(1);
-    expect(warmestIndex([null, null])).toBe(-1);
+    expect(highestIndex([21.9, 23.6, 23.6, null])).toBe(1);
+    expect(highestIndex([null, null])).toBe(-1);
   });
 });
 
@@ -247,5 +250,44 @@ describe("roomsToEntries for humidity", () => {
         "humidity",
       ),
     ).toEqual([{ entity: "sensor.bad_h", name: "Bad", color: undefined }]);
+  });
+});
+
+describe("device classes", () => {
+  it("reads the temperature field for temperature, the humidity field for humidity, and no room for other classes", () => {
+    const rooms = [{ name: "Bad", temperature_entity: "sensor.t", humidity_entity: "sensor.h" }];
+    expect(roomsToEntries(rooms).map((e) => e.entity)).toEqual(["sensor.t"]);
+    expect(roomsToEntries(rooms, "humidity").map((e) => e.entity)).toEqual(["sensor.h"]);
+    expect(roomsToEntries(rooms, "carbon_dioxide")).toEqual([]);
+  });
+
+  it("takes an entities list of ids and objects", () => {
+    expect(normalizeEntities(["sensor.a", { entity: "sensor.b", name: "B", color: "" }, { entity: " " }])).toEqual([
+      { entity: "sensor.a", name: undefined, color: undefined },
+      { entity: "sensor.b", name: "B", color: undefined },
+    ]);
+  });
+
+  it("knows icon and decimals of the common classes, and has a fallback", () => {
+    expect(classProfile(undefined)).toEqual({ icon: "mdi:thermometer", decimals: 1 });
+    expect(classProfile("carbon_dioxide").decimals).toBe(0);
+    expect(classProfile("something_new")).toEqual({ icon: "mdi:chart-line", decimals: 1 });
+  });
+
+  it("writes a temperature with a bare degree sign and anything else with its unit", () => {
+    expect(shortValue("21,4", "temperature", "°C")).toBe("21,4°");
+    expect(shortValue("48", "humidity", "%")).toBe("48\u202f%");
+    expect(shortValue("612", "carbon_dioxide", "ppm")).toBe("612\u202fppm");
+    expect(shortValue("3", "something", "")).toBe("3");
+  });
+
+  it("reads the climate overview card's temp_* sort names as the value orders", () => {
+    const rows = [
+      { name: "A", live: 1 },
+      { name: "B", live: 3 },
+    ];
+    expect(sortEntries(rows, "temp_desc", "de").map((r) => r.name)).toEqual(["B", "A"]);
+    expect(sortEntries(rows, "value_desc", "de").map((r) => r.name)).toEqual(["B", "A"]);
+    expect(sortEntries(rows, "value_asc", "de").map((r) => r.name)).toEqual(["A", "B"]);
   });
 });

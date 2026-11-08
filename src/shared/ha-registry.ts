@@ -414,6 +414,56 @@ export async function discoverClimateRooms(
   return rooms;
 }
 
+// ---- one sensor of a device class per area --------------------------------
+
+export interface DiscoveredAreaSensor {
+  areaId?: string;
+  name: string;
+  entity: string;
+}
+
+/**
+ * One sensor of `deviceClass` per area, for the multi graph card when it
+ * compares something other than temperature or humidity (those go through
+ * `discoverClimateRooms`, as on the climate overview card). Config and
+ * diagnostic entities, hidden and disabled ones are skipped; within an area a
+ * `measurement` sensor with a number wins over one without. A sensor without
+ * an area is taken only when `include_entities` names it, and then under its
+ * own name with `nameStrip` applied.
+ */
+export async function discoverAreaSensors(
+  hass: HomeAssistant,
+  deviceClass: string,
+  opts: DiscoverClimateRoomsOptions,
+): Promise<DiscoveredAreaSensor[]> {
+  const passesFilter = buildEntityFilterPredicate(opts.filter);
+  const named = new Set(opts.filter?.include_entities ?? []);
+  const { entryByEntityId, deviceById, areaById } = await getRegistries(hass);
+  const score = (id: string): number => {
+    const st = hass.states[id];
+    const numeric = Number.isFinite(Number(st?.state)) ? 2 : 0;
+    return numeric + (st?.attributes?.state_class === "measurement" ? 1 : 0);
+  };
+  const byKey = new Map<string, DiscoveredAreaSensor & { score: number }>();
+  for (const [id, st] of Object.entries(hass.states)) {
+    if (!id.startsWith("sensor.") || st.attributes?.device_class !== deviceClass) continue;
+    const entry = entryByEntityId.get(id) as (RegistryEntity & { labels?: string[] }) | undefined;
+    if (entry?.entity_category || entry?.hidden || entry?.hidden_by || entry?.disabled_by) continue;
+    const device = entry?.device_id ? deviceById.get(entry.device_id) : undefined;
+    const areaId = entry?.area_id ?? device?.area_id ?? undefined;
+    const labels = [...(entry?.labels ?? []), ...(device?.labels ?? [])];
+    if (!passesFilter({ entityId: id, areaId, labels })) continue;
+    if (!areaId && !named.has(id)) continue;
+    const key = areaId ? `area:${areaId}` : `solo:${id}`;
+    const area = areaId ? areaById.get(areaId) : undefined;
+    const name = area?.name ?? stripFallbackName((st.attributes?.friendly_name as string | undefined) ?? id, opts.nameStrip ?? []);
+    const candidate = { areaId, name, entity: id, score: score(id) };
+    const have = byKey.get(key);
+    if (!have || candidate.score > have.score) byKey.set(key, candidate);
+  }
+  return [...byKey.values()].map(({ score: _score, ...rest }) => rest);
+}
+
 // ---- occupancy sensors ----------------------------------------------------
 
 export interface DiscoverOccupancyOptions {

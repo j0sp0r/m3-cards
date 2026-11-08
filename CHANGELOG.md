@@ -8,26 +8,27 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
-- **A temperature graph card** (`m3-temperature-graph-card`, the 53rd).
-  Several temperature sensors as one graph on a shared scale: the room in
-  focus drawn thick with an area beneath it and a dot at now, the others thin
-  and faint behind it. Chips are the legend — colour, room, current value —
-  and pick the focus; the chosen one squares off and takes a tint. The header
-  names the warmest room and shows the average (or median, or one sensor).
-  Tap or drag across the graph for a line and a pill with the time and the
-  focused room's value, while the chips show every room's reading at that
-  moment; a vertical swipe still scrolls the page. Up to 48 hours it reads
-  the history in one request for all sensors, beyond that the hourly
-  statistics; each loaded range is kept, extended with live readings and
-  read again after ten minutes. Curves break where a sensor was unavailable.
-  Set up like the climate overview card: without a room list it finds one
-  temperature sensor per room with the same discovery and filters, a `rooms`
-  list in the same format can be copied over, and `sort` orders the chips.
-  `measure: humidity` draws humidity instead, from the same room list.
-  Ranges from 6 hours to 30 days; chips, extremes, axis, the footer's range
-  and the range picker can each be switched off. The editor can turn what was
-  found into a fixed list to reorder, rename and colour, and warns when the
-  sensors report different units.
+- **A multi graph card** (`m3-multi-graph-card`, the 53rd). Several sensors
+  of one kind as one graph on a shared scale — every room's temperature, its
+  humidity, CO₂, power, any sensor device class. The sensor in focus is drawn
+  thick with an area beneath it and a dot at now, the others thinner behind
+  it. Chips are the legend — colour, name, current value — and pick the
+  focus; the chosen one squares off and takes a tint. The header names the
+  highest reading ("Office warmest", "Bathroom most humid") and shows the
+  average, median, total or one sensor. Tap or drag across the graph for a
+  line and a pill with the time and the focused value, while the chips show
+  every reading at that moment; a vertical swipe still scrolls the page.
+  Up to 48 hours it reads the history in one request for all sensors, beyond
+  that the hourly statistics; each loaded range is kept, extended with live
+  readings and read again after ten minutes. Curves break where a sensor was
+  unavailable. Without a list it finds one sensor of its `device_class` per
+  area — temperature and humidity with the climate overview card's discovery
+  and filters — and a room list in the overview's format can be copied in;
+  `entities` takes any sensors. Header text, icon, unit and decimals follow
+  the device class. Ranges from 6 hours to 30 days; chips, extremes, axis,
+  the footer's range and the range picker can each be switched off. The
+  editor can turn what was found into a fixed list to reorder, rename and
+  colour, and warns when the sensors report different units.
 
 - **A vehicle card** (`m3-vehicle-card`, the 52nd). One car — charge or tank,
   range, lock, where it stands, alerts and actions — for any integration: the

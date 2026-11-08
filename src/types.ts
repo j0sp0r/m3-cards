@@ -3239,84 +3239,93 @@ export interface M3OpeningsCardConfig extends DetailModeConfig {
   card_version?: string;
 }
 
-// ---- m3-temperature-graph-card -----------------------------------------------
+// ---- m3-multi-graph-card -----------------------------------------------
 
-export type TempGraphRange = "6h" | "12h" | "24h" | "48h" | "7d" | "30d";
-export type TempGraphSummary = "mean" | "median" | "entity";
-/** How the curves are coloured. Only "tonal" for now; "by_temperature" is planned. */
-export type TempGraphPalette = "tonal";
+export type MultiGraphRange = "6h" | "12h" | "24h" | "48h" | "7d" | "30d";
+export type MultiGraphSummary = "mean" | "median" | "sum" | "entity";
+/** How the curves are coloured. Only "tonal" for now; "by_value" is planned. */
+export type MultiGraphPalette = "tonal";
 
 /**
  * One room, written as on the climate overview card, so a room list can be
- * copied between the two. Which sensor is drawn follows `measure`;
- * `climate_entity` is accepted and ignored.
+ * copied between the two. With `device_class: humidity` the humidity sensor
+ * is drawn, otherwise the temperature sensor; `climate_entity` is accepted
+ * and ignored.
  */
-export interface TempGraphRoomConfig {
+export interface MultiGraphRoomConfig {
   /** Default: the sensor's area, then its name with `name_strip` applied. */
   name?: string;
   icon?: string;
-  /** The sensor drawn with `measure: temperature` (the default). */
   temperature_entity?: string;
-  /** The sensor drawn with `measure: humidity`. */
   humidity_entity?: string;
   climate_entity?: string;
   /** Overrides the palette. */
   color?: string;
 }
 
-/** What the card draws: each room's temperature, or its humidity. */
-export type TempGraphMeasure = "temperature" | "humidity";
+/**
+ * Chip and curve order. "area" keeps the order found or listed;
+ * `temp_desc` / `temp_asc` are the climate overview card's names for the
+ * value orders and are read as such.
+ */
+export type MultiGraphSort = "area" | "value_desc" | "value_asc" | "name" | "temp_desc" | "temp_asc";
 
-export type TempGraphSort = "area" | "temp_desc" | "temp_asc" | "name";
-
-/** Resolved: one curve, from the room list or from discovery. */
-export interface TempGraphEntityConfig {
+/** One curve: listed under `entities`, or resolved from `rooms` or discovery. */
+export interface MultiGraphEntityConfig {
   entity: string;
+  /** Default: the sensor's area, then its name with `name_strip` applied. */
   name?: string;
+  /** Overrides the palette. */
   color?: string;
 }
 
-export interface M3TemperatureGraphCardConfig extends EntityFilterConfig {
+export interface M3MultiGraphCardConfig extends EntityFilterConfig {
   type: string;
-  /** Temperature (default) or humidity. */
-  measure?: TempGraphMeasure;
-  /** Default "Raumtemperatur" / "Luftfeuchtigkeit", by `measure`. */
+  /**
+   * What is compared: a sensor device class — temperature (the default),
+   * humidity, carbon_dioxide, power, illuminance … Discovery looks for it,
+   * and the header text, icon, unit and decimals follow it.
+   */
+  device_class?: string;
+  /** Default: by device class — "Raumtemperatur", "Luftfeuchtigkeit", … */
   name?: string;
   icon?: string;
   show_header?: boolean;
-  /** Find a temperature sensor per room; on by default without `rooms`. */
+  /** Find one sensor of `device_class` per area; on by default without a list. */
   auto_discover?: boolean;
-  /** A fixed room list instead of discovery. */
-  rooms?: TempGraphRoomConfig[];
+  /** Any sensors, as ids or `{entity, name, color}`; wins over `rooms` and discovery. */
+  entities?: Array<string | MultiGraphEntityConfig>;
+  /** A room list in the climate overview card's format (temperature and humidity). */
+  rooms?: MultiGraphRoomConfig[];
   /** Patterns removed from names found by discovery. */
   name_strip?: string[];
   /** Order of the chips and curves. Default "area" (as found or listed). */
-  sort?: TempGraphSort;
+  sort?: MultiGraphSort;
   /** The ranges offered below the graph. Default ["24h", "7d"]. */
-  ranges?: TempGraphRange[];
+  ranges?: MultiGraphRange[];
   /** Default: the first of `ranges`. */
-  default_range?: TempGraphRange;
+  default_range?: MultiGraphRange;
   /** The large value in the header. Default "mean". */
-  summary?: TempGraphSummary;
+  summary?: MultiGraphSummary;
   /** The sensor shown large when `summary` is "entity". */
   summary_entity?: string;
   /** The curve in focus at first: its sensor, or its position. Default the first. */
   default_focus?: number | string;
-  /** Default 1 for temperature, 0 for humidity. */
+  /** Default: the sensor's display precision, else by device class. */
   decimals?: number;
   /** The lowest and highest value as pills at the left edge. Default true. */
   show_extremes?: boolean;
-  /** The room chips (legend and focus picker). Default true. */
+  /** The chips (legend and focus picker). Default true. */
   show_chips?: boolean;
   /** The time labels below the graph. Default true. */
   show_axis?: boolean;
-  /** The focused room's lowest and highest reading in the footer. Default true. */
+  /** The focused curve's lowest and highest reading in the footer. Default true. */
   show_focus_range?: boolean;
   /** The range picker in the footer; hidden anyway with a single range. Default true. */
   show_ranges?: boolean;
   /** Height of the graph alone, in px. Default 130. */
   height?: number;
-  palette?: TempGraphPalette;
+  palette?: MultiGraphPalette;
   /** The header icon, the large value and the active range. Default: the theme's primary colour. */
   accent_color?: string;
   animation?: "auto" | "on" | "off";

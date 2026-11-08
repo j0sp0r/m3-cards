@@ -1,5 +1,5 @@
-// The recent past of several temperature sensors at once, for the temperature
-// graph card: one websocket call for all of them, not one per sensor.
+// The recent past of several sensors at once, for the multi graph card: one
+// websocket call for all of them, not one per sensor.
 //
 // Up to 48 hours the raw history is read. It is short enough there, and it is
 // every reading rather than a mean of them. Beyond that, hourly long-term
@@ -8,14 +8,14 @@
 // `state_class`; one without falls back to the history for that range, and
 // only a sensor with neither ends up with nothing.
 //
-// What comes back is a step series per sensor (see temperature-graph.ts) and
+// What comes back is a step series per sensor (see multi-graph.ts) and
 // the lowest and highest real reading in the window: for statistics, from the
 // hours' own min and max, which the means would understate.
 
 import type { HomeAssistant } from "../types";
 import type { SeriesPoint } from "./entity-history";
 import { cachedStatsCall } from "./ha-statistics";
-import { numericOf, statRowsToSteps, stepExtremes, type TempStatRow } from "./temperature-graph";
+import { numericOf, statRowsToSteps, stepExtremes, type StatMeanRow } from "./multi-graph";
 
 const HOUR_MS = 3_600_000;
 
@@ -73,7 +73,7 @@ async function readStatistics(
   const out = new Map<string, TempSeries>();
   if (!ids.length) return out;
   // Rounded to the hour, so cards opened a few seconds apart share one cached call.
-  const response = await cachedStatsCall<Record<string, TempStatRow[]>>(hass, {
+  const response = await cachedStatsCall<Record<string, StatMeanRow[]>>(hass, {
     type: "recorder/statistics_during_period",
     start_time: new Date(Math.floor(start / HOUR_MS) * HOUR_MS).toISOString(),
     end_time: new Date(Math.ceil(end / HOUR_MS) * HOUR_MS).toISOString(),

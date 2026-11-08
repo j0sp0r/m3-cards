@@ -1266,7 +1266,7 @@ Mit einem harmlosen `input_boolean` testen.
 | Editor | Karte im HA-Dialog neu anlegen und bearbeiten | Alle Slots wählbar, Vorschau folgt, Benachrichtigungs-Automation lässt sich erzeugen |
 | Am Handy | 390 px Breite | Nichts läuft über, Schloss-Pille klappt die Karte |
 
-## M3 Temperature Graph Card
+## M3 Multi Graph Card
 
 | Test | Schritte | Erwartung |
 |---|---|---|
@@ -1274,7 +1274,9 @@ Mit einem harmlosen `input_boolean` testen.
 | Raumliste übernehmen | `rooms` aus einer Climate-Overview-Karte hineinkopieren | Lädt ohne Fehler; `humidity_entity`/`climate_entity` werden ignoriert |
 | Zusatzinfos aus | `show_chips`, `show_extremes`, `show_axis`, `show_focus_range`, `show_ranges` je auf `false` | Das jeweilige Element verschwindet ohne Lücke; ohne beide Fußzeilen-Teile keine Fußzeile |
 | Ohne Chips scrubben | `show_chips: false`, `height: 90`, auf den Graph tippen und ziehen | Statt der Pill eine Liste aller Räume mit Farbpunkt, Name und Wert, wärmster zuerst, Fokus fett; liegt auf der dem Finger abgewandten Seite und wird nicht abgeschnitten |
-| Luftfeuchtigkeit | `measure: humidity`, einmal ohne `rooms`, einmal mit einer Raumliste aus der Climate Overview | Feuchtesensor pro Bereich bzw. `humidity_entity`; Räume ohne Feuchtesensor fehlen; Werte in % ohne Nachkommastelle; Kopf „Luftfeuchtigkeit“, „<Raum> am feuchtesten“, Icon Wassertropfen |
+| Andere Klasse | `device_class: carbon_dioxide` (oder `power`, `illuminance`) ohne Liste | Pro Bereich ein Sensor der Klasse; Kopf „CO₂“ bzw. Klassentitel, „<Name> am höchsten“; Werte mit Einheit (ppm), ohne Nachkommastelle |
+| Freie Liste | `entities` mit drei beliebigen Sensoren einer Klasse, `summary: sum` | Genau diese Kurven; im Kopf die Summe |
+| Luftfeuchtigkeit | `device_class: humidity`, einmal ohne `rooms`, einmal mit einer Raumliste aus der Climate Overview | Feuchtesensor pro Bereich bzw. `humidity_entity`; Räume ohne Feuchtesensor fehlen; Werte in % ohne Nachkommastelle; Kopf „Luftfeuchtigkeit“, „<Raum> am feuchtesten“, Icon Wassertropfen |
 | Fünf Sensoren | Fünf Raumthermometer als `rooms` | Fünf Chips mit Farbpunkt, Raum (Bereichsname) und Wert; fünf Kurven auf einer Skala; Kopf „<Raum> am wärmsten“ und Durchschnitt rechts |
 | Fokus per Chip | Nacheinander jeden Chip antippen | Die Kurve des Chips wird dick mit Fläche und Endpunkt, die vorige blendet zurück; der Chip wird eckiger und getönt; kein Datenabruf im Netzwerk-Tab |
 | Tastatur | Tab auf die Chips, Pfeiltasten; Tab auf den Graph, Pfeiltasten, Escape; Tab auf den Zeitraum, Pfeiltasten | Fokus wandert und wechselt; Scrub-Linie wandert; Zeitraum wechselt |

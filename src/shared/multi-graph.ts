@@ -1,4 +1,4 @@
-// The temperature graph card's arithmetic, kept free of the DOM so it can be
+// The multi graph card's arithmetic, kept free of the DOM so it can be
 // tested: which entries, which range, the curves on one shared time grid, the
 // scale, the axis labels, and the figures in the header.
 //
@@ -18,9 +18,9 @@
 
 import type { SeriesPoint } from "./entity-history";
 import type { XY } from "./smooth-path";
-import type { TempGraphEntityConfig, TempGraphMeasure, TempGraphRange, TempGraphRoomConfig, TempGraphSort } from "../types";
+import type { MultiGraphEntityConfig, MultiGraphRange, MultiGraphRoomConfig, MultiGraphSort } from "../types";
 
-export const TEMP_GRAPH_RANGE_MS: Record<TempGraphRange, number> = {
+export const MULTI_GRAPH_RANGE_MS: Record<MultiGraphRange, number> = {
   "6h": 6 * 3_600_000,
   "12h": 12 * 3_600_000,
   "24h": 24 * 3_600_000,
@@ -29,50 +29,105 @@ export const TEMP_GRAPH_RANGE_MS: Record<TempGraphRange, number> = {
   "30d": 30 * 86_400_000,
 };
 
-export const TEMP_GRAPH_RANGES = Object.keys(TEMP_GRAPH_RANGE_MS) as TempGraphRange[];
+export const MULTI_GRAPH_RANGES = Object.keys(MULTI_GRAPH_RANGE_MS) as MultiGraphRange[];
 
-export function isTempGraphRange(v: unknown): v is TempGraphRange {
-  return typeof v === "string" && v in TEMP_GRAPH_RANGE_MS;
+export function isMultiGraphRange(v: unknown): v is MultiGraphRange {
+  return typeof v === "string" && v in MULTI_GRAPH_RANGE_MS;
 }
 
-/** The room field that names the sensor for a measure. */
-export function roomEntity(room: TempGraphRoomConfig, measure: TempGraphMeasure | undefined): string | undefined {
-  const id = measure === "humidity" ? room.humidity_entity : room.temperature_entity;
+/** The room field a device class reads: humidity has its own, everything else the temperature sensor. */
+export function roomEntity(room: MultiGraphRoomConfig, deviceClass: string | undefined): string | undefined {
+  const id = deviceClass === "humidity" ? room.humidity_entity : room.temperature_entity;
   return typeof id === "string" && id.trim() !== "" ? id : undefined;
 }
 
 /**
- * A room list as curves, without rooms that name no sensor for the measure
- * (the editor adds an empty one to fill in; a room list copied from the
- * climate overview card may have a room without a humidity sensor).
+ * A room list (the climate overview card's format) as curves. Only
+ * temperature and humidity have a field there; for any other class a room
+ * list says nothing, and rooms without a sensor for the class are left out.
  */
-export function roomsToEntries(rooms: readonly TempGraphRoomConfig[] | undefined, measure?: TempGraphMeasure): TempGraphEntityConfig[] {
+export function roomsToEntries(rooms: readonly MultiGraphRoomConfig[] | undefined, deviceClass?: string): MultiGraphEntityConfig[] {
+  const cls = deviceClass ?? "temperature";
+  if (cls !== "temperature" && cls !== "humidity") return [];
   return (rooms ?? [])
-    .filter((r) => !!r && !!roomEntity(r, measure))
-    .map((r) => ({ entity: roomEntity(r, measure)!, name: r.name || undefined, color: r.color || undefined }));
+    .filter((r) => !!r && !!roomEntity(r, cls))
+    .map((r) => ({ entity: roomEntity(r, cls)!, name: r.name || undefined, color: r.color || undefined }));
 }
 
-/** Chip and curve order, as on the climate overview card: "area" keeps the order found or listed. */
-export function sortEntries<T extends { name: string; live: number | null }>(rows: readonly T[], sort: TempGraphSort | undefined, language: string): T[] {
+/** An `entities` list as objects, without empty rows (the editor adds one to fill in). */
+export function normalizeEntities(list: ReadonlyArray<string | MultiGraphEntityConfig> | undefined): MultiGraphEntityConfig[] {
+  return (list ?? [])
+    .map((e) => (typeof e === "string" ? { entity: e } : e))
+    .filter((e): e is MultiGraphEntityConfig => !!e && typeof e.entity === "string" && e.entity.trim() !== "")
+    .map((e) => ({ entity: e.entity, name: e.name || undefined, color: e.color || undefined }));
+}
+
+/** Chip and curve order. "area" keeps the order found or listed; the overview's temp_* names mean the value orders. */
+export function sortEntries<T extends { name: string; live: number | null }>(rows: readonly T[], sort: MultiGraphSort | undefined, language: string): T[] {
   if (sort === "name") return [...rows].sort((a, b) => a.name.localeCompare(b.name, language));
-  if (sort === "temp_desc") return [...rows].sort((a, b) => (b.live ?? -Infinity) - (a.live ?? -Infinity));
-  if (sort === "temp_asc") return [...rows].sort((a, b) => (a.live ?? Infinity) - (b.live ?? Infinity));
+  if (sort === "value_desc" || sort === "temp_desc") return [...rows].sort((a, b) => (b.live ?? -Infinity) - (a.live ?? -Infinity));
+  if (sort === "value_asc" || sort === "temp_asc") return [...rows].sort((a, b) => (a.live ?? Infinity) - (b.live ?? Infinity));
   return [...rows];
+}
+
+export interface ClassProfile {
+  icon: string;
+  /** Decimals when neither the config nor the sensor's display precision says. */
+  decimals: number;
+}
+
+/**
+ * What a device class changes on the card. Classes read in whole numbers
+ * (ppm, lx, W, %) drop the decimal; anything not listed keeps one.
+ */
+const PROFILES: Record<string, ClassProfile> = {
+  temperature: { icon: "mdi:thermometer", decimals: 1 },
+  humidity: { icon: "mdi:water-percent", decimals: 0 },
+  moisture: { icon: "mdi:water-percent", decimals: 0 },
+  carbon_dioxide: { icon: "mdi:molecule-co2", decimals: 0 },
+  volatile_organic_compounds: { icon: "mdi:air-filter", decimals: 0 },
+  pm25: { icon: "mdi:blur", decimals: 0 },
+  pm10: { icon: "mdi:blur", decimals: 0 },
+  illuminance: { icon: "mdi:brightness-5", decimals: 0 },
+  power: { icon: "mdi:flash", decimals: 0 },
+  pressure: { icon: "mdi:gauge", decimals: 0 },
+  atmospheric_pressure: { icon: "mdi:gauge", decimals: 0 },
+  sound_pressure: { icon: "mdi:volume-high", decimals: 0 },
+  battery: { icon: "mdi:battery", decimals: 0 },
+  voltage: { icon: "mdi:sine-wave", decimals: 1 },
+  current: { icon: "mdi:current-ac", decimals: 1 },
+};
+
+export function classProfile(deviceClass: string | undefined): ClassProfile {
+  return PROFILES[deviceClass ?? "temperature"] ?? { icon: "mdi:chart-line", decimals: 1 };
+}
+
+/** The device classes the editor offers; any other can be typed in. */
+export const MULTI_GRAPH_CLASSES = Object.keys(PROFILES);
+
+/**
+ * A value as the chips and pills write it: a temperature with a bare degree
+ * sign ("21,4°", the unit is in the header), a percentage with a thin space,
+ * anything else with its unit.
+ */
+export function shortValue(text: string, deviceClass: string | undefined, unit: string): string {
+  if ((deviceClass ?? "temperature") === "temperature") return `${text}°`;
+  return unit ? `${text}\u202f${unit}` : text;
 }
 
 /** The ranges on offer, in the order given and without unknown ones, and the first shown. */
 export function resolveRanges(
   ranges: readonly unknown[] | undefined,
-  fallback: readonly TempGraphRange[],
+  fallback: readonly MultiGraphRange[],
   initial?: unknown,
-): { ranges: TempGraphRange[]; initial: TempGraphRange } {
-  const valid = [...new Set((ranges ?? []).filter(isTempGraphRange))];
+): { ranges: MultiGraphRange[]; initial: MultiGraphRange } {
+  const valid = [...new Set((ranges ?? []).filter(isMultiGraphRange))];
   const list = valid.length ? valid : [...fallback];
-  return { ranges: list, initial: isTempGraphRange(initial) && list.includes(initial) ? initial : list[0] };
+  return { ranges: list, initial: isMultiGraphRange(initial) && list.includes(initial) ? initial : list[0] };
 }
 
 /** The entry in focus at first: an index, or an entity id; anything else is the first. */
-export function resolveFocus(focus: number | string | undefined, entries: readonly TempGraphEntityConfig[]): number {
+export function resolveFocus(focus: number | string | undefined, entries: readonly MultiGraphEntityConfig[]): number {
   if (typeof focus === "number" && Number.isInteger(focus) && focus >= 0 && focus < entries.length) return focus;
   if (typeof focus === "string") {
     const i = entries.findIndex((e) => e.entity === focus);
@@ -129,7 +184,7 @@ export function stepMeans(steps: readonly SeriesPoint[], t0: number, t1: number,
   return out;
 }
 
-export interface TempStatRow {
+export interface StatMeanRow {
   start: string | number;
   mean?: number | null;
   min?: number | null;
@@ -141,7 +196,7 @@ export interface TempStatRow {
  * missing hour (the recorder writes no row for one without a numeric state)
  * is a hole.
  */
-export function statRowsToSteps(rows: readonly TempStatRow[], periodMs: number): SeriesPoint[] {
+export function statRowsToSteps(rows: readonly StatMeanRow[], periodMs: number): SeriesPoint[] {
   const out: SeriesPoint[] = [];
   let end: number | undefined;
   for (const row of rows) {
@@ -195,7 +250,7 @@ export function median(values: readonly number[]): number | undefined {
 }
 
 /** Index of the highest value; the first one wins a tie. -1 when none is a number. */
-export function warmestIndex(values: readonly (number | null)[]): number {
+export function highestIndex(values: readonly (number | null)[]): number {
   let best = -1;
   for (let i = 0; i < values.length; i++) {
     const v = values[i];
@@ -254,14 +309,14 @@ export interface AxisLabel {
   align: "start" | "center" | "end";
 }
 
-const HOUR_STEP: Partial<Record<TempGraphRange, number>> = { "6h": 2, "12h": 3, "24h": 6, "48h": 12 };
+const HOUR_STEP: Partial<Record<MultiGraphRange, number>> = { "6h": 2, "12h": 3, "24h": 6, "48h": 12 };
 
 /**
  * A few labels along the time axis: full hours on a clock grid for the short
  * ranges ("0 Uhr, 6, 12, 18"), weekdays for a week, Mondays for a month — and
  * "now" at the right end. Labels that would crowd another are left out.
  */
-export function axisLabels(range: TempGraphRange, t0: number, t1: number, language: string, nowLabel: string): AxisLabel[] {
+export function axisLabels(range: MultiGraphRange, t0: number, t1: number, language: string, nowLabel: string): AxisLabel[] {
   const span = t1 - t0;
   const times: number[] = [];
   const step = HOUR_STEP[range];
@@ -315,7 +370,7 @@ export function axisLabels(range: TempGraphRange, t0: number, t1: number, langua
 }
 
 /** A number with exactly `decimals` places, in the language's own way. */
-export function formatTemp(value: number, decimals: number, language: string): string {
+export function formatValue(value: number, decimals: number, language: string): string {
   return new Intl.NumberFormat(language, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(value);
 }
 
@@ -360,12 +415,12 @@ export function smoothCurve(values: readonly (number | null)[], radius: number):
 export function graphRooms<T extends { areaId?: string; name: string; temperatureEntity?: string; humidityEntity?: string }>(
   rooms: readonly T[],
   includeEntities: readonly string[] | undefined,
-  measure?: TempGraphMeasure,
+  deviceClass?: string,
 ): { name: string; entity: string }[] {
   const named = new Set(includeEntities ?? []);
   const out: { name: string; entity: string }[] = [];
   for (const r of rooms) {
-    const entity = measure === "humidity" ? r.humidityEntity : r.temperatureEntity;
+    const entity = deviceClass === "humidity" ? r.humidityEntity : r.temperatureEntity;
     if (entity && (r.areaId || named.has(entity))) out.push({ name: r.name, entity });
   }
   return out;
