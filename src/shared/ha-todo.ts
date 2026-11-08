@@ -2,9 +2,10 @@ import type { HomeAssistant } from "../types";
 
 // Home Assistant exposes a todo list's entries only through the
 // `todo.get_items` service response, never as entity attributes — the entity
-// state is just the number of open items. Service responses are not reachable
-// via hass.callService, so the call goes through `execute_script`, whose
-// `stop` step hands the response variable back to the caller.
+// state is just the number of open items. hass.callService drops the response,
+// so the call goes over the websocket's `call_service` with `return_response`.
+// Not `execute_script`: that one is admin-only, and a non-admin user got an
+// empty list (#32).
 
 export type TodoStatus = "needs_action" | "completed";
 
@@ -41,25 +42,14 @@ export async function fetchTodoItems(
   entityId: string,
   status?: TodoStatus[],
 ): Promise<TodoItem[]> {
-  const data: Record<string, unknown> = {};
-  if (status?.length) data.status = status;
-  const result = await hass.callWS<Record<string, unknown>>({
-    type: "execute_script",
-    sequence: [
-      {
-        action: "todo.get_items",
-        target: { entity_id: entityId },
-        ...(status?.length ? { data } : {}),
-        response_variable: "m3_todo",
-      },
-      { stop: "", response_variable: "m3_todo" },
-    ],
+  const result = await hass.callWS<{ response?: Record<string, { items?: TodoItem[] }> }>({
+    type: "call_service",
+    domain: "todo",
+    service: "get_items",
+    service_data: status?.length ? { status } : {},
+    target: { entity_id: entityId },
+    return_response: true,
   });
-  // execute_script wraps the stopped value in `response`; older cores returned
-  // it bare, so accept both rather than depending on the core version.
-  const payload = ((result as { response?: unknown }).response ?? result) as Record<
-    string,
-    { items?: TodoItem[] }
-  >;
+  const payload = result?.response;
   return payload?.[entityId]?.items ?? [];
 }

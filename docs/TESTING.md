@@ -390,6 +390,7 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Abhaken | Häkchen antippen | Morph vom Ring zum gefüllten Squircle |
 | Schnellwahl-Chips | Quelle auf Supply-Karten stellen | Knappster Vorrat zuerst als Chip |
 | Umbenennen/Löschen | Zeile lange drücken | Dialog erscheint, beide Aktionen wirken |
+| Nicht-Admin (#32) | Dashboard mit einem Benutzer ohne Adminrechte öffnen | Einträge erscheinen; im HA-Log kein „Unauthorized“ |
 
 ## M3 Time Card
 
@@ -701,6 +702,8 @@ dritten Kalender.
 - [ ] Zeitspalte bricht nicht um — besonders im 12-Stunden-Format („10:30 AM")
 - [ ] Nicht erreichbarer Kalender: Hinweiszeile erscheint, die anderen liefern
       trotzdem
+- [ ] Nicht-Admin (#32): mit einem Benutzer ohne Adminrechte erscheinen
+      dieselben Termine, im HA-Log kein „Unauthorized“
 - [ ] `max_events`: Liste wird gekürzt, „+n weitere" steht am Ende
 - [ ] Leerer Zeitraum: „Keine Termine in den nächsten n Tagen"
 - [ ] Monatsraster: Wochenstart folgt `hass.locale.first_weekday`

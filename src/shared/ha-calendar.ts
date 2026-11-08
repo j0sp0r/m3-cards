@@ -96,17 +96,15 @@ async function fetchOne(
   start: Date,
   end: Date,
 ): Promise<CalendarEvent[]> {
+  // `call_service` with `return_response`, not `execute_script`: the latter
+  // is admin-only, so a non-admin user saw no events at all (#32).
   const response = await hass.callWS<{ response?: Record<string, { events?: RawEvent[] }> }>({
-    type: "execute_script",
-    sequence: [
-      {
-        service: "calendar.get_events",
-        data: { start_date_time: localTimestamp(start), end_date_time: localTimestamp(end) },
-        target: { entity_id: entityId },
-        response_variable: "result",
-      },
-      { stop: "", response_variable: "result" },
-    ],
+    type: "call_service",
+    domain: "calendar",
+    service: "get_events",
+    service_data: { start_date_time: localTimestamp(start), end_date_time: localTimestamp(end) },
+    target: { entity_id: entityId },
+    return_response: true,
   });
   const events = response?.response?.[entityId]?.events ?? [];
   return events.map((e) => normalise(entityId, e));

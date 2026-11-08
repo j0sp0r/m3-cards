@@ -31,6 +31,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   hour, as month and solar mode already did and as the documentation
   describes. Periodically-resetting counters (`statistic_type: state`) still
   read their live state.
+- **The to-do and calendar cards work for users who are not admins** (#32).
+  Both read their items through `execute_script`, which Home Assistant only
+  allows for admins: for everyone else the to-do card stayed empty (adding
+  still worked) and the calendar card showed no events. They now call
+  `todo.get_items` and `calendar.get_events` directly with
+  `return_response`, as the weather card does for its forecast.
 
 ## [2.7.1] – 2026-11-08
 
