@@ -51,6 +51,7 @@ import {
   resolveCornerRadius,
   CARD_VERSION,
 } from "./const";
+import { stopSwipe } from "./shared/swipe";
 import { localize, type TranslationKey } from "./localize";
 import { STANDARD_EASING, shouldAnimate } from "./shared/animation";
 import { buildCssVars, foregroundColor, foregroundOn, inkOn, resolveCommonColors, resolveThemeColor, tintOn } from "./shared/color-config";
@@ -673,6 +674,12 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
           @pointermove=${(e: PointerEvent) => this._dragMove(e, checkedIn)}
           @pointerup=${(e: PointerEvent) => this._dragEnd(e, target)}
           @pointercancel=${(e: PointerEvent) => this._dragEnd(e, undefined)}
+          @touchstart=${stopSwipe}
+          @touchmove=${stopSwipe}
+          @touchend=${stopSwipe}
+          @mousedown=${stopSwipe}
+          @mousemove=${stopSwipe}
+          @mouseup=${stopSwipe}
         >
           <ha-icon icon=${icon}></ha-icon>
         </div>

@@ -1239,6 +1239,7 @@ Mit einem harmlosen `input_boolean` testen.
 | Mehrere Personen | `user_entity_map` mit zwei HA-Benutzern | Jeder schaltet nur seine eigene Entität; Eingecheckte als Avatare (Bild oder Initialen, „+N") |
 | `person` als Entität | `entity: person.x` | Eingecheckt = `home` bzw. `home_state`; Schalten über die konfigurierten Aktionen |
 | Editor | Karte im Dashboard-Editor | Abschnitte je Stil; Wechsel des Stils blendet die passenden Felder ein |
+| Wisch-Plugin | Mit installiertem `hass-swipe-navigation` den Swipe-Griff seitlich ziehen | Nur der Griff bewegt sich, die Dashboard-Ansicht wechselt nicht |
 
 ## M3 Openings Card
 

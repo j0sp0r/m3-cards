@@ -777,6 +777,10 @@ export class M3MultiGraphCard extends TemplatedCard(LitElement) implements Lovel
         @blur=${this._onChartBlur}
         @touchstart=${stopSwipe}
         @touchmove=${stopSwipe}
+        @touchend=${stopSwipe}
+        @mousedown=${stopSwipe}
+        @mousemove=${stopSwipe}
+        @mouseup=${stopSwipe}
       >
         ${keyed(
           `${shown ?? ""}`,

@@ -1595,8 +1595,10 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
         @pointercancel=${this._seekPointer.cancel}
         @touchstart=${stopSwipe}
         @touchmove=${stopSwipe}
+        @touchend=${stopSwipe}
         @mousedown=${stopSwipe}
         @mousemove=${stopSwipe}
+        @mouseup=${stopSwipe}
       >
         ${svg_}
       </div>
@@ -1645,8 +1647,10 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
           @pointercancel=${this._volumePointer.cancel}
           @touchstart=${stopSwipe}
           @touchmove=${stopSwipe}
+          @touchend=${stopSwipe}
           @mousedown=${stopSwipe}
           @mousemove=${stopSwipe}
+          @mouseup=${stopSwipe}
         >
           <svg class="volume-svg" viewBox="0 0 ${width} ${MEDIA_VOLUME_WAVE_HEIGHT}" preserveAspectRatio="none">
             ${hasActive

@@ -692,8 +692,10 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
         @pointercancel=${this._briPointer.cancel}
         @touchstart=${stopSwipe}
         @touchmove=${stopSwipe}
+        @touchend=${stopSwipe}
         @mousedown=${stopSwipe}
         @mousemove=${stopSwipe}
+        @mouseup=${stopSwipe}
         @keydown=${this._handleKeydown}
       >
         <svg
@@ -774,8 +776,10 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
         @pointercancel=${tempPointer.cancel}
         @touchstart=${stopSwipe}
         @touchmove=${stopSwipe}
+        @touchend=${stopSwipe}
         @mousedown=${stopSwipe}
         @mousemove=${stopSwipe}
+        @mouseup=${stopSwipe}
       >
         <span class="temp-value">${Math.round(currentK)} K</span>
         <div class="temp-handle" style=${`left: ${pct}%;`}></div>
@@ -821,8 +825,10 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
           @pointercancel=${this._handleWheelPointerUp}
           @touchstart=${stopSwipe}
           @touchmove=${stopSwipe}
+          @touchend=${stopSwipe}
           @mousedown=${stopSwipe}
           @mousemove=${stopSwipe}
+          @mouseup=${stopSwipe}
         >
           <div class="wheel-saturation"></div>
           <div

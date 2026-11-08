@@ -1001,6 +1001,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         @pointerleave=${this._onChartRelease}
         @touchstart=${stopSwipe}
         @touchmove=${stopSwipe}
+        @touchend=${stopSwipe}
       >
         <svg width="100%" height=${height} viewBox="0 0 ${Math.max(1, width)} ${height}" aria-hidden="true">
           ${body}

@@ -102,6 +102,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   button, check-in, chip buttons, group, openings, printer, system, vacuum and
   vacuum maintenance cards — printed no banner, so "which version do you
   run?" had no quick answer for them. A test now fails for a card without one.
+- **Swiping the check-in slider no longer changes the view.** With a swipe
+  navigation plugin installed (hass-swipe-navigation), a sideways drag of the
+  check-in card's handle also flipped to the next dashboard view: the handle
+  did not shield its touch and mouse events from the plugin, as the other
+  sliders do. The light, media, detail and time cards shielded only the start
+  and movement of a drag and let the end through, on which the plugin acts;
+  they now hold the whole gesture back.
 - **The light card takes the light's own colour** (#28). `use_light_color`
   was offered in the editor and on by default, but the card never read it:
   slider, icon and power button always showed the accent colour. While the

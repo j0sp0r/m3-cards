@@ -844,8 +844,10 @@ export class M3TimeCard extends TemplatedCard(LitElement) implements LovelaceCar
         @scroll=${this._onWheelScroll(field)}
         @touchstart=${stopSwipe}
         @touchmove=${stopSwipe}
+        @touchend=${stopSwipe}
         @mousedown=${stopSwipe}
         @mousemove=${stopSwipe}
+        @mouseup=${stopSwipe}
         @keydown=${this._onFieldKey(field)}
         @focus=${() => (this._focus = field)}
         @blur=${() => {
