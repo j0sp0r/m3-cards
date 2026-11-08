@@ -12,6 +12,7 @@ import {
   normalizeEntities,
   classProfile,
   shortValue,
+  formatValue,
   sortEntries,
   resolveFocus,
   resolveRanges,
@@ -289,5 +290,13 @@ describe("device classes", () => {
     expect(sortEntries(rows, "temp_desc", "de").map((r) => r.name)).toEqual(["B", "A"]);
     expect(sortEntries(rows, "value_desc", "de").map((r) => r.name)).toEqual(["B", "A"]);
     expect(sortEntries(rows, "value_asc", "de").map((r) => r.name)).toEqual(["A", "B"]);
+  });
+});
+
+describe("formatValue", () => {
+  it("never writes -0", () => {
+    expect(formatValue(-0.2, 0, "de")).toBe("0");
+    expect(formatValue(-0.04, 1, "de")).toBe("0,0");
+    expect(formatValue(-0.6, 0, "de")).toBe("-1");
   });
 });

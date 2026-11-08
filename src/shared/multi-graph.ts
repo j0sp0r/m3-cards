@@ -371,6 +371,9 @@ export function axisLabels(range: MultiGraphRange, t0: number, t1: number, langu
 
 /** A number with exactly `decimals` places, in the language's own way. */
 export function formatValue(value: number, decimals: number, language: string): string {
+  // A reading that rounds to zero is zero, not "-0": a smoothed power curve
+  // dips a hair below it.
+  if (Math.abs(value) < 0.5 * 10 ** -decimals) value = 0;
   return new Intl.NumberFormat(language, { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(value);
 }
 
