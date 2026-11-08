@@ -400,8 +400,9 @@ export class M3MultiGraphCard extends TemplatedCard(LitElement) implements Lovel
       const label = (st?.attributes?.friendly_name as string | undefined) ?? cfg.summary_entity;
       return { value: numericOf(st?.state) ?? undefined, label };
     }
-    if (cfg.summary === "median") return { value: median(lives), label: this._t("multigraph_summary_median") };
-    if (cfg.summary === "sum") return { value: lives.length ? lives.reduce((a, b) => a + b, 0) : undefined, label: this._t("multigraph_summary_sum") };
+    const summary = cfg.summary ?? classProfile(this._class).summary;
+    if (summary === "median") return { value: median(lives), label: this._t("multigraph_summary_median") };
+    if (summary === "sum") return { value: lives.length ? lives.reduce((a, b) => a + b, 0) : undefined, label: this._t("multigraph_summary_sum") };
     return { value: mean(lives), label: this._t("multigraph_summary_mean") };
   }
 

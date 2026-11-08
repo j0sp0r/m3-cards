@@ -270,9 +270,10 @@ describe("device classes", () => {
   });
 
   it("knows icon and decimals of the common classes, and has a fallback", () => {
-    expect(classProfile(undefined)).toEqual({ icon: "mdi:thermometer", decimals: 1 });
+    expect(classProfile(undefined)).toEqual({ icon: "mdi:thermometer", decimals: 1, summary: "mean" });
+    expect(classProfile("power").summary).toBe("sum");
     expect(classProfile("carbon_dioxide").decimals).toBe(0);
-    expect(classProfile("something_new")).toEqual({ icon: "mdi:chart-line", decimals: 1 });
+    expect(classProfile("something_new")).toEqual({ icon: "mdi:chart-line", decimals: 1, summary: "mean" });
   });
 
   it("writes a temperature with a bare degree sign and anything else with its unit", () => {

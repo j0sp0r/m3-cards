@@ -7457,7 +7457,8 @@ device_class: carbon_dioxide    # "CO₂", values in ppm
 summary: median
 ```
 
-Classes with their own header text: `temperature`, `humidity`,
+Power shows the total of its sensors as the large value, every other class
+the average. Classes with their own header text: `temperature`, `humidity`,
 `carbon_dioxide`, `power`, `illuminance`, `pm25`, `pressure`. Any other
 device class works too, with "History" as the title and "<name> highest" as
 the subtitle. The card suits measurements (`state_class: measurement`);
@@ -7477,8 +7478,7 @@ entities:
   - entity: sensor.office_power
     name: Office
     color: "#f5b3a3"
-  - sensor.living_room_power
-summary: sum
+  - sensor.living_room_power             # the header shows their total
 ```
 
 A room list from the climate overview card can be copied in as `rooms`; the
@@ -7574,7 +7574,7 @@ in Home Assistant, else the device class (none for %, ppm, lx, W).
 | `sort` | `area` | Chip and curve order: `area`, `value_desc`, `value_asc`, `name` (`temp_desc` / `temp_asc` are read too) |
 | `ranges` | `[24h, 7d]` | Ranges offered: `6h`, `12h`, `24h`, `48h`, `7d`, `30d` |
 | `default_range` | first of `ranges` | Range shown when the card opens |
-| `summary` | `mean` | The large value: `mean`, `median`, `sum` or `entity` |
+| `summary` | `mean` (`sum` for power) | The large value: `mean`, `median`, `sum` or `entity` |
 | `summary_entity` | — | The sensor shown large with `summary: entity` |
 | `default_focus` | first sensor | Curve in focus at first: its sensor, or its position |
 | `decimals` | display precision, else by class | Decimal places |

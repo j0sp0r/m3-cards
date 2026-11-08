@@ -74,6 +74,12 @@ export interface ClassProfile {
   icon: string;
   /** Decimals when neither the config nor the sensor's display precision says. */
   decimals: number;
+  /**
+   * The large value when `summary` is not set. Power adds up — the total of
+   * the circuits is the house's draw — where an average of rooms says more
+   * for everything else.
+   */
+  summary: "mean" | "sum";
 }
 
 /**
@@ -81,25 +87,25 @@ export interface ClassProfile {
  * (ppm, lx, W, %) drop the decimal; anything not listed keeps one.
  */
 const PROFILES: Record<string, ClassProfile> = {
-  temperature: { icon: "mdi:thermometer", decimals: 1 },
-  humidity: { icon: "mdi:water-percent", decimals: 0 },
-  moisture: { icon: "mdi:water-percent", decimals: 0 },
-  carbon_dioxide: { icon: "mdi:molecule-co2", decimals: 0 },
-  volatile_organic_compounds: { icon: "mdi:air-filter", decimals: 0 },
-  pm25: { icon: "mdi:blur", decimals: 0 },
-  pm10: { icon: "mdi:blur", decimals: 0 },
-  illuminance: { icon: "mdi:brightness-5", decimals: 0 },
-  power: { icon: "mdi:flash", decimals: 0 },
-  pressure: { icon: "mdi:gauge", decimals: 0 },
-  atmospheric_pressure: { icon: "mdi:gauge", decimals: 0 },
-  sound_pressure: { icon: "mdi:volume-high", decimals: 0 },
-  battery: { icon: "mdi:battery", decimals: 0 },
-  voltage: { icon: "mdi:sine-wave", decimals: 1 },
-  current: { icon: "mdi:current-ac", decimals: 1 },
+  temperature: { icon: "mdi:thermometer", decimals: 1, summary: "mean" },
+  humidity: { icon: "mdi:water-percent", decimals: 0, summary: "mean" },
+  moisture: { icon: "mdi:water-percent", decimals: 0, summary: "mean" },
+  carbon_dioxide: { icon: "mdi:molecule-co2", decimals: 0, summary: "mean" },
+  volatile_organic_compounds: { icon: "mdi:air-filter", decimals: 0, summary: "mean" },
+  pm25: { icon: "mdi:blur", decimals: 0, summary: "mean" },
+  pm10: { icon: "mdi:blur", decimals: 0, summary: "mean" },
+  illuminance: { icon: "mdi:brightness-5", decimals: 0, summary: "mean" },
+  power: { icon: "mdi:flash", decimals: 0, summary: "sum" },
+  pressure: { icon: "mdi:gauge", decimals: 0, summary: "mean" },
+  atmospheric_pressure: { icon: "mdi:gauge", decimals: 0, summary: "mean" },
+  sound_pressure: { icon: "mdi:volume-high", decimals: 0, summary: "mean" },
+  battery: { icon: "mdi:battery", decimals: 0, summary: "mean" },
+  voltage: { icon: "mdi:sine-wave", decimals: 1, summary: "mean" },
+  current: { icon: "mdi:current-ac", decimals: 1, summary: "mean" },
 };
 
 export function classProfile(deviceClass: string | undefined): ClassProfile {
-  return PROFILES[deviceClass ?? "temperature"] ?? { icon: "mdi:chart-line", decimals: 1 };
+  return PROFILES[deviceClass ?? "temperature"] ?? { icon: "mdi:chart-line", decimals: 1, summary: "mean" };
 }
 
 /** The device classes the editor offers; any other can be typed in. */

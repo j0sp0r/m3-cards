@@ -42,7 +42,6 @@ const DEFAULTS: Record<string, unknown> = {
   show_axis: true,
   show_focus_range: true,
   show_ranges: true,
-  summary: "mean",
   sort: "area",
   animation: "auto",
 };
@@ -164,6 +163,7 @@ export class M3MultiGraphCardEditor extends LitElement implements LovelaceCardEd
     if (next.sort === "temp_desc") next.sort = "value_desc";
     if (next.sort === "temp_asc") next.sort = "value_asc";
     if (next.decimals === this._defaultDecimals) delete next.decimals;
+    if (next.summary === classProfile((next.device_class as string | undefined) || "temperature").summary) delete next.summary;
     this._emit(next as unknown as M3MultiGraphCardConfig);
   }
 
@@ -589,7 +589,7 @@ export class M3MultiGraphCardEditor extends LitElement implements LovelaceCardEd
               {
                 ranges,
                 default_range: initial,
-                summary: cfg.summary ?? "mean",
+                summary: cfg.summary ?? classProfile(this._class).summary,
                 summary_entity: cfg.summary_entity,
                 default_focus: curves[focusIndex]?.entity,
                 decimals: cfg.decimals ?? this._defaultDecimals,
