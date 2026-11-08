@@ -2084,7 +2084,27 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       | { editMode?: boolean; preview?: boolean }
       | null;
     if (wrapper?.editMode || wrapper?.preview) return true;
+    if (this._inCardPicker()) return true;
     return this._dashboardEditMode();
+  }
+
+  /**
+   * Whether this is a preview in Home Assistant's "add card" dialog. The card
+   * picker sets neither `preview` nor `editMode` there; the card sits in a
+   * plain `<div class="preview">` inside `hui-card-picker`. Docked to the
+   * screen it floated over the dialog and hid its buttons (reported on Reddit
+   * for 2.7.0), so it renders inline like any other preview.
+   */
+  private _inCardPicker(): boolean {
+    if (this.parentElement?.classList.contains("preview")) return true;
+    let node: Node | null = this;
+    for (let depth = 0; depth < 12 && node; depth++) {
+      const name = (node as Element).localName;
+      if (name === "hui-card-picker" || name === "hui-card-preview" || name === "hui-dialog-create-card") return true;
+      const parent: Node | null = (node as Element).parentElement ?? (node as { parentNode?: Node }).parentNode ?? null;
+      node = parent && (parent as ShadowRoot).host ? (parent as ShadowRoot).host : parent;
+    }
+    return false;
   }
 
   /**

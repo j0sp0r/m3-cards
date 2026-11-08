@@ -18,6 +18,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **The nav card no longer floats over the "add card" dialog.** Its preview
+  in Home Assistant's card picker docked itself to the screen, as on a real
+  view, and covered the dialog's buttons at the bottom right: the picker
+  marks its previews neither as `preview` nor as `editMode`. The card now
+  recognises the picker and shows an inline preview there. Reported on
+  Reddit.
 - **The energy flow card follows its own sensors live.** With
   `source: entities` it read them once and then every five minutes, so a
   power reading could stand five minutes behind; it now reads them on every

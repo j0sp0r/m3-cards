@@ -881,6 +881,7 @@ Fallen woanders als bei den übrigen Karten.
 | Sheet: Safe Area | Auf einem iPhone in Safari öffnen | Leiste sitzt über der Home-Bar, nicht darunter |
 | Reduced Motion | C11/C12 mit `style: sheet` | Schublade springt zwischen den Rastpunkten, ohne Nachfedern |
 | Ganze Karte ausblenden | `hidden` auf ein Template setzen, das wahr wird | Leiste verschwindet vollständig |
+| Kartenauswahl | Bearbeiten → „+“ → „Nach Karte“ → „M3 Nav“ suchen | Vorschau steht in ihrer Kachel; nichts schwebt über dem Dialog, „Abbrechen“ bleibt frei |
 
 ## M3 Vacuum Card
 
