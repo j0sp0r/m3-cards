@@ -166,6 +166,7 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | `mode: consumption`, `period: day/hour/month` | Alle drei Perioden durchklicken | Balken, Achsenbeschriftung und Summen wechseln korrekt; keine hängenden Ladezustände |
 | `mode: solar` | Mit `forecast_entity` | Balken zeigen Ist-Werte + gestrichelten Forecast-Rest korrekt übereinander |
 | History-Fallback | Eine Entität ohne Long-Term-Statistics verwenden | Karte lädt trotzdem (über History-API), keine Fehlermeldung |
+| Lebenszeit-Zähler, `statistic_type: change` | `period: day` und `period: hour` mit einem nie zurückgesetzten Zähler (z. B. P1-Netzbezug) | Heutiger Balken und Kopfwert zeigen den Verbrauch seit Mitternacht bzw. seit Beginn der Stunde, nicht den Zählerstand |
 | Monats-Hochrechnung | `period: month`, `show_projection: true` | Hochrechnung erscheint plausibel (nicht negativ/riesig) |
 | Vergleichs-Chip | `show_comparison: true`, `higher_is_better` in beide Richtungen testen | Farbe (besser/schlechter) und Pfeilrichtung stimmen zur Einstellung |
 | Balken-Tap | Auf einen einzelnen Balken tippen | Value-Bubble mit exaktem Wert erscheint über dem Balken |

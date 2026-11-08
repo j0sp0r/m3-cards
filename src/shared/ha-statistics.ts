@@ -67,6 +67,15 @@ export function localHourKey(d: Date): string {
   return `${localDayKey(d)}T${String(d.getHours()).padStart(2, "0")}`;
 }
 
+// Start of the still-running bar of the energy card: the current hour in hour mode, local
+// midnight in day mode.
+export function currentPeriodStart(period: "day" | "hour", now: Date = new Date()): Date {
+  const start = new Date(now);
+  if (period === "hour") start.setMinutes(0, 0, 0);
+  else start.setHours(0, 0, 0, 0);
+  return start;
+}
+
 function localMonthKey(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
