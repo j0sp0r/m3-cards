@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
+import { localize, type CustomTranslationRegistry } from "./localize";
 
 /**
  * A string in `localize.ts` carrying a `{placeholder}` is a promise that the
@@ -118,5 +119,73 @@ describe("localize placeholders", () => {
     const withPlaceholders = keysWithPlaceholders();
     const stale = [...ALLOWED.keys()].filter((k) => !withPlaceholders.has(k));
     expect(stale).toEqual([]);
+  });
+});
+
+describe("user translations (window.m3CardsTranslations)", () => {
+  const scope = globalThis as { m3CardsTranslations?: unknown };
+  const register = (registry: CustomTranslationRegistry | Record<string, unknown>): void => {
+    scope.m3CardsTranslations = registry;
+  };
+
+  afterEach(() => {
+    delete scope.m3CardsTranslations;
+  });
+
+  it("without a registry, behaves exactly as the built-in tables", () => {
+    expect(localize("energy_weekday_today", "de")).toBe("Heute");
+    expect(localize("energy_weekday_today", "de-AT")).toBe("Heute");
+    expect(localize("energy_weekday_today", "en")).toBe("Today");
+    expect(localize("energy_weekday_today", "nl")).toBe("Today");
+    expect(localize("energy_weekday_today")).toBe("Today");
+  });
+
+  it("a partial map overrides its keys and leaves the rest in English", () => {
+    register({ nl: { energy_weekday_today: "Vandaag" } });
+    expect(localize("energy_weekday_today", "nl")).toBe("Vandaag");
+    expect(localize("multigraph_summary_mean", "nl")).toBe("Average");
+    // Other languages are not touched.
+    expect(localize("energy_weekday_today", "en")).toBe("Today");
+    expect(localize("energy_weekday_today", "de")).toBe("Heute");
+  });
+
+  it("keeps placeholders for the call site to fill", () => {
+    register({ nl: { energy_subtitle_days: "Laatste {days} dagen" } });
+    expect(localize("energy_subtitle_days", "nl").replace("{days}", "7")).toBe("Laatste 7 dagen");
+  });
+
+  it("a regional tag falls back to its base language, and the regional map wins where it has a key", () => {
+    register({
+      nl: { energy_weekday_today: "Vandaag", multigraph_summary_mean: "Gemiddeld" },
+      "nl-BE": { multigraph_summary_mean: "Gemiddelde" },
+    });
+    expect(localize("energy_weekday_today", "nl-BE")).toBe("Vandaag");
+    expect(localize("multigraph_summary_mean", "nl-BE")).toBe("Gemiddelde");
+    expect(localize("multigraph_summary_mean", "nl")).toBe("Gemiddeld");
+  });
+
+  it("a custom German map overrides German, and built-in German still wins over English for the rest", () => {
+    register({ de: { energy_weekday_today: "Heut'" } });
+    expect(localize("energy_weekday_today", "de")).toBe("Heut'");
+    expect(localize("multigraph_summary_mean", "de")).toBe("Durchschnitt");
+  });
+
+  it("ignores values that are not strings, and a registry that is not an object", () => {
+    register({ nl: { energy_weekday_today: 42, multigraph_summary_mean: { text: "Gemiddeld" }, energy_hour_now: null } });
+    expect(localize("energy_weekday_today", "nl")).toBe("Today");
+    expect(localize("multigraph_summary_mean", "nl")).toBe("Average");
+    expect(localize("energy_hour_now", "nl")).toBe("Now");
+
+    register({ nl: "Vandaag" });
+    expect(localize("energy_weekday_today", "nl")).toBe("Today");
+
+    scope.m3CardsTranslations = "nl";
+    expect(localize("energy_weekday_today", "nl")).toBe("Today");
+  });
+
+  it("reads the registry at call time, so translations that load after the bundle still apply", () => {
+    expect(localize("energy_weekday_today", "nl")).toBe("Today");
+    register({ nl: { energy_weekday_today: "Vandaag" } });
+    expect(localize("energy_weekday_today", "nl")).toBe("Vandaag");
   });
 });
