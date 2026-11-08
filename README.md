@@ -1099,7 +1099,29 @@ source: energy
 - **`source: entities`**: `solar_entity`, `grid_import_entity`,
   `grid_export_entity`, `battery_entity` are freely chosen — useful when
   no full Energy dashboard is set up or individual sources need to be
-  replaced.
+  replaced. The values update as the sensors change.
+
+### Energy or power
+
+With your own sensors the card follows their unit. Energy sensors (Wh,
+kWh, MWh) show the day: "Today", `· kWh`, "Self-sufficiency today". If
+every sensor reports **power** (W or kW), the card shows the flow right
+now instead: "Now", `· W` (`· kW` from 1000 W) and "Self-sufficiency now".
+
+Names, unit and subtitle can be set yourself:
+
+```yaml
+type: custom:m3-energy-flow-card
+source: entities
+solar_entity: sensor.pv_power
+grid_import_entity: sensor.grid_import_power
+grid_export_entity: sensor.grid_export_power
+pv_name: Roof
+grid_name: Grid
+home_name: Flat
+subtitle: Live
+unit: W              # W, kW, Wh, kWh, MWh convert the numbers; other text is a label
+```
 
 The battery node automatically appears only if a battery source is
 configured (`show_battery: auto`, default) — `always`/`never` force its
@@ -1118,6 +1140,9 @@ paused) when `animation: "off"` or `prefers-reduced-motion` is active.
 | `source` | `energy` \| `entities` | `energy` | Data source |
 | `solar_entity` / `grid_import_entity` / `grid_export_entity` / `battery_entity` | string | – | Only for `source: entities` |
 | `name` | string | "Energy Flow" | Displayed name |
+| `subtitle` | string | "Today", or "Now" for power sensors | Line under the name |
+| `pv_name` / `grid_name` / `home_name` / `battery_name` | string | Solar / Grid / Home / Battery | Node names |
+| `unit` | string | kWh, or W/kW for power sensors | Unit under the nodes; W, kW, Wh, kWh and MWh also convert the numbers |
 | `icon` | string | `mdi:transmission-tower` | Icon in the icon tile |
 | `show_self_sufficiency` | boolean | `true` | Show the self-sufficiency bar |
 | `show_battery` | `auto` \| `always` \| `never` | `auto` | Battery node visibility |

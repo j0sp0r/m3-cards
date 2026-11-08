@@ -42,6 +42,7 @@ import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
 import { shouldAnimate } from "./shared/animation";
 import { getEnergyDashboardEntities, fetchTodayChangeSum } from "./shared/ha-energy";
+import { displayUnit, flowMeasure, toBase, type FlowMeasure } from "./shared/energy-flow-units";
 import { localize, type TranslationKey } from "./localize";
 import { formatNumber } from "./shared/formatting";
 import { hassChangeMatters } from "./shared/should-update";
@@ -107,6 +108,8 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
   @state() private _hasBattery = false;
   @state() private _noEnergyDashboard = false;
   @state() private _loading = true;
+  /** Energy over the day, or power right now (`source: entities` with power sensors). */
+  @state() private _measure: FlowMeasure = "energy";
 
   private _refreshTimer?: number;
   private _lastFetchKey?: string;
@@ -182,29 +185,53 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
 
   private _maybeFetch(): void {
     if (!this.hass || !this._config) return;
-    const c = this._config;
-    const key =
-      c.source === "entities"
-        ? `entities|${c.solar_entity}|${c.grid_import_entity}|${c.grid_export_entity}|${c.battery_entity}`
-        : "energy";
-    if (key === this._lastFetchKey) return;
-    this._lastFetchKey = key;
+    // Own sensors are read as they change (willUpdate); only the Energy
+    // dashboard's statistics are fetched, on the refresh timer.
+    if (this._config.source === "entities") return;
+    if (this._lastFetchKey === "energy") return;
+    this._lastFetchKey = "energy";
     this._fetchData();
   }
 
-  // Reads a live entity state as kWh, normalizing Wh/MWh-native sensors so
-  // the `source: entities` fallback lines up with the kWh-normalized
-  // statistics used by the `source: energy` path.
-  private _liveValueInKwh(entityId?: string): number {
-    if (!entityId || !this.hass) return 0;
-    const st = this.hass.states[entityId];
-    if (!st) return 0;
-    const raw = parseFloat(st.state);
-    if (st.state === "unavailable" || st.state === "unknown" || isNaN(raw)) return 0;
-    const unit = String(st.attributes.unit_of_measurement ?? "").toLowerCase();
-    if (unit === "wh") return raw / 1000;
-    if (unit === "mwh") return raw * 1000;
-    return raw;
+  protected willUpdate(changed: PropertyValues): void {
+    super.willUpdate?.(changed);
+    if (this._config?.source === "entities" && (changed.has("hass") || changed.has("_config"))) this._readEntities();
+  }
+
+  /**
+   * The four sensors, read at once and on every change of one of them: a
+   * power sensor moves every few seconds, and the five-minute statistics
+   * refresh would leave the diagram that far behind. All values are brought
+   * to one base unit — kWh, or W when every sensor reports power.
+   */
+  private _readEntities(): void {
+    const c = this._config;
+    if (!c || !this.hass) return;
+    const ids = [c.solar_entity, c.grid_import_entity, c.grid_export_entity, c.battery_entity];
+    const sensors = ids
+      .filter((id): id is string => !!id && !!this.hass!.states[id])
+      .map((id) => {
+        const a = this.hass!.states[id].attributes;
+        return { unit: a.unit_of_measurement as string | undefined, deviceClass: a.device_class as string | undefined };
+      });
+    const measure = flowMeasure(sensors);
+    const read = (id?: string): number => {
+      if (!id) return 0;
+      const st = this.hass!.states[id];
+      const raw = st ? parseFloat(st.state) : NaN;
+      if (!st || isNaN(raw)) return 0;
+      return Math.max(0, toBase(raw, st.attributes.unit_of_measurement as string | undefined, measure));
+    };
+    this._measure = measure;
+    this._noEnergyDashboard = false;
+    this._hasSolar = !!c.solar_entity;
+    this._hasBattery = !!c.battery_entity;
+    this._solarTotal = read(c.solar_entity);
+    this._gridImport = read(c.grid_import_entity);
+    this._gridExport = read(c.grid_export_entity);
+    this._batteryDischarge = read(c.battery_entity);
+    this._batteryCharge = 0;
+    this._loading = false;
   }
 
   private async _fetchData(): Promise<void> {
@@ -213,15 +240,9 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
     const config = this._config;
     try {
       if (config.source === "entities") {
-        this._noEnergyDashboard = false;
-        this._hasSolar = !!config.solar_entity;
-        this._hasBattery = !!config.battery_entity;
-        this._solarTotal = this._liveValueInKwh(config.solar_entity);
-        this._gridImport = this._liveValueInKwh(config.grid_import_entity);
-        this._gridExport = this._liveValueInKwh(config.grid_export_entity);
-        this._batteryDischarge = this._liveValueInKwh(config.battery_entity);
-        this._batteryCharge = 0;
+        this._readEntities();
       } else {
+        this._measure = "energy";
         const dash = await getEnergyDashboardEntities(this.hass);
         if (!dash) {
           this._noEnergyDashboard = true;
@@ -255,7 +276,20 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
   }
 
   private _formatNumber(value: number): string {
-    return formatNumber(this._language, value, { maximumFractionDigits: 2 });
+    // Watts are whole numbers; kW and kWh keep up to two places.
+    const places = this._measure === "power" && this._unitDivisor === 1 ? 0 : 2;
+    return formatNumber(this._language, value / this._unitDivisor, { maximumFractionDigits: places });
+  }
+
+  /** Set per render from `displayUnit`: what the numbers are divided by, and the unit under them. */
+  private _unitDivisor = 1;
+  private _unitLabel = "kWh";
+
+  private _nodeLabel(key: "pv" | "grid" | "home" | "battery"): string {
+    const c = this._config!;
+    const own = { pv: c.pv_name, grid: c.grid_name, home: c.home_name, battery: c.battery_name }[key];
+    const name = own || this._t(`flow_node_${key}` as TranslationKey);
+    return this._unitLabel ? `${name} · ${this._unitLabel}` : name;
   }
 
   private _buildDiagram(
@@ -279,7 +313,7 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
         color: colors.grid,
         icon: "mdi:transmission-tower",
         value: this._gridImport,
-        label: `${this._t("flow_node_grid")} · kWh`,
+        label: this._nodeLabel("grid"),
       },
       {
         key: "home",
@@ -288,7 +322,7 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
         color: colors.home,
         icon: "mdi:home",
         value: Math.max(0, homeConsumption),
-        label: `${this._t("flow_node_home")} · kWh`,
+        label: this._nodeLabel("home"),
       },
     ];
     if (this._hasSolar) {
@@ -299,7 +333,7 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
         color: colors.pv,
         icon: "mdi:white-balance-sunny",
         value: this._solarTotal,
-        label: `${this._t("flow_node_pv")} · kWh`,
+        label: this._nodeLabel("pv"),
       });
     }
 
@@ -339,7 +373,7 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
         color: colors.battery,
         icon: charging ? "mdi:battery-charging" : "mdi:battery-arrow-down-outline",
         value: batteryValue,
-        label: `${this._t("flow_node_battery")} · kWh`,
+        label: this._nodeLabel("battery"),
       });
       if (batteryValue > 0) {
         flows.push({
@@ -380,7 +414,12 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
 
     const name = this._config.name || this._t("flow_default_name");
     const icon = this._config.icon || DEFAULT_FLOW_ICON;
-    const subtitle = this._t("flow_subtitle_today");
+    const power = this._measure === "power";
+    const subtitle = this._config.subtitle || this._t(power ? "flow_subtitle_now" : "flow_subtitle_today");
+    const largest = Math.max(this._solarTotal, this._gridImport, this._gridExport, this._batteryCharge, this._batteryDischarge);
+    const shownUnit = displayUnit(this._measure, largest, this._config.unit);
+    this._unitDivisor = shownUnit.divisor;
+    this._unitLabel = shownUnit.label;
 
     const pvColor = this._config.pv_color
       ? resolveThemeColor(this._config.pv_color)
@@ -466,7 +505,7 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
             ? html`
                 <div class="self-sufficiency">
                   <div class="self-sufficiency-row">
-                    <span class="self-sufficiency-label">${this._t("flow_self_sufficiency")}</span>
+                    <span class="self-sufficiency-label">${this._t(power ? "flow_self_sufficiency_now" : "flow_self_sufficiency")}</span>
                     <span class="self-sufficiency-value" style=${`color: ${foregroundColor(this, selfSufficiencyColor)};`}>
                       ${Math.round(selfSufficiency)}%
                     </span>

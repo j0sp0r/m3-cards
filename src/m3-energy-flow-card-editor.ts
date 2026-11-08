@@ -63,8 +63,19 @@ export class M3EnergyFlowCardEditor extends LitElement implements LovelaceCardEd
   }
 
   private _contentSchema(): SchemaEntry[] {
-    return [{ name: "show_self_sufficiency", selector: { boolean: {} } }];
+    return [
+      { name: "show_self_sufficiency", selector: { boolean: {} } },
+      { name: "subtitle", selector: { text: {} } },
+      { name: "pv_name", selector: { text: {} } },
+      { name: "grid_name", selector: { text: {} } },
+      { name: "home_name", selector: { text: {} } },
+      { name: "battery_name", selector: { text: {} } },
+      { name: "unit", selector: { text: {} } },
+    ];
   }
+
+  private _computeHelper = (schema: SchemaEntry): string | undefined =>
+    schema.name === "unit" ? this._t("editor_flow_unit_helper") : undefined;
 
   private _animationSchema(): SchemaEntry[] {
     return [
@@ -107,6 +118,12 @@ export class M3EnergyFlowCardEditor extends LitElement implements LovelaceCardEd
       grid_export_entity: "editor_flow_grid_export_entity",
       battery_entity: "editor_flow_battery_entity",
       show_self_sufficiency: "editor_flow_show_self_sufficiency",
+      subtitle: "editor_flow_subtitle",
+      pv_name: "editor_flow_pv_name",
+      grid_name: "editor_flow_grid_name",
+      home_name: "editor_flow_home_name",
+      battery_name: "editor_flow_battery_name",
+      unit: "editor_flow_unit",
       animation: "editor_progress_animation",
       flow_speed: "editor_flow_speed",
       glass_background: "editor_glass_background",
@@ -145,7 +162,10 @@ export class M3EnergyFlowCardEditor extends LitElement implements LovelaceCardEd
 
   private _valueChanged(ev: CustomEvent): void {
     if (!this._config) return;
-    this._config = { ...this._config, ...ev.detail.value };
+    const next: Record<string, unknown> = { ...this._config, ...ev.detail.value };
+    // An emptied text field is an unset option, not an empty name.
+    for (const k of ["subtitle", "pv_name", "grid_name", "home_name", "battery_name", "unit"]) if (next[k] === "") delete next[k];
+    this._config = next as unknown as M3EnergyFlowCardConfig;
     fireEvent(this, "config-changed", { config: this._config });
   }
 
@@ -203,7 +223,15 @@ export class M3EnergyFlowCardEditor extends LitElement implements LovelaceCardEd
       grid_export_entity: this._config.grid_export_entity,
       battery_entity: this._config.battery_entity,
     };
-    const contentData = { show_self_sufficiency: this._config.show_self_sufficiency ?? true };
+    const contentData = {
+      show_self_sufficiency: this._config.show_self_sufficiency ?? true,
+      subtitle: this._config.subtitle,
+      pv_name: this._config.pv_name,
+      grid_name: this._config.grid_name,
+      home_name: this._config.home_name,
+      battery_name: this._config.battery_name,
+      unit: this._config.unit,
+    };
     const animationData = {
       animation: this._config.animation ?? "auto",
       flow_speed: this._config.flow_speed ?? "normal",
@@ -232,6 +260,7 @@ export class M3EnergyFlowCardEditor extends LitElement implements LovelaceCardEd
               .data=${contentData}
               .schema=${this._contentSchema()}
               .computeLabel=${this._computeLabel}
+              .computeHelper=${this._computeHelper}
               @value-changed=${this._valueChanged}
             ></ha-form>
           </div>

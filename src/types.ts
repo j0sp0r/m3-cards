@@ -420,6 +420,18 @@ export interface M3EnergyFlowCardConfig {
   battery_entity?: string;
   name?: string;
   icon?: string;
+  /** Header line under the name. Default "Today", or "Now" for power sensors. */
+  subtitle?: string;
+  /** Node names; default Solar, Grid, Home, Battery. */
+  pv_name?: string;
+  grid_name?: string;
+  home_name?: string;
+  battery_name?: string;
+  /**
+   * Unit under the nodes. W, kW, Wh, kWh or MWh also scale the numbers; any
+   * other text is only a label. Default: kWh, or W/kW for power sensors.
+   */
+  unit?: string;
   show_self_sufficiency?: boolean;
   show_battery?: FlowBatteryVisibility;
   pv_color?: string;

@@ -4,6 +4,25 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format angelehnt an [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
+## [Unreleased]
+
+### Added
+
+- **The energy flow card shows power, and takes your own names** (#29).
+  With `source: entities` the card now follows the sensors' unit: if every
+  one reports power (W or kW), it shows the flow right now — "Now", the
+  values in W (kW from 1000 W) and "Self-sufficiency now" — instead of watts
+  under a kWh label. `pv_name`, `grid_name`, `home_name`, `battery_name`,
+  `unit` and `subtitle` set the texts, also in the editor; a `unit` the card
+  knows (W, kW, Wh, kWh, MWh) also converts the numbers.
+
+### Fixed
+
+- **The energy flow card follows its own sensors live.** With
+  `source: entities` it read them once and then every five minutes, so a
+  power reading could stand five minutes behind; it now reads them on every
+  change.
+
 ## [2.7.0] – 2026-11-08
 
 ### Added

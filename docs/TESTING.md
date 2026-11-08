@@ -189,6 +189,8 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Flow-Punkte-Animation | Reduced-Motion aktivieren | Punkte-Animation (`.flow-dots`) wird komplett weggelassen (nicht nur pausiert) |
 | `flow_speed` | `slow`/`normal`/`fast` durchschalten | Sichtbar unterschiedliche Punktgeschwindigkeit |
 | Autarkie-Balken | `show_self_sufficiency: true` bei 0 % und 100 % Grenzfällen | Balkenbreite clamped korrekt auf 0–100 %, kein Überlauf |
+| Leistungssensoren (#29) | `source: entities` mit drei W-Sensoren | „Jetzt“, Werte in W bzw. ab 1000 W in kW, „Autarkie jetzt“; Werte folgen jeder Änderung sofort |
+| Eigene Texte | `pv_name`, `grid_name`, `home_name`, `subtitle`, `unit` setzen | Texte erscheinen; `unit: kW` rechnet um, `unit: Watt` beschriftet nur |
 
 ## M3 Counter Card
 
