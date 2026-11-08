@@ -12,7 +12,7 @@ TypeScript + [Lit](https://lit.dev), **without** any dependency on
 (`m3-cards.js`) registers **53 cards**, all sharing one design language.
 
 <p align="center">
-  <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.7.0"><img src="docs/images/release-2.7.jpg" alt="What's new in 2.7: the multi graph card, the vehicle card and the compact presence card" width="880"></a>
+  <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.7.0"><img src="docs/images/release-2.7.jpg" alt="What's new in 2.7: the multi graph card, the vehicle card, the compact presence card and a swipe along the nav bar" width="880"></a>
 </p>
 
 <p align="center"><sub>
