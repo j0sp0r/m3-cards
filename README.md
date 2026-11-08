@@ -12,12 +12,12 @@ TypeScript + [Lit](https://lit.dev), **without** any dependency on
 (`m3-cards.js`) registers **53 cards**, all sharing one design language.
 
 <p align="center">
-  <a href="https://github.com/j0sp0r/m3-cards/releases/download/v2.6.0/m3-cards-2.6.mp4"><img src="docs/images/release-2.6.jpg" alt="What's new in 2.6: the detail view beside Home Assistant's own history dialog" width="880"></a>
+  <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.7.0"><img src="docs/images/release-2.7.jpg" alt="What's new in 2.7: the multi graph card, the vehicle card and the compact presence card" width="880"></a>
 </p>
 
 <p align="center"><sub>
-  What's new in 2.6, with sound, as a 38-second video:
-  <a href="https://github.com/j0sp0r/m3-cards/releases/download/v2.6.0/m3-cards-2.6.mp4">landscape</a> ·
+  What's new in 2.7: <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.7.0">the release notes</a> ·
+  2.6 as a video: <a href="https://github.com/j0sp0r/m3-cards/releases/download/v2.6.0/m3-cards-2.6.mp4">landscape</a> ·
   <a href="https://github.com/j0sp0r/m3-cards/releases/download/v2.6.0/m3-cards-2.6-phone.mp4">phone</a>
 </sub></p>
 
