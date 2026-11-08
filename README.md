@@ -7468,6 +7468,19 @@ decimals: 1
 height: 130
 ```
 
+### Humidity instead
+
+`measure: humidity` draws each room's humidity: discovery takes the room's
+humidity sensor, a room list reads `humidity_entity` (so the same list
+serves both variants, and a room without a humidity sensor is left out),
+values are in %, with no decimals by default, and the header reads
+"Humidity" and "<room> most humid".
+
+```yaml
+type: custom:m3-temperature-graph-card
+measure: humidity
+```
+
 ### Just the graph
 
 Every extra can be switched off, down to a header over the curves:
@@ -7531,9 +7544,10 @@ average; the editor warns about it.
 | `include_labels` / `exclude_labels` | — | Label filter for discovery |
 | `include_entities` / `exclude_entities` | — | Entity filter for discovery; a sensor without an area is drawn only when named here |
 | `include_state` / `exclude_state` | — | State filter (`unavailable`/`unknown`, or a custom value) |
-| `rooms` | — | Fixed room list (`name`, `temperature_entity`, `color`) instead of discovery |
+| `measure` | `temperature` | `temperature` or `humidity` |
+| `rooms` | — | Fixed room list (`name`, `temperature_entity`, `humidity_entity`, `color`) instead of discovery |
 | `name_strip` | as on the climate overview card | Patterns removed from names found by discovery |
-| `name` / `icon` | `Room temperature` / `mdi:thermometer` | Header |
+| `name` / `icon` | `Room temperature` / `mdi:thermometer` (`Humidity` / `mdi:water-percent`) | Header |
 | `show_header` | `true` | Card header |
 | `sort` | `area` | Chip and curve order: `area`, `temp_desc`, `temp_asc`, `name` |
 | `ranges` | `[24h, 7d]` | Ranges offered: `6h`, `12h`, `24h`, `48h`, `7d`, `30d` |
@@ -7541,7 +7555,7 @@ average; the editor warns about it.
 | `summary` | `mean` | The large value: `mean`, `median` or `entity` |
 | `summary_entity` | — | The sensor shown large with `summary: entity` |
 | `default_focus` | first room | Curve in focus at first: its sensor, or its position |
-| `decimals` | `1` | Decimal places |
+| `decimals` | `1` (`0` for humidity) | Decimal places |
 | `show_chips` | `true` | Room chips (legend and focus picker) |
 | `show_extremes` | `true` | Lowest and highest value as pills at the left edge |
 | `show_axis` | `true` | Time labels below the graph |

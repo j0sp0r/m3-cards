@@ -786,6 +786,15 @@ export const DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP = [
   "^Thermometer\\s*\\d*\\s*-?\\s*",
   "^Thermostat\\s+",
 ];
+/** The humidity graph's default: the overview's patterns and the humidity suffixes. */
+export const DEFAULT_HUMIDITY_NAME_STRIP = [
+  ...DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP,
+  " Humidity$",
+  " Luftfeuchtigkeit$",
+  " Luftfeuchte$",
+  " Feuchtigkeit$",
+  " Feuchte$",
+];
 export const CLIMATE_OVERVIEW_SCALE_MIN_SPAN = 8;
 /**
  * Label sizing for the comparison scale. Widths are estimated rather than

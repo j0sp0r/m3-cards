@@ -3248,19 +3248,24 @@ export type TempGraphPalette = "tonal";
 
 /**
  * One room, written as on the climate overview card, so a room list can be
- * copied between the two. `humidity_entity` and `climate_entity` are accepted
- * and ignored: the graph draws temperature only.
+ * copied between the two. Which sensor is drawn follows `measure`;
+ * `climate_entity` is accepted and ignored.
  */
 export interface TempGraphRoomConfig {
   /** Default: the sensor's area, then its name with `name_strip` applied. */
   name?: string;
   icon?: string;
-  temperature_entity: string;
+  /** The sensor drawn with `measure: temperature` (the default). */
+  temperature_entity?: string;
+  /** The sensor drawn with `measure: humidity`. */
   humidity_entity?: string;
   climate_entity?: string;
   /** Overrides the palette. */
   color?: string;
 }
+
+/** What the card draws: each room's temperature, or its humidity. */
+export type TempGraphMeasure = "temperature" | "humidity";
 
 export type TempGraphSort = "area" | "temp_desc" | "temp_asc" | "name";
 
@@ -3273,7 +3278,9 @@ export interface TempGraphEntityConfig {
 
 export interface M3TemperatureGraphCardConfig extends EntityFilterConfig {
   type: string;
-  /** Default "Raumtemperatur" / "Room temperature". */
+  /** Temperature (default) or humidity. */
+  measure?: TempGraphMeasure;
+  /** Default "Raumtemperatur" / "Luftfeuchtigkeit", by `measure`. */
   name?: string;
   icon?: string;
   show_header?: boolean;
@@ -3295,7 +3302,7 @@ export interface M3TemperatureGraphCardConfig extends EntityFilterConfig {
   summary_entity?: string;
   /** The curve in focus at first: its sensor, or its position. Default the first. */
   default_focus?: number | string;
-  /** Default 1. */
+  /** Default 1 for temperature, 0 for humidity. */
   decimals?: number;
   /** The lowest and highest value as pills at the left edge. Default true. */
   show_extremes?: boolean;

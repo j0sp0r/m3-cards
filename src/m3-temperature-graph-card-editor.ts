@@ -3,6 +3,7 @@ import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant, LovelaceCardEditor, M3TemperatureGraphCardConfig, TempGraphRoomConfig } from "./types";
 import {
   DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP,
+  DEFAULT_HUMIDITY_NAME_STRIP,
   DEFAULT_TEMP_GRAPH_DECIMALS,
   DEFAULT_TEMP_GRAPH_HEIGHT,
   DEFAULT_TEMP_GRAPH_RADIUS,
@@ -21,15 +22,12 @@ import {
 } from "./shared/appearance-editor";
 import { discoverClimateRooms } from "./shared/ha-registry";
 import type { EntityFilterConfig } from "./shared/entity-filter";
-import { TEMP_GRAPH_RANGES, graphRooms, resolveFocus, resolveRanges } from "./shared/temperature-graph";
+import { TEMP_GRAPH_RANGES, graphRooms, resolveFocus, resolveRanges, roomEntity } from "./shared/temperature-graph";
 
 type ColorField = "accent_color" | "text_color" | "secondary_text_color" | "card_background";
 
-const TEMP_SELECTOR = { entity: { domain: "sensor", device_class: "temperature" } };
-
 /** Values left out of the YAML rather than written: empty, or the default. */
 const DEFAULTS: Record<string, unknown> = {
-  decimals: DEFAULT_TEMP_GRAPH_DECIMALS,
   height: DEFAULT_TEMP_GRAPH_HEIGHT,
   show_extremes: true,
   show_header: true,
@@ -104,13 +102,13 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
       return;
     }
     const filter = this._filter();
-    const nameStrip = this._config.name_strip ?? DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP;
-    const key = JSON.stringify([filter, nameStrip]);
+    const nameStrip = this._config.name_strip ?? (this._config.measure === "humidity" ? DEFAULT_HUMIDITY_NAME_STRIP : DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP);
+    const key = JSON.stringify([filter, nameStrip, this._config.measure]);
     if (key === this._foundKey && this._found) return;
     this._foundKey = key;
     const rooms = await discoverClimateRooms(this.hass, { filter, nameStrip });
     if (key !== this._foundKey) return;
-    this._found = graphRooms(rooms, filter.include_entities).map((r) => ({ name: r.name, entity: r.temperatureEntity! }));
+    this._found = graphRooms(rooms, filter.include_entities, this._config.measure);
   }
 
   protected updated(changed: Map<string, unknown>): void {
@@ -138,6 +136,8 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
     }
     // Discovery is the default without a room list, so only "off" is written.
     if (next.auto_discover === true) delete next.auto_discover;
+    if (next.measure === "temperature") delete next.measure;
+    if (next.decimals === (next.measure === "humidity" ? 0 : DEFAULT_TEMP_GRAPH_DECIMALS)) delete next.decimals;
     this._emit(next as unknown as M3TemperatureGraphCardConfig);
   }
 
@@ -167,7 +167,10 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
 
   /** The curves as the editor knows them: the room list, or what discovery finds. */
   private _curves(): Room[] {
-    if (!this._auto) return this._rooms.filter((r) => r.temperature_entity).map((r) => ({ name: r.name ?? "", entity: r.temperature_entity }));
+    if (!this._auto) {
+      const measure = this._config?.measure;
+      return this._rooms.filter((r) => roomEntity(r, measure)).map((r) => ({ name: r.name ?? "", entity: roomEntity(r, measure)! }));
+    }
     return this._found ?? [];
   }
 
@@ -192,7 +195,7 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
   }
 
   private _addRoom(): void {
-    this._setRooms([...this._rooms, { name: "", temperature_entity: "" }]);
+    this._setRooms([...this._rooms, { name: "", [this._roomField]: "" }]);
   }
 
   private _removeRoom(index: number): void {
@@ -211,7 +214,7 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
   private _toManualList(): void {
     const found = this._found ?? [];
     if (!found.length) return;
-    this._setRooms(found.map((r) => ({ name: r.name, temperature_entity: r.entity })));
+    this._setRooms(found.map((r) => ({ name: r.name, [this._roomField]: r.entity })));
   }
 
   private _nameStripChanged(values: string[]): void {
@@ -242,8 +245,37 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
     };
   }
 
+  private get _humidity(): boolean {
+    return this._config?.measure === "humidity";
+  }
+
+  /** The room field the measure reads, as the climate overview card names it. */
+  private get _roomField(): "temperature_entity" | "humidity_entity" {
+    return this._humidity ? "humidity_entity" : "temperature_entity";
+  }
+
+  private get _sensorSelector() {
+    return { entity: { domain: "sensor", device_class: this._humidity ? "humidity" : "temperature" } };
+  }
+
+  private get _defaultDecimals(): number {
+    return this._humidity ? 0 : DEFAULT_TEMP_GRAPH_DECIMALS;
+  }
+
   private _contentSchema(): SchemaEntry[] {
     return [
+      {
+        name: "measure",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "temperature", label: this._t("editor_tempgraph_measure_temperature") },
+              { value: "humidity", label: this._t("editor_tempgraph_measure_humidity") },
+            ],
+          },
+        },
+      },
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },
       { name: "show_header", selector: { boolean: {} } },
@@ -272,8 +304,8 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
         { name: "exclude_area", selector: { area: { multiple: true } } },
         { name: "include_labels", selector: { label: { multiple: true } } },
         { name: "exclude_labels", selector: { label: { multiple: true } } },
-        { name: "include_entities", selector: { entity: { ...TEMP_SELECTOR.entity, multiple: true } } },
-        { name: "exclude_entities", selector: { entity: { ...TEMP_SELECTOR.entity, multiple: true } } },
+        { name: "include_entities", selector: { entity: { ...this._sensorSelector.entity, multiple: true } } },
+        { name: "exclude_entities", selector: { entity: { ...this._sensorSelector.entity, multiple: true } } },
         { name: "include_state", selector: this._stateSelector() },
         { name: "exclude_state", selector: this._stateSelector() },
       );
@@ -284,7 +316,7 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
   private _roomSchema(): SchemaEntry[] {
     return [
       { name: "name", selector: { text: {} } },
-      { name: "temperature_entity", required: true, selector: TEMP_SELECTOR },
+      { name: this._roomField, required: true, selector: this._sensorSelector },
     ];
   }
 
@@ -310,7 +342,7 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
         },
       },
     ];
-    if (cfg.summary === "entity") schema.push({ name: "summary_entity", selector: TEMP_SELECTOR });
+    if (cfg.summary === "entity") schema.push({ name: "summary_entity", selector: this._sensorSelector });
     if (curves.length > 1) {
       schema.push({
         name: "default_focus",
@@ -353,6 +385,8 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
       include_state: "editor_climate_overview_include_state",
       exclude_state: "editor_climate_overview_exclude_state",
       temperature_entity: "editor_climate_overview_room_temp_entity",
+      humidity_entity: "editor_climate_overview_room_humidity_entity",
+      measure: "editor_tempgraph_measure",
       ranges: "editor_tempgraph_ranges",
       default_range: "editor_tempgraph_default_range",
       summary: "editor_tempgraph_summary",
@@ -443,10 +477,10 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
           <ha-icon slot="leading-icon" icon="mdi:text-short"></ha-icon>
           <div class="panel-content">
             ${this._form(
-              { name: cfg.name, icon: cfg.icon, show_header: cfg.show_header ?? true, sort: cfg.sort ?? "area" },
+              { measure: cfg.measure ?? "temperature", name: cfg.name, icon: cfg.icon, show_header: cfg.show_header ?? true, sort: cfg.sort ?? "area" },
               this._contentSchema(),
             )}
-            ${listRow(this._t("editor_climate_overview_name_strip"), cfg.name_strip ?? DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP, (v) =>
+            ${listRow(this._t("editor_climate_overview_name_strip"), cfg.name_strip ?? (cfg.measure === "humidity" ? DEFAULT_HUMIDITY_NAME_STRIP : DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP), (v) =>
               this._nameStripChanged(v),
             )}
           </div>
@@ -484,7 +518,7 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
                   <div class="entry-row">
                     <ha-form
                       .hass=${this.hass}
-                      .data=${{ name: room.name ?? "", temperature_entity: room.temperature_entity }}
+                      .data=${{ name: room.name ?? "", [this._roomField]: room[this._roomField] ?? "" }}
                       .schema=${this._roomSchema()}
                       .computeLabel=${this._computeLabel}
                       @value-changed=${(ev: CustomEvent) => this._roomChanged(index, ev)}
@@ -530,7 +564,7 @@ export class M3TemperatureGraphCardEditor extends LitElement implements Lovelace
                 summary: cfg.summary ?? "mean",
                 summary_entity: cfg.summary_entity,
                 default_focus: curves[focusIndex]?.entity,
-                decimals: cfg.decimals ?? DEFAULT_TEMP_GRAPH_DECIMALS,
+                decimals: cfg.decimals ?? this._defaultDecimals,
                 show_extremes: cfg.show_extremes ?? true,
                 show_chips: cfg.show_chips ?? true,
                 show_axis: cfg.show_axis ?? true,

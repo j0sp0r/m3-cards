@@ -17,6 +17,7 @@ import {
   DEFAULT_TEMP_GRAPH_RADIUS,
   DEFAULT_TEMP_GRAPH_RANGES,
   DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP,
+  DEFAULT_HUMIDITY_NAME_STRIP,
   TEMP_GRAPH_AREA_TOP,
   TEMP_GRAPH_CHIP_HEIGHT,
   TEMP_GRAPH_CHIP_RADIUS_FOCUS,
@@ -206,7 +207,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
 
   /** The curves, in the order listed or found, before `sort`. */
   private get _entries(): TempGraphEntityConfig[] {
-    if (this._manual) return roomsToEntries(this._config?.rooms);
+    if (this._manual) return roomsToEntries(this._config?.rooms, this._config?.measure);
     const show = this.hass ? buildStatePredicate(this.hass, this._filter()) : () => true;
     return (this._discovered ?? []).filter((e) => show(e.entity));
   }
@@ -229,14 +230,14 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
   private _maybeDiscover(): void {
     if (!this.hass || !this._config || this._manual) return;
     const filter = this._filter();
-    const nameStrip = this._config.name_strip ?? DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP;
-    const key = JSON.stringify([filter, nameStrip, Object.keys(this.hass.states).length]);
+    const nameStrip = this._config.name_strip ?? (this._config.measure === "humidity" ? DEFAULT_HUMIDITY_NAME_STRIP : DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP);
+    const key = JSON.stringify([filter, nameStrip, this._config.measure, Object.keys(this.hass.states).length]);
     if (key === this._discoverKey) return;
     this._discoverKey = key;
     discoverClimateRooms(this.hass, { filter, nameStrip })
       .then((rooms) => {
         if (key !== this._discoverKey) return;
-        this._discovered = graphRooms(rooms, filter.include_entities).map((r) => ({ entity: r.temperatureEntity!, name: r.name }));
+        this._discovered = graphRooms(rooms, filter.include_entities, this._config?.measure);
       })
       .catch((e) => console.error("m3-temperature-graph-card: auto-discovery failed", e));
   }
@@ -247,7 +248,9 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
 
   private get _decimals(): number {
     const d = this._config?.decimals;
-    return typeof d === "number" && d >= 0 && d <= 3 ? Math.round(d) : DEFAULT_TEMP_GRAPH_DECIMALS;
+    if (typeof d === "number" && d >= 0 && d <= 3) return Math.round(d);
+    // Humidity is read in whole percent; a tenth says nothing a hygrometer can.
+    return this._config?.measure === "humidity" ? 0 : DEFAULT_TEMP_GRAPH_DECIMALS;
   }
 
   private _watched(): (string | undefined)[] {
@@ -327,7 +330,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
     if (area) return area;
     const friendly = (hass.states[entry.entity]?.attributes?.friendly_name as string | undefined) ?? entry.entity;
     let name = friendly;
-    for (const pattern of this._config?.name_strip ?? DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP) {
+    for (const pattern of this._config?.name_strip ?? (this._config?.measure === "humidity" ? DEFAULT_HUMIDITY_NAME_STRIP : DEFAULT_CLIMATE_OVERVIEW_NAME_STRIP)) {
       try {
         name = name.replace(new RegExp(pattern, "i"), "");
       } catch {
@@ -341,7 +344,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
     const hass = this.hass!;
     const entries = this._entries;
     const units = entries.map((e) => (hass.states[e.entity]?.attributes?.unit_of_measurement as string | undefined) ?? "");
-    const unit = units.find((u) => u) ?? "°C";
+    const unit = units.find((u) => u) ?? (this._humidity ? "%" : "°C");
     // The range on screen: the chosen one once it has loaded, until then the
     // one before it, so a switch never blanks the graph.
     const key = this._dataKey;
@@ -508,6 +511,15 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
 
   // ---- render ----------------------------------------------------------------
 
+  private get _humidity(): boolean {
+    return this._config?.measure === "humidity";
+  }
+
+  /** A value as the chips and pills write it: "21,4°" or "48 %". */
+  private _short(v: number): string {
+    return this._humidity ? `${this._fmt(v)}\u202f%` : `${this._fmt(v)}°`;
+  }
+
   private _fmt(v: number): string {
     return formatTemp(v, this._decimals, this._language);
   }
@@ -558,7 +570,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
       rows.length === 0
         ? this._t("tempgraph_no_entities")
         : warmest >= 0
-          ? this._t("tempgraph_warmest").replace("{name}", rows[warmest].name)
+          ? this._t(this._humidity ? "tempgraph_most_humid" : "tempgraph_warmest").replace("{name}", rows[warmest].name)
           : this._t("tempgraph_no_data");
     const heroUnit = cfg.summary === "entity" && cfg.summary_entity
       ? ((this.hass.states[cfg.summary_entity]?.attributes?.unit_of_measurement as string | undefined) ?? unit)
@@ -573,8 +585,8 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
           ${cfg.show_header === false
             ? nothing
             : renderCardHeader({
-            icon: cfg.icon ?? "mdi:thermometer",
-            name: cfg.name ?? this._t("tempgraph_title"),
+            icon: cfg.icon ?? (this._humidity ? "mdi:water-percent" : "mdi:thermometer"),
+            name: cfg.name ?? this._t(this._humidity ? "tempgraph_title_humidity" : "tempgraph_title"),
             subtitle,
             right: html`<div class="hero">
               <div class="hero-value">
@@ -599,7 +611,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
         ${rows.map((row, i) => {
           const v = scrub !== undefined ? row.values[scrub] : row.live;
           const hasData = row.live !== null || row.values.some((x) => x !== null);
-          const text = v === null || v === undefined ? "–" : `${this._fmt(v)}°`;
+          const text = v === null || v === undefined ? "–" : this._short(v);
           const selected = i === focus;
           const dot = fillColor(this, row.color);
           const style = buildCssVars({
@@ -664,7 +676,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
     const scrubT = scrub !== undefined ? t0 + ((scrub + 0.5) / n) * (t1 - t0) : undefined;
     const tooltip =
       scrubX !== undefined && scrubT !== undefined
-        ? `${this._timeLabel(scrubT, range)} · ${scrubV === null || scrubV === undefined ? "–" : `${this._fmt(scrubV)}°`}`
+        ? `${this._timeLabel(scrubT, range)} · ${scrubV === null || scrubV === undefined ? "–" : this._short(scrubV)}`
         : "";
 
     const curvesSvg = scale
@@ -711,7 +723,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
         style=${`height: ${height}px; touch-action: ${SLIDER_TOUCH_ACTION};`}
         tabindex="0"
         role="slider"
-        aria-label=${this._t("tempgraph_chart_label")}
+        aria-label=${this._t(this._humidity ? "tempgraph_chart_label_humidity" : "tempgraph_chart_label")}
         aria-valuemin="0"
         aria-valuemax=${n - 1}
         aria-valuenow=${scrub ?? n - 1}
@@ -733,8 +745,8 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
           </svg>`,
         )}
         ${showExtremes
-          ? html`<span class="extreme" style=${`top: ${scale!.y(scale!.hi)}px;`}>${this._fmt(scale!.hi)}°</span>
-              <span class="extreme" style=${`top: ${scale!.y(scale!.lo)}px;`}>${this._fmt(scale!.lo)}°</span>`
+          ? html`<span class="extreme" style=${`top: ${scale!.y(scale!.hi)}px;`}>${this._short(scale!.hi)}</span>
+              <span class="extreme" style=${`top: ${scale!.y(scale!.lo)}px;`}>${this._short(scale!.lo)}</span>`
           : nothing}
         ${scrubX !== undefined && scrub !== undefined && cfg.show_chips === false
           ? this._renderScrubList(rows, focus, scrub, scrubX, plotW, scrubT!, range)
@@ -774,7 +786,7 @@ export class M3TemperatureGraphCard extends TemplatedCard(LitElement) implements
         ({ row, i, v }) => html`<div class="scrub-row ${i === focus ? "focus" : ""}">
           <span class="chip-dot" style=${buildCssVars({ "chip-dot": fillColor(this, row.color) })}></span>
           <span class="scrub-name">${row.name}</span>
-          <span class="scrub-value">${v === null || v === undefined ? "–" : `${this._fmt(v)}°`}</span>
+          <span class="scrub-value">${v === null || v === undefined ? "–" : this._short(v)}</span>
         </div>`,
       )}
     </div>`;

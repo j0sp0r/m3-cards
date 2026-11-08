@@ -23,6 +23,7 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   Set up like the climate overview card: without a room list it finds one
   temperature sensor per room with the same discovery and filters, a `rooms`
   list in the same format can be copied over, and `sort` orders the chips.
+  `measure: humidity` draws humidity instead, from the same room list.
   Ranges from 6 hours to 30 days; chips, extremes, axis, the footer's range
   and the range picker can each be switched off. The editor can turn what was
   found into a fixed list to reorder, rename and colour, and warns when the

@@ -18,7 +18,7 @@
 
 import type { SeriesPoint } from "./entity-history";
 import type { XY } from "./smooth-path";
-import type { TempGraphEntityConfig, TempGraphRange, TempGraphRoomConfig, TempGraphSort } from "../types";
+import type { TempGraphEntityConfig, TempGraphMeasure, TempGraphRange, TempGraphRoomConfig, TempGraphSort } from "../types";
 
 export const TEMP_GRAPH_RANGE_MS: Record<TempGraphRange, number> = {
   "6h": 6 * 3_600_000,
@@ -35,11 +35,21 @@ export function isTempGraphRange(v: unknown): v is TempGraphRange {
   return typeof v === "string" && v in TEMP_GRAPH_RANGE_MS;
 }
 
-/** A room list as curves, without rooms that name no sensor (the editor adds one to fill in). */
-export function roomsToEntries(rooms: readonly TempGraphRoomConfig[] | undefined): TempGraphEntityConfig[] {
+/** The room field that names the sensor for a measure. */
+export function roomEntity(room: TempGraphRoomConfig, measure: TempGraphMeasure | undefined): string | undefined {
+  const id = measure === "humidity" ? room.humidity_entity : room.temperature_entity;
+  return typeof id === "string" && id.trim() !== "" ? id : undefined;
+}
+
+/**
+ * A room list as curves, without rooms that name no sensor for the measure
+ * (the editor adds an empty one to fill in; a room list copied from the
+ * climate overview card may have a room without a humidity sensor).
+ */
+export function roomsToEntries(rooms: readonly TempGraphRoomConfig[] | undefined, measure?: TempGraphMeasure): TempGraphEntityConfig[] {
   return (rooms ?? [])
-    .filter((r) => !!r && typeof r.temperature_entity === "string" && r.temperature_entity.trim() !== "")
-    .map((r) => ({ entity: r.temperature_entity, name: r.name || undefined, color: r.color || undefined }));
+    .filter((r) => !!r && !!roomEntity(r, measure))
+    .map((r) => ({ entity: roomEntity(r, measure)!, name: r.name || undefined, color: r.color || undefined }));
 }
 
 /** Chip and curve order, as on the climate overview card: "area" keeps the order found or listed. */
@@ -347,10 +357,16 @@ export function smoothCurve(values: readonly (number | null)[], radius: number):
  * is an area; a sensor without one is drawn only when `include_entities`
  * names it.
  */
-export function graphRooms<T extends { areaId?: string; temperatureEntity?: string }>(
+export function graphRooms<T extends { areaId?: string; name: string; temperatureEntity?: string; humidityEntity?: string }>(
   rooms: readonly T[],
   includeEntities: readonly string[] | undefined,
-): T[] {
+  measure?: TempGraphMeasure,
+): { name: string; entity: string }[] {
   const named = new Set(includeEntities ?? []);
-  return rooms.filter((r) => !!r.temperatureEntity && (!!r.areaId || named.has(r.temperatureEntity)));
+  const out: { name: string; entity: string }[] = [];
+  for (const r of rooms) {
+    const entity = measure === "humidity" ? r.humidityEntity : r.temperatureEntity;
+    if (entity && (r.areaId || named.has(entity))) out.push({ name: r.name, entity });
+  }
+  return out;
 }

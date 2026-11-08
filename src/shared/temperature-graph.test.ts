@@ -219,14 +219,33 @@ describe("smoothCurve", () => {
 });
 
 describe("graphRooms", () => {
+  const rooms = [
+    { name: "Flur", areaId: "flur", temperatureEntity: "sensor.flur_t", humidityEntity: "sensor.flur_h" },
+    { name: "System", temperatureEntity: "sensor.system_monitor" },
+    { name: "Kammer", temperatureEntity: "sensor.kammer" },
+    { name: "Bad", areaId: "bad", temperatureEntity: "sensor.bad_t" },
+  ];
+
   it("keeps rooms with an area, and a sensor without one only when named", () => {
-    const rooms = [
-      { areaId: "flur", temperatureEntity: "sensor.flur" },
-      { temperatureEntity: "sensor.system_monitor" },
-      { temperatureEntity: "sensor.kammer" },
-      { areaId: "bad" },
-    ];
-    expect(graphRooms(rooms, undefined).map((r) => r.temperatureEntity)).toEqual(["sensor.flur"]);
-    expect(graphRooms(rooms, ["sensor.kammer"]).map((r) => r.temperatureEntity)).toEqual(["sensor.flur", "sensor.kammer"]);
+    expect(graphRooms(rooms, undefined).map((r) => r.entity)).toEqual(["sensor.flur_t", "sensor.bad_t"]);
+    expect(graphRooms(rooms, ["sensor.kammer"]).map((r) => r.entity)).toEqual(["sensor.flur_t", "sensor.kammer", "sensor.bad_t"]);
+  });
+
+  it("takes the humidity sensor for the humidity measure, and skips rooms without one", () => {
+    expect(graphRooms(rooms, undefined, "humidity")).toEqual([{ name: "Flur", entity: "sensor.flur_h" }]);
+  });
+});
+
+describe("roomsToEntries for humidity", () => {
+  it("reads humidity_entity and skips rooms without it", () => {
+    expect(
+      roomsToEntries(
+        [
+          { name: "Bad", temperature_entity: "sensor.bad_t", humidity_entity: "sensor.bad_h" },
+          { name: "Flur", temperature_entity: "sensor.flur_t" },
+        ],
+        "humidity",
+      ),
+    ).toEqual([{ entity: "sensor.bad_h", name: "Bad", color: undefined }]);
   });
 });
