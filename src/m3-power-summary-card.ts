@@ -717,6 +717,9 @@ export class M3PowerSummaryCard extends TemplatedCard(LitElement) implements Lov
         font-size: 32px;
         font-weight: 700;
         line-height: 1.15;
+        /* Number and unit stay on one line; at half width the unit was
+           pushed under the number. */
+        white-space: nowrap;
         color: var(--ps-main-fg, var(--ps-main));
         font-variant-numeric: tabular-nums;
       }
