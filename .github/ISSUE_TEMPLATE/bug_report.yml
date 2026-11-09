@@ -8,6 +8,7 @@ body:
       label: Affected card
       options:
         - 3D printer (m3-printer-card)
+        - Alarm (m3-alarm-card)
         - Appliance (m3-appliance-card)
         - Aquarium (m3-aquarium-card)
         - Battery (m3-battery-card)

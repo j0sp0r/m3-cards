@@ -8,6 +8,17 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **The alarm card** (#47), card number 54: an `alarm_control_panel` —
+  Alarmo, the `manual` platform, any integration — in the suite's frame and
+  the theme's own colours, so it fits light and dark without UIX. The header
+  says the state (disarmed, arming with the target mode, armed with a
+  "Secured" pill, entry delay, triggered with the whole card in the error
+  colour); connected mode buttons switch it, the active one a full pill. A
+  keypad (or a text field) appears only when the panel wants a code, never
+  submits by itself, and shakes on a rejected code. An entry delay counts
+  down when the integration says how long (Alarmo's `delay`); open sensors
+  show as chips (Alarmo's `open_sensors`, or a `sensors` list). A compact
+  one-row variant opens by itself on an entry delay or an alarm.
 - **The appliance card works without an entity** (#41). Left out, the card
   is a plain tile — a name, an icon and a `tap_action` or `popup` — with no
   status line and nothing greyed out, so a link or popup tile sits in the

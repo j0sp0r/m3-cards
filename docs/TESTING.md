@@ -54,7 +54,7 @@ Beide Fehler ließen die Seite besser aussehen, als sie war.
 - Ein Handy oder ein per DevTools emuliertes Touch-Gerät für alle Drag-Interaktionen
   (Wave-Slider, Wischen) — Maus-Events allein decken `touch-action`-Konflikte nicht ab.
 
-## Cross-Cutting-Checkliste (für jede der 53 Karten)
+## Cross-Cutting-Checkliste (für jede der 54 Karten)
 
 Diese Punkte gelten kartenübergreifend, weil sie über gemeinsame `shared/*`-Module
 implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichzeitig.
@@ -1324,6 +1324,25 @@ Mit einem harmlosen `input_boolean` testen.
 | Am Handy | 390 px Breite | Chips brechen um, Fußzeile bricht bei vielen Zeiträumen um, nichts läuft über |
 | Hilfslinien und „jetzt“ (#36) | `grid_lines: both`, `y_ticks: 5`, `show_y_labels: true`, `show_now_marker: true`; dann `grid_lines: none` und `vertical` in „7 Tage“ | Waagerechte Linien mit Wert am linken Rand, keiner davon auf der Höchst-/Tiefstwert-Pille; senkrechte Linien genau über den Zeitmarken; gestrichelte Linie am rechten Rand. `none` zeigt keine Linien. Ohne die Optionen sieht die Karte aus wie vorher |
 
+## M3 Alarm Card
+
+Getestet mit der Software-Alarmanlage `alarm_control_panel.m3_test_alarm`
+(Plattform `manual`, 15 s Scharfschalt- und Eingangsverzögerung, Code nur zum
+Unscharfschalten; Code steht in der `configuration.yaml`).
+
+| Test | Schritte | Erwartung |
+|---|---|---|
+| Unscharf → scharf | „Abwesend“ tippen | Kein Code nötig (`code_arm_required: false`). Kopf in Warnfarbe, pulsiert, „Ziel: Abwesend“; laufender Balken ohne Zahl (die manual-Plattform nennt keine Dauer). Nach 15 s Akzent, „Scharf · Abwesend“, Pill „Gesichert“ |
+| Zwischen scharfen Modi | Scharf, dann „Nacht“ tippen | Wechselt ohne Unscharf dazwischen |
+| Unscharf mit Code | Scharf, „Unscharf“ tippen | Ziffernblock; Punkte zählen mit; Bestätigen schaltet unscharf, das Feld schließt sich |
+| Falscher Code | Falschen Code bestätigen | Punkte wackeln, „Abgelehnt – Code prüfen“, Feld geleert |
+| Eingangsverzögerung | Scharf, dann `alarm_control_panel.alarm_trigger` (Entwicklerwerkzeuge) | Warnfarbe „Eingangsverzögerung“, der Ziffernblock öffnet sich von selbst |
+| Ausgelöst | Verzögerung ablaufen lassen | Ganze Karte in Fehlerfarbe, „Alarm ausgelöst · um HH:MM“, breiter Knopf „Unscharf schalten“ öffnet den Ziffernblock |
+| Kompakt | `compact: true` | Eine Zeile; Tipp klappt die Knöpfe auf; bei Eingangsverzögerung und Alarm von selbst offen |
+| Sensoren | `sensors` mit einem offenen und zwei geschlossenen Kontakten | Chip mit dem offenen in Warnfarbe (Tipp öffnet ihn), „2 Sensoren ok“ |
+| Hell / dunkel | Theme umschalten | Alle Zustände lesbar, ohne UIX; Farben aus dem Theme |
+| Alarmo (vom Nutzer aus #47) | Mit `delay` und `open_sensors` | Countdown mit Sekunden und schrumpfendem Balken; offene Sensoren als Chips |
+
 ## Bekannte Einschränkungen
 
 Beide Punkte, die hier bis 2.0 standen — die Akzentfarben im hellen Theme und
@@ -1343,7 +1362,7 @@ kleiner konfigurierte Kachel angehoben und nicht abgeschnitten wird.
 1. Alle Cross-Cutting-Punkte (C1–C15) auf mindestens 3 unterschiedlichen Karten
    durchgehen (eine einfache, eine mit Editor-Unterinhalten wie Battery/Power-List,
    eine mit Animation wie Progress/Light).
-2. Jede der 53 Karten mindestens einmal mit einer Minimal-Config und einmal mit
+2. Jede der 54 Karten mindestens einmal mit einer Minimal-Config und einmal mit
    einer voll ausgereizten Config (alle Farben/Optionen gesetzt) rendern.
 3. `CHANGELOG.md` gegen die tatsächlich getesteten Änderungen abgleichen.
 4. Die Kartenzahl abgleichen. Zwei der vier Stellen zählen sich seit der

@@ -57,5 +57,6 @@ export * from "./m3-remote-card";
 export * from "./m3-vehicle-card";
 export * from "./m3-multi-graph-card";
 export * from "./m3-detail-card";
+export * from "./m3-alarm-card";
 // Registers itself with shared/entity-detail.ts, which never imports it.
 import "./shared/detail-sheet";

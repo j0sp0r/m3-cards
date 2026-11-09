@@ -3119,6 +3119,40 @@ export const CHECKIN_AVATAR_OVERLAP = 8;
 export const CHECKIN_AVATAR_MAX = 5;
 export const DEFAULT_CHECKIN_RADIUS = RADIUS.card;
 
+// ---- alarm card (#47) -------------------------------------------------------
+export const DEFAULT_ALARM_RADIUS = RADIUS.card;
+/** Hero header, as the room and weather cards: a 56px squircle. */
+export const ALARM_HEADER_ICON = 56;
+export const ALARM_HEADER_ICON_RADIUS = RADIUS.squircle56;
+/** The connected mode buttons: 3px apart, 24px outer and 8px inner corners. */
+export const ALARM_MODE_HEIGHT = 64;
+export const ALARM_MODE_GAP = 3;
+export const ALARM_MODE_RADIUS_OUTER = 24;
+export const ALARM_MODE_RADIUS_INNER = 8;
+/** The keypad's round keys, squaring off a little while pressed. */
+export const ALARM_KEY_SIZE = 56;
+export const ALARM_KEY_RADIUS_PRESSED = 18;
+export const ALARM_KEY_GAP = 10;
+/** Warning (arming, entry delay) and error (triggered) follow the theme. */
+export const ALARM_WARNING_COLOR = "var(--warning-color, #ffa600)";
+export const ALARM_ERROR_COLOR = "var(--error-color, #db4437)";
+export const ALARM_NEUTRAL_COLOR = "var(--secondary-text-color)";
+export const ALARM_ICON_TINT = 18;
+/** How strongly a triggered alarm floods the card with the error colour. */
+export const ALARM_TRIGGERED_TINT = 22;
+export const ALARM_PULSE_MS = 1400;
+export const ALARM_SHAKE_MS = 420;
+export const ALARM_FOLD_MS = 280;
+/** Default icons per mode, as buttons and as the armed header. */
+export const ALARM_MODE_ICONS: Record<string, string> = {
+  disarmed: "mdi:shield-off-outline",
+  armed_home: "mdi:shield-home",
+  armed_away: "mdi:shield-lock",
+  armed_night: "mdi:shield-moon",
+  armed_vacation: "mdi:shield-airplane",
+  armed_custom_bypass: "mdi:shield-star",
+};
+
 // ---- Openings card ----------------------------------------------------------
 /** Something open: a warm amber, a heads-up rather than an alarm. */
 export const OPENINGS_COLOR_OPEN = PALETTE.light;

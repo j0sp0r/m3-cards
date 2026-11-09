@@ -3,6 +3,7 @@ import type { EntityFilterConfig } from "./shared/entity-filter";
 import type { LightGroupHandling } from "./shared/ha-registry";
 import type { QuickBarMode } from "./shared/quick-bar";
 import type { CollapseMemory } from "./shared/collapse-state";
+import type { AlarmMode, AlarmModeConfig } from "./shared/alarm";
 
 export interface HomeAssistant {
   states: Record<string, HassEntity>;
@@ -3227,6 +3228,46 @@ export interface M3GroupCardConfig {
 export type CheckinStyle = "segmented" | "status" | "swipe";
 
 /** One element that shows whether someone is checked in and switches it. */
+/**
+ * m3-alarm-card (#47): an alarm_control_panel — Alarmo, the manual platform,
+ * any integration — in the suite's frame, following the theme in light and
+ * dark without extra styling.
+ */
+export interface M3AlarmCardConfig extends DetailModeConfig {
+  type: string;
+  /** An alarm_control_panel entity. Required. */
+  entity: string;
+  /** Default: the entity's friendly name. */
+  name?: string;
+  /**
+   * The mode buttons, in this order; each a mode or `{ mode, name, icon }`.
+   * Default: the modes the panel supports, at most four, "disarmed" first.
+   */
+  modes?: (AlarmMode | AlarmModeConfig)[];
+  /**
+   * binary_sensors for the status line, for integrations that do not list
+   * open sensors themselves (Alarmo does, in `open_sensors`).
+   */
+  sensors?: string[];
+  /** The open/ok sensor chips. Default true. */
+  show_sensors?: boolean;
+  /**
+   * One row: the header and its pill. A tap opens the buttons; an entry
+   * delay or a triggered alarm opens them by itself.
+   */
+  compact?: boolean;
+  /** The armed colour. Default the theme's primary colour. */
+  accent_color?: string;
+  text_color?: string;
+  secondary_text_color?: string;
+  card_background?: string;
+  animation?: "auto" | "on" | "off";
+  glass_background?: boolean;
+  radius?: number;
+  corners?: CornerRadiusConfig;
+  card_version?: string;
+}
+
 export interface M3CheckinCardConfig extends DetailModeConfig {
   type: string;
   /**
