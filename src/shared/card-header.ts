@@ -7,7 +7,8 @@ import { activateOnKey } from "./a11y";
 export function renderCardHeader(params: {
   icon: string;
   name: string;
-  subtitle: string;
+  /** Text, or a template when the line carries icons (power summary, compact). */
+  subtitle: string | TemplateResult;
   onClick?: (e: Event) => void;
   /**
    * Gives the icon swatch its own action, separate from the rest of the header

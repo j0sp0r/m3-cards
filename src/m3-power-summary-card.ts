@@ -9,6 +9,7 @@ import type {
   LovelaceCardEditor,
   LovelaceGridOptions,
   PowerMetricConfig,
+  HaActionConfig,
 } from "./types";
 import {
   CARD_VERSION,
@@ -41,6 +42,8 @@ import { localize, type TranslationKey } from "./localize";
 import { formatNumber } from "./shared/formatting";
 import { TemplatedCard } from "./shared/templated-card";
 import { openEntityDetail } from "./shared/entity-detail";
+import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
+import { runHaAction, navigateTo, isActionable } from "./shared/actions";
 
 console.info(
   `%c M3-POWER-SUMMARY-CARD %c v${CARD_VERSION} `,
@@ -107,12 +110,35 @@ export class M3PowerSummaryCard extends TemplatedCard(LitElement) implements Lov
   }
 
   public getGridOptions(): LovelaceGridOptions {
+    if (this._config?.layout === "compact") return { columns: 6, rows: "auto", min_rows: 1 };
     return {
       columns: "full",
       rows: "auto",
       min_rows: 4,
     };
   }
+
+  /** The entity behind the large value: the grid, or consumption when that is the main one. */
+  private get _mainEntity(): string | undefined {
+    const cfg = this._config;
+    if (cfg?.main_value === "consumption" && cfg.consumption_entity) return cfg.consumption_entity;
+    return cfg?.grid_entity;
+  }
+
+  private get _tapAction(): HaActionConfig {
+    return this._config?.tap_action ?? { action: "more-info" };
+  }
+
+  /** `tap_action` (#45); unset, more-info on the main value's entity as before. */
+  private _onTap = (): void => {
+    if (!this.hass) return;
+    runHaAction(this.hass, this._tapAction, {
+      entityId: this._mainEntity,
+      fireMoreInfo: (id) => openEntityDetail(this, id ?? this._mainEntity),
+      navigate: (path) => navigateTo(this, path),
+      source: this,
+    });
+  };
 
   private get _language(): string {
     return this.hass?.locale?.language ?? this.hass?.language ?? "en";
@@ -183,6 +209,17 @@ export class M3PowerSummaryCard extends TemplatedCard(LitElement) implements Lov
       number: formatNumber(this._language, value, { maximumFractionDigits: 0 }),
       unit: "W",
     };
+  }
+
+  /**
+   * A metric's value in its own unit: watts and kilowatts through the card's
+   * W/kW switch, anything else (a battery's %) as it is. A battery used to
+   * read "54 W".
+   */
+  private _formatMetric(raw: number, unit: string | undefined): { number: string; unit: string } {
+    if (unit === undefined || unit === "W") return this._formatWatts(Math.max(0, raw));
+    if (unit === "kW") return this._formatWatts(Math.max(0, raw * 1000));
+    return { number: formatNumber(this._language, raw, { maximumFractionDigits: 1 }), unit };
   }
 
   private _stateValue(entityId: string | undefined): number {
@@ -346,6 +383,28 @@ export class M3PowerSummaryCard extends TemplatedCard(LitElement) implements Lov
 
     const metrics = this._config.metrics ?? [];
 
+    if (this._config.layout === "compact") {
+      return this._renderCompact({
+        cssVars,
+        radius,
+        cardBackgroundCss,
+        animate,
+        gridUnavailable,
+        direction,
+        mainIcon,
+        mainColor,
+        mainLabel,
+        displayed,
+        consumption,
+        consumptionUnavailable: Number.isNaN(consumptionRaw),
+        solarRaw,
+        hasSolar,
+        showSelfSufficiency,
+        selfSufficiency,
+        metrics,
+      });
+    }
+
     return html`
       <ha-card style=${`${cssVars} border-radius: ${radius};`}>
         <div
@@ -359,8 +418,8 @@ export class M3PowerSummaryCard extends TemplatedCard(LitElement) implements Lov
               role="button"
               tabindex="0"
               aria-label=${mainLabel}
-              @click=${this._moreInfo(this._config.grid_entity)}
-              @keydown=${activateOnKey(this._moreInfo(this._config.grid_entity))}
+              @click=${this._onTap}
+              @keydown=${activateOnKey(this._onTap)}
             >
               <ha-icon icon=${mainIcon}></ha-icon>
             </div>
@@ -415,6 +474,106 @@ export class M3PowerSummaryCard extends TemplatedCard(LitElement) implements Lov
     `;
   }
 
+  /**
+   * `layout: compact` (#45). The suite's header, one row tall: the icon well
+   * in the flow colour, the large value as the name, and every other value on
+   * one line beneath — consumption or grid (whichever is not the main one),
+   * solar, self-sufficiency and the metrics — cut off with "…" when the tile
+   * is too narrow rather than wrapping.
+   */
+  private _renderCompact(p: {
+    cssVars: string;
+    radius: string;
+    cardBackgroundCss?: string;
+    animate: boolean;
+    gridUnavailable: boolean;
+    direction: Direction;
+    mainIcon: string;
+    mainColor: string;
+    mainLabel: string;
+    displayed: { number: string; unit: string };
+    consumption: number;
+    consumptionUnavailable: boolean;
+    solarRaw: number;
+    hasSolar: boolean;
+    showSelfSufficiency: boolean;
+    selfSufficiency: number;
+    metrics: PowerMetricConfig[];
+  }) {
+    const cfg = this._config!;
+    const consumptionMain = cfg.main_value === "consumption";
+    const watts = (v: number): string => {
+      const f = this._formatWatts(Math.max(0, v));
+      return `${f.number} ${f.unit}`;
+    };
+
+    // Icons rather than words: in a half-width tile "Verbrauch 1,2 kW · …" has
+    // no room for a second value, an icon and a number do.
+    const parts: { icon: string; text: string; label: string }[] = [];
+    if (consumptionMain) {
+      if (!p.gridUnavailable) {
+        parts.push({
+          icon: p.mainIcon,
+          text: p.direction === "neutral" ? "0 W" : `${p.direction === "export" ? "−" : ""}${p.displayed.number} ${p.displayed.unit}`,
+          label: p.mainLabel,
+        });
+      }
+    } else if (cfg.consumption_entity || p.hasSolar) {
+      parts.push({ icon: "mdi:home-lightning-bolt-outline", text: watts(p.consumption), label: this._t("power_summary_short_consumption") });
+    }
+    if (p.hasSolar) parts.push({ icon: "mdi:solar-power-variant-outline", text: watts(p.solarRaw), label: this._t("power_summary_short_solar") });
+    if (p.showSelfSufficiency && !p.gridUnavailable) {
+      parts.push({ icon: "mdi:leaf", text: `${Math.round(p.selfSufficiency)} %`, label: this._t("power_summary_short_autarky") });
+    }
+    for (const m of p.metrics) {
+      const st = this.hass!.states[m.entity];
+      const raw = st ? parseFloat(st.state) : NaN;
+      if (Number.isNaN(raw)) continue;
+      const name = m.name || (st?.attributes.friendly_name as string | undefined) || m.entity;
+      const f = this._formatMetric(raw, st?.attributes.unit_of_measurement as string | undefined);
+      parts.push({
+        icon: m.icon || (st?.attributes.icon as string | undefined) || "mdi:power-plug",
+        text: `${f.number}${f.unit ? ` ${f.unit}` : ""}`,
+        label: name,
+      });
+    }
+    const line = html`<span class="compact-line" aria-label=${parts.map((x) => `${x.label} ${x.text}`).join(", ")}
+      >${parts.map(
+        (x) => html`<span class="compact-item" title=${x.label}><ha-icon icon=${x.icon}></ha-icon>${x.text}</span>`,
+      )}</span
+    >`;
+
+    const mainName = consumptionMain
+      ? p.consumptionUnavailable
+        ? "–"
+        : watts(p.consumption)
+      : p.gridUnavailable
+        ? "–"
+        : `${p.displayed.number} ${p.displayed.unit}`;
+    const icon = consumptionMain ? "mdi:home-lightning-bolt-outline" : p.mainIcon;
+    const color = consumptionMain ? "var(--primary-color)" : p.mainColor;
+    const iconBg = tintOn(this, color, cfg.flow_tint_opacity, 18);
+    const vars = `${p.cssVars} --m3p-icon-bg: ${iconBg}; --m3p-icon-color: ${foregroundOn(color, iconBg, 3, this)};`;
+    const label = consumptionMain ? this._t("power_summary_short_consumption") : p.mainLabel;
+
+    return html`
+      <ha-card style=${`${vars} border-radius: ${p.radius};`}>
+        <div
+          class="card-inner compact ${glassCardClass(cfg.glass_background)} ${p.animate ? "" : "no-animations"} ${p.gridUnavailable && !consumptionMain ? "unavailable" : ""}"
+          style=${`border-radius: ${p.radius};${p.cardBackgroundCss ? ` background: ${p.cardBackgroundCss};` : ""}`}
+          title=${label}
+        >
+          ${renderCardHeader({
+            icon,
+            name: mainName,
+            subtitle: parts.length ? line : label,
+            onClick: isActionable(this._tapAction) ? this._onTap : undefined,
+          })}
+        </div>
+      </ha-card>
+    `;
+  }
+
   private _renderMetric(metric: PowerMetricConfig, producerColor: string) {
     const state = this.hass!.states[metric.entity];
     const raw = state ? parseFloat(state.state) : NaN;
@@ -437,7 +596,7 @@ export class M3PowerSummaryCard extends TemplatedCard(LitElement) implements Lov
         : tintBackground("var(--primary-text-color)", undefined, 12);
     const name = metric.name || state?.attributes.friendly_name || metric.entity;
     const icon = metric.icon || state?.attributes.icon || "mdi:power-plug";
-    const formatted = this._formatWatts(value);
+    const formatted = this._formatMetric(value, state?.attributes.unit_of_measurement as string | undefined);
 
     return html`
       <div
@@ -463,6 +622,7 @@ export class M3PowerSummaryCard extends TemplatedCard(LitElement) implements Lov
 
   static styles = [
     glassCardStyles,
+    cardHeaderStyles,
     css`
       .main-row {
         display: flex;
@@ -497,6 +657,54 @@ export class M3PowerSummaryCard extends TemplatedCard(LitElement) implements Lov
       .main-text {
         flex: 1;
         min-width: 0;
+      }
+
+      /* Half width (#45): the self-sufficiency chip lay over the number. Below
+         this width it moves onto a line of its own under the text. */
+      .card-inner:not(.compact) {
+        container-type: inline-size;
+      }
+
+      @container (max-width: 300px) {
+        .main-row {
+          flex-wrap: wrap;
+          row-gap: 8px;
+        }
+
+        .main-text {
+          flex-basis: calc(100% - ${SUMMARY_MAIN_ICON_SIZE}px - 14px);
+        }
+
+        .self-sufficiency-chip {
+          margin-left: calc(${SUMMARY_MAIN_ICON_SIZE}px + 14px);
+        }
+      }
+
+      /* One line: an item that does not fit wraps onto a second line, which is
+         cut off — so a value is shown whole or not at all, never half. */
+      .compact-line {
+        display: flex;
+        flex-wrap: wrap;
+        column-gap: 8px;
+        height: 16px;
+        line-height: 16px;
+        overflow: hidden;
+        white-space: nowrap;
+      }
+
+      .compact-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        flex-shrink: 0;
+      }
+
+      .compact-item ha-icon {
+        --mdc-icon-size: 14px;
+      }
+
+      .card-inner.compact.unavailable {
+        opacity: 0.5;
       }
 
       .main-label {

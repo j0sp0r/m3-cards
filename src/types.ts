@@ -560,6 +560,16 @@ export interface M3PowerSummaryCardConfig extends DetailModeConfig {
   type: string;
   grid_entity: string;
   grid_sign?: GridSignConvention;
+  /**
+   * `compact` (#45): one tile one row tall — the main value in the suite's
+   * header and the other values on one line beneath it, for a half-width
+   * slot. The split bar and the metric tiles are left out.
+   */
+  layout?: "full" | "compact";
+  /** Which value is the large one in compact layout. Default `grid`. */
+  main_value?: "grid" | "consumption";
+  /** Tap on the main icon (full) or the whole tile (compact). Default more-info on the main value's entity. */
+  tap_action?: HaActionConfig;
   consumption_entity?: string;
   solar_entity?: string | string[];
   metrics?: PowerMetricConfig[];

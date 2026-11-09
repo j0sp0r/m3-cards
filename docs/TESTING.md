@@ -228,6 +228,8 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Split-Bar | `show_split_bar: true` bei Netzbezug 0 kW | Balken zeigt sinnvollen Leerzustand, nicht NaN-Breite |
 | Metrik-Klick | Auf eine `metrics`-Kachel tippen | Öffnet More-Info der zugehörigen Entität |
 | Autarkie bei Export | Zeitpunkt mit Solarüberschuss/Export | Autarkie-Anzeige zeigt 100 % bzw. sinnvollen Wert, kein negativer Prozentwert |
+| Kompakt (#45) | `layout: compact` in halber Breite, mit `consumption_entity`, `solar_entity` und einem Akku-Prozent als `metrics`; einmal `main_value: consumption` | Eine Zeile hoch wie eine Button-Karte. Der große Wert ist das Netz bzw. der Verbrauch; darunter Symbole mit Werten, was nicht passt, fällt **ganz** weg. Tipp öffnet More-Info des Hauptwerts, mit `tap_action` die eigene Aktion |
+| Halbe Breite, volle Darstellung (#45) | Standard-Darstellung in halber Breite | Der Autarkie-Chip steht unter der Zahl, nicht über ihr; ein Akku in `metrics` zeigt „54 %“, nicht „54 W“ |
 
 ## M3 Top Consumers Card
 

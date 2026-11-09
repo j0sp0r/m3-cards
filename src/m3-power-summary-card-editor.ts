@@ -61,6 +61,31 @@ export class M3PowerSummaryCardEditor extends LitElement implements LovelaceCard
 
   private _contentSchema(): SchemaEntry[] {
     return [
+      {
+        name: "layout",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "full", label: this._t("editor_summary_layout_full") },
+              { value: "compact", label: this._t("editor_summary_layout_compact") },
+            ],
+          },
+        },
+      },
+      {
+        name: "main_value",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "grid", label: this._t("editor_summary_main_grid") },
+              { value: "consumption", label: this._t("editor_summary_main_consumption") },
+            ],
+          },
+        },
+      },
+      { name: "tap_action", selector: { ui_action: {} } },
       { name: "label_export", selector: { text: {} } },
       { name: "label_import", selector: { text: {} } },
       { name: "show_self_sufficiency", selector: { boolean: {} } },
@@ -100,6 +125,9 @@ export class M3PowerSummaryCardEditor extends LitElement implements LovelaceCard
       grid_sign: "editor_summary_grid_sign",
       consumption_entity: "editor_summary_consumption_entity",
       solar_entity: "editor_summary_solar_entity",
+      layout: "editor_summary_layout",
+      main_value: "editor_summary_main_value",
+      tap_action: "editor_tap_action",
       label_export: "editor_summary_label_export",
       label_import: "editor_summary_label_import",
       show_self_sufficiency: "editor_summary_show_self_sufficiency",
@@ -211,6 +239,9 @@ export class M3PowerSummaryCardEditor extends LitElement implements LovelaceCard
       solar_entity: Array.isArray(solarEntity) ? solarEntity : solarEntity ? [solarEntity] : [],
     };
     const contentData = {
+      layout: this._config.layout ?? "full",
+      main_value: this._config.main_value ?? "grid",
+      tap_action: this._config.tap_action,
       label_export: this._config.label_export,
       label_import: this._config.label_import,
       show_self_sufficiency: this._config.show_self_sufficiency ?? true,

@@ -38,6 +38,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   the chip names for the chips — each with its own unit, falling back to the
   weather entity while the sensor is unavailable. Plus a `tap_action` on the
   current conditions.
+- **A compact power summary for half-width tiles** (#45). `layout: compact`
+  is one row tall: the main value — grid, or consumption with
+  `main_value: consumption` — and the other values on one line beneath it,
+  each behind an icon; a value that does not fit is left out whole. Plus a
+  `tap_action`.
 - **An icon of its own for the current page** in the nav card (#38).
   `active_icon` on an entry replaces its icon while it is the current page —
   a filled icon beside the others' outlined ones.
@@ -53,6 +58,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **The power summary card at half width** (#45): the self-sufficiency chip
+  lay over the main number; it now moves under it. A metric that is not in
+  watts (a battery's %) showed as "54 W"; it keeps its own unit.
 - **A nav card whose entries are all hidden disappears** (#38) instead of
   showing "no entries yet". A card with no entries at all still says so.
 

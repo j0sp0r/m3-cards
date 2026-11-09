@@ -62,11 +62,37 @@ the card shows a neutral "Balanced" state instead of export/import.
 - If `consumption_entity` isn't set, consumption is computed as
   `grid import + solar generation`.
 
+### Compact
+
+`layout: compact` makes the card one tile one row tall, for a half-width
+slot: the main value in the suite's header, and the other values on one line
+beneath it, each behind a small icon — consumption or grid (whichever is not
+the main one), solar, self-sufficiency and the metrics. A value that does not
+fit is left out whole rather than cut in half. `main_value` picks the large
+one: `grid` (default) or `consumption`.
+
+```yaml
+type: custom:m3-power-summary-card
+layout: compact
+main_value: consumption
+grid_entity: sensor.grid_power
+consumption_entity: sensor.house_power
+solar_entity: sensor.pv_power
+metrics:
+  - entity: sensor.battery_level
+tap_action:
+  action: navigate
+  navigation_path: /lovelace/energy
+```
+
 ### Configuration options
 
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `grid_entity` | string | – | Instantaneous power at the grid connection, in W (required) |
+| `layout` | `full` \| `compact` | `full` | `compact`: one row, main value plus one line of the others |
+| `main_value` | `grid` \| `consumption` | `grid` | The large value in compact layout |
+| `tap_action` | action | `more-info` | Tap on the main icon (full) or the tile (compact); more-info opens the main value's entity |
 | `grid_sign` | `negative_is_export` \| `positive_is_export` | `negative_is_export` | Sign convention of the grid sensor |
 | `consumption_entity` | string | – | Home consumption in W (empty = computed from grid import + solar) |
 | `solar_entity` | string / string[] | – | Generation sensor(s) in W, summed |
