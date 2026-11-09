@@ -6,6 +6,20 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Added
+
+- **Your own translations, for any language.** The cards only knew German
+  and English, so in every other language they showed fixed English strings
+  — "Today", "Last 7 days", "Average", "All closed" — and there was no way to
+  change a word of them. A small resource file can now set
+  `window.m3CardsTranslations` with strings per language (`nl`, `nl-BE`,
+  `fr`, …); a partial map is fine, and whatever it leaves out falls back to
+  the built-in language and then English. It also rewords the built-in
+  German or English strings. Cards already on screen re-render when the file
+  announces itself with a `m3-cards-translations-loaded` event, so the load
+  order of the resources does not matter. See "Your own translations" in the
+  README.
+
 ### Fixed
 
 - **The energy card's running day or hour shows what was used, not the meter

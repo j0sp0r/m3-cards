@@ -137,7 +137,8 @@ the image — everything else is live data.</sub>
   per-corner overrides) across every card
 - `unavailable` handling without crashing: values shown as "–", controls
   dimmed
-- Localized in German/English (follows `hass.locale.language`)
+- Localized in German/English (follows `hass.locale.language`); any other
+  language, or your own wording, through [your own translations](#your-own-translations)
 - Accessible: every interactive element is keyboard-reachable
   (Tab/Enter/Space) with a visible focus ring and `aria-label`
 - Respects `prefers-reduced-motion` throughout, additionally overridable
@@ -256,6 +257,51 @@ a card config looks like whatever card it is for.
 The nav card is the exception in the other direction: its entries had templates
 before this existed, with `hidden` / `disabled` read as booleans, and they work
 as documented under [M3 Nav Card](#m3-nav-card).
+
+## Your own translations
+
+The cards ship in German and English; every other language gets English.
+To change that, give the cards your own strings from a small file of your
+own — any language, as many or as few strings as you like. Whatever the file
+leaves out falls back to the built-in language, then to English.
+
+1. Create `config/www/m3-cards-nl.js` (any name works):
+
+   ```js
+   // Only the keys listed here change; everything else stays as shipped.
+   window.m3CardsTranslations = {
+     ...window.m3CardsTranslations,
+     nl: {
+       energy_weekday_today: "Vandaag",
+       energy_subtitle_days: "Afgelopen {days} dagen",
+       multigraph_summary_mean: "Gemiddeld",
+       openings_all_closed: "Alles dicht",
+     },
+   };
+   window.dispatchEvent(new Event("m3-cards-translations-loaded"));
+   ```
+
+2. Add it as a resource next to `m3-cards.js`:
+   *Settings → Dashboards → Resources → Add resource*
+   - URL: `/local/m3-cards-nl.js`
+   - Type: JavaScript module
+
+The language is the one in your Home Assistant profile. A map is looked up by
+the full tag first and then by its base language, so `nl` covers `nl-BE`
+too, and an `nl-BE` map can override just the words that differ. A `de` or
+`en` map works the same way, for when you only want to reword a few of the
+built-in strings.
+
+**Finding the keys.** Every string the cards show is in
+[`src/localize.ts`](src/localize.ts); the `en` block is the complete list.
+Keys starting with `editor_` belong to the visual editor. Keep placeholders
+such as `{days}` or `{n}` exactly as they are — the card fills them in.
+
+The last line of the file lets cards that were already on screen pick up the
+new strings straight away: resources load in parallel, so the cards may draw
+before your file has run. Leave it out and those cards switch on their next
+update instead. Browsers cache resources hard; after editing the file, add
+`?v=2` (and so on) to the resource URL or reload with the cache cleared.
 
 ## M3 Climate Card
 

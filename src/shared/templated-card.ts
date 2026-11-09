@@ -3,6 +3,7 @@ import { ConfigTemplateResolver } from "./config-templates";
 import type { HomeAssistant } from "../types";
 import { closeSheetOf, forwardHassToSheet } from "./entity-detail";
 import { attachCardHaptics } from "./card-haptics";
+import { TRANSLATIONS_LOADED_EVENT } from "../localize";
 
 // Jinja2 in a card's own config, for every card at once.
 //
@@ -69,6 +70,10 @@ export const TemplatedCard = <T extends Constructor<LitElement>>(
   class TemplatedCardElement extends Base {
     private readonly _templates = new ConfigTemplateResolver(() => this.requestUpdate());
     private _detachHaptics?: () => void;
+    // Translations from a user's own resource module may arrive after this card
+    // has rendered in English (localize.ts). Nothing about the card changed, so
+    // nothing else would ask for the render that shows them.
+    private readonly _onTranslations = (): void => this.requestUpdate();
 
     public get rawConfig(): unknown {
       return this._templates.rawConfig;
@@ -81,6 +86,7 @@ export const TemplatedCard = <T extends Constructor<LitElement>>(
       // without this nothing would ask for the update that reopens the
       // subscriptions closed on the way out.
       if (this._templates.active) this.requestUpdate();
+      window.addEventListener(TRANSLATIONS_LOADED_EVENT, this._onTranslations);
       // A light vibration on every tap on a control (shared/card-haptics.ts).
       // `haptics: false` turns it off per card; a card that fires its own
       // haptics sets `ownHaptics` so a tap does not vibrate twice.
@@ -94,6 +100,7 @@ export const TemplatedCard = <T extends Constructor<LitElement>>(
 
     public disconnectedCallback(): void {
       this._templates.close();
+      window.removeEventListener(TRANSLATIONS_LOADED_EVENT, this._onTranslations);
       this._detachHaptics?.();
       this._detachHaptics = undefined;
       closeSheetOf(this);

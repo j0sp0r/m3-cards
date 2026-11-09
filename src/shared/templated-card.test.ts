@@ -1,6 +1,7 @@
-import { describe, it, expect } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import type { LitElement, PropertyValues } from "lit";
 import { TemplatedCard } from "./templated-card";
+import { TRANSLATIONS_LOADED_EVENT } from "../localize";
 
 // A stand-in for a card. These suites run in Vitest's Node environment, where
 // there is no DOM to define a custom element in, and the mixin needs none of
@@ -54,6 +55,14 @@ function build(): {
 const flush = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
 describe("TemplatedCard", () => {
+  // The mixin listens on `window` for late user translations; Node has none.
+  beforeEach(() => {
+    vi.stubGlobal("window", new EventTarget());
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("leaves the config of a card that uses no templates exactly as it was", () => {
     const { card, hass } = build();
     const config = { type: "custom:m3-button-card", name: "Kitchen" };
@@ -118,5 +127,18 @@ describe("TemplatedCard", () => {
     card.hass = hass;
     card.willUpdate(new Map());
     expect(open.size).toBe(1);
+  });
+
+  it("re-renders when user translations arrive, and stops listening once disconnected", () => {
+    const { card } = build();
+    card.connectedCallback();
+    const before = card.updates;
+
+    window.dispatchEvent(new Event(TRANSLATIONS_LOADED_EVENT));
+    expect(card.updates).toBe(before + 1);
+
+    card.disconnectedCallback();
+    window.dispatchEvent(new Event(TRANSLATIONS_LOADED_EVENT));
+    expect(card.updates).toBe(before + 1);
   });
 });

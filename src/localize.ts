@@ -6099,11 +6099,77 @@ const translations = {
 
 export type TranslationKey = keyof (typeof translations)["en"];
 
+/**
+ * A user-supplied translation map: any subset of the built-in keys. Keys it
+ * leaves out fall back to the built-in strings.
+ */
+export type CustomTranslations = Partial<Record<TranslationKey, string>>;
+
+/**
+ * Translations supplied from outside the bundle, keyed by language tag
+ * (`nl`, `nl-BE`, `fr`, …).
+ *
+ * The bundle ships German and English only. Anyone else gets English, and
+ * before this had no way to change a single word of it. A small module
+ * registered as its own Lovelace resource fills this in:
+ *
+ *   window.m3CardsTranslations = { ...window.m3CardsTranslations, nl: { energy_weekday_today: "Vandaag" } };
+ *   window.dispatchEvent(new Event("m3-cards-translations-loaded"));
+ *
+ * Lovelace resources load in parallel and in no fixed order, so the registry
+ * is read on every call rather than once at import: whichever module runs
+ * first, the next render picks it up. The event covers the other order — the
+ * cards already rendered in English before the translations arrived — see
+ * TRANSLATIONS_LOADED_EVENT.
+ */
+export type CustomTranslationRegistry = Record<string, CustomTranslations | undefined>;
+
+declare global {
+  interface Window {
+    m3CardsTranslations?: CustomTranslationRegistry;
+  }
+}
+
+/**
+ * Fired on `window` by a translation module after it has filled in
+ * `window.m3CardsTranslations`. Every card listens for it and re-renders
+ * (shared/templated-card.ts), so translations that arrive after the first
+ * render still show without a page reload.
+ *
+ * An event rather than a setter on the registry: a setter can only be
+ * installed once the bundle has run, and the translation module may well run
+ * first — an assignment made before the setter exists would never be seen.
+ * Reading at call time plus one event works in either order.
+ */
+export const TRANSLATIONS_LOADED_EVENT = "m3-cards-translations-loaded";
+
 function resolveLang(language?: string): Lang {
   return language?.toLowerCase().startsWith("de") ? "de" : "en";
 }
 
+/**
+ * The user's string for this key, if any: the full tag first (`nl-BE`), then
+ * its base language (`nl`). Anything that is not a string — a typo'd nested
+ * object, a number, `null` — is ignored rather than rendered.
+ */
+function customString(key: TranslationKey, language?: string): string | undefined {
+  if (!language) return undefined;
+  const registry = (globalThis as { m3CardsTranslations?: unknown }).m3CardsTranslations;
+  if (!registry || typeof registry !== "object") return undefined;
+  const maps = registry as Record<string, unknown>;
+  const base = language.split("-")[0].toLowerCase();
+  for (const tag of language === base ? [base] : [language, base]) {
+    const map = maps[tag];
+    if (!map || typeof map !== "object") continue;
+    const value = (map as Record<string, unknown>)[key];
+    if (typeof value === "string") return value;
+  }
+  return undefined;
+}
+
 export function localize(key: TranslationKey, language?: string): string {
+  const custom = customString(key, language);
+  if (custom !== undefined) return custom;
   const lang = resolveLang(language);
   return translations[lang][key] ?? translations.en[key] ?? key;
 }

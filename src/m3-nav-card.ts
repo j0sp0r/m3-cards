@@ -109,7 +109,7 @@ import {
   viewPath,
   type LovelaceViewLike,
 } from "./shared/dashboard-views";
-import { localize, type TranslationKey } from "./localize";
+import { localize, TRANSLATIONS_LOADED_EVENT, type TranslationKey } from "./localize";
 import { STANDARD_EASING, shouldAnimate } from "./shared/animation";
 import { activateOnKey } from "./shared/a11y";
 import { handleAction, isActionable } from "./shared/actions";
@@ -487,6 +487,8 @@ export class M3NavCard extends LitElement implements LovelaceCard {
   /** Last seen edit-mode state, so shouldUpdate can spot the transition. */
   private _wasEditing = false;
 
+  private readonly _onTranslations = (): void => this.requestUpdate();
+
   public connectedCallback(): void {
     super.connectedCallback();
     // Read where we are now, not where we were when this card was last on
@@ -499,6 +501,9 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     noteNavArrival(this);
     window.addEventListener("location-changed", this._onLocationChanged);
     window.addEventListener("popstate", this._onLocationChanged);
+    // Not a TemplatedCard, so it listens for late user translations itself
+    // (see TRANSLATIONS_LOADED_EVENT in localize.ts).
+    window.addEventListener(TRANSLATIONS_LOADED_EVENT, this._onTranslations);
 
     // Dashboard-wide swipe plugins read drags off an ancestor of the card, so
     // a sideways drag on a bar that scrolls — the entries do not all fit, that
@@ -537,6 +542,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     super.disconnectedCallback();
     window.removeEventListener("location-changed", this._onLocationChanged);
     window.removeEventListener("popstate", this._onLocationChanged);
+    window.removeEventListener(TRANSLATIONS_LOADED_EVENT, this._onTranslations);
     for (const type of SWIPE_EVENTS) {
       this.removeEventListener(type, stopSwipe);
     }
