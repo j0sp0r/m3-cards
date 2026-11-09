@@ -49,6 +49,7 @@ import {
   fetchSolarDayHours,
   fetchSolarPastDays,
   fetchCurrentPeriodChangeSum,
+  currentPeriodStart,
   mapWhHoursToLocalKwh,
   localHourKey,
 } from "./shared/ha-statistics";
@@ -98,6 +99,11 @@ export class M3EnergyCard extends TemplatedCard(LitElement) implements LovelaceC
   @state() private _monthCompletedValues: number[] = [];
   @state() private _monthCurrentValue = 0;
   @state() private _monthRealCount = 0;
+  // For `statistic_type: change` in day/hour mode: what the running day or
+  // hour has consumed so far, from short-term statistics. Undefined for
+  // periodically-resetting ("state"-type) counters, whose live state already
+  // is that value.
+  @state() private _currentPeriodChange?: number;
 
   private _refreshTimer?: number;
   private _refreshBucket?: string;
@@ -276,6 +282,14 @@ export class M3EnergyCard extends TemplatedCard(LitElement) implements LovelaceC
           ? await fetchEnergyHours(this.hass, entity, barCount, statisticType)
           : await fetchEnergyDays(this.hass, entity, barCount, statisticType);
       this._dayValues = result.values;
+      this._currentPeriodChange =
+        statisticType === "change"
+          ? await fetchCurrentPeriodChangeSum(
+              this.hass,
+              [entity],
+              currentPeriodStart(period),
+            )
+          : undefined;
     } catch (e) {
       console.error("m3-energy-card: failed to load energy data", e);
     } finally {
@@ -454,7 +468,14 @@ export class M3EnergyCard extends TemplatedCard(LitElement) implements LovelaceC
     return raw;
   }
 
+  // The running day's or hour's value. A periodically-resetting counter's
+  // live state is exactly that; a lifetime counter's ("change") live state is
+  // the all-time total, so its running period comes from short-term
+  // statistics instead — the same split month and solar mode already make.
   private _currentValue(entity: HassEntity): number {
+    if ((this._config?.statistic_type ?? "state") === "change") {
+      return this._currentPeriodChange ?? 0;
+    }
     return this._liveValueInKwh(entity);
   }
 

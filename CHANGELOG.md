@@ -4,6 +4,20 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format angelehnt an [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
+## [Unreleased]
+
+### Fixed
+
+- **The energy card's running day or hour shows what was used, not the meter
+  reading.** With `statistic_type: change` on a lifetime counter (a P1 meter,
+  the Energy dashboard's cost sensors) `period: day` and `period: hour` took
+  the entity's live state as today's or this hour's value — the whole meter
+  reading, "11,556 kWh today", next to bars of 20–60 kWh. The running period
+  now comes from the short-term statistics since midnight or the top of the
+  hour, as month and solar mode already did and as the documentation
+  describes. Periodically-resetting counters (`statistic_type: state`) still
+  read their live state.
+
 ## [2.7.1] – 2026-11-08
 
 ### Added
