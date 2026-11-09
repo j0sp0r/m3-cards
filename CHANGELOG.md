@@ -4,7 +4,7 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format angelehnt an [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
-## [Unreleased]
+## [2.7.2] – 2026-11-09
 
 **Upgrading:** cards that find their own entities now leave out the ones
 hidden in Home Assistant (#33). An entity that was hidden on purpose but
