@@ -319,6 +319,8 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Kartenintegration | `show_map: true` | Karte lädt, keine Konsolenfehler bei fehlenden Koordinaten |
 | Karte ohne native Map-Card (#26) | `show_map: true` auf einer Ansicht ohne HA-Kartenkarte, Seite neu laden | Karte erscheint trotzdem |
 | Kompakt | `layout: compact` mit zwei und mit fünf Personen | Keine Kopfzeile, je Person eine 44px-Kachel (Avatar, Name, „unterwegs · 2 h“); bis zwei Personen 80px hoch; bricht auf schmaler Karte um; zu Hause solide Personenfarbe, sonst Tönung |
+| Aktion pro Person (#39) | `person_actions` mit `navigate` für zwei Personen, eine dritte ohne Eintrag, dazu ein karten-weites `hold_action` | Jede der zwei öffnet ihre Seite, die dritte die More-Info (oder die karten-weite `tap_action`); langes Drücken nimmt die eigene `hold_action` der Person, sonst die der Karte |
+| Ohne Rahmen (#39) | `layout: compact`, `frameless: true`, zwischen anderen Karten in einer Sections-Ansicht | Keine Fläche, kein Rand, kein Innenabstand um die Pillen; die Pillen stehen bündig im Raster wie Button-Karten |
 
 ## M3 Climate Overview Card
 

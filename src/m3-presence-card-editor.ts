@@ -73,6 +73,7 @@ export class M3PresenceCardEditor extends LitElement implements LovelaceCardEdit
             { name: "icon", selector: { icon: {} } },
           ]),
       { name: "shape_by_state", selector: { boolean: {} } },
+      { name: "frameless", selector: { boolean: {} } },
       { name: "show_distance", selector: { boolean: {} } },
       { name: "show_since", selector: { boolean: {} } },
       { name: "show_map", selector: { boolean: {} } },
@@ -137,6 +138,7 @@ export class M3PresenceCardEditor extends LitElement implements LovelaceCardEdit
       show_map: "editor_presence_show_map",
       sort: "editor_presence_sort",
       layout: "editor_presence_layout",
+      frameless: "editor_presence_frameless",
       shape_by_state: "editor_shape_by_state",
       tap_action: "editor_tap_action",
       hold_action: "editor_hold_action",
@@ -272,6 +274,7 @@ export class M3PresenceCardEditor extends LitElement implements LovelaceCardEdit
     const contentData = {
       layout: this._config.layout ?? "grid",
       shape_by_state: this._config.shape_by_state ?? false,
+      frameless: this._config.frameless ?? false,
       name: this._config.name,
       icon: this._config.icon,
       show_distance: this._config.show_distance ?? true,

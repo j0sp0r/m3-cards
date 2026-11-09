@@ -1940,6 +1940,10 @@ layout: compact
 Actions, popups, sorting, colours and `show_map` work as in the grid; `name`
 and `icon` have no header to go in.
 
+`frameless: true` drops the card around the tiles — no background, border or
+padding — so they sit straight in the dashboard grid instead of a frame
+inside a frame.
+
 ### Entity source
 
 - **`auto_discover: true`** (default): automatically finds every `person`
@@ -2037,6 +2041,27 @@ A person named in `person_popups` who is not on the card is simply never
 tapped, and an `action: popup` on someone with no popup configured falls back
 to their more-info rather than opening an empty dialog.
 
+### Per-person actions
+
+For a plain navigation per person, `person_actions` gives each person a
+`tap_action` and `hold_action` of their own. It wins over the card-level
+actions for that person only; everyone else keeps the card's.
+
+```yaml
+type: custom:m3-presence-card
+layout: compact
+frameless: true
+person_actions:
+  person.alex:
+    tap_action:
+      action: navigate
+      navigation_path: /lovelace/alex
+  person.sam:
+    tap_action:
+      action: navigate
+      navigation_path: /lovelace/sam
+```
+
 
 ### Configuration options
 
@@ -2057,6 +2082,8 @@ to their more-info rather than opening an empty dialog.
 | `zone_colors` | object (zone name → color) | – | Override per named zone |
 | `tap_action` | action object | more-info | Action on a tap on an avatar, targeting that person. Unset, a tap opens their more-info — or their `person_popups` entry, if they have one. Adds a `popup` action kind |
 | `hold_action` | action object | – | Action on a long press (500ms) on an avatar, targeting that person |
+| `person_actions` | object (`entity_id` → `tap_action` / `hold_action`) | – | Actions of a person's own, winning over the card-level ones for that person |
+| `frameless` | boolean | `false` | No card around the people: no background, border or padding |
 | `person_popups` | object (`entity_id` → popup) | – | Per-person popup: `title`, `size` (`normal`/`wide`/`fullscreen`) and a `content` card. Listed people open theirs on tap |
 | `text_color` / `secondary_text_color` | string | theme default | Names vs. status line |
 | `card_background` | string | glass/solid background | Card background |

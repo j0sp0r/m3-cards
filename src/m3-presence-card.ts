@@ -344,6 +344,20 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
     return this._popupConfigFor(entityId) ? { action: "popup" } : { action: "more-info" };
   }
 
+  /** This person's own tap action, else the card's, else the default (#39). */
+  private _tapActionFor(entityId: string): HaActionConfig {
+    return (
+      this._config?.person_actions?.[entityId]?.tap_action ??
+      this._config?.tap_action ??
+      this._defaultTapAction(entityId)
+    );
+  }
+
+  /** This person's own hold action, else the card's. */
+  private _holdActionFor(entityId: string): HaActionConfig | undefined {
+    return this._config?.person_actions?.[entityId]?.hold_action ?? this._config?.hold_action;
+  }
+
   /**
    * Runs one of the card's actions against the person that was pressed.
    *
@@ -430,7 +444,7 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
   private _handlePointerDown(row: PersonRow): (e: PointerEvent) => void {
     return () => {
       this._holdFired = false;
-      const hold = this._config?.hold_action;
+      const hold = this._holdActionFor(row.entityId);
       // No hold timer at all without an action to run, so a press-and-wait
       // still ends in the tap it would have before.
       if (!hold || !isActionable(hold)) return;
@@ -447,7 +461,7 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
         window.clearTimeout(this._holdTimer);
         this._holdTimer = undefined;
       }
-      if (!this._holdFired) this._runAction(this._config?.tap_action ?? this._defaultTapAction(row.entityId), row.entityId);
+      if (!this._holdFired) this._runAction(this._tapActionFor(row.entityId), row.entityId);
     };
   }
 
@@ -461,7 +475,7 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
    * did work behave identically here.
    */
   private _triggerHoldAction(entityId: string): void {
-    const action = this._config?.hold_action;
+    const action = this._holdActionFor(entityId);
     if (!action) return;
     this._runAction(action, entityId);
   }
@@ -510,8 +524,8 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
     return html`
       <ha-card style=${`${cssVars} border-radius: ${radius};`}>
         <div
-          class="card-inner ${glassCardClass(this._config.glass_background)} ${animClass}"
-          style=${`border-radius: ${radius};${cardBackgroundCss ? ` background: ${cardBackgroundCss};` : ""}`}
+          class="card-inner ${glassCardClass(this._config.glass_background)} ${animClass} ${this._config.frameless ? "frameless" : ""}"
+          style=${`border-radius: ${radius};${cardBackgroundCss && !this._config.frameless ? ` background: ${cardBackgroundCss};` : ""}`}
         >
           ${this._compact
             ? nothing
@@ -577,7 +591,7 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
   };
 
   private _onKey(row: PersonRow) {
-    return activateOnKey(() => this._runAction(this._config?.tap_action ?? this._defaultTapAction(row.entityId), row.entityId));
+    return activateOnKey(() => this._runAction(this._tapActionFor(row.entityId), row.entityId));
   }
 
   /**
@@ -660,6 +674,16 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
     cardHeaderStyles,
     popupCardStyles,
     css`
+      /* frameless (#39): the people sit straight in the dashboard grid. */
+      .card-inner.frameless {
+        padding: 0;
+        border: none;
+        background: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        transform: none;
+      }
+
       .presence-chip {
         flex-shrink: 0;
         height: 24px;

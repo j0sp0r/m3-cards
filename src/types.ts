@@ -1487,6 +1487,18 @@ export interface M3PresenceCardConfig extends DetailModeConfig {
    * available to put the popup on `hold_action` instead.
    */
   person_popups?: Record<string, PresencePersonPopupConfig>;
+  /**
+   * Per-person actions, keyed by `entity_id` (#39): tapping one person opens
+   * their page, tapping another opens theirs. Each wins over the card-level
+   * `tap_action` / `hold_action` for that person only.
+   */
+  person_actions?: Record<string, { tap_action?: HaActionConfig; hold_action?: HaActionConfig }>;
+  /**
+   * Drops the card around the people (#39): no background, no border, no
+   * padding, so compact pills sit straight in the dashboard grid instead of a
+   * frame inside a frame.
+   */
+  frameless?: boolean;
   text_color?: string;
   secondary_text_color?: string;
   card_background?: string;

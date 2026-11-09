@@ -27,6 +27,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   chip bar of twenty possible alerts shows only the two or three that apply.
   When none does, the card takes no room at all, its grid cell included; in
   edit mode the hidden chips show faded, so the card can still be opened.
+- **Presence card: an action per person, and no frame** (#39).
+  `person_actions` gives each person a `tap_action` and `hold_action` of
+  their own — one card where each name opens its own page. `frameless: true`
+  drops the card around the people, so compact pills sit straight in the
+  dashboard grid instead of a border inside a border.
 - **An icon of its own for the current page** in the nav card (#38).
   `active_icon` on an entry replaces its icon while it is the current page —
   a filled icon beside the others' outlined ones.
