@@ -43,6 +43,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   `main_value: consumption` — and the other values on one line beneath it,
   each behind an icon; a value that does not fit is left out whole. Plus a
   `tap_action`.
+- **Grid lines, values and a "now" mark on the multi graph** (#36).
+  `grid_lines` (horizontal, vertical, both, none), `y_ticks` for about how
+  many horizontal lines, `show_y_labels` for their values, and
+  `show_now_marker` for a dashed line where the readings end. Without them
+  the graph looks as before.
 - **An icon of its own for the current page** in the nav card (#38).
   `active_icon` on an entry replaces its icon while it is the current page —
   a filled icon beside the others' outlined ones.

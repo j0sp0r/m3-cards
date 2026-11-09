@@ -113,6 +113,23 @@ show_ranges: false
 height: 90
 ```
 
+### Grid lines and "now"
+
+The other way, towards a chart with a scale: horizontal lines at round values
+with their value at the left edge, vertical lines at the time marks, and a
+dashed line where the readings end.
+
+```yaml
+type: custom:m3-multi-graph-card
+grid_lines: both         # horizontal (default), vertical, both or none
+y_ticks: 5               # about how many horizontal lines
+show_y_labels: true
+show_now_marker: true
+```
+
+A value that would sit on the high or low pill is left out; with
+`show_extremes: false` every line carries one.
+
 ### What it shows
 
 - **Header:** the sensor reading highest right now ("Office warmest",
@@ -180,6 +197,10 @@ in Home Assistant, else the device class (none for %, ppm, lx, W).
 | `show_chips` | `true` | Chips (legend and focus picker) |
 | `show_extremes` | `true` | Lowest and highest value as pills at the left edge |
 | `show_axis` | `true` | Time labels below the graph |
+| `grid_lines` | `horizontal` | `horizontal`, `vertical` (at the time marks), `both` or `none` |
+| `y_ticks` | `3` | About how many horizontal lines (1–10) |
+| `show_y_labels` | `false` | The value on each horizontal line, at the left edge |
+| `show_now_marker` | `false` | A dashed line at now, where the readings end |
 | `show_focus_range` | `true` | The focused sensor's lowest and highest reading in the footer |
 | `show_ranges` | `true` | Range picker in the footer (hidden anyway with a single range) |
 | `height` | `130` | Height of the graph in px |

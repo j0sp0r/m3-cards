@@ -708,8 +708,29 @@ export class M3MultiGraphCard extends TemplatedCard(LitElement) implements Lovel
     const focusRow = rows[focus];
     const focusLine = focusRow && !focusRow.foreign ? lineOf(focusRow) : { runs: [] as XY[][] };
     const focusStroke = focusRow ? fillColor(this, focusRow.color) : "currentColor";
-    const grid = scale ? niceTicks(scale.lo, scale.hi, 3).filter((v) => v > scale.lo && v < scale.hi) : [];
+    // Grid (#36). Horizontal lines at round values, vertical ones at the time
+    // labels' marks; how many horizontal lines and whether they carry their
+    // value are the author's call.
+    const gridMode = cfg.grid_lines ?? "horizontal";
+    const horizontal = gridMode === "horizontal" || gridMode === "both";
+    const vertical = gridMode === "vertical" || gridMode === "both";
+    const yTicks = Math.max(1, Math.min(10, Math.round(cfg.y_ticks ?? 3)));
+    const grid =
+      scale && horizontal ? niceTicks(scale.lo, scale.hi, yTicks).filter((v) => v > scale.lo && v < scale.hi) : [];
     const labels = axisLabels(range, t0, t1, this._language, this._t("multigraph_now"));
+    const verticalAt = vertical ? labels.filter((l) => l.at > 0 && l.at < 1).map((l) => l.at * plotW) : [];
+    // A value label too close to a high/low pill would sit on it.
+    const extremesShown = cfg.show_extremes !== false && !!scale && scrub === undefined;
+    const yLabels =
+      cfg.show_y_labels && scale
+        ? grid.filter(
+            (v) =>
+              !extremesShown ||
+              // The label sits above its line, so it needs more room below the
+              // high pill than above the low one.
+              (scale.y(v) - scale.y(scale.hi) > 28 && scale.y(scale.lo) - scale.y(v) > 12),
+          )
+        : [];
 
     const scrubX = scrub !== undefined ? x(scrub) : undefined;
     const scrubV = scrub !== undefined && focusRow && !focusRow.foreign ? focusRow.values[scrub] : null;
@@ -722,6 +743,10 @@ export class M3MultiGraphCard extends TemplatedCard(LitElement) implements Lovel
     const curvesSvg = scale
       ? svg`
           ${grid.map((v) => svg`<line class="grid" x1="0" x2=${plotW} y1=${scale.y(v)} y2=${scale.y(v)}></line>`)}
+          ${verticalAt.map((gx) => svg`<line class="grid" x1=${gx} x2=${gx} y1="0" y2=${height}></line>`)}
+          ${cfg.show_now_marker && !stale
+            ? svg`<line class="now-marker" x1=${plotW} x2=${plotW} y1="0" y2=${height}></line>`
+            : nothing}
           ${rows.map((row, i) => {
             if (row.foreign) return nothing;
             const { runs } = i === focus ? { runs: focusLine.runs } : lineOf(row);
@@ -756,7 +781,7 @@ export class M3MultiGraphCard extends TemplatedCard(LitElement) implements Lovel
         `
       : nothing;
 
-    const showExtremes = cfg.show_extremes !== false && scale && scrub === undefined;
+    const showExtremes = extremesShown;
     return html`
       <div
         class="chart ${stale ? "stale" : ""}"
@@ -788,6 +813,7 @@ export class M3MultiGraphCard extends TemplatedCard(LitElement) implements Lovel
             ${curvesSvg}
           </svg>`,
         )}
+        ${yLabels.map((v) => html`<span class="y-label" style=${`top: ${scale!.y(v)}px;`}>${this._short(v)}</span>`)}
         ${showExtremes
           ? html`<span class="extreme" style=${`top: ${scale!.y(scale!.hi)}px;`}>${this._short(scale!.hi)}</span>
               <span class="extreme" style=${`top: ${scale!.y(scale!.lo)}px;`}>${this._short(scale!.lo)}</span>`
@@ -1033,6 +1059,24 @@ export class M3MultiGraphCard extends TemplatedCard(LitElement) implements Lovel
         stroke: currentColor;
         stroke-opacity: 0.35;
         stroke-width: 1;
+      }
+      /* show_now_marker (#36): where the readings end. */
+      .now-marker {
+        stroke: var(--primary-color);
+        stroke-opacity: 0.6;
+        stroke-width: 1.5;
+        stroke-dasharray: 4 3;
+      }
+      /* show_y_labels (#36): a grid line's value, quieter than the high/low pills. */
+      .y-label {
+        position: absolute;
+        left: 2px;
+        transform: translateY(-110%);
+        font-size: 10px;
+        font-variant-numeric: tabular-nums;
+        color: var(--m3p-secondary-text, var(--secondary-text-color));
+        opacity: 0.8;
+        pointer-events: none;
       }
       .extreme {
         position: absolute;

@@ -3394,6 +3394,17 @@ export interface M3MultiGraphCardConfig extends EntityFilterConfig {
   show_chips?: boolean;
   /** The time labels below the graph. Default true. */
   show_axis?: boolean;
+  /**
+   * Grid lines (#36): `horizontal` (default) at round values, `vertical` at
+   * the time labels' marks, `both`, or `none`.
+   */
+  grid_lines?: "horizontal" | "vertical" | "both" | "none";
+  /** About how many horizontal lines. Default 3. */
+  y_ticks?: number;
+  /** The value on each horizontal line, at the left edge. Default false. */
+  show_y_labels?: boolean;
+  /** A line at "now", the right edge, labelled. Default false. */
+  show_now_marker?: boolean;
   /** The focused curve's lowest and highest reading in the footer. Default true. */
   show_focus_range?: boolean;
   /** The range picker in the footer; hidden anyway with a single range. Default true. */

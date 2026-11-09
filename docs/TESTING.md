@@ -1318,6 +1318,7 @@ Mit einem harmlosen `input_boolean` testen.
 | Editor | Sensor hinzufügen, umbenennen, Farbe setzen, hoch/runter, entfernen; Zeiträume und Hero-Wert ändern | Vorschau folgt; Standardwerte landen nicht im YAML |
 | Hell/Dunkel | Theme umschalten | Kurven und Chips bleiben unterscheidbar und lesbar |
 | Am Handy | 390 px Breite | Chips brechen um, Fußzeile bricht bei vielen Zeiträumen um, nichts läuft über |
+| Hilfslinien und „jetzt“ (#36) | `grid_lines: both`, `y_ticks: 5`, `show_y_labels: true`, `show_now_marker: true`; dann `grid_lines: none` und `vertical` in „7 Tage“ | Waagerechte Linien mit Wert am linken Rand, keiner davon auf der Höchst-/Tiefstwert-Pille; senkrechte Linien genau über den Zeitmarken; gestrichelte Linie am rechten Rand. `none` zeigt keine Linien. Ohne die Optionen sieht die Karte aus wie vorher |
 
 ## Bekannte Einschränkungen
 
