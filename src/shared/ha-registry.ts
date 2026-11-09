@@ -7,6 +7,9 @@ interface EntityRegistryEntry {
   device_id?: string | null;
   labels?: string[];
   platform?: string | null;
+  /** The frontend's display registry says `hidden`; the full one `hidden_by`. */
+  hidden?: boolean;
+  hidden_by?: string | null;
 }
 
 interface DeviceRegistryEntry {
@@ -81,6 +84,22 @@ async function getRegistries(hass: HomeAssistant): Promise<RegistrySnapshot> {
   };
 }
 
+/**
+ * Whether the user has hidden this entity in Home Assistant — by hand, or
+ * through a group created with "hide members", which hides every member. A
+ * hidden entity is one the user has asked not to see on automatically built
+ * dashboards, so discovery leaves it out (#33). Naming it in a card's own list
+ * or in `include_entities` still shows it.
+ */
+export function isHiddenEntity(
+  hass: HomeAssistant,
+  entityId: string,
+  entry?: { hidden?: boolean; hidden_by?: string | null },
+): boolean {
+  const e = entry ?? (hass.entities as Record<string, { hidden?: boolean; hidden_by?: string | null }> | undefined)?.[entityId];
+  return !!(e?.hidden || e?.hidden_by);
+}
+
 export interface DiscoverPowerOptions {
   includeAreas?: string[];
   includeLabels?: string[];
@@ -123,7 +142,8 @@ async function discoverByDeviceClass(
       return (
         domainSet.has(domain) &&
         classSet.has(s.attributes.device_class) &&
-        !exclude.has(s.entity_id)
+        !exclude.has(s.entity_id) &&
+        !isHiddenEntity(hass, s.entity_id)
       );
     })
     .map((s) => s.entity_id);
@@ -186,7 +206,7 @@ export async function discoverPersonEntities(
 ): Promise<string[]> {
   const exclude = new Set(opts.excludeEntities ?? []);
   const candidates = Object.keys(hass.states).filter(
-    (id) => id.startsWith("person.") && !exclude.has(id),
+    (id) => id.startsWith("person.") && !exclude.has(id) && !isHiddenEntity(hass, id),
   );
 
   const needsArea = !!opts.includeAreas?.length;
@@ -364,7 +384,10 @@ export async function discoverClimateRooms(
 
   const buckets = new Map<string, ClimateRoomBucket>();
 
+  const named = new Set(opts.filter?.include_entities ?? []);
+
   function bucketFor(entityId: string, kind: "temp" | "humidity" | "climate"): void {
+    if (!named.has(entityId) && isHiddenEntity(hass, entityId, entryByEntityId.get(entityId))) return;
     const { areaId, deviceId, labels, tier } = resolve(entityId);
     if (!passesFilter({ entityId, areaId, labels })) return;
     const key = areaId ? `area:${areaId}` : deviceId ? `device:${deviceId}` : `solo:${entityId}`;
@@ -448,7 +471,8 @@ export async function discoverAreaSensors(
   for (const [id, st] of Object.entries(hass.states)) {
     if (!id.startsWith("sensor.") || st.attributes?.device_class !== deviceClass) continue;
     const entry = entryByEntityId.get(id) as (RegistryEntity & { labels?: string[] }) | undefined;
-    if (entry?.entity_category || entry?.hidden || entry?.hidden_by || entry?.disabled_by) continue;
+    if (entry?.entity_category || entry?.disabled_by) continue;
+    if (!named.has(id) && isHiddenEntity(hass, id, entry)) continue;
     const device = entry?.device_id ? deviceById.get(entry.device_id) : undefined;
     const areaId = entry?.area_id ?? device?.area_id ?? undefined;
     const labels = [...(entry?.labels ?? []), ...(device?.labels ?? [])];
@@ -537,6 +561,7 @@ export async function discoverOccupancyRooms(
   const rooms = new Map<string, DiscoveredOccupancyRoom>();
   for (const entity of candidates) {
     const entry = entryByEntityId.get(entity);
+    if (isHiddenEntity(hass, entity, entry)) continue;
     const device = entry?.device_id ? deviceById.get(entry.device_id) : undefined;
     const areaId = entry?.area_id ?? device?.area_id ?? undefined;
     if (includeAreas && !(areaId && includeAreas.has(areaId))) continue;
@@ -619,6 +644,7 @@ export async function discoverLeakSensors(
   const out: DiscoveredLeakSensor[] = [];
   for (const entity of candidates) {
     const entry = entryByEntityId.get(entity);
+    if (isHiddenEntity(hass, entity, entry)) continue;
     const device = entry?.device_id ? deviceById.get(entry.device_id) : undefined;
     const areaId = entry?.area_id ?? device?.area_id ?? undefined;
     if (includeAreas && !(areaId && includeAreas.has(areaId))) continue;
@@ -894,16 +920,20 @@ export async function discoverLightRooms(
   const { entryByEntityId, deviceById, areaById } = await getRegistries(hass);
 
   const buckets = new Map<string, { shown: string[]; switchable: string[] }>();
+  const named = new Set(opts.filter?.include_entities ?? []);
 
   for (const id of lightIds) {
     const entry = entryByEntityId.get(id);
+    // A hidden light gets no tile, but the room's switch still reaches it:
+    // "all off" should not leave on a lamp the user merely tidied away.
+    const hidden = !named.has(id) && isHiddenEntity(hass, id, entry);
     const device = entry?.device_id ? deviceById.get(entry.device_id) : undefined;
     const areaId = entry?.area_id ?? device?.area_id ?? undefined;
     if (!areaId) continue;
 
     const labels = [...(entry?.labels ?? []), ...(device?.labels ?? [])];
     const ctx = { entityId: id, areaId, labels };
-    const shown = passesGrouping(id, groupHandling) && showEntity(ctx);
+    const shown = !hidden && passesGrouping(id, groupHandling) && showEntity(ctx);
     const switchable = passesGrouping(id, toggleGroupHandling) && toggleEntity(ctx);
     if (!shown && !switchable) continue;
 

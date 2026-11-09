@@ -751,6 +751,7 @@ einer entscheidet, was ein Raum **zeigt**, der andere, was ein Tippen
 
 | Test | Schritte | Erwartung |
 |---|---|---|
+| Versteckte Mitglieder (#33) | Lichtgruppe mit „Mitglieder ausblenden“ anlegen, `group_handling: all` | Nur die Gruppe hat eine Kachel; der Raumschalter schaltet trotzdem alle Lampen. Mit dem Mitglied in `include_entities` erscheint es wieder |
 | Erkennung | `auto_discover: true`, sonst nichts | Räume mit Lichtern erscheinen, jeder mit Name aus dem Bereich; Lichter ohne Bereich tauchen **nicht** als eigener Raum auf |
 | Kopfzeile zählt richtig | Alle Lichter aus, dann eines anschalten | Die Kopfzeile zählt Räume **mit eingeschaltetem Licht**, nicht alle Räume — bei allem aus steht dort 0 |
 | Zwei Ansichten | `view` auf `rooms` und `entities` | Einmal eine Kachel je Raum, einmal eine je Licht; in `entities` zeigt `show_area` den Bereich unter dem Namen |

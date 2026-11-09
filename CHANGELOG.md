@@ -6,6 +6,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+**Upgrading:** cards that find their own entities now leave out the ones
+hidden in Home Assistant (#33). An entity that was hidden on purpose but
+still wanted on a card has to be listed: in `include_entities` on the lights
+overview, climate overview and multi graph cards, or in the card's own
+entity list elsewhere.
+
 ### Added
 
 - **Your own translations, for any language.** The cards only knew German
@@ -31,6 +37,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   hour, as month and solar mode already did and as the documentation
   describes. Periodically-resetting counters (`statistic_type: state`) still
   read their live state.
+- **Hidden entities stay hidden** (#33). Discovery on the lights overview,
+  climate overview, multi graph, battery, power list, openings, presence,
+  occupancy, leak and updates cards showed entities the user had hidden —
+  among them every member of a light group created with "hide members". It
+  now skips them, as Home Assistant's own automatic dashboard does. The
+  lights overview still switches a hidden light with its room, so "all off"
+  leaves nothing on.
 - **The to-do and calendar cards work for users who are not admins** (#32).
   Both read their items through `execute_script`, which Home Assistant only
   allows for admins: for everyone else the to-do card stayed empty (adding

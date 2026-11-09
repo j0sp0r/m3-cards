@@ -55,6 +55,7 @@ import { localize, type TranslationKey } from "./localize";
 import { discoveryChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
 import { openEntityDetail } from "./shared/entity-detail";
+import { isHiddenEntity } from "./shared/ha-registry";
 
 console.info(
   `%c M3-UPDATES-CARD %c v${CARD_VERSION} `,
@@ -271,7 +272,9 @@ export class M3UpdatesCard extends TemplatedCard(LitElement) implements Lovelace
     const cfg = this._config;
     const excluded = new Set(cfg.exclude_entities ?? []);
     const ids = cfg.auto_discover
-      ? Object.keys(this.hass.states).filter((id) => id.startsWith("update.") && !excluded.has(id))
+      ? Object.keys(this.hass.states).filter(
+          (id) => id.startsWith("update.") && !excluded.has(id) && !isHiddenEntity(this.hass!, id),
+        )
       : (cfg.entities ?? []).filter((id) => !excluded.has(id));
     this._watchedIds = ids;
 

@@ -1,5 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { deviceSiblings, discoverLightRooms } from "./ha-registry";
+import {
+  deviceSiblings,
+  discoverBatteryEntities,
+  discoverClimateRooms,
+  discoverLeakSensors,
+  discoverLightRooms,
+  discoverOccupancyRooms,
+  discoverPersonEntities,
+  isHiddenEntity,
+} from "./ha-registry";
 import type { HomeAssistant, HassEntity } from "../types";
 
 interface RegistryFixture {
@@ -150,7 +159,7 @@ describe("discoverLightRooms", () => {
 // backend.
 function hassFromSnapshots(fixture: {
   states: Record<string, { state: string; attributes?: Record<string, unknown> }>;
-  entities: Record<string, { device_id?: string; area_id?: string; labels?: string[] }>;
+  entities: Record<string, { device_id?: string; area_id?: string; labels?: string[]; hidden?: boolean }>;
   devices?: Record<string, { area_id?: string; labels?: string[] }>;
   areas?: Record<string, { name: string; icon?: string }>;
 }): HomeAssistant {
@@ -249,5 +258,101 @@ describe("deviceSiblings", () => {
     } as unknown as HomeAssistant;
     expect(deviceSiblings(hass, "sensor.h")).toEqual(["sensor.t", "sensor.bat", "sensor.rssi"]);
     expect(deviceSiblings(hass, "sensor.none")).toEqual([]);
+  });
+});
+
+// A group created with "hide members" hides every member; the user has said
+// they do not want to see those on automatically built dashboards (#33).
+describe("discovery leaves hidden entities out", () => {
+  const groupHass = () =>
+    hassFromSnapshots({
+      states: {
+        "light.living": { state: "on", attributes: { entity_id: ["light.living_1", "light.living_2"] } },
+        "light.living_1": { state: "on" },
+        "light.living_2": { state: "on" },
+      },
+      entities: {
+        "light.living": { area_id: "living" },
+        "light.living_1": { area_id: "living", hidden: true },
+        "light.living_2": { area_id: "living", hidden: true },
+      },
+      areas: { living: { name: "Living room" } },
+    });
+
+  it("shows the group but not its hidden members, and still switches them", async () => {
+    const [room] = await discoverLightRooms(groupHass(), { groupHandling: "all" });
+    expect(room.entities).toEqual(["light.living"]);
+    expect(room.toggleEntities).toEqual(["light.living", "light.living_1", "light.living_2"]);
+  });
+
+  it("shows a hidden light that is named in include_entities", async () => {
+    const [room] = await discoverLightRooms(groupHass(), {
+      filter: { include_entities: ["light.living", "light.living_1"] },
+    });
+    expect(room.entities).toEqual(["light.living", "light.living_1"]);
+  });
+
+  it("drops a room whose only lights are hidden", async () => {
+    const hass = hassFromSnapshots({
+      states: { "light.a": { state: "on" } },
+      entities: { "light.a": { area_id: "attic", hidden: true } },
+      areas: { attic: { name: "Attic" } },
+    });
+    expect(await discoverLightRooms(hass, {})).toEqual([]);
+  });
+
+  it("reads hidden_by from the full registry as well as hidden from the display one", () => {
+    const hass = { states: {}, entities: { "light.a": { hidden: true } } } as unknown as HomeAssistant;
+    expect(isHiddenEntity(hass, "light.a")).toBe(true);
+    expect(isHiddenEntity(hass, "light.b")).toBe(false);
+    expect(isHiddenEntity(hass, "light.b", { hidden_by: "integration" })).toBe(true);
+    expect(isHiddenEntity(hass, "light.b", { hidden_by: null })).toBe(false);
+  });
+
+  it("skips hidden batteries, people, leak and occupancy sensors", async () => {
+    const hass = hassFromSnapshots({
+      states: {
+        "sensor.remote_battery": { state: "80", attributes: { device_class: "battery" } },
+        "sensor.hidden_battery": { state: "80", attributes: { device_class: "battery" } },
+        "person.alex": { state: "home" },
+        "person.guest": { state: "home" },
+        "binary_sensor.sink_leak": { state: "off", attributes: { device_class: "moisture" } },
+        "binary_sensor.old_leak": { state: "off", attributes: { device_class: "moisture" } },
+        "binary_sensor.hall_motion": { state: "off", attributes: { device_class: "motion" } },
+        "binary_sensor.raw_motion": { state: "off", attributes: { device_class: "motion" } },
+      },
+      entities: {
+        "sensor.hidden_battery": { hidden: true },
+        "person.guest": { hidden: true },
+        "binary_sensor.old_leak": { area_id: "kitchen", hidden: true },
+        "binary_sensor.sink_leak": { area_id: "kitchen" },
+        "binary_sensor.hall_motion": { area_id: "hall" },
+        "binary_sensor.raw_motion": { area_id: "office", hidden: true },
+      },
+      areas: { kitchen: { name: "Kitchen" }, hall: { name: "Hall" }, office: { name: "Office" } },
+    });
+    expect(await discoverBatteryEntities(hass, {})).toEqual(["sensor.remote_battery"]);
+    expect(await discoverPersonEntities(hass, {})).toEqual(["person.alex"]);
+    expect((await discoverLeakSensors(hass, {})).map((s) => s.entity)).toEqual(["binary_sensor.sink_leak"]);
+    expect((await discoverOccupancyRooms(hass, {})).flatMap((r) => r.entities)).toEqual(["binary_sensor.hall_motion"]);
+  });
+
+  it("skips a hidden temperature sensor unless include_entities names it", async () => {
+    const hass = hassFromSnapshots({
+      states: {
+        "sensor.office_temperature": { state: "21", attributes: { device_class: "temperature" } },
+        "sensor.trv_temperature": { state: "24", attributes: { device_class: "temperature" } },
+      },
+      entities: {
+        "sensor.office_temperature": { area_id: "office" },
+        "sensor.trv_temperature": { area_id: "bedroom", hidden: true },
+      },
+      areas: { office: { name: "Office" }, bedroom: { name: "Bedroom" } },
+    });
+    expect((await discoverClimateRooms(hass, {})).map((r) => r.name)).toEqual(["Office"]);
+    const named = await discoverClimateRooms(hass, {
+      filter: { include_entities: ["sensor.office_temperature", "sensor.trv_temperature"] },
+    });
+    expect(named.map((r) => r.name).sort()).toEqual(["Bedroom", "Office"]);
   });
 });
