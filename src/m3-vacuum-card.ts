@@ -66,6 +66,7 @@ import {
   ChipRowController,
   chipButtonsStyles,
   renderChipButtons,
+  chipConditionEntities,
 } from "./shared/chip-buttons";
 import { DetailCardController } from "./shared/detail-card";
 import {
@@ -253,6 +254,7 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
       ...Object.values(d?.totals ?? {}),
       ...(this._config?.reminders ?? []).map((r) => r.counter_entity),
       ...listEntities(this._config?.buttons),
+      ...chipConditionEntities(this._config?.buttons),
     ];
   }
 

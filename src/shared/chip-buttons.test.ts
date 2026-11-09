@@ -8,7 +8,10 @@ import {
   chipRowJustify,
   chipRowLayoutClass,
   embeddedChipRowConfig,
+  chipVisible,
+  chipConditionEntities,
 } from "./chip-buttons";
+import type { HomeAssistant } from "../types";
 
 describe("chipRowLayoutClass", () => {
   it("scrolls by default — a row is only laid out otherwise on request", () => {
@@ -365,5 +368,55 @@ describe("smartChipWidths", () => {
   it("fills the row exactly", () => {
     const widths = smartChipWidths([310, 95, 42, 180], 500);
     expect(widths.reduce((a, b) => a + b, 0)).toBeCloseTo(500);
+  });
+});
+
+describe("chipVisible (#37)", () => {
+  const hass = {
+    states: {
+      "binary_sensor.window": { entity_id: "binary_sensor.window", state: "on", attributes: {} },
+      "lock.door": { entity_id: "lock.door", state: "locked", attributes: {} },
+      "sensor.lights": { entity_id: "sensor.lights", state: "0", attributes: {} },
+      "sensor.gone": { entity_id: "sensor.gone", state: "unavailable", attributes: {} },
+    },
+  } as unknown as HomeAssistant;
+
+  it("shows a chip with neither option", () => {
+    expect(chipVisible(hass, { entity: "lock.door" })).toBe(true);
+  });
+
+  it("hides on a rendered true, in any of HA's spellings", () => {
+    for (const v of ["True", "true", "on", "1", "yes", true]) {
+      expect(chipVisible(hass, { entity: "lock.door", hidden: v })).toBe(false);
+    }
+    for (const v of ["False", "off", "0", "", false]) {
+      expect(chipVisible(hass, { entity: "lock.door", hidden: v })).toBe(true);
+    }
+  });
+
+  it("keeps the chip while its hidden template has not rendered yet", () => {
+    expect(chipVisible(hass, { hidden: "{{ true }}" })).toBe(true);
+  });
+
+  it("reads the chip's own entity for a condition without one", () => {
+    expect(chipVisible(hass, { entity: "binary_sensor.window", visible: {} })).toBe(true);
+    expect(chipVisible(hass, { entity: "lock.door", visible: { value: "unlocked" } })).toBe(false);
+    expect(chipVisible(hass, { entity: "sensor.lights", visible: { above: 0 } })).toBe(false);
+  });
+
+  it("needs every condition in a list, and another entity can be named", () => {
+    const chip = { entity: "sensor.lights", visible: [{ entity: "binary_sensor.window" }, { entity: "lock.door", value: "locked" }] };
+    expect(chipVisible(hass, chip)).toBe(true);
+    expect(chipVisible(hass, { ...chip, visible: [...chip.visible, { below: -1 }] })).toBe(false);
+  });
+
+  it("never shows a threshold chip for an unavailable entity", () => {
+    expect(chipVisible(hass, { entity: "sensor.gone", visible: { below: 100 } })).toBe(false);
+  });
+
+  it("lists the entities the conditions read", () => {
+    expect(
+      chipConditionEntities([{ entity: "a.a", visible: [{ entity: "b.b" }, { value: "x" }] }, { entity: "c.c" }]),
+    ).toEqual(["b.b"]);
   });
 });

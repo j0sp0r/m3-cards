@@ -783,6 +783,9 @@ einer entscheidet, was ein Raum **zeigt**, der andere, was ein Tippen
 | Ohne Namen | `show_name: false`, einmal mit und einmal ohne `show_state` | Der Name verschwindet, der Zustand bleibt. Ohne beides wird die Pille ein runder Icon-Knopf |
 | Schloss-Farben nach dem Update | Ein bestehendes Schloss **ohne** `state_colors`, als Pille und als M3 Button Card | Aufgeschlossen ist jetzt der hervorgehobene, akzentfarbene Zustand, abgeschlossen der ruhige — vorher war es umgekehrt. Eine Button Card mit `state_colors.locked` zeigt diese Farbe nicht mehr (so im CHANGELOG beschrieben) |
 | Inaktiv mit Entitätsfarbe | Theme, das `--state-light-off-color` setzt; Pille mit `use_entity_color: true` an einer ausgeschalteten Lampe | Die Pille nimmt die Theme-Farbe statt Grau. Mit einem Theme ohne diese Variable bleibt sie grau wie bisher |
+| Chips nach Bedingung (#37) | Pillen mit `visible: {}` (an einem Fenstersensor), `visible: { value: unlocked }` (Schloss), `visible: { above: 0 }` (Zähler), `hidden: "{{ … }}"`; die Zustände von Hand wechseln | Jede Pille erscheint und verschwindet mit ihrem Zustand, ohne Neuladen; die anderen rücken nach, ohne zu springen |
+| Alle Chips verborgen (#37) | Alle Bedingungen falsch, Sections-Ansicht, Karten darunter | Die Karte ist ganz weg, **auch keine Lücke** im Raster. Wird eine Bedingung wahr, kommt sie an derselben Stelle zurück. Im Bearbeitungsmodus stehen die verborgenen Pillen blass da und die Karte lässt sich öffnen |
+| Eingebettete Chips (#37) | `visible` an einer Pille in `chip_buttons` der Button Card und in `buttons` der Vacuum Card | Dasselbe Verhalten |
 
 ## M3 Group Card
 

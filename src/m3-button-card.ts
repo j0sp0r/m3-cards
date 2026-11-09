@@ -50,6 +50,7 @@ import {
   chipRowJustify,
   embeddedChipRowConfig,
   renderChipButtons,
+  chipConditionEntities,
 } from "./shared/chip-buttons";
 import { TapHoldGesture } from "./shared/gestures";
 import { openActionUrl, toggleSidebar } from "./shared/actions";
@@ -143,6 +144,7 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
     return hassChangeMatters(changed, this.hass, [
       this._config?.entity,
       ...(this._config?.chip_buttons ?? []).map((b) => b.entity),
+      ...chipConditionEntities(this._config?.chip_buttons),
     ]);
   }
 

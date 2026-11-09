@@ -3016,6 +3016,18 @@ export interface ChipButtonConfig {
   entity?: string;
   name?: string;
   icon?: string;
+  /**
+   * Leaves the chip out while true (#37). Jinja2 or a plain `true`; renders to
+   * true/on/yes/1. The same as `hidden` on a nav card entry.
+   */
+  hidden?: string | boolean;
+  /**
+   * Shows the chip only while every condition holds (#37) — the vehicle
+   * card's vocabulary: `value`, `above`/`below`, `regex`, `attribute`,
+   * `template`, or nothing but an entity (met while it is on). A condition
+   * without an `entity` reads the chip's own.
+   */
+  visible?: VehicleCondition | VehicleCondition[];
   /** false hides the name; the state stays, governed by `show_state`. */
   show_name?: boolean;
   /** Active-state color (theme token, hex, or any CSS color). */

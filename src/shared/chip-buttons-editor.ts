@@ -30,6 +30,7 @@ export function chipButtonSchema(): SchemaEntry[] {
     { name: "tap_action", selector: { ui_action: {} } },
     { name: "hold_action", selector: { ui_action: {} } },
     { name: "double_tap_action", selector: { ui_action: {} } },
+    { name: "hidden", selector: { text: {} } },
   ];
 }
 
@@ -47,6 +48,7 @@ export const chipButtonLabelMap: Record<string, TranslationKey> = {
   tap_action: "editor_tap_action",
   hold_action: "editor_hold_action",
   double_tap_action: "editor_double_tap_action",
+  hidden: "editor_chip_buttons_hidden",
 };
 
 // ha-form shows an unset boolean field as unchecked, but shared/chip-buttons.ts

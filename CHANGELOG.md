@@ -20,6 +20,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   `icon_tap_action` and `hold_action`, as on the button card — for example a
   compact tile that toggles on tap and opens more-info from the icon. Without
   them the card behaves as before.
+- **Chips that show only when they matter** (#37). Each chip on the chip
+  buttons card — and in the chip rows of the button and vacuum cards — takes
+  `hidden` (a template) or `visible` (conditions in the vehicle card's
+  vocabulary: a value, a threshold, a pattern, a template, or just "on"). A
+  chip bar of twenty possible alerts shows only the two or three that apply.
+  When none does, the card takes no room at all, its grid cell included; in
+  edit mode the hidden chips show faded, so the card can still be opened.
 - **An icon of its own for the current page** in the nav card (#38).
   `active_icon` on an entry replaces its icon while it is the current page —
   a filled icon beside the others' outlined ones.

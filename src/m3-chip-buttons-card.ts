@@ -15,6 +15,8 @@ import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import {
   ChipRowController,
   chipButtonsStyles,
+  chipConditionEntities,
+  chipVisible,
   renderChipButtons,
 } from "./shared/chip-buttons";
 import { TapHoldGesture } from "./shared/gestures";
@@ -32,6 +34,9 @@ export class M3ChipButtonsCard extends TemplatedCard(LitElement) implements Love
 
   @state() private _config?: M3ChipButtonsCardConfig;
   @state() private _pressedKey?: string;
+  /** Set by Lovelace while the dashboard is being edited / in the card editor. */
+  @property({ type: Boolean }) public editMode = false;
+  @property({ type: Boolean }) public preview = false;
 
   private _chipRow = new ChipRowController();
   private _gestures = new TapHoldGesture();
@@ -52,6 +57,10 @@ export class M3ChipButtonsCard extends TemplatedCard(LitElement) implements Love
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
+    // Moved or removed: give the wrappers back their display, so a card put
+    // elsewhere (or an editor preview) does not inherit a hidden cell.
+    this._empty = false;
+    this._applyEmpty();
     this._gestures.cancel();
     this._chipRow.disconnect();
   }
@@ -61,14 +70,42 @@ export class M3ChipButtonsCard extends TemplatedCard(LitElement) implements Love
   protected updated(changed: PropertyValues): void {
     super.updated(changed);
     this._chipRow.sync(this.renderRoot);
+    this._applyEmpty();
+  }
+
+  /** Whether the last render had nothing to show (#37). Set in render. */
+  private _empty = false;
+  private _collapsed: { el: HTMLElement; display: string }[] = [];
+
+  /**
+   * An empty card still holds its place: in a sections view the card sits in
+   * a hui-card inside a grid cell, and an empty cell keeps the grid's gap. So
+   * the wrappers go with it, the way the popup card takes itself off the
+   * dashboard — and come back as soon as a chip has something to say.
+   */
+  private _applyEmpty(): void {
+    if (!this._empty) {
+      this._collapsed.forEach(({ el, display }) => (el.style.display = display));
+      this._collapsed = [];
+      return;
+    }
+    if (this._collapsed.length) return;
+    const wrappers: HTMLElement[] = [this];
+    const huiCard = this.parentElement;
+    if (huiCard?.tagName === "HUI-CARD") {
+      wrappers.push(huiCard);
+      const cell = huiCard.parentElement;
+      if (cell?.tagName === "DIV" && cell.classList.contains("card")) wrappers.push(cell);
+    }
+    this._collapsed = wrappers.map((el) => ({ el, display: el.style.display }));
+    wrappers.forEach((el) => (el.style.display = "none"));
   }
 
   protected shouldUpdate(changed: PropertyValues): boolean {
-    return hassChangeMatters(
-      changed,
-      this.hass,
-      (this._config?.buttons ?? []).map((b) => b.entity),
-    );
+    return hassChangeMatters(changed, this.hass, [
+      ...(this._config?.buttons ?? []).map((b) => b.entity),
+      ...chipConditionEntities(this._config?.buttons),
+    ]);
   }
 
   public setConfig(config: M3ChipButtonsCardConfig): void {
@@ -88,6 +125,15 @@ export class M3ChipButtonsCard extends TemplatedCard(LitElement) implements Love
 
   protected render() {
     if (!this._config || !this.hass) return nothing;
+    // Every chip hidden right now: no card at all, rather than an empty frame
+    // (#37). While editing, the hidden chips show faded instead, so the card
+    // can still be found and opened.
+    const editing = this.editMode || this.preview;
+    const buttons = this._config.buttons ?? [];
+    const hass = this.hass;
+    const anyVisible = buttons.some((b) => chipVisible(hass, b));
+    this._empty = buttons.length > 0 && !anyVisible && !editing;
+    if (this._empty) return nothing;
     const radius = resolveCornerRadius(
       this._config.radius ?? DEFAULT_CHIP_BUTTONS_RADIUS,
       this._config.corners,
@@ -108,6 +154,7 @@ export class M3ChipButtonsCard extends TemplatedCard(LitElement) implements Love
         >
           ${renderChipButtons(this, this.hass, this._config, {
             pressedKey: this._pressedKey,
+            showHidden: editing,
             gestures: this._gestures,
             onPressChange: (key) => {
               this._pressedKey = key;

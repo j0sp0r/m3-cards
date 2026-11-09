@@ -2263,6 +2263,7 @@ const translations = {
     editor_chip_buttons_inactive_color: "Farbe (inaktiv)",
     editor_chip_buttons_show_name: "Name anzeigen",
     editor_chip_buttons_interactive: "Antippbar",
+    editor_chip_buttons_hidden: "Ausblenden, solange (Template, z. B. {{ is_state('lock.haustuer', 'locked') }})",
     editor_chip_buttons_use_entity_color: "Statusfarbe der Entität verwenden",
     editor_chip_buttons_state_colors: "Zustandsfarben",
     editor_chip_buttons_state_colors_helper:
@@ -5313,6 +5314,7 @@ const translations = {
     editor_chip_buttons_inactive_color: "Color (inactive)",
     editor_chip_buttons_show_name: "Show name",
     editor_chip_buttons_interactive: "Tappable",
+    editor_chip_buttons_hidden: "Hide while (template, e.g. {{ is_state('lock.front_door', 'locked') }})",
     editor_chip_buttons_use_entity_color: "Use the entity's own status color",
     editor_chip_buttons_state_colors: "State colors",
     editor_chip_buttons_state_colors_helper:

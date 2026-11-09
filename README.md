@@ -5153,6 +5153,37 @@ glass_background: true
 radius: 28
 ```
 
+### Chips that show only when they matter
+
+A chip can stay out of the row until it has something to say: an open
+window, a light left on, an unlocked door. `visible` takes conditions in the
+same vocabulary as the vehicle card; `hidden` takes a template.
+
+```yaml
+type: custom:m3-chip-buttons-card
+buttons:
+  - entity: binary_sensor.windows
+    name: Windows open
+    icon: mdi:window-open-variant
+    visible: {}                    # while the sensor is on
+  - entity: lock.front_door
+    name: Unlocked
+    visible:
+      value: unlocked
+  - entity: sensor.lights_on
+    name: Lights
+    show_state: true
+    visible:
+      above: 0
+  - entity: todo.chores
+    icon: mdi:clipboard-check-outline
+    hidden: "{{ states('todo.chores') | int(0) == 0 }}"
+```
+
+When every chip is hidden the card draws nothing at all, so no empty frame
+sits on the dashboard. While the dashboard is being edited, hidden chips show
+faded, so the card can still be found and opened.
+
 ### Configuration options
 
 | Option | Type | Default | Description |
@@ -5172,6 +5203,8 @@ radius: 28
 | `buttons[].tap_action` | Action | depends on the domain | Tap action, same action picker as every other card. Left out, a script starts, a button or scene is pressed, a switch or light toggles, and anything else opens more-info. |
 | `buttons[].hold_action` | Action | `none` | Long-press action |
 | `buttons[].double_tap_action` | Action | `none` | Double-tap action |
+| `buttons[].hidden` | template / boolean | – | Leaves the chip out while it renders true (`true`, `on`, `yes`, `1`) |
+| `buttons[].visible` | condition or list | – | Shows the chip only while every condition holds: `value`, `above` / `below`, `regex`, `attribute`, `template`; without an `entity` it reads the chip's own, and a bare entity is met while it is on |
 | `stretch` | `false` \| `true` \| `smart` | `false` | Fill the row's full width. `true` gives every chip the same width; `smart` sizes each chip to its content and shares out only the leftover space; when the row is too narrow, short chips keep their full width and only the long ones give up room (their label then scrolls). Round icon chips keep their size. Ignores `wrap` and `justify` |
 | `wrap` | boolean | `false` | Wrap chips onto multiple lines instead of scrolling horizontally |
 | `shape_by_state` | boolean | `false` | A chip is a capsule while its entity is off and squares off while it is on |

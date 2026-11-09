@@ -17,6 +17,8 @@ import { defaultEntityAction } from "./entity-actions";
 import type { TapHoldGesture } from "./gestures";
 import { stopSwipe } from "./swipe";
 import { openEntityDetail } from "./entity-detail";
+import { allMet, conditionEntities } from "./vehicle";
+import { isTemplate, templateTruthy } from "./template-sub";
 
 // Renders a horizontal row of tappable "chip button" chips — the M3 answer to
 // Bubble Card's sub-buttons feature (see .claude/docs/NOTES.md). Lives in
@@ -27,6 +29,11 @@ import { openEntityDetail } from "./entity-detail";
 export interface ChipButtonsRenderState {
   /** Key of the chip currently mid-press, for the `.pressed` scale cue. */
   pressedKey?: string;
+  /**
+   * Draw hidden chips anyway, faded — in the dashboard editor, where a chip
+   * that is hidden right now still has to be findable and editable.
+   */
+  showHidden?: boolean;
   /** Owned by the consuming card; one instance shared across every chip. */
   gestures: TapHoldGesture;
   onPressChange: (key: string | undefined) => void;
@@ -92,6 +99,23 @@ export function chipRowJustify(justify: "start" | "center" | "end" | undefined):
   return "flex-end";
 }
 
+/**
+ * Whether a chip shows right now (#37): not `hidden`, and every `visible`
+ * condition met. An unrendered template counts as false for `hidden` (the
+ * chip shows until the value arrives) and as unmet for `visible`.
+ */
+export function chipVisible(hass: HomeAssistant | undefined, button: ChipButtonConfig): boolean {
+  const hidden = button.hidden;
+  if (hidden === true) return false;
+  if (typeof hidden === "string" && !isTemplate(hidden) && templateTruthy(hidden)) return false;
+  return allMet(hass, button.visible, button.entity, Date.now());
+}
+
+/** Every entity a chip's `visible` conditions read, for shouldUpdate. */
+export function chipConditionEntities(buttons: ChipButtonConfig[] | undefined): string[] {
+  return (buttons ?? []).flatMap((b) => conditionEntities(b.visible));
+}
+
 export function renderChipButtons(
   host: HTMLElement,
   hass: HomeAssistant,
@@ -111,9 +135,15 @@ export function renderChipButtons(
       @mousemove=${stopSwipe}
       @mouseup=${stopSwipe}
     >
-      ${buttons.map((button, index) =>
-        renderChipButton(host, hass, button, chipKey(button, index), state),
-      )}
+      ${buttons.map((button, index) => {
+        // The key keeps the chip's place in the config, so hiding one does not
+        // hand its press state or animation to its neighbour.
+        if (chipVisible(hass, button)) return renderChipButton(host, hass, button, chipKey(button, index), state);
+        if (!state.showHidden) return nothing;
+        return html`<div class="m3-chip-hidden-preview">
+          ${renderChipButton(host, hass, button, chipKey(button, index), state)}
+        </div>`;
+      })}
     </div>
   `;
 }
@@ -478,6 +508,16 @@ export class ChipRowController {
 }
 
 export const chipButtonsStyles = css`
+  /* A chip hidden right now, drawn in the dashboard editor only. The wrapper
+     takes no box, so the row lays out as it will once the chip shows. */
+  .m3-chip-hidden-preview {
+    display: contents;
+  }
+
+  .m3-chip-hidden-preview > * {
+    opacity: 0.35;
+  }
+
   .m3-chip-buttons {
     display: flex;
     align-items: center;
