@@ -95,7 +95,7 @@ like an alarm. A change under 1% counts as unchanged.
 | `hero_style` | `inline` \| `badge` | `inline` | |
 | `value_size` | number \| `auto` | `auto` | 40px for numbers, 34px for short text, 26px from 12 characters |
 | `tap_action` | action | `more-info` | Card-level default for every item |
-| `accent_color` / `accent_opacity` | | | Fallback colour and tint strength |
+| `accent_color` / `accent_opacity` | | `primary` | Fallback colour and tint strength. Defaults to the theme's primary colour |
 
 Per item:
 

@@ -1502,7 +1502,10 @@ export const CLOCK_PROGRESS_TINT = 9;
 
 // ---- status card -----------------------------------------------------------
 export const DEFAULT_STATUS_RADIUS = RADIUS.card;
-export const DEFAULT_STATUS_ACCENT = PALETTE.home;
+// The theme's primary colour, as the heading card beside it (#44). It was the
+// house blue until 2.8, which next to a heading card on a Material You theme
+// put two different blues side by side.
+export const DEFAULT_STATUS_ACCENT = "primary";
 export const DEFAULT_STATUS_ICON = "mdi:information-outline";
 
 /** Semantic colours the built-in presets map onto. */
@@ -2200,7 +2203,9 @@ export const WEATHER_NICE_HOUR_STRIDES = [1, 2, 3, 4, 6, 8, 12, 24];
 
 export const DEFAULT_APPLIANCE_RADIUS = RADIUS.card;
 export const DEFAULT_APPLIANCE_ICON = "mdi:washing-machine";
-export const DEFAULT_APPLIANCE_ACCENT = PALETTE.home;
+// The theme's primary colour, as the heading and status cards (#44); the
+// house blue until 2.8.
+export const DEFAULT_APPLIANCE_ACCENT = "primary";
 export const APPLIANCE_ICON_TINT = HUMIDIFIER_ICON_TINT;
 /**
  * Every status pill — the appliance's Ready and Done, the vacuum's battery,

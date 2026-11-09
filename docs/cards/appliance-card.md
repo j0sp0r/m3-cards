@@ -657,7 +657,7 @@ does nothing. Notifications need an entity, so the editor blocks them here.
 | `done_states` | see above | States that mean "finished" |
 | `tap_action` | `more-info`, or `popup` when one is configured | What a tap on the header does. Adds a `popup` action kind |
 | `popup` | — | The card's own popup: `title`, `size` (`normal`/`wide`/`fullscreen`) and a `content` card |
-| `accent_color` | `#85b7eb`; `primary` on a card added from the card picker | Overridden by a matched rule's own `color`. Chips without a colour of their own use it |
+| `accent_color` | `primary` (the theme's primary colour) | Overridden by a matched rule's own `color`. Chips without a colour of their own use it |
 | `text_color` / `secondary_text_color` / `card_background` | theme | The usual colour overrides |
 | `glass_background` | `true` | Frosted card surface |
 | `animation` | `auto` | `auto`, `on`, `off` — also honours `prefers-reduced-motion` |

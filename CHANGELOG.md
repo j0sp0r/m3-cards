@@ -24,6 +24,15 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   `active_icon` on an entry replaces its icon while it is the current page —
   a filled icon beside the others' outlined ones.
 
+### Changed
+
+- **The appliance and status cards follow the theme's colour by default**
+  (#44). Without an `accent_color` they used a fixed blue, while the heading
+  card beside them follows the theme's primary colour — on a Material You
+  theme that put two different blues next to each other. Both now default to
+  `primary`. A card with its own `accent_color` is unchanged; to keep the old
+  blue, set `accent_color: "#85b7eb"`.
+
 ### Fixed
 
 - **A nav card whose entries are all hidden disappears** (#38) instead of
