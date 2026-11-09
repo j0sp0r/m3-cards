@@ -2773,6 +2773,17 @@ export interface NavItemConfig {
    * `icon`.
    */
   active_icon?: string;
+  /**
+   * A round picture in place of the icon (#38): a `person.*` (or any entity
+   * with an `entity_picture`), or an image URL. Falls back to the icon while
+   * there is no picture.
+   */
+  picture?: string;
+  /**
+   * Shown only to these users (#38), by name or user id, case-insensitive.
+   * Left out, everyone sees the entry.
+   */
+  users?: string[];
   /** Where a tap goes, and what the active-state URL match compares against. */
   path?: string;
   /** Regex overriding the automatic active match when the path shape is unusual. */
@@ -2893,6 +2904,13 @@ export type NavSheetItemStyle = "grid" | "list";
 export type NavSwipeDirection = "follow" | "inverted";
 
 export interface M3NavCardConfig extends DetailModeConfig {
+  /**
+   * Takes the bar from the nav card on another view of the same dashboard
+   * (#38): its `path` (`start`) or its index (`0`). Anything set on this card
+   * as well wins, so one view can still differ in a detail. Edit the bar in
+   * one place; every view that points at it follows.
+   */
+  config_from?: string;
   type: string;
   /**
    * A sideways swipe along the bar goes to the neighbouring entry, with the

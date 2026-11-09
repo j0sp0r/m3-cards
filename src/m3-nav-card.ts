@@ -1,4 +1,6 @@
 import { LitElement, html, css, nothing, unsafeCSS } from "lit";
+import { safeImageUrl } from "./shared/css-safe";
+import { loadNavTemplate } from "./shared/nav-template";
 import type { PropertyValues, TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type {
@@ -242,6 +244,8 @@ interface ResolvedItem {
   config: NavItemConfig;
   name: string;
   icon: string;
+  /** A checked image URL from `picture`, drawn round instead of the icon. */
+  picture?: string;
   color: string;
   disabled: boolean;
   active: boolean;
@@ -440,7 +444,49 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     return config;
   }
 
+  /** `config_from` (#38): waiting for the template, or it could not be found. */
+  @state() private _template: "none" | "loading" | "missing" = "none";
+  private _templateRequest = 0;
+
   public setConfig(config: M3NavCardConfig): void {
+    if (config?.config_from !== undefined && config.config_from !== "") {
+      this._template = "loading";
+      this._templateFor = config;
+      this._templateRequest++;
+      // Until the template is here the bar draws nothing rather than "no entries".
+      this._applyConfig({ ...config, items: config.items ?? [] });
+      // Lovelace hands over the config before hass: then the fetch waits for it.
+      if (this.hass) this._fetchTemplate();
+      return;
+    }
+    this._templateRequest++;
+    this._templateFor = undefined;
+    this._template = "none";
+    this._applyConfig(config);
+  }
+
+  /** The config whose `config_from` is still to be fetched. */
+  private _templateFor?: M3NavCardConfig;
+
+  private _fetchTemplate(): void {
+    const config = this._templateFor;
+    if (!config || !this.hass) return;
+    this._templateFor = undefined;
+    const request = this._templateRequest;
+    void loadNavTemplate(this.hass, String(config.config_from)).then((template) => {
+      // A newer config arrived meanwhile: this answer is for the old one.
+      if (request !== this._templateRequest) return;
+      if (!template) {
+        this._template = "missing";
+        return;
+      }
+      this._template = "none";
+      const { type: _t, config_from: _f, ...own } = config;
+      this._applyConfig({ ...template, ...own, type: config.type });
+    });
+  }
+
+  private _applyConfig(config: M3NavCardConfig): void {
     this._config = { style: "footer", animation: "auto", ...config };
     this._syncSubscriptions();
     this._sheetOpen = this._readSheetOpen();
@@ -819,6 +865,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
   }
 
   protected willUpdate(changed: PropertyValues): void {
+    if (this._templateFor && this.hass) this._fetchTemplate();
     // A render can change what the marker has to cover, so each one is allowed
     // one follow-up measurement.
     this._markerSettled = false;
@@ -1135,6 +1182,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       add(item.name);
       add(item.icon);
       add(item.active_icon);
+      add(item.picture);
       add(item.color);
       add(item.hidden);
       add(item.disabled);
@@ -1159,6 +1207,31 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     return this._subs.get(value!)?.value ?? "";
   }
 
+  /** `users` (#38): an entry limited to some users is left out for everyone else. */
+  private _forThisUser(item: NavItemConfig): boolean {
+    if (!item.users?.length) return true;
+    const user = this.hass?.user;
+    // Not known yet (the first render): shown, rather than flashing in later.
+    if (!user) return true;
+    const wanted = item.users.map((u) => String(u).trim().toLowerCase());
+    return wanted.includes((user.name ?? "").toLowerCase()) || wanted.includes((user.id ?? "").toLowerCase());
+  }
+
+  /** `picture` (#38): an entity's `entity_picture`, or an image URL; checked like every image the suite loads. */
+  private _pictureFor(item: NavItemConfig): string | undefined {
+    const raw = this._resolve(item.picture);
+    if (!raw) return undefined;
+    const fromEntity = this.hass?.states[raw]?.attributes?.entity_picture as string | undefined;
+    return safeImageUrl(fromEntity ?? (raw.includes("/") ? raw : undefined));
+  }
+
+  /** The entry's icon, or its picture when it has one. */
+  private _glyph(item: ResolvedItem) {
+    return item.picture
+      ? html`<img class="picture" src=${item.picture} alt="" draggable="false" />`
+      : html`<ha-icon icon=${item.icon}></ha-icon>`;
+  }
+
   private _resolveBool(value: string | undefined): boolean {
     if (value === undefined) return false;
     if (!isTemplate(value)) {
@@ -1176,6 +1249,8 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     for (const item of this._config?.items ?? []) {
       out.push(item.badge?.entity);
       for (const id of item.badge?.count_entities ?? []) out.push(id);
+      // A picture from an entity follows it — a new profile photo shows.
+      if (item.picture && !item.picture.includes("/")) out.push(item.picture);
     }
     out.push(this._config?.sheet_state_entity);
     return out;
@@ -1310,6 +1385,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     const out: ResolvedItem[] = [];
     quelle.forEach((item, index) => {
       if (this._resolveBool(item.hidden)) return;
+      if (!this._forThisUser(item)) return;
       const color = resolveThemeColor(this._resolve(item.color) || accent);
       const active = this._isActive(item);
       const icon = this._resolve(item.icon) || DEFAULT_NAV_ICON;
@@ -1318,6 +1394,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
         config: item,
         name: this._resolve(item.name) ?? "",
         icon: active ? this._resolve(item.active_icon) || icon : icon,
+        picture: this._pictureFor(item),
         color,
         disabled: this._resolveBool(item.disabled),
         active,
@@ -2895,7 +2972,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
         ${showIcon
           ? html`
               <span class="glyph ${hideIcon ? "swipe-unseen" : ""}" style=${this._stacked ? indicator : nothing}>
-                <ha-icon icon=${item.icon}></ha-icon>
+                ${this._glyph(item)}
                 ${this._renderBadge(item)}
               </span>
             `
@@ -2913,7 +2990,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
               };`}
             >
               ${inkIcon
-                ? html`<span class="glyph"><ha-icon icon=${item.icon}></ha-icon>${this._renderBadge(item)}</span>`
+                ? html`<span class="glyph">${this._glyph(item)}${this._renderBadge(item)}</span>`
                 : nothing}
               ${inkLabel ? html`<span class="label" data-text=${item.name}>${item.name}</span>` : nothing}
               ${inkIcon ? nothing : this._renderBadge(item)}
@@ -2932,6 +3009,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     if (this._resolveBool(cfg.hidden)) return nothing;
     if (this._layout.hidden) return nothing;
 
+    if (this._template === "loading") return nothing;
+    if (this._template === "missing") {
+      return html`<div class="empty">${this._t("nav_template_missing").replace("{view}", String(cfg.config_from ?? ""))}</div>`;
+    }
     const items = this._resolvedItems;
     if (!items.length) {
       // Entries that exist but are all hidden right now: the bar goes, rather
@@ -3450,6 +3531,18 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       flex: none;
       width: var(--mdc-icon-size);
       height: var(--mdc-icon-size);
+    }
+
+    /* picture (#38): a person's photo, round, a little larger than an icon so
+       a face is a face, but inside the same box. */
+    .glyph .picture {
+      display: block;
+      flex: none;
+      width: calc(var(--mdc-icon-size) + 4px);
+      height: calc(var(--mdc-icon-size) + 4px);
+      border-radius: 50%;
+      object-fit: cover;
+      pointer-events: none;
     }
 
     .glyph {

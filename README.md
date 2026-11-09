@@ -4831,6 +4831,41 @@ items:
     path: /lovelace/0
 ```
 
+### Entries per user, and pictures
+
+`users` limits an entry to some users, by name or user id; everyone else does
+not see it. `picture` draws a round picture in place of the icon — a
+`person.*` entity's photo, or an image URL:
+
+```yaml
+items:
+  - name: More
+    icon: mdi:dots-horizontal
+    path: /lovelace/more
+    users: [Alex]
+  - name: Sam
+    picture: person.sam
+    path: /lovelace/sam
+```
+
+### One bar for several views
+
+Lovelace has no card that lives on several views, so the same bar on seven
+views was seven copies to keep in step. `config_from` takes the bar from the
+nav card on another view of the same dashboard, by that view's path or
+number. Edit the bar there; every view that points at it follows the next
+time it loads.
+
+```yaml
+type: custom:m3-nav-card
+config_from: start
+```
+
+Anything set on the pointing card as well wins over the template, so one view
+can still differ in a detail (`style: floating`, say). A template that itself
+has a `config_from` is not followed. If the view or its nav card is missing,
+the card says so.
+
 ### Templates
 
 `name`, `icon`, `active_icon`, `color`, `hidden`, `disabled` and the badge accept Jinja2, and
@@ -5037,7 +5072,8 @@ without a breaking config change.
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `items` | — | The entries. Each: `name`, `icon`, `active_icon`, `path`, `match`, `color`, `badge`, `badge_style`, `hidden`, `disabled`, `submenu`, `tap_action`, `hold_action`, `double_tap_action` |
+| `config_from` | — | Take the bar from the nav card on another view (its path or number); options set here as well win |
+| `items` | — | The entries. Each: `name`, `icon`, `active_icon`, `picture`, `users`, `path`, `match`, `color`, `badge`, `badge_style`, `hidden`, `disabled`, `submenu`, `tap_action`, `hold_action`, `double_tap_action` |
 | `style` | `footer` | `header`, `footer`, `segmented`, `floating`, `sheet` |
 | `position` | per variant | `top` or `bottom`, for the detached variants |
 | `desktop` / `mobile` | — | Per-width overrides: `style`, `position`, `show_labels`, `hidden` |

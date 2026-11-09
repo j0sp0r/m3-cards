@@ -48,6 +48,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   many horizontal lines, `show_y_labels` for their values, and
   `show_now_marker` for a dashed line where the readings end. Without them
   the graph looks as before.
+- **Nav card: entries per user, pictures, and one bar for several views**
+  (#38). `users` shows an entry only to the users named. `picture` draws a
+  person's photo (or any image) round in place of the icon. `config_from`
+  takes the whole bar from the nav card on another view, so a bar used on
+  seven views is edited in one place; anything set on the pointing card as
+  well wins. Also for users without admin rights.
 - **An icon of its own for the current page** in the nav card (#38).
   `active_icon` on an entry replaces its icon while it is the current page —
   a filled icon beside the others' outlined ones.

@@ -556,6 +556,7 @@ export class M3NavCardEditor extends LitElement implements LovelaceCardEditor {
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },
       { name: "active_icon", selector: { icon: {} } },
+      { name: "picture", selector: { entity: { domain: "person" } } },
       this._pathSelector(),
     ];
   }
@@ -565,6 +566,7 @@ export class M3NavCardEditor extends LitElement implements LovelaceCardEditor {
     return [
       { name: "match", selector: { text: {} } },
       { name: "hidden", selector: { text: {} } },
+      { name: "users", selector: { select: { multiple: true, custom_value: true, options: [] } } },
       { name: "disabled", selector: { text: {} } },
     ];
   }
@@ -1103,6 +1105,9 @@ export class M3NavCardEditor extends LitElement implements LovelaceCardEditor {
       name: "editor_nav_item_name",
       icon: "editor_nav_item_icon",
       active_icon: "editor_nav_item_active_icon",
+      picture: "editor_nav_item_picture",
+      users: "editor_nav_item_users",
+      config_from: "editor_nav_config_from",
       color: "editor_nav_item_color",
       badge_source: "editor_nav_badge_source",
       path: "editor_nav_item_path",
@@ -1324,6 +1329,14 @@ export class M3NavCardEditor extends LitElement implements LovelaceCardEditor {
     return html`
       <div class="editor">
         <div class="hint intro">${this._t("editor_nav_intro")}</div>
+        <ha-form
+          .hass=${this.hass}
+          .data=${{ config_from: cfg.config_from ?? "" }}
+          .schema=${[{ name: "config_from", selector: { text: {} } }]}
+          .computeLabel=${this._computeLabel}
+          @value-changed=${this._rootChanged}
+        ></ha-form>
+        <div class="hint">${this._t("editor_nav_config_from_hint")}</div>
         <ha-expansion-panel outlined .header=${this._t("editor_nav_layout")} expanded>
           <ha-icon slot="leading-icon" icon="mdi:dock-bottom"></ha-icon>
           <div class="panel-content">
