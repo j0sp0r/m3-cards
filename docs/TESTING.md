@@ -632,6 +632,7 @@ gefunden.
 - [ ] Ein Tipp auf einen Chip öffnet **nur** den Dialog — die Karte klappt
       nicht zusätzlich auf oder zu
 - [ ] Mit Tab auf einen Chip, Enter: Fokusrahmen sichtbar, gleicher Dialog
+- [ ] Bereichsbild (#43): `area_picture: icon` füllt das Icon-Feld (Karte gleich hoch, Punkt bleibt); `banner` zeigt einen Streifen oben über die volle Breite; ohne Option oder ohne Bild wie vorher
 
 ## M3 Climate Overview — Thermostat-Tap
 

@@ -800,6 +800,8 @@ export interface AreaInfo {
   areaId: string;
   name: string;
   icon?: string;
+  /** The area's picture from its settings, as Home Assistant serves it. */
+  picture?: string;
   /** Set in HA's own area settings; the best source for the climate chips. */
   temperatureEntity?: string;
   humidityEntity?: string;
@@ -810,6 +812,7 @@ export function areaInfo(hass: HomeAssistant, areaId: string): AreaInfo | undefi
     area_id: string;
     name: string;
     icon?: string | null;
+    picture?: string | null;
     temperature_entity_id?: string | null;
     humidity_entity_id?: string | null;
   }> | undefined;
@@ -819,6 +822,7 @@ export function areaInfo(hass: HomeAssistant, areaId: string): AreaInfo | undefi
     areaId: area.area_id,
     name: area.name,
     icon: area.icon ?? undefined,
+    picture: area.picture ?? undefined,
     temperatureEntity: area.temperature_entity_id ?? undefined,
     humidityEntity: area.humidity_entity_id ?? undefined,
   };

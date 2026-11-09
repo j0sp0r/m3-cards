@@ -3763,6 +3763,21 @@ Note this is card-level and separate from `categories[].tap_action`, which
 governs a tap on one category tile inside the body, and from `detail_path`,
 which opens on a hold of a tile.
 
+### The area's picture
+
+A picture set for the area in Home Assistant's own area settings can show on
+the card. `area_picture: icon` puts it in the icon well in place of the icon —
+the card stays the same height. `area_picture: banner` draws it as a band
+across the top of the card, edge to edge and fading into the card at its foot,
+with the header below it. Left out, or for an area without a picture, the card
+is as it always was.
+
+```yaml
+type: custom:m3-room-card
+area: living_room
+area_picture: banner
+```
+
 ### Configuration options
 
 | Option | Type | Default | Description |
@@ -3772,6 +3787,7 @@ which opens on a hold of a tile.
 | `cards` | list | – | Lovelace cards drawn inside the folding body — below the tiles in `auto`, on their own in `manual`. Written as in a view |
 | `cards_columns` | number | `2` | How many of those cards sit side by side |
 | `name` / `icon` | string | the area's own | The icon falls back to a guess from the room name |
+| `area_picture` | `icon` \| `banner` | – | The area's picture in the icon well, or as a band across the top |
 | `tap_action` | action | – | What a tap on the header does. Unset, it folds the card when `collapsible` is on. Set, it takes the header over from the fold; the pill still folds the card. |
 | `detail_path` | string | – | Opened on hold |
 | `extra_domains` | list | – | Domains beyond the built-in nine |

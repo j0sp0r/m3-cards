@@ -2423,6 +2423,12 @@ export interface M3RoomCardConfig extends DetailModeConfig {
   type: string;
   /** HA area id. Everything else is discovered from it. */
   area: string;
+  /**
+   * The area's picture from its settings (#43): `icon` puts it in the icon
+   * well in place of the icon, `banner` as a band across the top of the card.
+   * Left out — or an area without a picture — the card is as before.
+   */
+  area_picture?: "icon" | "banner";
   mode?: RoomCardMode;
   /**
    * Lovelace cards drawn inside the room card's folding body. Shown below the

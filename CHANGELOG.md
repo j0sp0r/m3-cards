@@ -54,6 +54,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   takes the whole bar from the nav card on another view, so a bar used on
   seven views is edited in one place; anything set on the pointing card as
   well wins. Also for users without admin rights.
+- **The room card can show the area's picture** (#43). `area_picture: icon`
+  puts the picture from Home Assistant's area settings in the icon well;
+  `area_picture: banner` draws it as a band across the top of the card,
+  fading into it. Without the option, or for an area without a picture,
+  the card is unchanged.
 - **An icon of its own for the current page** in the nav card (#38).
   `active_icon` on an entry replaces its icon while it is the current page —
   a filled icon beside the others' outlined ones.

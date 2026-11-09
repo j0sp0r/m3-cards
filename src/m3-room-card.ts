@@ -26,6 +26,7 @@ import {
   ROOM_DOT_PULSE_MS,
   ROOM_FALLBACK_CATEGORY,
   ROOM_HEADER_ICON,
+  ROOM_BANNER_HEIGHT,
   ROOM_HEADER_ICON_RADIUS,
   ROOM_HOLD_MS,
   ROOM_POWER_THRESHOLD,
@@ -82,6 +83,7 @@ import { glassCardClass, glassCardStyles } from "./shared/glass-card";
 import { formatNumber } from "./shared/formatting";
 import { areaEntityIds, areaInfo } from "./shared/ha-registry";
 import { guessRoomIcon } from "./shared/room-icons";
+import { cssUrl } from "./shared/css-safe";
 import { readCollapsed, writeCollapsed, type CollapseTarget } from "./shared/collapse-state";
 import { hassChangeMatters } from "./shared/should-update";
 import { createCards, updateCardsHass } from "./shared/card-helpers";
@@ -1426,6 +1428,10 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
 
     const name = cfg.name ?? area?.name ?? cfg.area;
     const icon = cfg.icon ?? area?.icon ?? guessRoomIcon(name);
+    // #43: the area's own picture, only when asked for and when there is one.
+    const picture = cfg.area_picture ? cssUrl(area?.picture) : undefined;
+    const pictureInIcon = cfg.area_picture === "icon" && !!picture;
+    const banner = cfg.area_picture === "banner" && !!picture;
     // Manual leaves the body to the configured cards, so the summary line has
     // to describe those rather than the area's registry entries.
     const manual = this._manual;
@@ -1499,6 +1505,14 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
           } ${tinted ? "occupied" : ""}"
           style=${`border-radius: ${radius};${painted ? ` background: ${painted};` : ""}`}
         >
+          ${banner
+            ? html`<div
+                class="banner"
+                role="img"
+                aria-label=${name}
+                style=${`background-image: ${picture}; border-top-left-radius: ${radius}; border-top-right-radius: ${radius};`}
+              ></div>`
+            : nothing}
           <div
             class="header ${headerTappable ? "tappable" : ""}"
             role=${headerTappable ? "button" : nothing}
@@ -1508,10 +1522,12 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
             @keydown=${headerTappable ? activateOnKey(this._onHeaderTap) : nothing}
           >
             <div
-              class="room-icon"
-              style=${`background: ${headerBackground}; color: ${foregroundOn(occupied && showPresence ? presenceColor : accent, headerBackground, 3, this)};`}
+              class="room-icon ${pictureInIcon ? "picture" : ""}"
+              style=${pictureInIcon
+                ? `background-image: ${picture};`
+                : `background: ${headerBackground}; color: ${foregroundOn(occupied && showPresence ? presenceColor : accent, headerBackground, 3, this)};`}
             >
-              <ha-icon icon=${icon}></ha-icon>
+              ${pictureInIcon ? nothing : html`<ha-icon icon=${icon}></ha-icon>`}
               ${occupied && showPresence ? html`<span class="dot"></span>` : nothing}
             </div>
             <div class="text">
@@ -1620,6 +1636,25 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
         align-items: center;
         justify-content: center;
         --mdc-icon-size: 28px;
+      }
+
+      /* area_picture: icon (#43). The photo fills the well; the presence dot
+         still sits on its corner. */
+      .room-icon.picture {
+        background-size: cover;
+        background-position: center;
+      }
+
+      /* area_picture: banner (#43). Edge to edge across the top, past the
+         card's padding, fading into the card at its foot so the header below
+         reads as part of the same card. */
+      .banner {
+        margin: calc(-1 * var(--m3-group-padding, 12px)) calc(-1 * var(--m3-group-padding, 12px)) 0;
+        height: ${ROOM_BANNER_HEIGHT}px;
+        background-size: cover;
+        background-position: center;
+        -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent);
+        mask-image: linear-gradient(to bottom, #000 60%, transparent);
       }
 
       .dot {

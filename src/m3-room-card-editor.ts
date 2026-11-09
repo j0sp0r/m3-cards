@@ -327,6 +327,19 @@ export class M3RoomCardEditor extends LitElement implements LovelaceCardEditor {
       },
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },
+      {
+        name: "area_picture",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "none", label: this._t("editor_room_picture_none") },
+              { value: "icon", label: this._t("editor_room_picture_icon") },
+              { value: "banner", label: this._t("editor_room_picture_banner") },
+            ],
+          },
+        },
+      },
       { name: "tap_action", selector: { ui_action: {} } },
       { name: "detail_path", selector: { text: {} } },
       {
@@ -455,6 +468,7 @@ export class M3RoomCardEditor extends LitElement implements LovelaceCardEditor {
     if (!this._config) return;
     const patch = ev.detail.value as Record<string, unknown>;
     const next: Record<string, unknown> = { ...this._config, ...patch };
+    if (next.area_picture === "none") delete next.area_picture;
     for (const key of [
       "name",
       "icon",
@@ -536,6 +550,7 @@ export class M3RoomCardEditor extends LitElement implements LovelaceCardEditor {
     const labelMap: Record<string, TranslationKey> = {
       shape_by_state: "editor_shape_by_state",
       area: "editor_room_area",
+      area_picture: "editor_room_picture",
       name: "editor_name",
       icon: "editor_icon",
       tap_action: "editor_tap_action",
@@ -595,6 +610,7 @@ export class M3RoomCardEditor extends LitElement implements LovelaceCardEditor {
                 mode: cfg.mode ?? "auto",
                 name: cfg.name ?? "",
                 icon: cfg.icon ?? "",
+                area_picture: cfg.area_picture ?? "none",
                 tap_action: cfg.tap_action,
                 detail_path: cfg.detail_path ?? "",
                 cards_columns: cfg.cards_columns ?? 2,

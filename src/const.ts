@@ -1646,6 +1646,8 @@ export const DEFAULT_ROOM_ACCENT = "primary";
 export const ROOM_PRESENCE_COLOR = PALETTE.dryAuto;
 
 export const ROOM_HEADER_ICON = 56;
+/** area_picture: banner (#43) — the photo band across the top. */
+export const ROOM_BANNER_HEIGHT = 112;
 export const ROOM_HEADER_ICON_RADIUS = RADIUS.squircle56;
 export const ROOM_DOT = 10;
 export const ROOM_DOT_PULSE_MS = 2200;
