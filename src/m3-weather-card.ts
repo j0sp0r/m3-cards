@@ -7,6 +7,7 @@ import type {
   LovelaceCard,
   LovelaceCardEditor,
   LovelaceGridOptions,
+  HaActionConfig,
 } from "./types";
 import {
   CARD_VERSION,
@@ -49,6 +50,8 @@ import { hassChangeMatters } from "./shared/should-update";
 import { formatNumber } from "./shared/formatting";
 import { TemplatedCard } from "./shared/templated-card";
 import { openEntityDetail } from "./shared/entity-detail";
+import { runHaAction, navigateTo, isActionable } from "./shared/actions";
+import { isMissingState } from "./shared/entity-actions";
 
 console.info(
   `%c M3-WEATHER-CARD %c v${CARD_VERSION} `,
@@ -193,7 +196,11 @@ export class M3WeatherCard extends TemplatedCard(LitElement) implements Lovelace
   }
 
   protected shouldUpdate(changed: PropertyValues): boolean {
-    return hassChangeMatters(changed, this.hass, [this._config?.entity, "sun.sun"]);
+    return hassChangeMatters(changed, this.hass, [
+      this._config?.entity,
+      "sun.sun",
+      ...Object.values(this._config?.sensors ?? {}),
+    ]);
   }
 
   public setConfig(config: M3WeatherCardConfig): void {
@@ -327,8 +334,35 @@ export class M3WeatherCard extends TemplatedCard(LitElement) implements Lovelace
     }
   }
 
-  private _fireMoreInfo(): void {
-    openEntityDetail(this, this._config?.entity);
+  private get _tapAction(): HaActionConfig {
+    return this._config?.tap_action ?? { action: "more-info" };
+  }
+
+  /** Runs `tap_action` (#46); unset, more-info on the weather entity as before. */
+  private _onHeaderTap(): void {
+    if (!this.hass) return;
+    runHaAction(this.hass, this._tapAction, {
+      entityId: this._config?.entity,
+      fireMoreInfo: (id) => openEntityDetail(this, id ?? this._config?.entity),
+      navigate: (path) => navigateTo(this, path),
+      source: this,
+    });
+  }
+
+  /**
+   * A configured sensor's reading (#46): its number and its own unit. Nothing
+   * when no sensor is set for this key, or it has no reading right now — the
+   * weather entity's value is used then.
+   */
+  private _sensorReading(key: "temperature" | WeatherChipType): { value: number | string; unit: string } | undefined {
+    const id = this._config?.sensors?.[key];
+    const st = id ? this.hass?.states[id] : undefined;
+    if (!st || isMissingState(st.state)) return undefined;
+    const num = Number(st.state);
+    return {
+      value: Number.isFinite(num) ? num : st.state,
+      unit: (st.attributes?.unit_of_measurement as string | undefined) ?? "",
+    };
   }
 
   private _formatNumber(value: number, decimals = 0): string {
@@ -378,7 +412,13 @@ export class M3WeatherCard extends TemplatedCard(LitElement) implements Lovelace
     const attrs = stale ? this._lastKnown!.attributes : entity.attributes;
     const name = this._config.name || attrs.friendly_name || this._config.entity;
     const tempUnit = attrs.temperature_unit || this.hass.config?.unit_system?.temperature || "°C";
-    const currentTemp: number | undefined = typeof attrs.temperature === "number" ? attrs.temperature : undefined;
+    const ownTemp = this._sensorReading("temperature");
+    const currentTemp: number | undefined =
+      typeof ownTemp?.value === "number"
+        ? ownTemp.value
+        : typeof attrs.temperature === "number"
+          ? attrs.temperature
+          : undefined;
     const daytimeNow = isDaytime({ datetime: new Date().toISOString() });
     const headerIcon = weatherIcon(displayState, daytimeNow);
     const conditionText =
@@ -438,12 +478,12 @@ export class M3WeatherCard extends TemplatedCard(LitElement) implements Lovelace
           ${showCurrent || chips.length > 0
             ? html`
                 <div
-                  class="header"
-                  role="button"
-                  tabindex="0"
+                  class="header ${isActionable(this._tapAction) ? "" : "static"}"
+                  role=${isActionable(this._tapAction) ? "button" : nothing}
+                  tabindex=${isActionable(this._tapAction) ? "0" : nothing}
                   aria-label=${name}
-                  @click=${() => this._fireMoreInfo()}
-                  @keydown=${activateOnKey(() => this._fireMoreInfo())}
+                  @click=${() => this._onHeaderTap()}
+                  @keydown=${activateOnKey(() => this._onHeaderTap())}
                 >
                   ${showCurrent
                     ? html`
@@ -473,10 +513,18 @@ export class M3WeatherCard extends TemplatedCard(LitElement) implements Lovelace
 
   private _renderChip(type: WeatherChipType, attrs: Record<string, unknown>, tempUnit: string) {
     const meta = CHIP_META[type];
-    const raw = attrs[meta.attr];
+    const own = this._sensorReading(type);
+    const raw = own ? own.value : attrs[meta.attr];
     if (raw === undefined || raw === null) return nothing;
     const unit = meta.unitAttr ? ((attrs[meta.unitAttr] as string) ?? "") : (meta.fallbackUnit ?? "");
-    const displayUnit = type === "apparent_temperature" ? tempUnit : unit;
+    // An own sensor brings its own unit; UV has none worth printing.
+    const displayUnit = own
+      ? type === "uv_index"
+        ? ""
+        : own.unit
+      : type === "apparent_temperature"
+        ? tempUnit
+        : unit;
     const value = typeof raw === "number" ? this._formatNumber(raw, type === "wind_speed" ? 0 : 0) : String(raw);
     return html`
       <div class="chip">
@@ -764,6 +812,10 @@ export class M3WeatherCard extends TemplatedCard(LitElement) implements Lovelace
         align-items: center;
         gap: 12px;
         cursor: pointer;
+      }
+
+      .header.static {
+        cursor: default;
       }
 
       .header:focus-visible {

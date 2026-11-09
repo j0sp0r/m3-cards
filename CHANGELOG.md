@@ -32,6 +32,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   their own — one card where each name opens its own page. `frameless: true`
   drops the card around the people, so compact pills sit straight in the
   dashboard grid instead of a border inside a border.
+- **The weather card reads your own sensors** (#46). `sensors` puts a
+  weather station's thermometer, feels-like or UV sensor in place of the
+  weather entity's value — `temperature` for the large current temperature,
+  the chip names for the chips — each with its own unit, falling back to the
+  weather entity while the sensor is unavailable. Plus a `tap_action` on the
+  current conditions.
 - **An icon of its own for the current page** in the nav card (#38).
   `active_icon` on an entry replaces its icon while it is the current page —
   a filled icon beside the others' outlined ones.

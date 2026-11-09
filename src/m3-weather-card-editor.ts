@@ -52,6 +52,7 @@ export class M3WeatherCardEditor extends LitElement implements LovelaceCardEdito
   }
 
   private _chipHasData(type: WeatherChipType): boolean {
+    if (this._config?.sensors?.[type]) return true;
     const entity = this._config?.entity ? this.hass?.states[this._config.entity] : undefined;
     if (!entity) return true;
     const value = entity.attributes[CHIP_ATTR[type]];
@@ -93,7 +94,47 @@ export class M3WeatherCardEditor extends LitElement implements LovelaceCardEdito
         },
       },
       { name: "show_sun", selector: { boolean: {} } },
+      { name: "tap_action", selector: { ui_action: {} } },
     ];
+  }
+
+  /** #46: a sensor of one's own for the current temperature and each chip. */
+  private _sensorSchema(): SchemaEntry[] {
+    const sensor = { entity: { domain: "sensor" } };
+    return [
+      { name: "temperature", selector: sensor },
+      { name: "apparent_temperature", selector: sensor },
+      { name: "humidity", selector: sensor },
+      { name: "wind_speed", selector: sensor },
+      { name: "pressure", selector: sensor },
+      { name: "uv_index", selector: sensor },
+      { name: "visibility", selector: sensor },
+    ];
+  }
+
+  private _sensorLabel = (schema: SchemaEntry): string => {
+    const map: Record<string, TranslationKey> = {
+      temperature: "editor_weather_sensor_temperature",
+      apparent_temperature: "chip_apparent_temperature",
+      humidity: "chip_humidity",
+      wind_speed: "chip_wind_speed",
+      pressure: "chip_pressure",
+      uv_index: "chip_uv_index",
+      visibility: "chip_visibility",
+    };
+    const key = map[schema.name];
+    return key ? this._t(key) : schema.name;
+  };
+
+  private _sensorsChanged(ev: CustomEvent): void {
+    if (!this._config) return;
+    const value = (ev.detail.value ?? {}) as Record<string, string | undefined>;
+    const sensors = Object.fromEntries(Object.entries(value).filter(([, id]) => !!id)) as NonNullable<
+      M3WeatherCardConfig["sensors"]
+    >;
+    const { sensors: _old, ...rest } = this._config;
+    this._config = Object.keys(sensors).length ? { ...rest, sensors } : rest;
+    fireEvent(this, "config-changed", { config: this._config });
   }
 
   private _animationSchema(): SchemaEntry[] {
@@ -129,6 +170,7 @@ export class M3WeatherCardEditor extends LitElement implements LovelaceCardEdito
       show_days_toggle: "editor_weather_show_days_toggle",
       chips: "editor_weather_chips",
       show_sun: "editor_weather_show_sun",
+      tap_action: "editor_tap_action",
       animation: "editor_progress_animation",
       glass_background: "editor_glass_background",
       ...radiusLabelMap,
@@ -227,6 +269,7 @@ export class M3WeatherCardEditor extends LitElement implements LovelaceCardEdito
       show_days_toggle: this._config.show_days_toggle ?? true,
       chips: this._config.chips ?? [],
       show_sun: this._config.show_sun ?? true,
+      tap_action: this._config.tap_action,
     };
     const animationData = { animation: this._config.animation ?? "auto" };
 
@@ -258,6 +301,20 @@ export class M3WeatherCardEditor extends LitElement implements LovelaceCardEdito
             ></ha-form>
             <div class="hint">${this._t("editor_weather_days_helper")}</div>
             <div class="hint">${this._t("editor_weather_chips_helper")}</div>
+          </div>
+        </ha-expansion-panel>
+
+        <ha-expansion-panel outlined .header=${this._t("editor_weather_sensors")}>
+          <ha-icon slot="leading-icon" icon="mdi:thermometer-lines"></ha-icon>
+          <div class="panel-content">
+            <ha-form
+              .hass=${this.hass}
+              .data=${this._config.sensors ?? {}}
+              .schema=${this._sensorSchema()}
+              .computeLabel=${this._sensorLabel}
+              @value-changed=${this._sensorsChanged}
+            ></ha-form>
+            <div class="hint">${this._t("editor_weather_sensors_hint")}</div>
           </div>
         </ha-expansion-panel>
 

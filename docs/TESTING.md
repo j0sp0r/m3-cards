@@ -309,6 +309,8 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Vorhersagearten | Entität nur mit täglicher bzw. nur mit stündlicher Vorhersage | Kurve rendert oder fällt sauber weg, kein leerer Bereich |
 | Sonnenmarker | `sun.sun` beobachten | Auf-/Untergangsmarker sitzen an der richtigen Stelle der Zeitachse |
 | Niederschlagsbalken | Vorhersage ohne Niederschlagsdaten | Balkenreihe entfällt, Kurve bleibt |
+| Eigene Sensoren (#46) | `sensors.temperature` und `sensors.uv_index` auf zwei Sensoren, Chip `uv_index` an; dann einen Sensor `unavailable` setzen | Temperatur und UV kommen aus den Sensoren (UV ohne Einheit, Temperatur aktualisiert sich mit dem Sensor). Der nicht erreichbare Sensor fällt auf den Wert der Wetter-Entität zurück; fehlt der auch, verschwindet der Chip |
+| `tap_action` (#46) | `tap_action: navigate` | Tipp auf die aktuelle Wetterzeile navigiert; ohne Option öffnet er wie bisher die More-Info, mit `action: none` ist die Zeile nicht klickbar |
 
 ## M3 Presence Card
 

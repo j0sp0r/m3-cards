@@ -843,6 +843,9 @@ const translations = {
     editor_weather_chips_helper:
       "Nicht jede Wetter-Integration liefert alle Werte — Met.no z.B. hat keine „Gefühlt“- oder „Sichtweite“-Daten. Chips ohne Daten bleiben ausgeblendet, auch wenn sie ausgewählt sind.",
     editor_weather_chips: "Chips",
+    editor_weather_sensors: "Eigene Sensoren",
+    editor_weather_sensor_temperature: "Aktuelle Temperatur",
+    editor_weather_sensors_hint: "Optional. Ein Sensor hier ersetzt den Wert der Wetter-Entität, etwa das Thermometer oder der UV-Sensor einer Wetterstation. Ist er nicht erreichbar, steht der Wert der Wetter-Entität da.",
     editor_weather_show_sun: "Sonnenauf-/-untergang anzeigen",
     editor_weather_accent_color: "Temperaturkurve",
     editor_weather_precipitation_color: "Niederschlag",
@@ -3895,6 +3898,9 @@ const translations = {
     editor_weather_chips_helper:
       "Not every weather integration provides every value — Met.no, for example, has no \"feels like\" or visibility data. Chips without data stay hidden even when selected.",
     editor_weather_chips: "Chips",
+    editor_weather_sensors: "Own sensors",
+    editor_weather_sensor_temperature: "Current temperature",
+    editor_weather_sensors_hint: "Optional. A sensor set here replaces the weather entity's value, e.g. a weather station's thermometer or UV sensor. While it is unavailable the weather entity's value is shown.",
     editor_weather_show_sun: "Show sunrise/sunset",
     editor_weather_accent_color: "Temperature curve",
     editor_weather_precipitation_color: "Precipitation",

@@ -1387,6 +1387,15 @@ export interface M3WeatherCardConfig extends DetailModeConfig {
   hours?: number;
   days?: number;
   chips?: WeatherChipType[];
+  /**
+   * Own sensors instead of the weather entity's attributes (#46) — a weather
+   * station's thermometer, a UV sensor. `temperature` is the large current
+   * temperature; the other keys are the chips of the same name. A sensor that
+   * is unavailable falls back to the weather entity's value.
+   */
+  sensors?: Partial<Record<"temperature" | WeatherChipType, string>>;
+  /** Tap on the current conditions. Default: more-info on the weather entity. */
+  tap_action?: HaActionConfig;
   show_current?: boolean;
   show_chart?: boolean;
   show_sun?: boolean;

@@ -53,6 +53,28 @@ temperature itself, on a fixed outdoor scale: blue up to 0 °C, cyan around
 in between. A cold week stays blue and a hot one turns red, rather than every
 week running from blue to red.
 
+### Your own sensors
+
+A weather entity does not always carry everything: many have no feels-like
+temperature or UV index, while a weather station next door has a sensor for
+each. `sensors` takes them instead. `temperature` is the large current
+temperature; every other key is the chip of the same name. The forecast still
+comes from the weather entity, and a sensor that is unavailable falls back to
+the weather entity's value.
+
+```yaml
+type: custom:m3-weather-card
+entity: weather.home
+chips: [apparent_temperature, uv_index, humidity]
+sensors:
+  temperature: sensor.station_temperature
+  apparent_temperature: sensor.station_feels_like
+  uv_index: sensor.station_uv
+tap_action:
+  action: navigate
+  navigation_path: /lovelace/weather
+```
+
 ### Configuration options
 
 | Option | Type | Default | Description |
@@ -62,6 +84,8 @@ week running from blue to red.
 | `hours` | number | `12` | Number of hours in the curve |
 | `days` | number | `0` | Number of days in the daily overview (`0` = hidden) |
 | `show_days_toggle` | boolean | `true` | Collapsible from 4 days on with a "Show N more" button; `false` = always show all configured days directly |
+| `sensors` | object | – | Own sensors: `temperature` and any chip key (`apparent_temperature`, `wind_speed`, `humidity`, `pressure`, `uv_index`, `visibility`). Each replaces the weather entity's value and brings its own unit |
+| `tap_action` | action | `more-info` | Tap on the current conditions |
 | `chips` | list (`apparent_temperature`\|`wind_speed`\|`humidity`\|`pressure`\|`uv_index`\|`visibility`) | apparent temp, wind, humidity | Header chips shown |
 | `show_sun` | boolean | `true` | Sunrise/sunset markers on the curve (from `sun.sun`) |
 | `show_current` | boolean | `true` | The header row: icon, temperature, condition and chips |
