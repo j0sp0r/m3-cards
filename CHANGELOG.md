@@ -85,6 +85,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Dates follow the profile's date format** (reported on Reddit). The multi
+  graph's 30-day axis and the detail sheet's month axis and tooltip wrote
+  day and month in the order of the language alone — English meant
+  "11/9" even for a user whose Home Assistant profile asks for day-first
+  dates. They now follow the profile's "Date format" (DMY, MDY, YMD or the
+  browser's own); with the default "language" nothing changes.
 - **The power summary card at half width** (#45): the self-sufficiency chip
   lay over the main number; it now moves under it. A metric that is not in
   watts (a battery's %) showed as "54 W"; it keeps its own unit.

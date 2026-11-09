@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatClock, formatDuration, formatSpan } from "./formatting";
+import { formatClock, formatDayMonth, formatDuration, formatSpan } from "./formatting";
 
 describe("formatClock", () => {
   const now = Date.parse("2026-09-13T15:00:00Z");
@@ -55,5 +55,25 @@ describe("formatSpan", () => {
     expect(formatSpan(3 * 3_600_000 + 5 * 60_000, "en")).toBe("3 hr 5 min");
     expect(formatSpan(3 * 3_600_000, "en")).toBe("3 hr");
     expect(formatSpan(2 * 86_400_000 + 4 * 3_600_000 + 59 * 60_000, "en")).toBe("2 days 4 hr");
+  });
+});
+
+describe("formatDayMonth", () => {
+  const nov9 = new Date(2026, 10, 9, 12);
+
+  it("follows the language when the profile says nothing or 'language'", () => {
+    expect(formatDayMonth(nov9, "en-US")).toBe("11/9");
+    expect(formatDayMonth(nov9, "en-US", "language")).toBe("11/9");
+    expect(formatDayMonth(nov9, "de")).toBe("9.11.");
+  });
+
+  it("puts the day first for DMY, keeping the language's separator", () => {
+    expect(formatDayMonth(nov9, "en", "DMY")).toBe("9/11");
+    expect(formatDayMonth(nov9, "de", "DMY")).toBe("9.11.");
+  });
+
+  it("puts the month first for MDY and YMD", () => {
+    expect(formatDayMonth(nov9, "en-GB", "MDY")).toBe("11/09");
+    expect(formatDayMonth(nov9, "en", "YMD")).toBe("11/9");
   });
 });

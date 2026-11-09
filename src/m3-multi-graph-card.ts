@@ -717,7 +717,7 @@ export class M3MultiGraphCard extends TemplatedCard(LitElement) implements Lovel
     const yTicks = Math.max(1, Math.min(10, Math.round(cfg.y_ticks ?? 3)));
     const grid =
       scale && horizontal ? niceTicks(scale.lo, scale.hi, yTicks).filter((v) => v > scale.lo && v < scale.hi) : [];
-    const labels = axisLabels(range, t0, t1, this._language, this._t("multigraph_now"));
+    const labels = axisLabels(range, t0, t1, this._language, this._t("multigraph_now"), this.hass?.locale?.date_format);
     const verticalAt = vertical ? labels.filter((l) => l.at > 0 && l.at < 1).map((l) => l.at * plotW) : [];
     // A value label too close to a high/low pill would sit on it.
     const extremesShown = cfg.show_extremes !== false && !!scale && scrub === undefined;

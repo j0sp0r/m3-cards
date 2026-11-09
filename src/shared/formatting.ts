@@ -159,3 +159,30 @@ export function formatSpanParts(ms: number, language: string): string[] {
   const days = Math.floor(hours / 24);
   return hours % 24 ? [unit(days, "day"), unit(hours % 24, "hour")] : [unit(days, "day")];
 }
+
+/**
+ * A date as day and month in numbers ("9/11", "11/9", "9.11."), in the order
+ * the profile asks for.
+ *
+ * Home Assistant keeps the order of a date's numbers as its own profile
+ * setting, apart from the language: English with day-first dates is a common
+ * choice outside the US. Formatting by language alone gave such a user
+ * "11/9" for the 9th of November. "language" (or no setting) keeps the
+ * language's own form; "system" asks the browser; DMY / MDY / YMD reorder the
+ * language's numbers, keeping its separator ("/" in English, "." in German).
+ */
+export function formatDayMonth(date: Date, language: string, dateFormat?: string): string {
+  const fmt = new Intl.DateTimeFormat(dateFormat === "system" ? undefined : language, {
+    day: "numeric",
+    month: "numeric",
+  });
+  if (dateFormat !== "DMY" && dateFormat !== "MDY" && dateFormat !== "YMD") return fmt.format(date);
+  const parts = fmt.formatToParts(date);
+  const day = parts.find((p) => p.type === "day")?.value ?? String(date.getDate());
+  const month = parts.find((p) => p.type === "month")?.value ?? String(date.getMonth() + 1);
+  const inner = parts.find((p, i) => p.type === "literal" && i > 0 && i < parts.length - 1);
+  const sep = inner?.value ?? "/";
+  const last = parts[parts.length - 1];
+  const trailing = last?.type === "literal" ? last.value : "";
+  return dateFormat === "DMY" ? `${day}${sep}${month}${trailing}` : `${month}${sep}${day}${trailing}`;
+}

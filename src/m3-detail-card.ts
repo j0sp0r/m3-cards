@@ -68,7 +68,7 @@ import {
 } from "./shared/color-config";
 import { glassCardStyles, glassCardClass, renderMissingEntity } from "./shared/glass-card";
 import { shouldAnimate, isReducedMotion, STANDARD_EASING } from "./shared/animation";
-import { formatClock, formatNumber } from "./shared/formatting";
+import { formatClock, formatNumber, formatDayMonth } from "./shared/formatting";
 import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
@@ -666,12 +666,10 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
   private _timeLabel(t: number, range: DetailRange): string {
     const tf = this.hass?.locale?.time_format;
     const hour12 = tf === "12" ? true : tf === "24" ? false : undefined;
+    // Numeric dates follow the profile's date format, not only the language.
+    if (range === "30d") return formatDayMonth(new Date(t), this._language, this.hass?.locale?.date_format);
     const opts: Intl.DateTimeFormatOptions =
-      range === "7d"
-        ? { weekday: "short" }
-        : range === "30d"
-          ? { day: "numeric", month: "numeric" }
-          : { hour: "numeric", minute: "2-digit", hour12 };
+      range === "7d" ? { weekday: "short" } : { hour: "numeric", minute: "2-digit", hour12 };
     return new Intl.DateTimeFormat(this._language, opts).format(new Date(t));
   }
 
@@ -697,11 +695,25 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const tf = this.hass?.locale?.time_format;
     const hour12 = tf === "12" ? true : tf === "24" ? false : undefined;
     const sameDay = startOfDay(t) === startOfDay(this._now);
-    const opts: Intl.DateTimeFormatOptions =
-      range === "1h" || (range === "24h" && sameDay)
-        ? { hour: "numeric", minute: "2-digit", hour12 }
-        : { weekday: "short", day: "numeric", month: "numeric", hour: "numeric", minute: "2-digit", hour12 };
-    return new Intl.DateTimeFormat(this._language, opts).format(new Date(t));
+    if (range === "1h" || (range === "24h" && sameDay)) {
+      return new Intl.DateTimeFormat(this._language, { hour: "numeric", minute: "2-digit", hour12 }).format(new Date(t));
+    }
+    const dateFormat = this.hass?.locale?.date_format;
+    if (dateFormat === "DMY" || dateFormat === "MDY" || dateFormat === "YMD") {
+      // An explicit order in the profile: weekday, day and month in that order, time.
+      const d = new Date(t);
+      const weekday = new Intl.DateTimeFormat(this._language, { weekday: "short" }).format(d);
+      const time = new Intl.DateTimeFormat(this._language, { hour: "numeric", minute: "2-digit", hour12 }).format(d);
+      return `${weekday}, ${formatDayMonth(d, this._language, dateFormat)}, ${time}`;
+    }
+    return new Intl.DateTimeFormat(this._language, {
+      weekday: "short",
+      day: "numeric",
+      month: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12,
+    }).format(new Date(t));
   }
 
   /**

@@ -17,6 +17,11 @@ export interface HomeAssistant {
     language: string;
     number_format?: string;
     time_format?: string;
+    /**
+     * The profile's date format: "language" (follow the language), "system"
+     * (the browser's own), or an explicit "DMY", "MDY" or "YMD".
+     */
+    date_format?: string;
   };
   language: string;
   themes: Record<string, unknown>;

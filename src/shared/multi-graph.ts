@@ -1,3 +1,4 @@
+import { formatDayMonth } from "./formatting";
 // The multi graph card's arithmetic, kept free of the DOM so it can be
 // tested: which entries, which range, the curves on one shared time grid, the
 // scale, the axis labels, and the figures in the header.
@@ -322,7 +323,14 @@ const HOUR_STEP: Partial<Record<MultiGraphRange, number>> = { "6h": 2, "12h": 3,
  * ranges ("0 Uhr, 6, 12, 18"), weekdays for a week, Mondays for a month — and
  * "now" at the right end. Labels that would crowd another are left out.
  */
-export function axisLabels(range: MultiGraphRange, t0: number, t1: number, language: string, nowLabel: string): AxisLabel[] {
+export function axisLabels(
+  range: MultiGraphRange,
+  t0: number,
+  t1: number,
+  language: string,
+  nowLabel: string,
+  dateFormat?: string,
+): AxisLabel[] {
   const span = t1 - t0;
   const times: number[] = [];
   const step = HOUR_STEP[range];
@@ -346,10 +354,12 @@ export function axisLabels(range: MultiGraphRange, t0: number, t1: number, langu
   // A 24-hour clock writes "0 Uhr", "6 Uhr": the unit once is enough. A
   // 12-hour clock needs its AM/PM on every label.
   const twelveHour = hourFmt.formatToParts(new Date(t0)).some((p) => p.type === "dayPeriod");
-  const dayFmt =
-    range === "30d"
-      ? new Intl.DateTimeFormat(language, { day: "numeric", month: "numeric" })
-      : new Intl.DateTimeFormat(language, { weekday: "short" });
+  // The month view's dates follow the profile's date format, not only the
+  // language (a "DD/MM" user with English got "MM/DD").
+  const weekdayFmt = new Intl.DateTimeFormat(language, { weekday: "short" });
+  const dayFmt = {
+    format: (d: Date) => (range === "30d" ? formatDayMonth(d, language, dateFormat) : weekdayFmt.format(d)),
+  };
   const minGap = 0.11;
   const nowGap = 0.13;
   for (const t of times) {
