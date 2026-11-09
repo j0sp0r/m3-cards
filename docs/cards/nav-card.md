@@ -129,9 +129,22 @@ in a narrow column on a wide screen is narrow, which is what a media query
 would get wrong. Either block can also hide the bar outright at that width
 (`hidden: true`), and either can override `show_labels`.
 
+### Icon on the current page
+
+`active_icon` replaces an entry's icon while it is the current page, so the
+current entry can show a filled icon beside the others' outlined ones:
+
+```yaml
+items:
+  - name: Home
+    icon: mdi:home-outline
+    active_icon: mdi:home
+    path: /lovelace/0
+```
+
 ### Templates
 
-`name`, `icon`, `color`, `hidden`, `disabled` and the badge accept Jinja2, and
+`name`, `icon`, `active_icon`, `color`, `hidden`, `disabled` and the badge accept Jinja2, and
 subscribe to it — the value is pushed by Home Assistant whenever anything the
 template reads changes, rather than polled or re-rendered on a timer:
 
@@ -297,7 +310,9 @@ so it renders inline instead.
 
 ### Visibility
 
-`hidden` takes a Jinja2 template and drops the whole bar while it is true. For
+`hidden` takes a Jinja2 template and drops the whole bar while it is true. When
+every entry is hidden by its own `hidden`, the bar goes too, rather than
+showing "no entries". For
 visibility by user, device or screen size, use Home Assistant's own visibility
 feature in the card editor — it already does exactly that for every card, and
 a second implementation inside this one would only fight it.
@@ -309,7 +324,7 @@ a second implementation inside this one would only fight it.
 | `routes` | `items` |
 | `routes[].url` | `items[].path` |
 | `routes[].label` | `items[].name` |
-| `routes[].icon` / `icon_selected` | `items[].icon` (a template can switch it) |
+| `routes[].icon` / `icon_selected` | `items[].icon` / `items[].active_icon` |
 | `routes[].badge.template` | `items[].badge.template` |
 | `routes[].badge.color` | `items[].badge.color` |
 | `routes[].submenu` | `items[].submenu` |
@@ -333,7 +348,7 @@ without a breaking config change.
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `items` | — | The entries. Each: `name`, `icon`, `path`, `match`, `color`, `badge`, `badge_style`, `hidden`, `disabled`, `submenu`, `tap_action`, `hold_action`, `double_tap_action` |
+| `items` | — | The entries. Each: `name`, `icon`, `active_icon`, `path`, `match`, `color`, `badge`, `badge_style`, `hidden`, `disabled`, `submenu`, `tap_action`, `hold_action`, `double_tap_action` |
 | `style` | `footer` | `header`, `footer`, `segmented`, `floating`, `sheet` |
 | `position` | per variant | `top` or `bottom`, for the detached variants |
 | `desktop` / `mobile` | — | Per-width overrides: `style`, `position`, `show_labels`, `hidden` |

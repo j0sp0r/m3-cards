@@ -158,6 +158,11 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
   private async _setupNotify(): Promise<void> {
     const cfg = this._config;
     if (!this.hass || !cfg) return;
+    if (!cfg.entity) {
+      this._notifyStatus = "error";
+      this._notifyDetail = this._t("editor_appliance_notify_needs_entity");
+      return;
+    }
     const targets = cfg.notify_service ?? [];
     if (targets.length === 0) {
       this._notifyStatus = "error";
@@ -593,8 +598,9 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
 
   private _deviceSchema(): SchemaEntry[] {
     return [
-      { name: "entity", selector: { entity: {} }, required: true },
+      { name: "entity", selector: { entity: {} } },
       { name: "name", selector: { text: {} } },
+      { name: "name_wrap", selector: { boolean: {} } },
       { name: "icon", selector: { icon: {} } },
       { name: "attribute", selector: { text: {} } },
       { name: "tap_action", selector: { ui_action: {} } },
@@ -766,6 +772,7 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
     const map: Record<string, TranslationKey> = {
       entity: "editor_appliance_entity",
       name: "editor_name",
+      name_wrap: "editor_name_wrap",
       icon: "editor_icon",
       attribute: "editor_appliance_attribute",
       tap_action: "editor_tap_action",
@@ -1062,7 +1069,11 @@ export class M3ApplianceCardEditor extends LitElement implements LovelaceCardEdi
               hass: this.hass,
               enabled: cfg.notify_enabled ?? false,
               automationId: cfg.notify_automation_id,
-              blockedReason: cfg.notify_service?.length ? undefined : this._t("editor_notify_missing"),
+              blockedReason: !cfg.entity
+                ? this._t("editor_appliance_notify_needs_entity")
+                : cfg.notify_service?.length
+                  ? undefined
+                  : this._t("editor_notify_missing"),
               language: this._language,
               busy: this._notifyBusy,
               status: this._notifyStatus,

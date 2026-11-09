@@ -149,6 +149,7 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Vertikales Layout | `vertical: true` | Icon über Text statt daneben, zentriert |
 | Nested-ARIA-Grenzfall | Screenreader/Tab-Test bei aktivem `icon_tap_action` | Icon-Bereich ist bewusst *nicht* separat fokussierbar (vermeidet verschachtelte `role="button"`); Haupt-Tap-Ziel bleibt vollständig erreichbar |
 | Icon-Größe ohne Container-Queries | In den Dev-Tools am `ha-card` der Karte `--m3-icon-box` und `--m3-icon-glyph` von Hand auf `min(56px, 78cqh)` bzw. `min(28px, 39cqh)` setzen und einen Browser ohne `cqh` simulieren (oder ein iOS-15-Gerät verwenden) | Icon-Topf und Glyphe behalten ihre Größe; das `<svg>` fällt **nicht** auf seine Standardgröße von 300×150 px zurück |
+| Langer Name zweizeilig (#40) | Halbe Breite, `name: Nginx Proxy Manager`, einmal ohne, einmal mit `name_wrap: true` | Ohne: eine Zeile mit „…“. Mit: zwei Zeilen, die Karte wird etwas höher (72 px), das Icon bleibt so groß wie bei den Nachbarkarten, nichts ragt über den Rand |
 
 ## M3 Progress Card
 
@@ -261,6 +262,7 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Entität `unavailable` während Drag | Während des Ziehens Entität extern auf `unavailable` setzen | Kein Absturz, Drag-Session bricht sauber ab |
 | Helligkeit nur einmal im Bild | Eingeschaltete Lampe ansehen, dann am Regler ziehen | Die Prozentangabe steht **ausschließlich** unter dem Namen und folgt dem Ziehen; am Reglergriff steht keine zweite |
 | Eigene Lichtfarbe (#28) | Farblampe auf Rot, Lampe mit Farbtemperatur auf warm, Lampe nur mit Helligkeit — je eine Karte, `use_light_color` Standard | Slider, Icon und Power-Button rot bzw. warmweiß; die Lampe ohne Farbe zeigt `accent_color`. Am Farbrad ziehen: die Farbe folgt sofort. Mit `use_light_color: false` überall `accent_color` |
+| Aktionen (#42) | `compact: true`, `tap_action: toggle`, `icon_tap_action: more-info`, `hold_action: navigate` | Tipp auf die Kachel schaltet (mit `transition`), Tipp aufs Icon öffnet More-Info, langes Drücken navigiert und schaltet **nicht** zusätzlich. Ohne die drei Optionen verhält sich die Karte wie vorher (Icon schaltet, Rest öffnet More-Info) |
 
 ## M3 Battery Card
 
@@ -828,6 +830,8 @@ Fallen woanders als bei den übrigen Karten.
 | Scrollende Leiste auf schmalem Schirm | So viele Einträge konfigurieren, dass sie nicht auf den Schirm passen, dann auf einem schmalen Gerät (320 CSS-px, z. B. iPod touch 7) öffnen | Der **erste** Eintrag beginnt am linken Rand der Leiste und ist vollständig sichtbar. Er darf weder halb außerhalb liegen noch durch Wischen unerreichbar bleiben; die Markierung sitzt bündig auf ihm |
 | Wisch-Plugin blättert nicht mit | Mit installiertem `hass-swipe-navigation` auf dem Handy: erst irgendwo auf der Seite wischen, dann einen Eintrag der Leiste antippen | Es wird nur die angetippte Seite geöffnet. Kein kurzes Aufblitzen der Nachbarseite, die das Plugin aus der vorherigen Wischgeste errechnet hätte |
 | Aktiver Eintrag nach Rückkehr | Auf Seite A, dann B, dann über die Leiste zurück auf A — nicht neu laden | Die Markierung steht sofort auf A. Sie blieb einen Schritt zurück, solange die Karte aus dem Ansichts-Cache mit ihrem alten Pfad zurückkam |
+| Eigenes Icon für den aktiven Eintrag (#38) | `icon: mdi:home-outline`, `active_icon: mdi:home`, zwischen Seiten wechseln | Nur der aktive Eintrag zeigt das gefüllte Icon; beim Wechsel tauscht es mit |
+| Alle Einträge ausgeblendet (#38) | Jeder Eintrag mit `hidden: "{{ true }}"` | Die Leiste verschwindet ganz, kein „Noch keine Einträge“. Eine Karte ganz ohne Einträge zeigt den Hinweis weiterhin |
 | Regex-Override | `match` auf einem Eintrag setzen, das nicht zur `path` passt | Aktiv-Zustand folgt dem Regex; ein kaputtes Muster macht den Eintrag nie aktiv, wirft aber nichts |
 | Template live | In zwei Browser-Tabs öffnen, in Tab A den Zustand einer im Template gelesenen Entität ändern | In Tab B ändert sich Name/Icon/Badge **ohne Reload** — das beweist das Abo statt eines einmaligen Renderns |
 | Template-Abos schließen | Karte aus der Ansicht löschen, Netzwerk-Tab beobachten | Keine weiteren `render_template`-Nachrichten für diese Karte |
@@ -1115,6 +1119,11 @@ weg ist.
       dass jedes sein eigenes zeigt
 - [ ] `action: popup` ohne konfiguriertes `popup` fällt auf More-Info zurück
       statt einen leeren Dialog zu öffnen
+- [ ] Ohne `entity` (#41): Kachel mit Name, Icon und Aktion, ohne Statuszeile,
+      nicht ausgegraut; ohne `tap_action` passiert beim Tipp nichts. Im Editor
+      ist die Benachrichtigung gesperrt mit Hinweis
+- [ ] `name_wrap: true` (#40) in halber Breite mit Status-Pill: der Name nimmt
+      zwei Zeilen statt „…“
 
 ## M3 Detail Card und `detail_mode: sheet`
 

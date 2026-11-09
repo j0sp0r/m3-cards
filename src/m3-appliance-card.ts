@@ -311,7 +311,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
   }
 
   public setConfig(config: M3ApplianceCardConfig): void {
-    if (!config?.entity) throw new Error("m3-appliance-card: 'entity' is required");
+    if (!config) throw new Error("m3-appliance-card: invalid configuration");
     for (const key of ["sliders", "selects", "buttons", "chips"] as const) {
       const value = config[key];
       if (value !== undefined && !Array.isArray(value)) {
@@ -547,6 +547,8 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
    * counting it greyed out every idle Samsung as unavailable.
    */
   private get _unavailable(): boolean {
+    // A tile without an entity (a link or popup tile, #41) has nothing to lose.
+    if (!this._config?.entity) return false;
     const raw = this._raw.toLowerCase();
     return raw === "" || raw === "unavailable" || raw === "unknown";
   }
@@ -762,7 +764,10 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
   protected render(): TemplateResult | typeof nothing {
     const cfg = this._config;
     if (!cfg || !this.hass) return nothing;
-    if (!this.hass.states[cfg.entity]) return renderMissingEntity(cfg.entity);
+    // No entity at all is a plain tile — name, icon, action (#41). An entity
+    // that is configured but missing is still reported as missing.
+    const tile = !cfg.entity;
+    if (cfg.entity && !this.hass.states[cfg.entity]) return renderMissingEntity(cfg.entity);
 
     const unavailable = this._unavailable;
     const accent = this._accent;
@@ -788,7 +793,9 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     // as "Kein" — a word, but not one that says the machine is off.
     const raw = this._raw.toLowerCase();
     const idle = (cfg.idle_states ?? DEFAULT_IDLE_STATES).some((s) => s.toLowerCase() === raw);
-    const subtitle = unavailable
+    const subtitle = tile
+      ? ""
+      : unavailable
       ? this._t("appliance_unavailable")
       : (rule?.label ?? (raw === "none" ? this._t("appliance_idle") : this._stateText(this._main, this._raw)));
 
@@ -802,10 +809,18 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     // its finish time behind it.
     const done = (cfg.done_states ?? DEFAULT_DONE_STATES).some((s) => s.toLowerCase() === raw);
     const progressDone = doneByProgress(progress);
-    const phase: AppliancePhase = unavailable || idle ? "ready" : done || progressDone ? "done" : "running";
+    // A tile has no machine behind it: "running" with no progress draws the
+    // header alone, without the idle pill or a "ready since" line.
+    const phase: AppliancePhase = tile
+      ? "running"
+      : unavailable || idle
+        ? "ready"
+        : done || progressDone
+          ? "done"
+          : "running";
     this._machinePhase = phase;
     // A new run, or a machine emptied, starts the "Done … ago" clock afresh.
-    if (phase !== "done" && !unavailable) this._forgetDone();
+    if (phase !== "done" && !unavailable && !tile) this._forgetDone();
     const remaining = phase === "running" ? progress?.remaining : undefined;
 
     // Decide how the wave behaves this render, before anything draws one.
@@ -834,7 +849,12 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     // A card with a popup configured opens it on tap, so the common case needs
     // no `tap_action` at all; an explicit one still wins.
     const headerAction =
-      cfg.tap_action ?? (cfg.popup ? { action: "popup" as const } : { action: "more-info" as const });
+      cfg.tap_action ??
+      (cfg.popup
+        ? { action: "popup" as const }
+        : tile
+          ? { action: "none" as const }
+          : { action: "more-info" as const });
     const headerInteractive = isActionable(headerAction);
 
     // Each block once, unfolded, so the arrow can be left out when folding
@@ -906,6 +926,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
             name,
             subtitle: doneSubtitle ?? (phase === "ready" ? (this._readySince() ?? "") : subtitle),
             onClick: onHeader,
+            wrapName: cfg.name_wrap,
             right: trailing,
           })}
           ${phase === "done" ? this._renderFinish() : nothing}

@@ -1134,6 +1134,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     for (const item of this._config?.items ?? []) {
       add(item.name);
       add(item.icon);
+      add(item.active_icon);
       add(item.color);
       add(item.hidden);
       add(item.disabled);
@@ -1310,14 +1311,16 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     quelle.forEach((item, index) => {
       if (this._resolveBool(item.hidden)) return;
       const color = resolveThemeColor(this._resolve(item.color) || accent);
+      const active = this._isActive(item);
+      const icon = this._resolve(item.icon) || DEFAULT_NAV_ICON;
       out.push({
         index,
         config: item,
         name: this._resolve(item.name) ?? "",
-        icon: this._resolve(item.icon) || DEFAULT_NAV_ICON,
+        icon: active ? this._resolve(item.active_icon) || icon : icon,
         color,
         disabled: this._resolveBool(item.disabled),
-        active: this._isActive(item),
+        active,
         badge: this._badgeFor(item, color),
       });
     });
@@ -2931,6 +2934,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
 
     const items = this._resolvedItems;
     if (!items.length) {
+      // Entries that exist but are all hidden right now: the bar goes, rather
+      // than telling the dashboard it has none (#38). Only a card with no
+      // entries at all — a fresh one in the editor — says so.
+      if (cfg.items?.length) return nothing;
       return html`<div class="empty">${this._t("nav_no_items")}</div>`;
     }
 

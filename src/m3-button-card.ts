@@ -457,6 +457,9 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
 
   protected willUpdate(changed: PropertyValues): void {
     super.willUpdate(changed);
+    // ha-card is a size container, so a name on two lines cannot make the card
+    // taller by itself; the host's minimum has to grow with it (#40).
+    this.toggleAttribute("name-wrap", !!this._config?.name_wrap);
     // The device confirmed the value: show the state again. Within one step,
     // since a light rounds 0-255 brightness back to a percentage.
     if (changed.has("hass") && this._settleValue !== undefined && !this._dragActive) {
@@ -724,14 +727,19 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
     // Every size below rides to the stylesheet inside a custom property, so
     // a container-query unit a browser does not know cannot be caught by the
     // cascade — it lands on `unset` instead. See SUPPORTS_CONTAINER_UNITS.
+    //
+    // A wrapped name (#40) makes the card taller only to fit the text; the
+    // icon and insets stay at their one-row size rather than scaling up with
+    // the height, so the tile matches its neighbours.
+    const scales = SUPPORTS_CONTAINER_UNITS && !this._config.name_wrap;
     const iconBoxCss = this._config.icon_size
       ? `${this._config.icon_size}px`
-      : SUPPORTS_CONTAINER_UNITS
+      : scales
         ? "min(56px, 78cqh)"
         : `${BUTTON_ICON_BOX_PX}px`;
     const iconGlyphCss = this._config.icon_size
       ? `${this._config.icon_size * 0.5}px`
-      : SUPPORTS_CONTAINER_UNITS
+      : scales
         ? "min(28px, 39cqh)"
         : `${BUTTON_ICON_GLYPH_PX}px`;
     // Fixed value matches the responsive formula (min(16px, 11cqh))
@@ -742,13 +750,13 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
     // inset is fixed.
     const iconOffsetCss = this._config.align_icons
       ? `${BUTTON_ICON_OFFSET_PX}px`
-      : SUPPORTS_CONTAINER_UNITS
+      : scales
         ? "min(16px, 11cqh)"
         : `${BUTTON_ICON_OFFSET_PX}px`;
     // The card's own padding, for the same reason: its container-query form
     // sits behind var(--m3-group-padding), which the group card may leave
     // unset, so the fallback has to be one a Safari 15 can actually use.
-    const cardPaddingCss = SUPPORTS_CONTAINER_UNITS
+    const cardPaddingCss = scales
       ? "min(12px, 9cqh) min(16px, 11cqh) min(12px, 9cqh)"
       : `${BUTTON_PAD_V_PX}px ${BUTTON_PAD_H_PX}px ${BUTTON_PAD_V_PX}px`;
     // A shape that follows the state says what the colour says, in a second
@@ -864,7 +872,7 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
                   </div>
                 `}
             <div class="text">
-              <div class="name">${name}</div>
+              <div class="name ${this._config.name_wrap ? "wrap" : ""}">${name}</div>
               ${this._config.show_state !== false && entity
                 ? html`<div class="state">
                     ${sliderInfo ? `${sliderValue}${sliderInfo.unit}` : stateText}
@@ -920,6 +928,10 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
     :host {
       display: grid;
       min-height: 56px;
+    }
+
+    :host([name-wrap]) {
+      min-height: 72px;
     }
 
     ha-card {
@@ -1117,6 +1129,16 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    /* name_wrap (#40): two lines, then the ellipsis. */
+    .name.wrap {
+      white-space: normal;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      line-clamp: 2;
+      overflow-wrap: anywhere;
     }
 
     .state {

@@ -61,6 +61,7 @@ export class M3ButtonCardEditor
   private _contentSchema(): SchemaEntry[] {
     return [
       { name: "name", selector: { text: {} } },
+      { name: "name_wrap", selector: { boolean: {} } },
       { name: "icon", selector: { icon: {} } },
       { name: "show_state", selector: { boolean: {} } },
       {
@@ -219,6 +220,7 @@ export class M3ButtonCardEditor
       chip_buttons_layout: "editor_chip_buttons_layout",
       entity: "editor_entity",
       name: "editor_name",
+      name_wrap: "editor_name_wrap",
       icon: "editor_icon",
       show_state: "editor_show_state",
       state_content: "editor_state_content",

@@ -682,6 +682,7 @@ hold_action:
 |---|---|---|---|
 | `entity` | string | – (optional) | Any entity — including `automation.*`, `script.*`, `scene.*`. Can be left empty for a pure action button without an entity state (see below) |
 | `name` | string | entity `friendly_name` | Displayed name |
+| `name_wrap` | boolean | `false` | A long name takes two lines instead of being cut off with "…" after one |
 | `icon` | string | entity icon, otherwise HA's default icon for the domain/`device_class` | Icon. Without an explicit value, the same default icon HA computes for the native tile card is used (e.g. a thermometer for `device_class: temperature`), not just an icon explicitly set on the entity |
 | `color` | string | `primary` (uses HA's theme accent color) | HA color name (`red`, `dark-grey`, `deep-orange`, ...) **or** any CSS color (`#hex`, `rgb(...)`) for the icon/background in the **on/active** state |
 | `inactive_color` | string | – (default theme grey) | Color for the icon/background in the **off/inactive** state, same format as `color`. Also used when `static_color: true` is set |
@@ -1694,6 +1695,19 @@ control it has become without anything else being added.
 Everything else is unchanged: the brightness slider, the colour rows and the
 member list all still render, and the header still opens more-info.
 
+The other way round — tap the tile to toggle, tap the icon for more-info —
+is two actions:
+
+```yaml
+type: custom:m3-light-card
+entity: light.living_room
+compact: true
+tap_action:
+  action: toggle
+icon_tap_action:
+  action: more-info
+```
+
 ### Configuration options
 
 | Option | Type | Default | Description |
@@ -1703,6 +1717,9 @@ member list all still render, and the header still opens more-info.
 | `icon` | string | entity icon | Icon in the icon tile |
 | `transition` | number | – | Transition duration (seconds) for `light.turn_on` calls |
 | `compact` | boolean | `false` | Drop the power button and make the header icon the toggle instead |
+| `tap_action` | action | `more-info` | Tap on the header. `toggle` switches the light with the card's `transition` |
+| `icon_tap_action` | action | `toggle` in compact mode, none otherwise | Tap on the icon. Swap it with `tap_action` for a tile that toggles on tap and opens more-info from the icon |
+| `hold_action` | action | none | Long press on the header |
 | `shape_by_state` | boolean | `false` | The header icon is a circle while the light is off and a rounded square while it is on, as on the button card |
 | `wave_style` | `wavy` \| `flat` | `wavy` | Slider wave shape |
 | `show_color_temp` | boolean | `true` | Show the color temperature row; `false` hides it even on a light that supports it |
@@ -4445,12 +4462,32 @@ one popup body can be reused across several appliances. An `action: popup` on a
 card with no `popup` configured falls back to more-info rather than opening an
 empty dialog.
 
+### A tile without an entity
+
+Leave `entity` out and the card is a plain tile: the name, the icon and an
+action, with no status line, no idle pill and no greyed-out "unavailable".
+That makes it a link or popup tile in the same frame as the appliances next to
+it, without a placeholder entity:
+
+```yaml
+type: custom:m3-appliance-card
+name: Mealie
+icon: mdi:chef-hat
+tap_action:
+  action: url
+  url_path: https://mealie.example.org
+```
+
+With a `popup` it opens that on tap. Without a `tap_action` or a `popup` a tap
+does nothing. Notifications need an entity, so the editor blocks them here.
+
 ### Options
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `entity` | — | Required. The entity that says what the appliance is doing |
+| `entity` | — | The entity that says what the appliance is doing. Leave it out for a plain tile with a name, an icon and a `tap_action` (a link or popup tile) |
 | `name` / `icon` | from the entity | Header name and icon |
+| `name_wrap` | `false` | A long name takes two lines instead of being cut off with "…" after one. The header grows by a few pixels when it does |
 | `attribute` | — | Read this attribute instead of the state |
 | `states` | — | Rule list for the status line: `value` / `regex` / `above` / `below`, plus `label`, `icon`, `color` |
 | `progress.percentage_entity` | — | 0–100. Without it the bar is indeterminate |
@@ -4704,9 +4741,22 @@ in a narrow column on a wide screen is narrow, which is what a media query
 would get wrong. Either block can also hide the bar outright at that width
 (`hidden: true`), and either can override `show_labels`.
 
+### Icon on the current page
+
+`active_icon` replaces an entry's icon while it is the current page, so the
+current entry can show a filled icon beside the others' outlined ones:
+
+```yaml
+items:
+  - name: Home
+    icon: mdi:home-outline
+    active_icon: mdi:home
+    path: /lovelace/0
+```
+
 ### Templates
 
-`name`, `icon`, `color`, `hidden`, `disabled` and the badge accept Jinja2, and
+`name`, `icon`, `active_icon`, `color`, `hidden`, `disabled` and the badge accept Jinja2, and
 subscribe to it — the value is pushed by Home Assistant whenever anything the
 template reads changes, rather than polled or re-rendered on a timer:
 
@@ -4872,7 +4922,9 @@ so it renders inline instead.
 
 ### Visibility
 
-`hidden` takes a Jinja2 template and drops the whole bar while it is true. For
+`hidden` takes a Jinja2 template and drops the whole bar while it is true. When
+every entry is hidden by its own `hidden`, the bar goes too, rather than
+showing "no entries". For
 visibility by user, device or screen size, use Home Assistant's own visibility
 feature in the card editor — it already does exactly that for every card, and
 a second implementation inside this one would only fight it.
@@ -4884,7 +4936,7 @@ a second implementation inside this one would only fight it.
 | `routes` | `items` |
 | `routes[].url` | `items[].path` |
 | `routes[].label` | `items[].name` |
-| `routes[].icon` / `icon_selected` | `items[].icon` (a template can switch it) |
+| `routes[].icon` / `icon_selected` | `items[].icon` / `items[].active_icon` |
 | `routes[].badge.template` | `items[].badge.template` |
 | `routes[].badge.color` | `items[].badge.color` |
 | `routes[].submenu` | `items[].submenu` |
@@ -4908,7 +4960,7 @@ without a breaking config change.
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `items` | — | The entries. Each: `name`, `icon`, `path`, `match`, `color`, `badge`, `badge_style`, `hidden`, `disabled`, `submenu`, `tap_action`, `hold_action`, `double_tap_action` |
+| `items` | — | The entries. Each: `name`, `icon`, `active_icon`, `path`, `match`, `color`, `badge`, `badge_style`, `hidden`, `disabled`, `submenu`, `tap_action`, `hold_action`, `double_tap_action` |
 | `style` | `footer` | `header`, `footer`, `segmented`, `floating`, `sheet` |
 | `position` | per variant | `top` or `bottom`, for the detached variants |
 | `desktop` / `mobile` | — | Per-width overrides: `style`, `position`, `show_labels`, `hidden` |

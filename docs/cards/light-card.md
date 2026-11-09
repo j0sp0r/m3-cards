@@ -57,6 +57,19 @@ control it has become without anything else being added.
 Everything else is unchanged: the brightness slider, the colour rows and the
 member list all still render, and the header still opens more-info.
 
+The other way round — tap the tile to toggle, tap the icon for more-info —
+is two actions:
+
+```yaml
+type: custom:m3-light-card
+entity: light.living_room
+compact: true
+tap_action:
+  action: toggle
+icon_tap_action:
+  action: more-info
+```
+
 ### Configuration options
 
 | Option | Type | Default | Description |
@@ -66,6 +79,9 @@ member list all still render, and the header still opens more-info.
 | `icon` | string | entity icon | Icon in the icon tile |
 | `transition` | number | – | Transition duration (seconds) for `light.turn_on` calls |
 | `compact` | boolean | `false` | Drop the power button and make the header icon the toggle instead |
+| `tap_action` | action | `more-info` | Tap on the header. `toggle` switches the light with the card's `transition` |
+| `icon_tap_action` | action | `toggle` in compact mode, none otherwise | Tap on the icon. Swap it with `tap_action` for a tile that toggles on tap and opens more-info from the icon |
+| `hold_action` | action | none | Long press on the header |
 | `shape_by_state` | boolean | `false` | The header icon is a circle while the light is off and a rounded square while it is on, as on the button card |
 | `wave_style` | `wavy` \| `flat` | `wavy` | Slider wave shape |
 | `show_color_temp` | boolean | `true` | Show the color temperature row; `false` hides it even on a light that supports it |

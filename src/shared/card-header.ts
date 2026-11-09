@@ -28,6 +28,8 @@ export function renderCardHeader(params: {
    * a circle (off); left out, the swatch keeps its usual shape.
    */
   shape?: boolean;
+  /** `name_wrap`: up to two lines before the ellipsis, instead of one (#40). */
+  wrapName?: boolean;
 }): TemplateResult {
   const interactive = !!params.onClick;
   const iconInteractive = !!params.onIconClick;
@@ -60,7 +62,7 @@ export function renderCardHeader(params: {
         ${params.image ? nothing : html`<ha-icon icon=${params.icon}></ha-icon>`}
       </div>
       <div class="m3-text-block">
-        <div class="m3-name">${params.name}</div>
+        <div class="m3-name ${params.wrapName ? "wrap" : ""}">${params.name}</div>
         <div class="m3-subtitle">${params.subtitle}</div>
       </div>
       ${params.right ?? nothing}
@@ -152,6 +154,17 @@ export const cardHeaderStyles = css`
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--m3p-text);
+  }
+
+  /* Two lines, then the ellipsis. Breaks between words; a single word too long
+     for the line still breaks rather than overflowing. */
+  .m3-name.wrap {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    overflow-wrap: anywhere;
   }
 
   .m3-subtitle {

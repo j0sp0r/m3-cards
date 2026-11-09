@@ -8,6 +8,7 @@ import type {
   LovelaceCard,
   LovelaceCardEditor,
   LovelaceGridOptions,
+  HaActionConfig,
 } from "./types";
 import {
   CARD_VERSION,
@@ -56,6 +57,8 @@ import { hassChangeMatters } from "./shared/should-update";
 import { DragThrottle } from "./shared/drag-throttle";
 import { TemplatedCard } from "./shared/templated-card";
 import { openEntityDetail } from "./shared/entity-detail";
+import { runHaAction, navigateTo } from "./shared/actions";
+import { TapHold } from "./shared/tap-hold";
 
 console.info(
   `%c M3-LIGHT-CARD %c v${CARD_VERSION} `,
@@ -181,6 +184,7 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
+    this._headerGesture.destroy();
     document.removeEventListener(
       "visibilitychange",
       this._handleVisibilityChange,
@@ -499,6 +503,39 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
     openEntityDetail(this, this._config?.entity);
   }
 
+  /**
+   * Runs a configured action (#42). `toggle` goes through the card's own
+   * toggle, so the `transition` applies and an unavailable light is left alone.
+   */
+  private _runAction(action: HaActionConfig | undefined): void {
+    if (!this.hass || !action) return;
+    runHaAction(this.hass, action, {
+      entityId: this._config?.entity,
+      toggle: () => this._handlePowerToggle(),
+      fireMoreInfo: () => this._fireMoreInfo(),
+      navigate: (path) => navigateTo(this, path),
+      source: this,
+    });
+  }
+
+  /** Tap and hold on the header, told apart; a hold is only watched for when one is set. */
+  private readonly _headerGesture = new TapHold({
+    onTap: () => this._runAction(this._config?.tap_action ?? { action: "more-info" }),
+    onHold: () => this._runAction(this._config?.hold_action),
+    hasHold: () => !!this._config?.hold_action && this._config.hold_action.action !== "none",
+  });
+
+  /**
+   * What the icon does: an explicit `icon_tap_action`, else the toggle in
+   * compact mode, else nothing (the swatch stays part of the header).
+   */
+  private _iconClick(compact: boolean, unavailable: boolean): (() => void) | undefined {
+    const action = this._config?.icon_tap_action;
+    if (action) return action.action === "none" ? undefined : () => this._runAction(action);
+    if (!compact || unavailable) return undefined;
+    return () => this._handlePowerToggle();
+  }
+
   protected render() {
     if (!this._config || !this.hass) return nothing;
 
@@ -610,21 +647,30 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
           class="card-inner ${glassCardClass(this._config.glass_background)} ${unavailable ? "unavailable" : ""} ${shouldAnimate(this._config.animation) ? "" : "no-animations"}"
           style=${`border-radius: ${radius};${cardBackgroundCss ? ` background: ${cardBackgroundCss};` : ""}`}
         >
+          <div
+            class="header-gesture"
+            @pointerdown=${this._headerGesture.down}
+            @pointermove=${this._headerGesture.move}
+            @pointerup=${this._headerGesture.up}
+            @pointercancel=${this._headerGesture.abandon}
+          >
           ${renderCardHeader({
             icon,
             name,
             subtitle,
             shape: this._config.shape_by_state === true ? !unavailable && effectiveOn : undefined,
-            onClick: () => this._fireMoreInfo(),
+            onClick:
+              this._config.tap_action?.action === "none" && !this._config.hold_action
+                ? undefined
+                : () => this._headerGesture.click(),
+            onIconClick: this._iconClick(compact, unavailable),
+            iconLabel: name,
             // Compact drops the power button and moves the toggle onto the icon
             // — the same split the native tile card makes. The swatch already
             // tints with the light's state, so it reads as the on/off control
             // it has become without a second lit-up thing beside it.
             ...(compact
-              ? {
-                  onIconClick: unavailable ? undefined : () => this._handlePowerToggle(),
-                  iconLabel: name,
-                }
+              ? {}
               : {
                   right: html`
                     <button
@@ -641,6 +687,7 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
                   `,
                 }),
           })}
+          </div>
           ${hasBrightness ? this._renderWaveSlider(displayPct, unavailable) : nothing}
           ${this._config.show_color_temp !== false && supportsColorTemp
             ? this._renderColorTemp(entity, unavailable)
@@ -920,6 +967,12 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
     cardHeaderStyles,
     listRowStyles,
     css`
+      /* Only there to catch the header's pointer events for a hold; it takes no
+         box of its own, so the card's gap and layout stay as they were. */
+      .header-gesture {
+        display: contents;
+      }
+
       .card-inner.unavailable {
         opacity: 0.4;
         pointer-events: none;

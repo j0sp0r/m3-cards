@@ -606,12 +606,32 @@ one popup body can be reused across several appliances. An `action: popup` on a
 card with no `popup` configured falls back to more-info rather than opening an
 empty dialog.
 
+### A tile without an entity
+
+Leave `entity` out and the card is a plain tile: the name, the icon and an
+action, with no status line, no idle pill and no greyed-out "unavailable".
+That makes it a link or popup tile in the same frame as the appliances next to
+it, without a placeholder entity:
+
+```yaml
+type: custom:m3-appliance-card
+name: Mealie
+icon: mdi:chef-hat
+tap_action:
+  action: url
+  url_path: https://mealie.example.org
+```
+
+With a `popup` it opens that on tap. Without a `tap_action` or a `popup` a tap
+does nothing. Notifications need an entity, so the editor blocks them here.
+
 ### Options
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `entity` | — | Required. The entity that says what the appliance is doing |
+| `entity` | — | The entity that says what the appliance is doing. Leave it out for a plain tile with a name, an icon and a `tap_action` (a link or popup tile) |
 | `name` / `icon` | from the entity | Header name and icon |
+| `name_wrap` | `false` | A long name takes two lines instead of being cut off with "…" after one. The header grows by a few pixels when it does |
 | `attribute` | — | Read this attribute instead of the state |
 | `states` | — | Rule list for the status line: `value` / `regex` / `above` / `below`, plus `label`, `icon`, `color` |
 | `progress.percentage_entity` | — | 0–100. Without it the bar is indeterminate |

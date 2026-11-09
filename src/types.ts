@@ -227,6 +227,8 @@ export interface M3ButtonCardConfig extends DetailModeConfig {
   type: string;
   entity?: string;
   name?: string;
+  /** Let a long name take two lines instead of being cut off after one (#40). */
+  name_wrap?: boolean;
   icon?: string;
   /**
    * Icon shown while the entity is off. Without one the same icon is used for
@@ -724,6 +726,18 @@ export interface M3LightCardConfig extends DetailModeConfig {
    * which is the point when several sit side by side in a grid.
    */
   compact?: boolean;
+  /**
+   * Tap on the header (#42). Default `more-info`. A `toggle` switches the light
+   * with the card's `transition`.
+   */
+  tap_action?: HaActionConfig;
+  /**
+   * Tap on the icon. Default: `toggle` in compact mode, nothing otherwise —
+   * set one to give the full card's icon an action of its own.
+   */
+  icon_tap_action?: HaActionConfig;
+  /** Long press on the header. Default: nothing. */
+  hold_action?: HaActionConfig;
   show_color_temp?: boolean;
   color_temp_style?: LightColorTempStyle;
   color_temp_presets?: LightColorTempPresets;
@@ -2722,6 +2736,12 @@ export interface NavItemConfig {
   name?: string;
   /** Accepts Jinja2. */
   icon?: string;
+  /**
+   * Accepts Jinja2. The icon while this entry is the current page — a filled
+   * `mdi:home` beside an outlined `mdi:home-outline`, say (#38). Falls back to
+   * `icon`.
+   */
+  active_icon?: string;
   /** Where a tap goes, and what the active-state URL match compares against. */
   path?: string;
   /** Regex overriding the automatic active match when the path shape is unusual. */
@@ -3473,10 +3493,13 @@ export interface M3ApplianceCardConfig extends NotifyConfigBase, DetailModeConfi
   /**
    * The entity that says what the appliance is doing. Usually a `sensor`
    * holding an operation state, but anything with a state works — a `switch`,
-   * a `binary_sensor`, a `vacuum`.
+   * a `binary_sensor`, a `vacuum`. Optional: without one the card is a plain
+   * tile with a name, an icon and an action (#41).
    */
-  entity: string;
+  entity?: string;
   name?: string;
+  /** Let a long name take two lines instead of being cut off after one (#40). */
+  name_wrap?: boolean;
   icon?: string;
   /** Show this attribute instead of the state. */
   attribute?: string;

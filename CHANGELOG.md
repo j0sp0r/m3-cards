@@ -4,6 +4,31 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format angelehnt an [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
+## [Unreleased]
+
+### Added
+
+- **The appliance card works without an entity** (#41). Left out, the card
+  is a plain tile — a name, an icon and a `tap_action` or `popup` — with no
+  status line and nothing greyed out, so a link or popup tile sits in the
+  same frame as the appliances beside it without a placeholder entity.
+- **Long names on two lines** (#40). `name_wrap: true` on the appliance and
+  button cards lets a name take a second line instead of being cut off with
+  "…" in a half-width tile. The button card grows to fit; its icon stays the
+  size of its neighbours'.
+- **Tap, icon and hold actions on the light card** (#42). `tap_action`,
+  `icon_tap_action` and `hold_action`, as on the button card — for example a
+  compact tile that toggles on tap and opens more-info from the icon. Without
+  them the card behaves as before.
+- **An icon of its own for the current page** in the nav card (#38).
+  `active_icon` on an entry replaces its icon while it is the current page —
+  a filled icon beside the others' outlined ones.
+
+### Fixed
+
+- **A nav card whose entries are all hidden disappears** (#38) instead of
+  showing "no entries yet". A card with no entries at all still says so.
+
 ## [2.7.2] – 2026-11-09
 
 **Upgrading:** cards that find their own entities now leave out the ones

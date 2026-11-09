@@ -555,6 +555,7 @@ export class M3NavCardEditor extends LitElement implements LovelaceCardEditor {
     return [
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },
+      { name: "active_icon", selector: { icon: {} } },
       this._pathSelector(),
     ];
   }
@@ -1101,6 +1102,7 @@ export class M3NavCardEditor extends LitElement implements LovelaceCardEditor {
       show_labels: "editor_nav_show_labels",
       name: "editor_nav_item_name",
       icon: "editor_nav_item_icon",
+      active_icon: "editor_nav_item_active_icon",
       color: "editor_nav_item_color",
       badge_source: "editor_nav_badge_source",
       path: "editor_nav_item_path",
