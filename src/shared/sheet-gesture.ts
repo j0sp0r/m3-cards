@@ -64,6 +64,31 @@ interface Sample {
 
 type Mode = "idle" | "pending" | "dragging" | "scrolling";
 
+/**
+ * Whether a touch moving by (dx, dy) from where it went down belongs to the
+ * sheet rather than to the browser's scrolling: downward, more down than
+ * sideways, with nothing under the finger scrolled away from its top. A
+ * sideways swipe stays the content's (a carousel, a chip row), and so does
+ * a downward one in a list that can still scroll up.
+ */
+export function contentTouchIsSheetDrag(dx: number, dy: number, scrolledAbove: boolean): boolean {
+  return !scrolledAbove && dy > 0 && dy >= Math.abs(dx);
+}
+
+/**
+ * Whether anything between the touched element and the sheet's content
+ * element — the content element included — is scrolled down from its top.
+ * The path crosses shadow roots: a popup's cards keep their lists inside
+ * their own.
+ */
+function scrolledAboveTouch(path: EventTarget[], el: HTMLElement): boolean {
+  for (const node of path) {
+    if (node instanceof HTMLElement && node.scrollTop > 0) return true;
+    if (node === el) break;
+  }
+  return false;
+}
+
 export class SheetGesture {
   private mode: Mode = "idle";
   private startY = 0;
@@ -73,6 +98,10 @@ export class SheetGesture {
   private element?: HTMLElement;
   /** Set while a content-area drag has borrowed the element's touch-action. */
   private touchActionPatched = false;
+  /** Where the current touch on the content went down, for the touch claim. */
+  private touchStart?: { x: number; y: number; scrolledAbove: boolean };
+  /** What the current touch on the content was decided to be, once decided. */
+  private touchClaim?: "sheet" | "content";
   private readonly throttle: DragThrottle<number>;
 
   constructor(private readonly opts: SheetGestureOptions) {
@@ -119,7 +148,23 @@ export class SheetGesture {
     el.addEventListener("touchstart", stopSwipe);
     el.addEventListener("touchmove", stopSwipe);
 
+    // On a touch screen the browser decides on the first move whether the
+    // finger scrolls, and once it does the pointer events stop with a
+    // pointercancel: switching touch-action off in onMove comes too late, and
+    // a downward swipe on a popup's header or content did nothing — only the
+    // grip, which is touch-action: none from the start, answered (#50).
+    // Cancelling that first touchmove is what keeps the browser out, so the
+    // claim is made here, in a listener that may cancel.
+    const touchStart = (e: TouchEvent) => this.onTouchStart(e, el);
+    const touchMove = (e: TouchEvent) => this.onTouchMove(e);
+    if (kind === "content") {
+      el.addEventListener("touchstart", touchStart, { passive: true });
+      el.addEventListener("touchmove", touchMove, { passive: false });
+    }
+
     return () => {
+      el.removeEventListener("touchstart", touchStart);
+      el.removeEventListener("touchmove", touchMove);
       el.removeEventListener("pointerdown", down);
       el.removeEventListener("pointermove", move);
       el.removeEventListener("pointerup", up);
@@ -127,6 +172,31 @@ export class SheetGesture {
       el.removeEventListener("touchstart", stopSwipe);
       el.removeEventListener("touchmove", stopSwipe);
     };
+  }
+
+  private onTouchStart(e: TouchEvent, el: HTMLElement): void {
+    const t = e.touches[0];
+    this.touchClaim = undefined;
+    if (!t || e.touches.length > 1 || (this.opts.enabled && !this.opts.enabled())) {
+      this.touchStart = undefined;
+      return;
+    }
+    this.touchStart = { x: t.clientX, y: t.clientY, scrolledAbove: scrolledAboveTouch(e.composedPath(), el) };
+  }
+
+  private onTouchMove(e: TouchEvent): void {
+    const start = this.touchStart;
+    const t = e.touches[0];
+    if (!start || !t) return;
+    if (this.touchClaim === undefined) {
+      const dx = t.clientX - start.x;
+      const dy = t.clientY - start.y;
+      // Too small to tell a direction yet; the browser does not commit on
+      // a jitter either.
+      if (Math.abs(dx) < 2 && Math.abs(dy) < 2) return;
+      this.touchClaim = contentTouchIsSheetDrag(dx, dy, start.scrolledAbove) ? "sheet" : "content";
+    }
+    if (this.touchClaim === "sheet" && e.cancelable) e.preventDefault();
   }
 
   private onDown(e: PointerEvent, el: HTMLElement, kind: "handle" | "bar" | "content"): void {

@@ -114,6 +114,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Swiping a sheet down from its header or content** (#50). Popups, the
+  detail sheet and the nav card's drawer are meant to close with a downward
+  swipe anywhere while their content is at the top, but on a phone only the
+  small grip answered: the browser claimed the swipe as a scroll on its first
+  move, before the sheet could. The sheet now claims a downward swipe on that
+  first move; an upward or sideways swipe, or one in a list that can still
+  scroll up, stays the content's.
 - **Media card: the cover of a Music Assistant player** (#49). The card read
   `entity_picture`, which for a player with a remotely reachable picture is
   that server's own URL — often plain http, which an https dashboard does not

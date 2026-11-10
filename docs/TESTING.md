@@ -311,6 +311,7 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Mini-Layout (#49) | `playing_layout: mini` | Nur die Zeile, dünner Fortschrittsbalken unter dem Titel, Knöpfe Musik/Play/Weiter |
 | Musikauswahl als Sheet (#49) | Im Kompakt-Layout den Musik-Knopf tippen, Titel wählen; erneut öffnen, nach unten wischen; Zurück-Geste am Handy | Sheet von unten mit Warteschlange/Bibliothek, Karte wird nicht höher; Titel startet und Sheet schließt; Wischen und Zurück-Geste schließen es, ohne die Ansicht zu verlassen |
 | Kompakt auf dem Handy (#49) | Kompakt-Layout auf schmalem Handy | Knöpfe rücken zusammen, Titel bleibt lesbar (zweizeilig) |
+| Sheet am Kopf wegwischen (#50) | Am Handy ein Popup, das Detail-Sheet und das Musik-Sheet öffnen, auf dem Kopf bzw. im Inhalt (oben) nach unten wischen; dann eine lange Liste scrollen, nach oben, seitlich wischen | Sheet folgt dem Finger und schließt; gescrollte Liste scrollt erst zurück, statt das Sheet zu ziehen; seitliche Wischer und Schieberegler im Sheet funktionieren weiter |
 
 ## M3 Weather Card
 
