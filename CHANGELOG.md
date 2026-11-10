@@ -16,11 +16,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
-- **Cover card: the arrows of a curtain point the way it moves** (#51).
-  With a curtain preview the open and close buttons still showed up and
-  down; they now point to the side for a one-sided curtain and apart and
-  together for `curtain_split`. A group row of a curtain points to the side
-  too.
+- **Cover card: a curtain's buttons move the way it does** (#51). With a
+  curtain preview the open, stop and close buttons were still stacked with
+  arrows up and down; they now sit side by side, pointing to the side for a
+  one-sided curtain and apart and together for `curtain_split`. A group row
+  of a curtain points to the side too.
 
 ## [2.8.0] – 2026-11-10
 

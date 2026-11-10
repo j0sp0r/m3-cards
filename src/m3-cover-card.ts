@@ -197,15 +197,16 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
    * left edge, as the preview draws it), apart and together for a split one.
    * A group row has no preview, so it goes by its own device class.
    */
-  private _directionIcons(m: CoverModel): { open: string; close: string } {
+  private _directionIcons(m: CoverModel): { open: string; close: string; sideways: boolean } {
     let style: "shutter" | "curtain" | "curtain_split";
     if (this._config?.mode === "group") {
       const dc = this.hass?.states[m.entity]?.attributes?.device_class;
       style = dc === "curtain" ? "curtain" : "shutter";
     } else style = this._previewStyle();
-    if (style === "curtain") return { open: "mdi:chevron-left", close: "mdi:chevron-right" };
-    if (style === "curtain_split") return { open: "mdi:arrow-split-vertical", close: "mdi:arrow-collapse-horizontal" };
-    return { open: "mdi:chevron-up", close: "mdi:chevron-down" };
+    if (style === "curtain") return { open: "mdi:chevron-left", close: "mdi:chevron-right", sideways: true };
+    if (style === "curtain_split")
+      return { open: "mdi:arrow-split-vertical", close: "mdi:arrow-collapse-horizontal", sideways: true };
+    return { open: "mdi:chevron-up", close: "mdi:chevron-down", sideways: false };
   }
 
   /** `preview_style` (#51), or by device class: a curtain from the side. */
@@ -394,8 +395,10 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
     const atClosed = posKnown && (m.position as number) <= 0;
     const active = this._feedback[m.entity];
     const fb: CoverDir | undefined = active && active.until > Date.now() ? active.dir : undefined;
-    const cls = compact ? "btn-compact" : "btn-stacked";
     const icons = this._directionIcons(m);
+    // A curtain's buttons sit side by side, the way it moves; a shutter's
+    // are stacked, the way it moves.
+    const cls = compact ? "btn-compact" : icons.sideways ? "btn-side" : "btn-stacked";
     return html`
       <div class="btn-row ${cls}">
         ${canOpen
@@ -821,6 +824,20 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
       }
       .btn-stacked .cbtn.close {
         border-radius: 9px 9px 18px 18px;
+      }
+      /* Side by side for a curtain (#51): three tall buttons beside the
+         preview, the outer corners round like the stacked ones' ends. */
+      .btn-side .cbtn {
+        min-width: 0;
+      }
+      .btn-side .cbtn.open {
+        border-radius: 18px 9px 9px 18px;
+      }
+      .btn-side .cbtn.stop {
+        border-radius: 9px;
+      }
+      .btn-side .cbtn.close {
+        border-radius: 9px 18px 18px 9px;
       }
       .cbtn.active {
         background: var(--cv-accent, var(--m3p-icon-color));
