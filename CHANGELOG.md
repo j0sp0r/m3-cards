@@ -14,6 +14,14 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   entry with its own `name`; the editor now says that discovered sensors
   are renamed by turning them into a fixed list.
 
+### Fixed
+
+- **Cover card: the arrows of a curtain point the way it moves** (#51).
+  With a curtain preview the open and close buttons still showed up and
+  down; they now point to the side for a one-sided curtain and apart and
+  together for `curtain_split`. A group row of a curtain points to the side
+  too.
+
 ## [2.8.0] – 2026-11-10
 
 **Upgrading:** the appliance and status cards now take the theme's primary

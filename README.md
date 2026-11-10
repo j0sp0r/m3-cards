@@ -3214,7 +3214,7 @@ entity: cover.living_room
 | `up_entity` / `down_entity` / `stop_entity` | string | – | Switches for `switch_pair` |
 | `entities` | list | – | Group rows: a cover id or a `switch_pair` object |
 | `show_preview` | boolean | `true` | Window preview with fill level |
-| `preview_style` | `auto` \| `shutter` \| `curtain` \| `curtain_split` | `auto` | How the preview draws the cover: `auto` by device class (a curtain from the side, everything else from the top), `shutter` from the top, `curtain` from one side, `curtain_split` two halves meeting in the middle. A curtain style also gives the curtain icon |
+| `preview_style` | `auto` \| `shutter` \| `curtain` \| `curtain_split` | `auto` | How the preview draws the cover: `auto` by device class (a curtain from the side, everything else from the top), `shutter` from the top, `curtain` from one side, `curtain_split` two halves meeting in the middle. A curtain style also gives the curtain icon, and open/close arrows that point to the side (`curtain`) or apart and together (`curtain_split`) |
 | `device_class` | string | the entity's | Overrides the device class, which decides the wording and the default icon |
 | `slider_style` | `plain` \| `wavy` | `plain` | Position slider style |
 | `invert_position` | boolean | `false` | For integrations with reversed position |

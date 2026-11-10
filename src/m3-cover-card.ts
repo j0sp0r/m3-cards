@@ -191,6 +191,23 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
     };
   }
 
+  /**
+   * The open and close arrows follow how the cover moves (#51): up and down
+   * for a shutter, to the side for a one-sided curtain (it opens towards its
+   * left edge, as the preview draws it), apart and together for a split one.
+   * A group row has no preview, so it goes by its own device class.
+   */
+  private _directionIcons(m: CoverModel): { open: string; close: string } {
+    let style: "shutter" | "curtain" | "curtain_split";
+    if (this._config?.mode === "group") {
+      const dc = this.hass?.states[m.entity]?.attributes?.device_class;
+      style = dc === "curtain" ? "curtain" : "shutter";
+    } else style = this._previewStyle();
+    if (style === "curtain") return { open: "mdi:chevron-left", close: "mdi:chevron-right" };
+    if (style === "curtain_split") return { open: "mdi:arrow-split-vertical", close: "mdi:arrow-collapse-horizontal" };
+    return { open: "mdi:chevron-up", close: "mdi:chevron-down" };
+  }
+
   /** `preview_style` (#51), or by device class: a curtain from the side. */
   private _previewStyle(): "shutter" | "curtain" | "curtain_split" {
     const style = this._config?.preview_style;
@@ -378,6 +395,7 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
     const active = this._feedback[m.entity];
     const fb: CoverDir | undefined = active && active.until > Date.now() ? active.dir : undefined;
     const cls = compact ? "btn-compact" : "btn-stacked";
+    const icons = this._directionIcons(m);
     return html`
       <div class="btn-row ${cls}">
         ${canOpen
@@ -387,7 +405,7 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
               @click=${() => this._callDir(m, "up")}
               aria-label=${this._t("cover_open")}
             >
-              <ha-icon icon="mdi:chevron-up"></ha-icon>
+              <ha-icon icon=${icons.open}></ha-icon>
             </button>`
           : nothing}
         ${canStop
@@ -407,7 +425,7 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
               @click=${() => this._callDir(m, "down")}
               aria-label=${this._t("cover_close")}
             >
-              <ha-icon icon="mdi:chevron-down"></ha-icon>
+              <ha-icon icon=${icons.close}></ha-icon>
             </button>`
           : nothing}
       </div>
