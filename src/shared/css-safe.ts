@@ -25,6 +25,20 @@ export function safeImageUrl(raw: string | null | undefined, base?: string): str
 }
 
 /**
+ * A media player's artwork, the copy Home Assistant proxies first (#49). A
+ * player whose picture is reachable from outside — Music Assistant, for one —
+ * reports its own server's URL as `entity_picture`, often plain http, which an
+ * https dashboard refuses to load and which a canvas may not read for the
+ * colour. `entity_picture_local` is the same picture through HA's own origin.
+ */
+export function mediaPicture(attrs: Record<string, unknown> | undefined): string | undefined {
+  const local = attrs?.entity_picture_local;
+  if (typeof local === "string" && local) return local;
+  const remote = attrs?.entity_picture;
+  return typeof remote === "string" && remote ? remote : undefined;
+}
+
+/**
  * A URL fit to put inside `url(...)`, already quoted, or undefined when it is
  * not fit to use at all.
  *

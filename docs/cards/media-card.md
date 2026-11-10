@@ -66,7 +66,10 @@ level, and rendering them all locks the frame.
 | `show_shuffle_repeat` | boolean | `false` | Shuffle/repeat buttons (if supported); repeat cycles off → all → one |
 | `strip_track_number` | boolean | `true` | Drop a leading track number from the title (`07 - Enjoy the Silence` → `Enjoy the Silence`). Bounded to one or two digits, so `1979` and `365 Dreams` survive |
 | `time_display` | `remaining` \| `total` | `remaining` | Right-hand time: remaining with a minus sign, or the total length |
+| `show_device_chip` / `show_source_chip` | boolean | `true` | The chip naming the player and the one naming its source or app, each hideable |
 | `meta_chips` | list | `[]` | Extra chips beside device and source: `track`, `year`, `bitrate`. Each is rendered only when the player actually reports the attribute — note that HA has no standard bitrate attribute, so most integrations never fill that one |
+| `show_volume` | boolean | `true` | The volume row |
+| `volume_down_action` / `volume_up_action` | action | – | Replace the slider with two step buttons running these actions, e.g. scripts sending IR codes to a soundbar. A player that can only step its volume gets the buttons without them, calling `volume_down` / `volume_up` |
 | `show_browser` | boolean | `true` | The library/queue section (only ever shown for players reporting `BROWSE_MEDIA`) |
 | `default_tab` | `queue` \| `library` | `library` | Which tab opens first, where both exist |
 | `browse_height` | number | `190` | Max height of the browse list in px |

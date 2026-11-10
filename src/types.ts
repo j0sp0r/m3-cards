@@ -1546,6 +1546,19 @@ export interface M3MediaCardConfig extends DetailModeConfig {
   // Optional extra chips beside device + source. Only render when the player
   // actually reports the underlying attribute.
   meta_chips?: ("track" | "bitrate" | "year")[];
+  /** The chip naming the player (#49). Default true. */
+  show_device_chip?: boolean;
+  /** The chip naming the source or app (#49). Default true. */
+  show_source_chip?: boolean;
+  /** The volume row (#49). Default true. */
+  show_volume?: boolean;
+  /**
+   * Volume down / up as actions of their own (#49), e.g. a script sending IR
+   * codes to a soundbar the player cannot set. Either one replaces the slider
+   * with two step buttons.
+   */
+  volume_down_action?: HaActionConfig;
+  volume_up_action?: HaActionConfig;
   default_tab?: "queue" | "library";
   browse_height?: number;
   use_artwork_color?: boolean;

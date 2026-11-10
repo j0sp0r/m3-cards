@@ -82,6 +82,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 - **An icon of its own for the current page** in the nav card (#38).
   `active_icon` on an entry replaces its icon while it is the current page —
   a filled icon beside the others' outlined ones.
+- **Media card: volume and chips to taste** (#49). `show_volume: false`
+  hides the volume row; `volume_down_action` / `volume_up_action` replace the
+  slider with two step buttons running actions of their own — a soundbar
+  driven by IR scripts, whose volume HA cannot set. A player that can only
+  step its volume (no `volume_set`) now gets those buttons calling
+  `volume_down` / `volume_up` instead of no volume row at all.
+  `show_device_chip` and `show_source_chip` hide the two chips one by one.
 
 ### Changed
 
@@ -94,6 +101,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Media card: the cover of a Music Assistant player** (#49). The card read
+  `entity_picture`, which for a player with a remotely reachable picture is
+  that server's own URL — often plain http, which an https dashboard does not
+  load and whose colour a canvas may not read. It now takes
+  `entity_picture_local`, the same picture through Home Assistant, when the
+  player has one, as Home Assistant's own dialog does; the remote card's
+  now-playing bar likewise.
 - **Energy flow card: the battery node** sat right under the home node and
   covered its "Home · kWh" label, with no line to the solar node. It now sits
   below the solar junction: solar charges it straight down, it feeds the home

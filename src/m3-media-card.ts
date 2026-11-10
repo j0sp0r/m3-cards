@@ -4,6 +4,7 @@ import { sliderPointer, capturePointer, SLIDER_TOUCH_ACTION } from "./shared/sli
 import type {
   HomeAssistant,
   M3MediaCardConfig,
+  HaActionConfig,
   LovelaceCard,
   LovelaceCardEditor,
   LovelaceGridOptions,
@@ -79,7 +80,8 @@ import { stopSwipe } from "./shared/swipe";
 import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
-import { cssUrl, safeImageUrl } from "./shared/css-safe";
+import { cssUrl, mediaPicture, safeImageUrl } from "./shared/css-safe";
+import { navigateTo, runHaAction } from "./shared/actions";
 import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
@@ -817,7 +819,7 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
   private _maybeExtractColor(): void {
     if (!this._config?.use_artwork_color) return;
     const entity = this._entity;
-    const picture = entity?.attributes.entity_picture as string | undefined;
+    const picture = mediaPicture(entity?.attributes);
     if (!picture) {
       this._artworkColor = undefined;
       this._lastArtworkUrl = undefined;
@@ -1120,7 +1122,7 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
     // refuses to load is a picture it does not have, and the icon has to
     // stand in. Deciding the fallback on the raw attribute instead left an
     // empty box where the note belongs.
-    const picture = cssUrl(attrs.entity_picture as string | undefined);
+    const picture = cssUrl(mediaPicture(attrs));
     const duration = attrs.media_duration as number | undefined;
     const isPlaying = entity.state === "playing";
     const volume = (attrs.volume_level as number | undefined) ?? 0;
@@ -1274,7 +1276,7 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
             : nothing}
         </div>
 
-        ${features & FEATURE.VOLUME_SET ? this._renderVolume(displayVolume, muted, features) : nothing}
+        ${this._renderVolumeRow(displayVolume, muted, features)}
 
         ${this._config?.show_source_select && attrs.source_list
           ? this._renderSourceSelect(attrs.source_list as string[], attrs.source as string | undefined)
@@ -1307,8 +1309,8 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
     const extras = this._config?.meta_chips ?? [];
     const chips: { text: string; icon: string; accent?: boolean }[] = [];
 
-    chips.push({ text: name, icon: "mdi:speaker", accent: true });
-    if (source) chips.push({ text: source, icon: "mdi:music-box-outline" });
+    if (this._config?.show_device_chip !== false) chips.push({ text: name, icon: "mdi:speaker", accent: true });
+    if (source && this._config?.show_source_chip !== false) chips.push({ text: source, icon: "mdi:music-box-outline" });
 
     if (extras.includes("track")) {
       const track = attrs.media_track as number | undefined;
@@ -1605,6 +1607,82 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
     `;
   }
 
+  /**
+   * The slider where the player can set its volume; two step buttons where it
+   * can only step it, or where the card is given actions of its own for down
+   * and up (#49) — a soundbar driven by IR scripts has no volume HA could set.
+   */
+  private _renderVolumeRow(volume: number, muted: boolean, features: number) {
+    const cfg = this._config;
+    if (!cfg || cfg.show_volume === false) return nothing;
+    if (cfg.volume_down_action || cfg.volume_up_action) {
+      return this._renderVolumeSteps(muted, features, cfg.volume_down_action, cfg.volume_up_action);
+    }
+    if (features & FEATURE.VOLUME_SET) return this._renderVolume(volume, muted, features);
+    if (features & FEATURE.VOLUME_STEP) return this._renderVolumeSteps(muted, features);
+    return nothing;
+  }
+
+  private _volumeStep(direction: "down" | "up", action: HaActionConfig | undefined): void {
+    if (!this.hass || !this._config) return;
+    if (!action) {
+      this._callService(direction === "down" ? "volume_down" : "volume_up");
+      return;
+    }
+    runHaAction(this.hass, action, {
+      source: this,
+      entityId: this._config.entity,
+      fireMoreInfo: (id) => openEntityDetail(this, id ?? this._config?.entity),
+      navigate: (path) => navigateTo(this, path),
+    });
+  }
+
+  private _renderMuteButton(muted: boolean, features: number) {
+    if (!(features & FEATURE.VOLUME_MUTE)) return nothing;
+    return html`
+      <button
+        class="mute-btn ${muted ? "active" : ""}"
+        aria-label=${this._t(muted ? "media_unmute" : "media_mute")}
+        aria-pressed=${muted ? "true" : "false"}
+        @click=${() => this._callService("volume_mute", { is_volume_muted: !muted })}
+      >
+        <ha-icon icon=${muted ? "mdi:volume-off" : "mdi:volume-high"}></ha-icon>
+      </button>
+    `;
+  }
+
+  private _renderVolumeSteps(
+    muted: boolean,
+    features: number,
+    down?: HaActionConfig,
+    up?: HaActionConfig,
+  ) {
+    // With actions of its own, a button whose action is not set does nothing
+    // rather than falling back to a service the player may not have.
+    const custom = !!(down || up);
+    const step = (direction: "down" | "up", action: HaActionConfig | undefined) => html`
+      <button
+        class="volume-step"
+        aria-label=${this._t(direction === "down" ? "media_volume_down" : "media_volume_up")}
+        ?disabled=${custom && !action}
+        @click=${(e: Event) => {
+          this._pressMorph(e);
+          this._volumeStep(direction, action);
+        }}
+      >
+        <ha-icon icon=${direction === "down" ? "mdi:volume-minus" : "mdi:volume-plus"}></ha-icon>
+      </button>
+    `;
+    return html`
+      <div class="volume-row">
+        ${this._renderMuteButton(muted, features)}
+        <div class="volume-steps" role="group" aria-label=${this._t("media_volume_label")}>
+          ${step("down", down)} ${step("up", up)}
+        </div>
+      </div>
+    `;
+  }
+
   private _renderVolume(volume: number, muted: boolean, features: number) {
     // Same wavy form as the progress-card ("washing machine") bar: a visible
     // wave for the active portion, a gap, a straight track, and a round dot at
@@ -1621,18 +1699,7 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
       : "";
     return html`
       <div class="volume-row">
-        ${features & FEATURE.VOLUME_MUTE
-          ? html`
-              <button
-                class="mute-btn ${muted ? "active" : ""}"
-                aria-label=${this._t(muted ? "media_unmute" : "media_mute")}
-                aria-pressed=${muted ? "true" : "false"}
-                @click=${() => this._callService("volume_mute", { is_volume_muted: !muted })}
-              >
-                <ha-icon icon=${muted ? "mdi:volume-off" : "mdi:volume-high"}></ha-icon>
-              </button>
-            `
-          : nothing}
+        ${this._renderMuteButton(muted, features)}
         <div
           class="volume-slider"
           role="slider"
@@ -2119,6 +2186,42 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
       }
 
       .card-inner.no-animations .mute-btn {
+        transition: none;
+      }
+
+      .volume-steps {
+        flex: 1;
+        display: flex;
+        gap: 8px;
+      }
+
+      .volume-step {
+        flex: 1;
+        height: ${MEDIA_MUTE_BTN_HEIGHT}px;
+        border: none;
+        border-radius: 20px;
+        background: color-mix(in srgb, var(--primary-text-color) 8%, var(--ha-card-background, var(--card-background-color)));
+        color: var(--m3p-text);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font: inherit;
+        transition:
+          border-radius ${MEDIA_ICON_MORPH_MS}ms ${EASING},
+          background-color ${MEDIA_ACCENT_FADE_MS}ms ease;
+      }
+
+      .volume-step.pressed {
+        border-radius: ${MEDIA_PRESS_RADIUS}px;
+      }
+
+      .volume-step:disabled {
+        opacity: 0.38;
+        cursor: default;
+      }
+
+      .card-inner.no-animations .volume-step {
         transition: none;
       }
 

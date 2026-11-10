@@ -76,6 +76,7 @@ import {
 import { glassCardStyles, glassCardClass, renderMissingEntity } from "./shared/glass-card";
 import { cardHeaderStyles } from "./shared/card-header";
 import { handleAction } from "./shared/actions";
+import { mediaPicture, safeImageUrl } from "./shared/css-safe";
 import { fireHaptic } from "./shared/tap-hold";
 import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
@@ -622,7 +623,7 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
     void this._tick;
     const position = currentPosition(media.attributes, media.state);
     const duration = Number(media.attributes.media_duration);
-    const picture = media.attributes.entity_picture as string | undefined;
+    const picture = safeImageUrl(mediaPicture(media.attributes));
     const playing = media.state === "playing";
     const progress =
       position !== undefined && Number.isFinite(duration) && duration > 0

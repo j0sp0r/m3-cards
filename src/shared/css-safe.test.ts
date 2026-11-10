@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cssIdent, cssUrl, cssValue, safeImageUrl } from "./css-safe";
+import { cssIdent, cssUrl, cssValue, mediaPicture, safeImageUrl } from "./css-safe";
 import { buildCssVars, resolveThemeColor } from "./color-config";
 
 /**
@@ -170,5 +170,14 @@ describe("the chokepoints that use it", () => {
     expect(out).toContain("--m3-also-good: var(--primary-color);");
     expect(out).not.toContain("m3-bad");
     expect(out).not.toContain("position: fixed");
+  });
+
+  it("mediaPicture prefers HA's proxied copy over the player's own URL", () => {
+    expect(
+      mediaPicture({ entity_picture: "http://ma.local:8095/img.jpg", entity_picture_local: "/api/media_player_proxy/x" }),
+    ).toBe("/api/media_player_proxy/x");
+    expect(mediaPicture({ entity_picture: "/api/media_player_proxy/y" })).toBe("/api/media_player_proxy/y");
+    expect(mediaPicture({ entity_picture: "", entity_picture_local: "" })).toBeUndefined();
+    expect(mediaPicture(undefined)).toBeUndefined();
   });
 });

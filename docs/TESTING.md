@@ -303,6 +303,10 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Bibliothek: abspielen | Abspielbaren Eintrag antippen | Wiedergabe startet, Karte übernimmt den neuen Titel |
 | Warteschlange | Player mit und ohne Queue | Mit: zweiter Reiter und „Als Nächstes: …"; ohne: kein leerer Reiter, Zeile liest „Bibliothek durchsuchen" |
 | `show_browser: false` | Option setzen | Bereich verschwindet vollständig |
+| Cover über Music Assistant (#49) | MA-Player, Dashboard über https (Nabu Casa/App) | Cover erscheint, Akzent nimmt die Coverfarbe an (Bild kommt aus `entity_picture_local`) |
+| Lautstärke-Aktionen (#49) | `volume_down_action`/`volume_up_action` auf Skripte setzen | Statt Regler zwei Knöpfe Leiser/Lauter, jeder ruft sein Skript; ist nur eine Aktion gesetzt, ist der andere Knopf ausgegraut |
+| Nur Lautstärke-Stufen | Player mit `VOLUME_STEP`, ohne `VOLUME_SET` | Knöpfe Leiser/Lauter rufen `volume_down`/`volume_up` |
+| Ohne Lautstärke/Chips (#49) | `show_volume: false`, `show_device_chip: false`, `show_source_chip: false` | Zeile bzw. Chips verschwinden, kein leerer Abstand |
 
 ## M3 Weather Card
 
