@@ -49,7 +49,7 @@ import { openEntityDetail } from "./shared/entity-detail";
 import { navigateTo, runHaAction } from "./shared/actions";
 import { TemplatedCard } from "./shared/templated-card";
 import { VisibleTicker } from "./shared/visible-ticker";
-import { formatNumber } from "./shared/formatting";
+import { formatNumber, formatSpan } from "./shared/formatting";
 import { chipStateText } from "./shared/info-chips";
 import {
   batteryForecast,
@@ -594,7 +594,12 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
     if (!st || st.state === "unavailable" || st.state === "unknown") return [name, DASH].filter(Boolean).join(" ");
     let value: string;
     const numeric = Number(st.state);
-    if (Number.isFinite(numeric)) {
+    const ownUnit = String(st.attributes?.unit_of_measurement ?? "").toLowerCase();
+    const perMs: Record<string, number> = { d: 86_400_000, h: 3_600_000, min: 60_000, s: 1000 };
+    if (Number.isFinite(numeric) && !chip.unit && perMs[ownUnit] !== undefined) {
+      // "1 Tg. 8 Std." instead of "1.935 min": a remaining time reads as a span.
+      value = numeric > 0 ? formatSpan(numeric * perMs[ownUnit], this._language) : `0 ${ownUnit}`;
+    } else if (Number.isFinite(numeric)) {
       const decimals = Math.min(2, (st.state.split(".")[1] ?? "").length);
       const unit = chip.unit ?? (st.attributes?.unit_of_measurement as string | undefined);
       value = `${this._num(numeric, decimals)}${unit ? ` ${unit}` : ""}`;
