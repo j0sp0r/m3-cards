@@ -94,6 +94,14 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Energy flow card: the battery node** sat right under the home node and
+  covered its "Home · kWh" label, with no line to the solar node. It now sits
+  below the solar junction: solar charges it straight down, it feeds the home
+  round the corner into the home node's side. Solar that charged the battery
+  is no longer also drawn as going to the home, export is only drawn as solar
+  as far as there was solar, and a self-sufficiency of 0 % leaves the bar
+  empty instead of showing a stub.
+
 - **Dates follow the profile's date format** (reported on Reddit). The multi
   graph's 30-day axis and the detail sheet's month axis and tooltip wrote
   day and month in the order of the language alone — English meant

@@ -57,11 +57,14 @@ console.info(
 const HALF = FLOW_NODE_SIZE / 2;
 const VIEW_WIDTH = 320;
 const VIEW_HEIGHT = 250;
-const VIEW_HEIGHT_WITH_BATTERY = 310;
+const VIEW_HEIGHT_WITH_BATTERY = 330;
 const PV_POS = { x: 160, y: 46 };
 const GRID_POS = { x: 52, y: 160 };
 const HOME_POS = { x: 268, y: 160 };
-const BATTERY_POS = { x: HOME_POS.x, y: HOME_POS.y + 90 };
+// Below the PV junction, between grid and home: solar charges it straight
+// down, it feeds the home round the corner, and no label sits under another
+// node (under the home node its frame covered "Home · kWh").
+const BATTERY_POS = { x: PV_POS.x, y: 262 };
 const SPLIT_BEND_Y = 145;
 const CORNER_RADIUS = 20;
 
@@ -88,6 +91,21 @@ function elbowPath(x1: number, y1: number, bendY: number, x2: number): string {
   const cornerStartY = bendY - vDir * CORNER_RADIUS;
   const cornerEndX = x1 + hDir * CORNER_RADIUS;
   return `M ${x1} ${y1} L ${x1} ${cornerStartY} Q ${x1} ${bendY} ${cornerEndX} ${bendY} L ${x2} ${bendY}`;
+}
+
+/**
+ * Battery → home: right from the battery, up beside the home node and into
+ * its lower left side. Straight up into its bottom would run through the
+ * "Home · kWh" label that sits there.
+ */
+function batteryHomePath(): string {
+  const r = 12;
+  const x1 = BATTERY_POS.x + HALF;
+  const y1 = BATTERY_POS.y;
+  const xUp = HOME_POS.x - HALF - 16;
+  const yIn = HOME_POS.y + HALF - 14;
+  const xIn = HOME_POS.x - HALF;
+  return `M ${x1} ${y1} L ${xUp - r} ${y1} Q ${xUp} ${y1} ${xUp} ${y1 - r} L ${xUp} ${yIn + r} Q ${xUp} ${yIn} ${xUp + r} ${yIn} L ${xIn} ${yIn}`;
 }
 
 function straightPath(x1: number, y1: number, x2: number, y2: number): string {
@@ -303,7 +321,12 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
   ): { nodes: FlowNodeData[]; flows: FlowLineData[]; viewHeight: number } {
     const homeConsumption =
       this._solarTotal + this._gridImport - this._gridExport - this._batteryCharge + this._batteryDischarge;
-    const solarToHome = Math.max(0, this._solarTotal - this._gridExport);
+    // Solar goes to the battery first (a balcony battery sits between the
+    // panels and the house), then out to the grid; the rest is the home's.
+    const solarSpare = Math.max(0, this._solarTotal - this._gridExport);
+    const chargeFromSolar = this._hasSolar ? Math.min(this._batteryCharge, solarSpare) : 0;
+    const solarToHome = Math.max(0, solarSpare - chargeFromSolar);
+    const solarToGrid = Math.min(this._gridExport, this._solarTotal);
 
     const nodes: FlowNodeData[] = [
       {
@@ -346,12 +369,12 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
         value: solarToHome,
       });
     }
-    if (this._hasSolar && this._gridExport > 0) {
+    if (this._hasSolar && solarToGrid > 0) {
       flows.push({
         key: "pv-grid",
         path: elbowPath(PV_POS.x, PV_POS.y + HALF, SPLIT_BEND_Y, GRID_POS.x + HALF),
         color: colors.pv,
-        value: this._gridExport,
+        value: solarToGrid,
       });
     }
     if (this._gridImport > 0) {
@@ -375,14 +398,20 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
         value: batteryValue,
         label: this._nodeLabel("battery"),
       });
-      if (batteryValue > 0) {
+      if (showBattery && chargeFromSolar > 0) {
+        flows.push({
+          key: "pv-battery",
+          path: straightPath(PV_POS.x, PV_POS.y + HALF, BATTERY_POS.x, BATTERY_POS.y - HALF),
+          color: colors.pv,
+          value: chargeFromSolar,
+        });
+      }
+      if (this._batteryDischarge > 0) {
         flows.push({
           key: "battery-home",
-          path: charging
-            ? straightPath(HOME_POS.x, HOME_POS.y + HALF, BATTERY_POS.x, BATTERY_POS.y - HALF)
-            : straightPath(BATTERY_POS.x, BATTERY_POS.y - HALF, HOME_POS.x, HOME_POS.y + HALF),
+          path: batteryHomePath(),
           color: colors.battery,
-          value: batteryValue,
+          value: this._batteryDischarge,
         });
       }
     }
@@ -513,7 +542,7 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
                   <div class="self-sufficiency-track">
                     <div
                       class="self-sufficiency-fill"
-                      style=${`width: ${Math.max(4, selfSufficiency)}%; background: ${fillColor(this, selfSufficiencyColor)};`}
+                      style=${`width: ${selfSufficiency < 0.5 ? 0 : Math.max(4, selfSufficiency)}%; background: ${fillColor(this, selfSufficiencyColor)};`}
                     ></div>
                   </div>
                 </div>
