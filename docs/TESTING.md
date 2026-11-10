@@ -434,6 +434,7 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | `switch_pair` | FingerBot-artiges Paar ohne Rückmeldung | Tastenfeedback zeigt den ausgelösten Befehl |
 | Gruppenmodus | Mehrere Zeilen, davon eine `switch_pair` | Jede Zeile eigenständig bedienbar |
 | Drag | Position ziehen | Höchstens ein Aufruf je 200 ms, Wert setzt sich nach dem Loslassen |
+| Vorschau-Stil (#51) | `preview_style` auf `shutter`, `curtain`, `curtain_split`, dann `auto` an einem Rollladen und einem Vorhang | Rollladen von oben, Vorhang von einer Seite, zwei Hälften zur Mitte; Symbol passt jeweils dazu; `auto` folgt der Geräteklasse |
 
 ## M3 Leak Card
 

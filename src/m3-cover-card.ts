@@ -150,7 +150,7 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
       return {
         entity: up ?? down ?? cfg.entity ?? "",
         name: cfg.name || this._config?.name || this._t("cover_default_name"),
-        icon: cfg.icon || this._config?.icon || COVER_DEVICE_ICONS[this._deviceClass()] || DEFAULT_COVER_ICON,
+        icon: cfg.icon || this._config?.icon || COVER_DEVICE_ICONS[this._iconClass()] || DEFAULT_COVER_ICON,
         available: !!ref && ref.state !== "unavailable",
         known: false,
         state: "unknown",
@@ -176,7 +176,7 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
     if (position !== undefined && this._config?.invert_position) position = 100 - position;
     const tilt = attrs.current_tilt_position as number | undefined;
     const dc = (this._config?.device_class || (attrs.device_class as string) || "") as string;
-    const icon = cfg.icon || this._config?.icon || COVER_DEVICE_ICONS[dc] || DEFAULT_COVER_ICON;
+    const icon = cfg.icon || this._config?.icon || COVER_DEVICE_ICONS[this._iconClass(dc)] || DEFAULT_COVER_ICON;
     return {
       entity: cfg.entity,
       name: cfg.name || this._config?.name || (attrs.friendly_name as string) || cfg.entity,
@@ -189,6 +189,24 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
       features,
       isSwitchPair: false,
     };
+  }
+
+  /** `preview_style` (#51), or by device class: a curtain from the side. */
+  private _previewStyle(): "shutter" | "curtain" | "curtain_split" {
+    const style = this._config?.preview_style;
+    if (style === "shutter" || style === "curtain" || style === "curtain_split") return style;
+    return this._deviceClass() === "curtain" ? "curtain" : "shutter";
+  }
+
+  /** The device class the default icon follows: a preview set to draw a
+   * curtain gets the curtain icon, whatever the entity reports. */
+  private _iconClass(dc: string = this._deviceClass()): string {
+    // preview_style is a single-mode option; group rows keep their own class.
+    if (this._config?.mode === "group") return dc;
+    const style = this._config?.preview_style;
+    if (style === "curtain" || style === "curtain_split") return "curtain";
+    if (style === "shutter" && dc === "curtain") return "shutter";
+    return dc;
   }
 
   private _deviceClass(): string {
@@ -401,8 +419,8 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
     // A switch pair has no position or open/closed state, so the preview could
     // only ever show a static "unknown" hatch — hide it rather than confuse.
     if (m.isSwitchPair) return nothing;
-    const dc = this._deviceClass();
-    const curtain = dc === "curtain";
+    const style = this._previewStyle();
+    const curtain = style !== "shutter";
     const accent = this._accent();
     // shutter covers (100 - position)% from the top; positionless covers use
     // the binary state, unknown shows a neutral half.
@@ -416,17 +434,22 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
     } else covered = m.state === "closed" ? 100 : 0;
     const animate = shouldAnimate(this._config?.animation);
     const trans = animate ? `transition: ${curtain ? "width" : "height"} 0.4s ${STANDARD_EASING};` : "";
-    const shutterStyle = curtain
-      ? `width: ${covered}%; height: 100%; top: 0; left: 0; ${trans}`
-      : `height: ${covered}%; width: 100%; top: 0; left: 0; ${trans}`;
+    const cls = `shutter ${neutral ? "neutral" : ""} ${curtain ? "curtain" : ""}`;
+    // Two halves meeting in the middle: each covers half of what one panel
+    // would, from its own side.
+    const panels =
+      style === "curtain_split"
+        ? html`<div class=${cls} style=${`width: ${covered / 2}%; height: 100%; top: 0; left: 0; ${trans}`}></div>
+            <div class=${cls} style=${`width: ${covered / 2}%; height: 100%; top: 0; right: 0; ${trans}`}></div>`
+        : html`<div
+            class=${cls}
+            style=${curtain
+              ? `width: ${covered}%; height: 100%; top: 0; left: 0; ${trans}`
+              : `height: ${covered}%; width: 100%; top: 0; left: 0; ${trans}`}
+          ></div>`;
     return html`
       <div class="preview" style=${`--cv-accent: ${accent};`}>
-        <div class="preview-inner">
-          <div
-            class="shutter ${neutral ? "neutral" : ""} ${curtain ? "curtain" : ""}"
-            style=${shutterStyle}
-          ></div>
-        </div>
+        <div class="preview-inner">${panels}</div>
       </div>
     `;
   }
@@ -595,7 +618,7 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
     const models = this._groupModels();
     const openCount = models.filter((m) => this._isOpen(m)).length;
     const name = this._config?.name || this._t("cover_group_default_name");
-    const icon = this._config?.icon || COVER_DEVICE_ICONS[this._deviceClass()] || DEFAULT_COVER_ICON;
+    const icon = this._config?.icon || COVER_DEVICE_ICONS[this._iconClass()] || DEFAULT_COVER_ICON;
     const subtitle = this._t("cover_group_subtitle")
       .replace("{n}", String(models.length))
       .replace("{m}", String(openCount));

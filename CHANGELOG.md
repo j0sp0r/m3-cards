@@ -106,6 +106,13 @@ blue, set `accent_color: "#85b7eb"`. Everything else new is opt-in.
   its events' titles; `show_calendar_name` adds the calendar after the
   location.
 
+- **Cover card: curtains from the side** (#51). `preview_style` sets how
+  the preview draws the cover, whatever device class the entity reports:
+  `shutter` from the top, `curtain` from one side, `curtain_split` two
+  halves meeting in the middle, or `auto` by device class as before. A
+  curtain style brings the curtain icon with it. In the editor under the
+  window preview.
+
 ### Changed
 
 - **The appliance and status cards follow the theme's colour by default**

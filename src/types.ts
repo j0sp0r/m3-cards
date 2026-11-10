@@ -1923,6 +1923,13 @@ export interface M3CoverCardConfig extends DetailModeConfig {
   icon?: string;
   device_class?: string;
   show_preview?: boolean;
+  /**
+   * How the preview draws the cover (#51): `auto` by device class (a curtain
+   * from the side, everything else from the top), or fixed — `shutter` from
+   * the top, `curtain` from one side, `curtain_split` two halves meeting in
+   * the middle.
+   */
+  preview_style?: "auto" | "shutter" | "curtain" | "curtain_split";
   slider_style?: "plain" | "wavy";
   show_master?: boolean;
   row_tap_action?: "more-info" | "toggle";
