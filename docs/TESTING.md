@@ -307,6 +307,10 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Lautstärke-Aktionen (#49) | `volume_down_action`/`volume_up_action` auf Skripte setzen | Statt Regler zwei Knöpfe Leiser/Lauter, jeder ruft sein Skript; ist nur eine Aktion gesetzt, ist der andere Knopf ausgegraut |
 | Nur Lautstärke-Stufen | Player mit `VOLUME_STEP`, ohne `VOLUME_SET` | Knöpfe Leiser/Lauter rufen `volume_down`/`volume_up` |
 | Ohne Lautstärke/Chips (#49) | `show_volume: false`, `show_device_chip: false`, `show_source_chip: false` | Zeile bzw. Chips verschwinden, kein leerer Abstand |
+| Kompakt-Layout (#49) | `playing_layout: compact`, Titel abspielen, pausieren, vor/zurück | Eine Zeile mit Cover, Titel (bis zwei Zeilen), Interpret, Zurück/Play/Weiter; darunter Welle mit Zeiten, spulbar; Musik-Knopf am Ende der Welle |
+| Mini-Layout (#49) | `playing_layout: mini` | Nur die Zeile, dünner Fortschrittsbalken unter dem Titel, Knöpfe Musik/Play/Weiter |
+| Musikauswahl als Sheet (#49) | Im Kompakt-Layout den Musik-Knopf tippen, Titel wählen; erneut öffnen, nach unten wischen; Zurück-Geste am Handy | Sheet von unten mit Warteschlange/Bibliothek, Karte wird nicht höher; Titel startet und Sheet schließt; Wischen und Zurück-Geste schließen es, ohne die Ansicht zu verlassen |
+| Kompakt auf dem Handy (#49) | Kompakt-Layout auf schmalem Handy | Knöpfe rücken zusammen, Titel bleibt lesbar (zweizeilig) |
 
 ## M3 Weather Card
 

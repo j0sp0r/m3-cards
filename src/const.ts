@@ -898,6 +898,15 @@ export const MEDIA_BROWSE_TAB_HEIGHT = 32;
 export const MEDIA_BROWSE_TAB_RADIUS = 16;
 export const MEDIA_BROWSE_TAB_RADIUS_ACTIVE = 10;
 export const MEDIA_BROWSE_ROW_HEIGHT = 46;
+// The compact playing layouts (#49): a 56px cover, the play button a size
+// down from the full layout's, its neighbours the pill buttons.
+export const MEDIA_COMPACT_ARTWORK_SIZE = 56;
+export const MEDIA_COMPACT_ARTWORK_RADIUS = 18;
+export const MEDIA_COMPACT_PLAY_SIZE = 48;
+export const MEDIA_COMPACT_PLAY_RADIUS_PLAYING = 17;
+export const MEDIA_COMPACT_BAR_HEIGHT = 4;
+export const DEFAULT_MEDIA_COMPACT_BUTTONS = ["previous", "play", "next", "browse"] as const;
+export const DEFAULT_MEDIA_MINI_BUTTONS = ["play", "next", "browse"] as const;
 export const MEDIA_BROWSE_ROW_RADIUS = 15;
 export const MEDIA_BROWSE_ROW_ICON_SIZE = 32;
 export const MEDIA_BROWSE_ROW_ICON_RADIUS = RADIUS.squircle32;

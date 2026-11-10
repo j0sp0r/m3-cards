@@ -1,7 +1,12 @@
 import { LitElement, html, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type { HomeAssistant, LovelaceCardEditor, M3MediaCardConfig } from "./types";
-import { DEFAULT_MEDIA_RADIUS, DEFAULT_MEDIA_BROWSE_HEIGHT } from "./const";
+import {
+  DEFAULT_MEDIA_RADIUS,
+  DEFAULT_MEDIA_BROWSE_HEIGHT,
+  DEFAULT_MEDIA_COMPACT_BUTTONS,
+  DEFAULT_MEDIA_MINI_BUTTONS,
+} from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { fireEvent, colorRow, editorStyles, type SchemaEntry } from "./shared/editor-helpers";
 import { radiusLabelMap } from "./shared/radius-editor";
@@ -40,6 +45,38 @@ export class M3MediaCardEditor extends LitElement implements LovelaceCardEditor 
   private _contentSchema(): SchemaEntry[] {
     return [
       { name: "name", selector: { text: {} } },
+      {
+        name: "playing_layout",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "full", label: localize("editor_media_layout_full", this._language) },
+              { value: "compact", label: localize("editor_media_layout_compact", this._language) },
+              { value: "mini", label: localize("editor_media_layout_mini", this._language) },
+            ],
+          },
+        },
+      },
+      ...(this._config?.playing_layout === "compact" || this._config?.playing_layout === "mini"
+        ? [
+            {
+              name: "compact_buttons",
+              selector: {
+                select: {
+                  multiple: true,
+                  mode: "list",
+                  options: [
+                    { value: "previous", label: localize("media_previous", this._language) },
+                    { value: "play", label: localize("editor_media_button_play", this._language) },
+                    { value: "next", label: localize("media_next", this._language) },
+                    { value: "browse", label: localize("editor_media_button_browse", this._language) },
+                  ],
+                },
+              },
+            },
+          ]
+        : []),
       { name: "show_source_select", selector: { boolean: {} } },
       { name: "show_shuffle_repeat", selector: { boolean: {} } },
       { name: "show_volume", selector: { boolean: {} } },
@@ -122,6 +159,8 @@ export class M3MediaCardEditor extends LitElement implements LovelaceCardEditor 
       time_display: "editor_media_time_display",
       meta_chips: "editor_media_meta_chips",
       show_browser: "editor_media_show_browser",
+      playing_layout: "editor_media_playing_layout",
+      compact_buttons: "editor_media_compact_buttons",
       show_device_chip: "editor_media_show_device_chip",
       show_source_chip: "editor_media_show_source_chip",
       show_volume: "editor_media_show_volume",
@@ -223,6 +262,10 @@ export class M3MediaCardEditor extends LitElement implements LovelaceCardEditor 
     const entityData = { entity: this._config.entity };
     const contentData = {
       name: this._config.name,
+      playing_layout: this._config.playing_layout ?? "full",
+      compact_buttons:
+        this._config.compact_buttons ??
+        (this._config.playing_layout === "mini" ? [...DEFAULT_MEDIA_MINI_BUTTONS] : [...DEFAULT_MEDIA_COMPACT_BUTTONS]),
       show_source_select: this._config.show_source_select ?? false,
       show_shuffle_repeat: this._config.show_shuffle_repeat ?? false,
       show_volume: this._config.show_volume ?? true,

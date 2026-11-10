@@ -1534,6 +1534,8 @@ export interface M3PresenceCardConfig extends DetailModeConfig {
   card_version?: string;
 }
 
+export type MediaCompactButton = "previous" | "play" | "next" | "browse";
+
 export interface M3MediaCardConfig extends DetailModeConfig {
   type: string;
   entity: string;
@@ -1546,6 +1548,15 @@ export interface M3MediaCardConfig extends DetailModeConfig {
   // Optional extra chips beside device + source. Only render when the player
   // actually reports the underlying attribute.
   meta_chips?: ("track" | "bitrate" | "year")[];
+  /**
+   * How the card shows what is playing (#49): `full` as before; `compact` one
+   * row with the cover, the title and the buttons over the progress wave;
+   * `mini` that row alone, the progress a thin bar under the title. The
+   * compact layouts open the queue and library in a sheet.
+   */
+  playing_layout?: "full" | "compact" | "mini";
+  /** The buttons of the compact layouts, from previous, play, next, browse. */
+  compact_buttons?: MediaCompactButton[];
   /** The chip naming the player (#49). Default true. */
   show_device_chip?: boolean;
   /** The chip naming the source or app (#49). Default true. */

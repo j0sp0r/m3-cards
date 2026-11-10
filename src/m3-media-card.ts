@@ -5,6 +5,7 @@ import type {
   HomeAssistant,
   M3MediaCardConfig,
   HaActionConfig,
+  MediaCompactButton,
   LovelaceCard,
   LovelaceCardEditor,
   LovelaceGridOptions,
@@ -57,6 +58,13 @@ import {
   MEDIA_ARTWORK_MIN_SATURATION,
   MEDIA_ACCENT_FADE_MS,
   MEDIA_BROWSE_TOGGLE_HEIGHT,
+  MEDIA_COMPACT_ARTWORK_SIZE,
+  MEDIA_COMPACT_ARTWORK_RADIUS,
+  MEDIA_COMPACT_PLAY_SIZE,
+  MEDIA_COMPACT_PLAY_RADIUS_PLAYING,
+  MEDIA_COMPACT_BAR_HEIGHT,
+  DEFAULT_MEDIA_COMPACT_BUTTONS,
+  DEFAULT_MEDIA_MINI_BUTTONS,
   MEDIA_BROWSE_TOGGLE_RADIUS,
   MEDIA_BROWSE_TAB_HEIGHT,
   MEDIA_BROWSE_TAB_RADIUS,
@@ -82,6 +90,8 @@ import { hassChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
 import { cssUrl, mediaPicture, safeImageUrl } from "./shared/css-safe";
 import { navigateTo, runHaAction } from "./shared/actions";
+import "./shared/media-sheet";
+import type { M3MediaSheet } from "./shared/media-sheet";
 import { openEntityDetail } from "./shared/entity-detail";
 
 console.info(
@@ -457,6 +467,7 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
   private _lastVolumeCallTs = 0;
   private _volumeResizeObserver?: ResizeObserver;
   private _progressResizeObserver?: ResizeObserver;
+  private _progressObserved?: HTMLElement;
   private _waveRafId?: number;
 
   private get _duration(): number {
@@ -640,7 +651,11 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
       this._progressResizeObserver = undefined;
       return;
     }
-    if (this._progressResizeObserver) return;
+    // The slider is a new element after a switch between the full and the
+    // compact layout: the observer follows it rather than the old one.
+    if (this._progressResizeObserver && this._progressObserved === el) return;
+    this._progressResizeObserver?.disconnect();
+    this._progressObserved = el;
     this._progressResizeObserver = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width;
       if (width && Math.abs(width - this._progressWidth) > 0.5) {
@@ -1089,6 +1104,158 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
       media_content_id: item.media_content_id,
       media_content_type: item.media_content_type,
     });
+    // In the sheet the choice is made: it closes on what now plays.
+    if (this._sheetEl?.isOpen) void this._sheetEl.dismiss();
+  }
+
+  private get _sheetEl(): M3MediaSheet | null {
+    return this.renderRoot?.querySelector("m3-media-sheet") ?? null;
+  }
+
+  private _openBrowseSheet = (e: Event): void => {
+    this._pressMorph(e);
+    const opener = e.currentTarget as HTMLElement | null;
+    if (!this._browseOpen) this._toggleBrowse();
+    void this.updateComplete.then(() => this._sheetEl?.open(opener ?? undefined));
+  };
+
+  private _onSheetClosed = (): void => {
+    this._browseOpen = false;
+  };
+
+  /**
+   * The compact playing layouts (#49). `compact`: cover, title and buttons in
+   * one row over the progress wave with its times, the music picker's button
+   * at the end of the wave. `mini`: the row alone, the progress a thin bar
+   * under the title, every button in the row. Tapping the cover or the title
+   * opens the player's detail; the queue and library open in a sheet, so the
+   * card never grows.
+   */
+  private _renderPlayingCompact(p: {
+    mini: boolean;
+    name: string;
+    title: string;
+    artist: string | undefined;
+    picture: string | undefined;
+    album: boolean;
+    duration: number | undefined;
+    position: number;
+    features: number;
+    isPlaying: boolean;
+    hasPlayControl: boolean;
+    pauseIcon: string;
+    playAction: string;
+    playLabel: TranslationKey;
+  }) {
+    const cfg = this._config!;
+    const wanted: readonly MediaCompactButton[] =
+      cfg.compact_buttons ?? (p.mini ? DEFAULT_MEDIA_MINI_BUTTONS : DEFAULT_MEDIA_COMPACT_BUTTONS);
+    const canBrowse = cfg.show_browser !== false && (p.features & FEATURE.BROWSE_MEDIA) !== 0;
+    const has = (b: MediaCompactButton) => wanted.includes(b);
+    const showPrev = has("previous") && (p.features & FEATURE.PREVIOUS_TRACK) !== 0;
+    const showNext = has("next") && (p.features & FEATURE.NEXT_TRACK) !== 0;
+    const showPlay = has("play") && p.hasPlayControl;
+    const showBrowse = has("browse") && canBrowse;
+    const duration = p.duration ?? 0;
+    const fraction = duration > 0 ? Math.min(1, Math.max(0, p.position / duration)) : 0;
+    const openDetail = () => this._fireMoreInfo();
+
+    const browseBtn = showBrowse
+      ? html`<button
+          class="pill-toggle cp-browse ${this._browseOpen ? "active" : ""}"
+          aria-label=${this._t("media_browse_toggle")}
+          aria-haspopup="dialog"
+          @click=${this._openBrowseSheet}
+        >
+          <ha-icon icon="mdi:playlist-music"></ha-icon>
+        </button>`
+      : nothing;
+
+    return html`
+      <div class="cp ${p.mini ? "mini" : ""}">
+        <div class="cp-row">
+          <div
+            class="cp-art ${p.picture ? "" : "fallback"}"
+            style=${p.picture ? `background-image: ${p.picture};` : ""}
+            role="button"
+            tabindex="0"
+            aria-label=${p.name}
+            @click=${openDetail}
+            @keydown=${activateOnKey(openDetail)}
+          >
+            ${p.picture ? nothing : html`<ha-icon icon=${p.album ? "mdi:album" : "mdi:music-note"}></ha-icon>`}
+          </div>
+          <div class="cp-text" @click=${openDetail}>
+            <div class="cp-title">${p.title}</div>
+            ${p.artist && p.artist !== p.title ? html`<div class="cp-artist">${p.artist}</div>` : nothing}
+            ${p.mini && duration > 0
+              ? html`<div class="cp-bar" role="progressbar" aria-label=${this._t("media_seek_label")}
+                  aria-valuemin="0" aria-valuemax=${Math.round(duration)} aria-valuenow=${Math.round(p.position)}>
+                  <i style=${`width: ${(fraction * 100).toFixed(2)}%;`}></i>
+                </div>`
+              : nothing}
+          </div>
+          ${p.mini ? browseBtn : nothing}
+          ${showPrev
+            ? html`<button
+                class="transport-btn"
+                aria-label=${this._t("media_previous")}
+                @click=${(e: Event) => { this._pressMorph(e); this._callService("media_previous_track"); }}
+              >
+                <ha-icon icon="mdi:skip-previous"></ha-icon>
+              </button>`
+            : nothing}
+          ${showPlay
+            ? html`<button
+                class="play-btn ${p.isPlaying ? "playing" : ""}"
+                aria-label=${this._t(p.playLabel)}
+                @click=${(e: Event) => { this._pressMorph(e); this._callService(p.playAction); }}
+              >
+                <span class="icon-stack">
+                  <span class="icon-layer ${p.isPlaying ? "" : "swapped"}"><ha-icon icon=${p.pauseIcon}></ha-icon></span>
+                  <span class="icon-layer ${p.isPlaying ? "swapped" : ""}"><ha-icon icon="mdi:play"></ha-icon></span>
+                </span>
+              </button>`
+            : nothing}
+          ${showNext
+            ? html`<button
+                class="transport-btn"
+                aria-label=${this._t("media_next")}
+                @click=${(e: Event) => { this._pressMorph(e); this._callService("media_next_track"); }}
+              >
+                <ha-icon icon="mdi:skip-next"></ha-icon>
+              </button>`
+            : nothing}
+        </div>
+        ${p.mini
+          ? nothing
+          : html`<div class="cp-progress">
+              <span class="cp-time">${this._formatTime(p.position)}</span>
+              ${this._renderProgress(duration, p.features)}
+              ${duration
+                ? html`<span class="cp-time end"
+                    >${cfg.time_display === "total"
+                      ? this._formatTime(duration)
+                      : `-${this._formatTime(Math.max(0, duration - p.position))}`}</span
+                  >`
+                : html`<span class="live-chip">${this._t("media_live")}</span>`}
+              ${browseBtn}
+            </div>`}
+        ${showBrowse
+          ? html`<m3-media-sheet
+              .heading=${p.name}
+              .subheading=${[p.title, p.artist].filter(Boolean).join(" · ")}
+              .picture=${p.picture}
+              .closeLabel=${this._t("detail_close")}
+              .glass=${cfg.glass_background !== false}
+              .animated=${shouldAnimate(cfg.animation)}
+              .onClosed=${this._onSheetClosed}
+            >
+              ${this._browseOpen ? this._renderBrowsePanel() : nothing}
+            </m3-media-sheet>`
+          : nothing}
+      </div>
+    `;
   }
 
   private _crumbTo(index: number): void {
@@ -1151,6 +1318,27 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
     // While scrubbing the clock must follow the handle, not the player.
     const shownPosition =
       this._seeking && this._seekPosition !== undefined ? this._seekPosition : this._displayPosition;
+
+    const layout = this._config?.playing_layout ?? "full";
+    if (layout !== "full") {
+      this._syncWaveAnimation(false);
+      return this._renderPlayingCompact({
+        mini: layout === "mini",
+        name,
+        title,
+        artist,
+        picture,
+        album: !!album,
+        duration,
+        position: shownPosition,
+        features,
+        isPlaying,
+        hasPlayControl,
+        pauseIcon,
+        playAction,
+        playLabel,
+      });
+    }
 
     // The volume wave flows only while sound is actually coming out.
     this._syncWaveAnimation(
@@ -1954,6 +2142,183 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
         display: flex;
         flex-direction: column;
         gap: 2px;
+      }
+
+      .cp {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .cp-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .cp-art {
+        flex-shrink: 0;
+        width: ${MEDIA_COMPACT_ARTWORK_SIZE}px;
+        height: ${MEDIA_COMPACT_ARTWORK_SIZE}px;
+        margin-right: 4px;
+        border-radius: ${MEDIA_COMPACT_ARTWORK_RADIUS}px;
+        background-color: var(--m3p-artwork-bg);
+        background-size: cover;
+        background-position: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--mc-accent-fg, var(--mc-accent));
+        cursor: pointer;
+        outline: none;
+      }
+
+      .cp-art:focus-visible {
+        outline: 2px solid var(--mc-accent);
+        outline-offset: 2px;
+      }
+
+      .cp-text {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        cursor: pointer;
+      }
+
+      .cp-title,
+      .cp-artist {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--m3p-text);
+      }
+
+      .cp-title {
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.25;
+      }
+
+      /* Beside the 56px cover there is room for two title lines over the
+         artist; a phone needs them. The mini layout keeps one, for its bar. */
+      .cp:not(.mini) .cp-title {
+        white-space: normal;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        overflow-wrap: anywhere;
+      }
+
+      .cp {
+        container-type: inline-size;
+      }
+
+      /* A narrow card (a phone, a half-width column) gives the title the
+         room the buttons can spare. */
+      @container (max-width: 360px) {
+        .cp-row {
+          gap: 4px;
+        }
+        .cp .transport-btn,
+        .cp .pill-toggle {
+          width: 36px;
+          height: 36px;
+        }
+        .cp .play-btn {
+          width: 44px;
+          height: 44px;
+        }
+        .cp-art {
+          margin-right: 6px;
+        }
+      }
+
+      .cp-artist {
+        font-size: 13px;
+        opacity: 0.75;
+      }
+
+      .cp-bar {
+        position: relative;
+        height: ${MEDIA_COMPACT_BAR_HEIGHT}px;
+        margin-top: 6px;
+        border-radius: ${MEDIA_COMPACT_BAR_HEIGHT / 2}px;
+        background: color-mix(in srgb, var(--m3p-text) 14%, transparent);
+        overflow: hidden;
+      }
+
+      .cp-bar i {
+        position: absolute;
+        inset: 0 auto 0 0;
+        border-radius: inherit;
+        background: var(--mc-accent);
+        transition: width 1s linear;
+      }
+
+      .card-inner.no-animations .cp-bar i {
+        transition: none;
+      }
+
+      .cp .transport-btn,
+      .cp .pill-toggle {
+        width: ${MEDIA_PILL_BTN_SIZE}px;
+        height: ${MEDIA_PILL_BTN_SIZE}px;
+        border-radius: ${MEDIA_PILL_BTN_RADIUS}px;
+      }
+
+      .cp .transport-btn ha-icon {
+        --mdc-icon-size: ${MEDIA_PILL_ICON_SIZE + 2}px;
+      }
+
+      .cp .play-btn {
+        width: ${MEDIA_COMPACT_PLAY_SIZE}px;
+        height: ${MEDIA_COMPACT_PLAY_SIZE}px;
+        border-radius: ${MEDIA_COMPACT_PLAY_SIZE / 2}px;
+      }
+
+      .cp .play-btn.playing {
+        border-radius: ${MEDIA_COMPACT_PLAY_RADIUS_PLAYING}px;
+      }
+
+      .cp .play-btn ha-icon {
+        --mdc-icon-size: 24px;
+      }
+
+      .cp-progress {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .cp-progress .progress-slider {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .cp-time {
+        flex-shrink: 0;
+        min-width: 28px;
+        font-size: 10px;
+        opacity: 0.55;
+        color: var(--m3p-text);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .cp-time.end {
+        text-align: right;
+      }
+
+      /* In the sheet the list is as long as the sheet lets it be; the sheet
+         scrolls, not a box inside it. */
+      m3-media-sheet .browse-list {
+        max-height: none !important;
+      }
+
+      m3-media-sheet .browse-panel {
+        margin-top: 0;
       }
 
       .progress-slider {

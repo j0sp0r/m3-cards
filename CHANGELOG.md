@@ -89,6 +89,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   step its volume (no `volume_set`) now gets those buttons calling
   `volume_down` / `volume_up` instead of no volume row at all.
   `show_device_chip` and `show_source_chip` hide the two chips one by one.
+- **Media card: compact playing layouts** (#49). `playing_layout: compact`
+  shows what is playing as one row — cover, title, previous, play/pause,
+  next — over the progress wave; `mini` is the row alone with a thin
+  progress bar under the title. `compact_buttons` picks the buttons. The
+  queue and library open in a sheet from below instead of growing the card,
+  and close once a track is picked.
 
 ### Changed
 
