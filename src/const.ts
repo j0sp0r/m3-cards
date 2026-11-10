@@ -1896,6 +1896,9 @@ export const CALENDAR_PAST_OPACITY = 0.45;
 export const CALENDAR_RUNNING_TINT = 12;
 export const CALENDAR_NOW_BADGE_HEIGHT = 22;
 export const CALENDAR_NOW_BADGE_RADIUS = 8;
+// `font_scale` (#48): the event text from three quarters to twice its size.
+export const CALENDAR_FONT_SCALE_MIN = 0.75;
+export const CALENDAR_FONT_SCALE_MAX = 2;
 
 // Month grid.
 export const CALENDAR_NAV_BTN = 32;

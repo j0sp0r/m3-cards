@@ -730,6 +730,9 @@ dritten Kalender.
 - [ ] Tap auf einen Termin öffnet das Detailfenster; X und Hintergrund schließen
 - [ ] Umschalter Agenda/Monat morpht; `show_view_switch: false` blendet ihn aus
 - [ ] Beim Verlassen des Sichtbereichs hört der Minutentakt auf (VisibleTicker)
+- [ ] `font_scale: 1.4` (#48): Termintexte, Zeiten und Tagesüberschriften größer, Zeitspalte wächst mit und bricht nicht um; Kopfzeile bleibt gleich
+- [ ] `text_color` an einem Kalender (#48): Titel seiner Termine in dieser Farbe, in Agenda und Tagesliste des Monats; die anderen Kalender unverändert
+- [ ] `show_calendar_name: true` (#48): Kalendername hinter dem Ort („Grundschule · Familie“) bzw. allein; in der Tagesliste vor der Uhrzeit
 
 | Füllung hinter dem Icon | `icon_fill: solid` an einer eingeschalteten Entität | Die Fläche trägt die Akzentfarbe, die Glyphe wird dunkel. Mit `tint` (Standard) umgekehrt: zarte Fläche, farbige Glyphe |
 | Icon je Zustand | `icon: mdi:power-plug` mit `icon_off: mdi:power-plug-off`, dann schalten | Aus zeigt das durchgestrichene Symbol, An das normale. Ohne `icon_off` bleibt es in beiden Zuständen dasselbe |

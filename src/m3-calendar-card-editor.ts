@@ -120,17 +120,18 @@ export class M3CalendarCardEditor extends LitElement implements LovelaceCardEdit
       entity: value.entity,
       ...(value.name ? { name: value.name } : {}),
       ...(list[index]?.color ? { color: list[index].color } : {}),
+      ...(list[index]?.text_color ? { text_color: list[index].text_color } : {}),
     };
     this._writeSources(list);
   }
 
-  private _sourceColorChanged(index: number, value: string): void {
+  private _sourceColorChanged(index: number, value: string, field: "color" | "text_color" = "color"): void {
     const list = [...this._sources];
     const current = list[index];
     if (!current) return;
-    if (value) list[index] = { ...current, color: value };
+    if (value) list[index] = { ...current, [field]: value };
     else {
-      const { color: _drop, ...rest } = current;
+      const { [field]: _drop, ...rest } = current;
       list[index] = rest;
     }
     this._writeSources(list);
@@ -190,6 +191,11 @@ export class M3CalendarCardEditor extends LitElement implements LovelaceCardEdit
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },
       { name: "show_next_chip", selector: { boolean: {} } },
+      { name: "show_calendar_name", selector: { boolean: {} } },
+      {
+        name: "font_scale",
+        selector: { number: { min: 0.75, max: 2, step: 0.05, mode: "slider" } },
+      },
       {
         name: "tap_action",
         selector: {
@@ -227,6 +233,8 @@ export class M3CalendarCardEditor extends LitElement implements LovelaceCardEdit
       hide_past_today: "editor_calendar_hide_past",
       show_adjacent_days: "editor_calendar_adjacent",
       show_next_chip: "editor_calendar_next_chip",
+      show_calendar_name: "editor_calendar_show_calendar_name",
+      font_scale: "editor_calendar_font_scale",
       tap_action: "editor_calendar_tap",
       navigation_path: "editor_calendar_path",
     };
@@ -258,6 +266,9 @@ export class M3CalendarCardEditor extends LitElement implements LovelaceCardEdit
                   ></ha-form>
                   ${colorRow(this._t("editor_calendar_color"), source.color, (v) =>
                     this._sourceColorChanged(index, v),
+                  )}
+                  ${colorRow(this._t("editor_calendar_text_color"), source.text_color, (v) =>
+                    this._sourceColorChanged(index, v, "text_color"),
                   )}
                   <button class="remove-btn" @click=${() => this._removeSource(index)}>
                     <ha-icon icon="mdi:close"></ha-icon>
@@ -302,6 +313,8 @@ export class M3CalendarCardEditor extends LitElement implements LovelaceCardEdit
                 name: cfg.name ?? "",
                 icon: cfg.icon ?? "",
                 show_next_chip: cfg.show_next_chip ?? false,
+                show_calendar_name: cfg.show_calendar_name ?? false,
+                font_scale: cfg.font_scale ?? 1,
                 tap_action: cfg.tap_action ?? "detail",
                 navigation_path: cfg.navigation_path ?? "",
               }}

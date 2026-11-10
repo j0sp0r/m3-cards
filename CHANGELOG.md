@@ -96,6 +96,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   queue and library open in a sheet from below instead of growing the card,
   and close once a track is picked.
 
+- **Calendar card: text size, a text colour per calendar, the calendar's
+  name** (#48). `font_scale` (0.75–2) scales the event text — times,
+  titles, day headings and the month's day list, the time column with them —
+  for a panel read from across the room. `text_color` on a calendar colours
+  its events' titles; `show_calendar_name` adds the calendar after the
+  location.
+
 ### Changed
 
 - **The appliance and status cards follow the theme's colour by default**

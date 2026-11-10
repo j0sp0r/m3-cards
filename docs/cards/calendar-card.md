@@ -78,7 +78,7 @@ heading that already says Today the badge would say nothing.
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `entities` | — | Required. Entity ids or `{entity, name, color}` |
+| `entities` | — | Required. Entity ids or `{entity, name, color, text_color}`; `text_color` colours the titles of that calendar's events |
 | `view` | `agenda` | `agenda` or `month` |
 | `show_view_switch` | `true` | The Agenda / Month control in the header |
 | `days_ahead` | `7` | Agenda window, 1–30 |
@@ -86,6 +86,8 @@ heading that already says Today the badge would say nothing.
 | `hide_past_today` | `false` | Hide today's finished events instead of fading them |
 | `show_adjacent_days` | `true` | Draw the neighbouring months' days in the grid |
 | `show_next_chip` | `false` | Header chip with the next event and how far off it is |
+| `show_calendar_name` | `false` | The event's calendar after its location (agenda) or before its time (the month's day list) |
+| `font_scale` | `1` | Size of the event text, 0.75–2 — times, titles, day headings, the day list. `1.4` suits a wall panel; the header stays as it is |
 | `tap_action` | `detail` | `detail`, `more-info`, `navigate`, `none` |
 | `navigation_path` | `/calendar` | Where `navigate` goes, and the dialog's button |
 

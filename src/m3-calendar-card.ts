@@ -41,6 +41,8 @@ import {
   CALENDAR_RUNNING_TINT,
   CALENDAR_NOW_BADGE_HEIGHT,
   CALENDAR_NOW_BADGE_RADIUS,
+  CALENDAR_FONT_SCALE_MIN,
+  CALENDAR_FONT_SCALE_MAX,
   CALENDAR_NAV_BTN,
   CALENDAR_NAV_RADIUS,
   CALENDAR_NAV_TINT,
@@ -101,6 +103,7 @@ interface ResolvedCalendar {
   entity: string;
   name: string;
   color: string;
+  textColor: string | undefined;
   available: boolean;
 }
 
@@ -235,9 +238,20 @@ export class M3CalendarCard extends TemplatedCard(LitElement) implements Lovelac
         entity: cfg.entity,
         name: cfg.name ?? (st?.attributes?.friendly_name as string) ?? cfg.entity,
         color: resolveThemeColor(cfg.color ?? CALENDAR_PALETTE[index % CALENDAR_PALETTE.length]),
+        textColor: cfg.text_color ? resolveThemeColor(cfg.text_color) : undefined,
         available: !!st && st.state !== "unavailable",
       };
     });
+  }
+
+  private get _fontScale(): number {
+    const f = Number(this._config?.font_scale);
+    if (!Number.isFinite(f) || f <= 0) return 1;
+    return Math.min(CALENDAR_FONT_SCALE_MAX, Math.max(CALENDAR_FONT_SCALE_MIN, f));
+  }
+
+  private _calendarOf(calendarId: string): ResolvedCalendar | undefined {
+    return this._calendars().find((c) => c.entity === calendarId);
   }
 
   private _colorOf(calendarId: string): string {
@@ -478,7 +492,9 @@ export class M3CalendarCard extends TemplatedCard(LitElement) implements Lovelac
       "m3c-today-tint": tintOn(this, accent, undefined, CALENDAR_TODAY_TINT),
       // A 12-hour locale needs room for "10:30 AM"; the 24-hour column would
       // wrap it onto two lines, which is what it did before this existed.
-      "m3c-time-col": `${this._use12h ? CALENDAR_TIME_COL_12H : CALENDAR_TIME_COL}px`,
+      // The time column grows with the text in it.
+      "m3c-time-col": `${(this._use12h ? CALENDAR_TIME_COL_12H : CALENDAR_TIME_COL) * this._fontScale}px`,
+      "m3c-scale": this._fontScale === 1 ? undefined : String(this._fontScale),
     });
 
     return html`
@@ -599,11 +615,19 @@ export class M3CalendarCard extends TemplatedCard(LitElement) implements Lovelac
   }
 
   private _renderEventRow(event: CalendarEvent, day: Date): TemplateResult {
-    const color = this._colorOf(event.calendarId);
+    const calendar = this._calendarOf(event.calendarId);
+    const color = calendar?.color ?? this._colorOf(event.calendarId);
     const now = new Date(this._now);
     const running = isRunning(event, now);
     const past = isPast(event, now);
     const span = daysSpanned(event);
+    const calendarName = this._config?.show_calendar_name ? calendar?.name : undefined;
+    const subParts = [
+      span > 1
+        ? this._t("calendar_day_of").replace("{n}", String(dayIndexOf(event, day))).replace("{m}", String(span))
+        : event.location,
+      calendarName,
+    ].filter(Boolean);
     const onTap = (): void => this._openEvent(event);
 
     return html`
@@ -613,6 +637,7 @@ export class M3CalendarCard extends TemplatedCard(LitElement) implements Lovelac
           "m3c-bar": color,
           "m3c-run-tint": running ? tintOn(this, color, undefined, CALENDAR_RUNNING_TINT) : undefined,
           "m3c-run-ink": running ? inkOn(color, this) : undefined,
+          "m3c-title": calendar?.textColor,
         })}
         role="button"
         tabindex="0"
@@ -630,15 +655,7 @@ export class M3CalendarCard extends TemplatedCard(LitElement) implements Lovelac
         <span class="bar"></span>
         <div class="body">
           <div class="title">${event.summary}</div>
-          ${span > 1
-            ? html`<div class="sub">
-                ${this._t("calendar_day_of")
-                  .replace("{n}", String(dayIndexOf(event, day)))
-                  .replace("{m}", String(span))}
-              </div>`
-            : event.location
-              ? html`<div class="sub">${event.location}</div>`
-              : nothing}
+          ${subParts.length ? html`<div class="sub">${subParts.join(" · ")}</div>` : nothing}
         </div>
         ${running ? html`<span class="now-badge">${this._t("calendar_now")}</span>` : nothing}
       </div>
@@ -752,10 +769,15 @@ export class M3CalendarCard extends TemplatedCard(LitElement) implements Lovelac
       <div class="day-list">
         ${events.map((event) => {
           const onTap = (): void => this._openEvent(event);
+          const calendar = this._calendarOf(event.calendarId);
+          const time = event.allDay ? this._t("calendar_all_day") : this._time(event.start);
           return html`
             <div
               class="day-row"
-              style=${buildCssVars({ "m3c-bar": this._colorOf(event.calendarId) })}
+              style=${buildCssVars({
+                "m3c-bar": calendar?.color ?? this._colorOf(event.calendarId),
+                "m3c-title": calendar?.textColor,
+              })}
               role="button"
               tabindex="0"
               @click=${onTap}
@@ -764,7 +786,7 @@ export class M3CalendarCard extends TemplatedCard(LitElement) implements Lovelac
               <span class="bar"></span>
               <span class="day-row-title">${event.summary}</span>
               <span class="day-row-time">
-                ${event.allDay ? this._t("calendar_all_day") : this._time(event.start)}
+                ${this._config?.show_calendar_name && calendar ? `${calendar.name} · ${time}` : time}
               </span>
             </div>
           `;
@@ -949,7 +971,7 @@ export class M3CalendarCard extends TemplatedCard(LitElement) implements Lovelac
     }
 
     .day-label {
-      font-size: ${CALENDAR_DAY_LABEL_SIZE}px;
+      font-size: calc(${CALENDAR_DAY_LABEL_SIZE}px * var(--m3c-scale, 1));
       font-weight: 700;
     }
 
@@ -958,7 +980,7 @@ export class M3CalendarCard extends TemplatedCard(LitElement) implements Lovelac
     }
 
     .day-date {
-      font-size: ${CALENDAR_DAY_DATE_SIZE}px;
+      font-size: calc(${CALENDAR_DAY_DATE_SIZE}px * var(--m3c-scale, 1));
       opacity: 0.4;
       color: var(--m3c-secondary);
     }
@@ -1002,17 +1024,17 @@ export class M3CalendarCard extends TemplatedCard(LitElement) implements Lovelac
     }
 
     .time-start {
-      font-size: ${CALENDAR_TIME_SIZE}px;
+      font-size: calc(${CALENDAR_TIME_SIZE}px * var(--m3c-scale, 1));
       font-weight: 700;
     }
 
     .time-end {
-      font-size: ${CALENDAR_TIME_END_SIZE}px;
+      font-size: calc(${CALENDAR_TIME_END_SIZE}px * var(--m3c-scale, 1));
       opacity: 0.4;
     }
 
     .all-day {
-      font-size: ${CALENDAR_TIME_END_SIZE}px;
+      font-size: calc(${CALENDAR_TIME_END_SIZE}px * var(--m3c-scale, 1));
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.3px;
@@ -1035,15 +1057,16 @@ export class M3CalendarCard extends TemplatedCard(LitElement) implements Lovelac
     }
 
     .title {
-      font-size: ${CALENDAR_TITLE_SIZE}px;
+      font-size: calc(${CALENDAR_TITLE_SIZE}px * var(--m3c-scale, 1));
       font-weight: 600;
+      color: var(--m3c-title, inherit);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     .sub {
-      font-size: ${CALENDAR_LOCATION_SIZE}px;
+      font-size: calc(${CALENDAR_LOCATION_SIZE}px * var(--m3c-scale, 1));
       opacity: 0.45;
       color: var(--m3c-secondary);
       overflow: hidden;
@@ -1060,7 +1083,7 @@ export class M3CalendarCard extends TemplatedCard(LitElement) implements Lovelac
       height: ${CALENDAR_NOW_BADGE_HEIGHT}px;
       padding: 0 10px;
       border-radius: ${CALENDAR_NOW_BADGE_RADIUS}px;
-      font-size: 10px;
+      font-size: calc(10px * var(--m3c-scale, 1));
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.4px;
@@ -1070,7 +1093,7 @@ export class M3CalendarCard extends TemplatedCard(LitElement) implements Lovelac
 
     .more {
       padding: 8px 12px;
-      font-size: 11px;
+      font-size: calc(11px * var(--m3c-scale, 1));
       opacity: 0.5;
       color: var(--m3c-secondary);
     }
@@ -1238,8 +1261,9 @@ export class M3CalendarCard extends TemplatedCard(LitElement) implements Lovelac
 
     .day-row-title {
       min-width: 0;
-      font-size: ${CALENDAR_TITLE_SIZE}px;
+      font-size: calc(${CALENDAR_TITLE_SIZE}px * var(--m3c-scale, 1));
       font-weight: 600;
+      color: var(--m3c-title, inherit);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
@@ -1248,7 +1272,7 @@ export class M3CalendarCard extends TemplatedCard(LitElement) implements Lovelac
     .day-row-time {
       margin-left: auto;
       flex-shrink: 0;
-      font-size: 11px;
+      font-size: calc(11px * var(--m3c-scale, 1));
       opacity: 0.5;
       font-variant-numeric: tabular-nums;
     }

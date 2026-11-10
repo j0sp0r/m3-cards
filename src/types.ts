@@ -2688,6 +2688,8 @@ export interface CalendarSourceConfig {
   entity: string;
   name?: string;
   color?: string;
+  /** The titles of this calendar's events (#48); the card's text colour otherwise. */
+  text_color?: string;
 }
 
 export type CalendarView = "agenda" | "month";
@@ -2716,6 +2718,13 @@ export interface M3CalendarCardConfig extends DetailModeConfig {
   show_adjacent_days?: boolean;
   /** Header chip with the next event and how far off it is. */
   show_next_chip?: boolean;
+  /**
+   * The size of the event text (#48) — agenda, the month's day list — as a
+   * factor, 0.75 to 2. A wall panel read from across the room wants 1.4 or so.
+   */
+  font_scale?: number;
+  /** The event's calendar beside its location or time (#48). */
+  show_calendar_name?: boolean;
 
   tap_action?: "detail" | "more-info" | "navigate" | "none";
   /** Where `navigate` goes; also the target of the dialog's calendar button. */
