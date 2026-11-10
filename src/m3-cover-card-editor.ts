@@ -153,6 +153,19 @@ export class M3CoverCardEditor extends LitElement implements LovelaceCardEditor 
               },
             ]),
         {
+          name: "button_layout",
+          selector: {
+            select: {
+              mode: "dropdown",
+              options: [
+                { value: "auto", label: this._t("editor_cover_buttons_auto") },
+                { value: "stacked", label: this._t("editor_cover_buttons_stacked") },
+                { value: "side", label: this._t("editor_cover_buttons_side") },
+              ],
+            },
+          },
+        },
+        {
           name: "slider_style",
           selector: {
             select: {
@@ -208,6 +221,7 @@ export class M3CoverCardEditor extends LitElement implements LovelaceCardEditor 
       show_preview: "editor_cover_show_preview",
       slider_style: "editor_cover_slider_style",
       preview_style: "editor_cover_preview_style",
+      button_layout: "editor_cover_button_layout",
       show_master: "editor_cover_show_master",
       row_tap_action: "editor_cover_row_tap",
       invert_position: "editor_cover_invert",
@@ -311,6 +325,7 @@ export class M3CoverCardEditor extends LitElement implements LovelaceCardEditor 
       show_preview: this._config.show_preview ?? true,
       slider_style: this._config.slider_style ?? "plain",
       preview_style: this._config.preview_style ?? "auto",
+      button_layout: this._config.button_layout ?? "auto",
       show_master: this._config.show_master ?? true,
       row_tap_action: this._config.row_tap_action ?? "more-info",
     };

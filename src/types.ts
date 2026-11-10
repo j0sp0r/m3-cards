@@ -1930,6 +1930,11 @@ export interface M3CoverCardConfig extends DetailModeConfig {
    * the middle.
    */
   preview_style?: "auto" | "shutter" | "curtain" | "curtain_split";
+  /**
+   * Open, stop and close (#51): `stacked` above each other, `side` side by
+   * side, or `auto` — side by side with a curtain preview, stacked otherwise.
+   */
+  button_layout?: "auto" | "stacked" | "side";
   slider_style?: "plain" | "wavy";
   show_master?: boolean;
   row_tap_action?: "more-info" | "toggle";

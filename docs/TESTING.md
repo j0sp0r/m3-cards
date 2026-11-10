@@ -435,6 +435,7 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Gruppenmodus | Mehrere Zeilen, davon eine `switch_pair` | Jede Zeile eigenständig bedienbar |
 | Drag | Position ziehen | Höchstens ein Aufruf je 200 ms, Wert setzt sich nach dem Loslassen |
 | Vorschau-Stil (#51) | `preview_style` auf `shutter`, `curtain`, `curtain_split`, dann `auto` an einem Rollladen und einem Vorhang | Rollladen von oben, Vorhang von einer Seite, zwei Hälften zur Mitte; Symbol und Knöpfe passen jeweils dazu (übereinander hoch/runter; beim Vorhang nebeneinander links/rechts bzw. auseinander/zusammen); `auto` folgt der Geräteklasse |
+| Anordnung der Knöpfe (#51) | `button_layout: stacked` an einem Vorhang, `side` an einem Rollladen, dann `side` mit `show_preview: false` | Vorhang übereinander, Rollladen nebeneinander; ohne Vorschau bleiben die Knöpfe gut antippbar hoch |
 
 ## M3 Leak Card
 

@@ -20,7 +20,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   curtain preview the open, stop and close buttons were still stacked with
   arrows up and down; they now sit side by side, pointing to the side for a
   one-sided curtain and apart and together for `curtain_split`. A group row
-  of a curtain points to the side too.
+  of a curtain points to the side too. `button_layout` (`stacked`, `side`)
+  sets the arrangement by hand, whatever the preview.
 
 ## [2.8.0] – 2026-11-10
 

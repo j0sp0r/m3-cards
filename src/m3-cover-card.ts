@@ -396,9 +396,11 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
     const active = this._feedback[m.entity];
     const fb: CoverDir | undefined = active && active.until > Date.now() ? active.dir : undefined;
     const icons = this._directionIcons(m);
-    // A curtain's buttons sit side by side, the way it moves; a shutter's
-    // are stacked, the way it moves.
-    const cls = compact ? "btn-compact" : icons.sideways ? "btn-side" : "btn-stacked";
+    // A curtain's buttons sit side by side, the way it moves, a shutter's
+    // stacked — unless `button_layout` says otherwise (#51).
+    const layout = this._config?.button_layout;
+    const side = layout === "side" || (layout !== "stacked" && icons.sideways);
+    const cls = compact ? "btn-compact" : side ? "btn-side" : "btn-stacked";
     return html`
       <div class="btn-row ${cls}">
         ${canOpen
@@ -829,6 +831,8 @@ export class M3CoverCard extends TemplatedCard(LitElement) implements LovelaceCa
          preview, the outer corners round like the stacked ones' ends. */
       .btn-side .cbtn {
         min-width: 0;
+        /* Without the preview beside them nothing gives them height. */
+        min-height: 48px;
       }
       .btn-side .cbtn.open {
         border-radius: 18px 9px 9px 18px;
