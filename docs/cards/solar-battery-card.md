@@ -119,7 +119,7 @@ gap: a flow tile and its link are dropped, the rest share the width.
 | `idle_threshold_w` | number | `10` | Below this nothing flows |
 | `kw_threshold` | number | `1000` | From here values read in kW |
 | `show_bar` / `show_flow` / `show_mppt` / `show_forecast` | boolean | `true` | |
-| `tap_action` | action | more-info on `soc` | The header icon |
+| `tap_action` | action | more-info on `soc` | The header: icon, title, subtitle and status pill |
 | `solar_tap_action` / `battery_tap_action` / `output_tap_action` | action | more-info | The flow tiles |
 | `solar_color` / `battery_color` / `house_color` | string | solar orange / green / violet | The colours of the power summary and energy flow cards |
 | `flow_tint_opacity` | number | `14` | How strongly the tiles are tinted |

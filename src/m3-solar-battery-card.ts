@@ -316,15 +316,15 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
       phase === "charging" ? "mdi:lightning-bolt" : phase === "discharging" ? "mdi:home-lightning-bolt-outline" : phase === "full" ? "mdi:check" : "mdi:pause";
     const onHeader = () => this._run(cfg.tap_action, cfg.soc);
     return html`
-      <div class="header">
-        <div
-          class="squircle"
-          role="button"
-          tabindex="0"
-          aria-label=${name}
-          @click=${onHeader}
-          @keydown=${activateOnKey(onHeader)}
-        >
+      <div
+        class="header"
+        role="button"
+        tabindex="0"
+        aria-label=${name}
+        @click=${onHeader}
+        @keydown=${activateOnKey(onHeader)}
+      >
+        <div class="squircle">
           <ha-icon icon=${this._batteryIcon(soc, phase)}></ha-icon>
         </div>
         <div class="text">
@@ -637,11 +637,16 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
     glassCardStyles,
     css`
       /* ---- header ---- */
+      /* The whole header answers a tap — icon, title, subtitle and the
+         status pill — not only the icon. */
       .header {
         display: flex;
         align-items: center;
         gap: 12px;
         min-width: 0;
+        cursor: pointer;
+        border-radius: ${unsafeCSS(SOLAR_BATTERY_HEADER_ICON_RADIUS)}px;
+        outline: none;
       }
 
       .squircle {
@@ -655,10 +660,9 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
         background: var(--sb-icon-bg);
         color: var(--sb-icon-ink);
         --mdc-icon-size: 24px;
-        cursor: pointer;
       }
 
-      .squircle:focus-visible,
+      .header:focus-visible,
       .tile:focus-visible,
       .column:focus-visible,
       .chip:focus-visible,

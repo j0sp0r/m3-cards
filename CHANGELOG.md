@@ -111,6 +111,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   theme that put two different blues next to each other. Both now default to
   `primary`. A card with its own `accent_color` is unchanged; to keep the old
   blue, set `accent_color: "#85b7eb"`.
+- **The power summary and solar battery cards answer a tap on the whole
+  header**, not only on its icon: the power summary's main row (icon, label,
+  number), the solar battery card's header (icon, title, subtitle, status
+  pill). What the tap does is still `tap_action`.
 
 ### Fixed
 

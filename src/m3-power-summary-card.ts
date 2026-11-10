@@ -411,15 +411,17 @@ export class M3PowerSummaryCard extends TemplatedCard(LitElement) implements Lov
           class="card-inner ${glassCardClass(this._config.glass_background)} ${animate ? "" : "no-animations"}"
           style=${`border-radius: ${radius};${cardBackgroundCss ? ` background: ${cardBackgroundCss};` : ""}`}
         >
-          <div class="main-row ${gridUnavailable ? "unavailable" : ""}">
+          <div
+            class="main-row ${gridUnavailable ? "unavailable" : ""}"
+            role="button"
+            tabindex="0"
+            aria-label=${mainLabel}
+            @click=${this._onTap}
+            @keydown=${activateOnKey(this._onTap)}
+          >
             <div
               class="main-icon"
               style=${`background: ${tintOn(this, mainColor, this._config.flow_tint_opacity, 18)}; color: ${foregroundColor(this, mainColor)};`}
-              role="button"
-              tabindex="0"
-              aria-label=${mainLabel}
-              @click=${this._onTap}
-              @keydown=${activateOnKey(this._onTap)}
             >
               <ha-icon icon=${mainIcon}></ha-icon>
             </div>
@@ -624,10 +626,20 @@ export class M3PowerSummaryCard extends TemplatedCard(LitElement) implements Lov
     glassCardStyles,
     cardHeaderStyles,
     css`
+      /* The whole row answers a tap, not only the icon: the label and the
+         number beside it are where a thumb lands. */
       .main-row {
         display: flex;
         align-items: center;
         gap: 14px;
+        cursor: pointer;
+        border-radius: ${SUMMARY_MAIN_ICON_RADIUS}px;
+        outline: none;
+      }
+
+      .main-row:focus-visible {
+        outline: 2px solid var(--ps-main, var(--primary-color));
+        outline-offset: 2px;
       }
 
       .main-row.unavailable {
@@ -642,16 +654,10 @@ export class M3PowerSummaryCard extends TemplatedCard(LitElement) implements Lov
         display: flex;
         align-items: center;
         justify-content: center;
-        cursor: pointer;
       }
 
       .main-icon ha-icon {
         --mdc-icon-size: 26px;
-      }
-
-      .main-icon:focus-visible {
-        outline: 2px solid var(--ps-main, var(--primary-color));
-        outline-offset: 2px;
       }
 
       .main-text {

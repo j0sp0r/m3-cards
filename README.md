@@ -1470,7 +1470,7 @@ tap_action:
 | `grid_entity` | string | – | Instantaneous power at the grid connection, in W (required) |
 | `layout` | `full` \| `compact` | `full` | `compact`: one row, main value plus one line of the others |
 | `main_value` | `grid` \| `consumption` | `grid` | The large value in compact layout |
-| `tap_action` | action | `more-info` | Tap on the main icon (full) or the tile (compact); more-info opens the main value's entity |
+| `tap_action` | action | `more-info` | Tap on the main row — icon, label and number — (full) or the tile (compact); more-info opens the main value's entity |
 | `grid_sign` | `negative_is_export` \| `positive_is_export` | `negative_is_export` | Sign convention of the grid sensor |
 | `consumption_entity` | string | – | Home consumption in W (empty = computed from grid import + solar) |
 | `solar_entity` | string / string[] | – | Generation sensor(s) in W, summed |
@@ -8139,7 +8139,7 @@ gap: a flow tile and its link are dropped, the rest share the width.
 | `idle_threshold_w` | number | `10` | Below this nothing flows |
 | `kw_threshold` | number | `1000` | From here values read in kW |
 | `show_bar` / `show_flow` / `show_mppt` / `show_forecast` | boolean | `true` | |
-| `tap_action` | action | more-info on `soc` | The header icon |
+| `tap_action` | action | more-info on `soc` | The header: icon, title, subtitle and status pill |
 | `solar_tap_action` / `battery_tap_action` / `output_tap_action` | action | more-info | The flow tiles |
 | `solar_color` / `battery_color` / `house_color` | string | solar orange / green / violet | The colours of the power summary and energy flow cards |
 | `flow_tint_opacity` | number | `14` | How strongly the tiles are tinted |
