@@ -10,7 +10,7 @@ import {
   LEVEL_TRACK_RADIUS,
 } from "./shared/level-slider";
 
-export const CARD_VERSION = "2.7.2";
+export const CARD_VERSION = "2.8.0";
 
 export const DEFAULT_CLIMATE_RADIUS = RADIUS.cardHero;
 export const DEFAULT_MINI_RADIUS = RADIUS.card;

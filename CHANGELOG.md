@@ -4,7 +4,11 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format angelehnt an [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
-## [Unreleased]
+## [2.8.0] – 2026-11-10
+
+**Upgrading:** the appliance and status cards now take the theme's primary
+colour when they have no `accent_color` of their own (#44); to keep the old
+blue, set `accent_color: "#85b7eb"`. Everything else new is opt-in.
 
 ### Added
 
@@ -95,7 +99,6 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   progress bar under the title. `compact_buttons` picks the buttons. The
   queue and library open in a sheet from below instead of growing the card,
   and close once a track is picked.
-
 - **Calendar card: text size, a text colour per calendar, the calendar's
   name** (#48). `font_scale` (0.75–2) scales the event text — times,
   titles, day headings and the month's day list, the time column with them —
@@ -139,7 +142,6 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   is no longer also drawn as going to the home, export is only drawn as solar
   as far as there was solar, and a self-sufficiency of 0 % leaves the bar
   empty instead of showing a stub.
-
 - **Dates follow the profile's date format** (reported on Reddit). The multi
   graph's 30-day axis and the detail sheet's month axis and tooltip wrote
   day and month in the order of the language alone — English meant
