@@ -19,6 +19,15 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   down when the integration says how long (Alarmo's `delay`); open sensors
   show as chips (Alarmo's `open_sensors`, or a `sensors` list). A compact
   one-row variant opens by itself on an entry delay or an alarm.
+- **The solar battery card**, card number 55: a balcony solar battery with
+  its own inverter (EcoFlow STREAM, Anker SOLIX, Zendure, …), mapped entirely
+  by config. The state of charge with "≈ kWh stored", a charge bar with the
+  reserve and charge-limit markers, a forecast ("full at 14:20", "lasts until
+  about 22:40"), a status pill (charging, supplying, ready, full), the flow
+  solar → battery → house with running dots, a column per solar input, rows
+  for expansion batteries and free chips. One signed battery sensor (with
+  `invert`) or separate charge and discharge sensors; unreadable values show
+  as "–", never as 0.
 - **The appliance card works without an entity** (#41). Left out, the card
   is a plain tile — a name, an icon and a `tap_action` or `popup` — with no
   status line and nothing greyed out, so a link or popup tile sits in the

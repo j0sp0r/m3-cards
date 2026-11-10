@@ -3243,3 +3243,29 @@ export const MULTI_GRAPH_HERO_SIZE = 40;
 export const MULTI_GRAPH_SEGMENT_HEIGHT = 32;
 export const MULTI_GRAPH_SEGMENT_PADDING = 4;
 export const MULTI_GRAPH_MOTION_MS = 300;
+
+// ---- solar battery card -----------------------------------------------------
+export const DEFAULT_SOLAR_BATTERY_RADIUS = RADIUS.card;
+/** Hero header, as the alarm and weather cards: a 56px squircle. */
+export const SOLAR_BATTERY_HEADER_ICON = 56;
+export const SOLAR_BATTERY_HEADER_ICON_RADIUS = RADIUS.squircle56;
+/** The same colours the power summary and energy flow cards use. */
+export const DEFAULT_SOLAR_BATTERY_SOLAR_COLOR = PALETTE.solar;
+export const DEFAULT_SOLAR_BATTERY_BATTERY_COLOR = PALETTE.ok;
+export const DEFAULT_SOLAR_BATTERY_HOUSE_COLOR = PALETTE.grid;
+export const DEFAULT_SOLAR_BATTERY_IDLE_W = 10;
+export const DEFAULT_SOLAR_BATTERY_KW_THRESHOLD = 1000;
+export const DEFAULT_SOLAR_BATTERY_MPPT_MAX_W = 500;
+export const DEFAULT_SOLAR_BATTERY_ICON = "mdi:home-battery-outline";
+export const SOLAR_BATTERY_ICON_TINT = 18;
+/** The flow tiles, as the power summary's metric tiles. */
+export const SOLAR_BATTERY_TILE_TINT = 14;
+export const SOLAR_BATTERY_TILE_ICON_TINT = 24;
+export const SOLAR_BATTERY_TILE_RADIUS = RADIUS.row;
+export const SOLAR_BATTERY_TILE_RADIUS_ACTIVE = RADIUS.rowActive;
+export const SOLAR_BATTERY_TILE_ICON = 32;
+export const SOLAR_BATTERY_TILE_ICON_RADIUS = RADIUS.squircle32;
+export const SOLAR_BATTERY_BAR_HEIGHT = 22;
+export const SOLAR_BATTERY_MPPT_HEIGHT = 64;
+export const SOLAR_BATTERY_FORECAST_STEP_MIN = 5;
+export const SOLAR_BATTERY_FORECAST_MAX_H = 24;

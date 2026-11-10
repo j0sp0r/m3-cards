@@ -3238,6 +3238,100 @@ export type CheckinStyle = "segmented" | "status" | "swipe";
  * any integration — in the suite's frame, following the theme in light and
  * dark without extra styling.
  */
+/** A fixed number or an entity that reads one (reserve, charge limit). */
+export type SolarBatteryNumberSource = string | number;
+
+/** One solar input (MPPT) of a solar battery. */
+export interface SolarBatteryMpptConfig {
+  entity: string;
+  name?: string;
+  /** What fills the column to the top. Default 500 W. */
+  max_watts?: number;
+  tap_action?: HaActionConfig;
+}
+
+/** An expansion battery next to the main one. */
+export interface SolarBatteryExtraConfig {
+  soc: string;
+  capacity_kwh?: number;
+  name?: string;
+  tap_action?: HaActionConfig;
+}
+
+/**
+ * A free chip at the bottom: an entity's state, or a template's text (the
+ * card renders `{{ }}` in any config string, so `template` arrives as text).
+ */
+export interface SolarBatteryChipConfig {
+  entity?: string;
+  template?: string;
+  name?: string;
+  icon?: string;
+  /** Replaces the entity's own unit. */
+  unit?: string;
+  color?: string;
+  tap_action?: HaActionConfig;
+}
+
+/**
+ * A balcony solar battery with its own inverter (EcoFlow STREAM, Anker
+ * SOLIX, Zendure, …), mapped entirely by config. Grid import is left to the
+ * power summary card.
+ */
+export interface M3SolarBatteryCardConfig extends DetailModeConfig {
+  type: string;
+  name?: string;
+  icon?: string;
+  /** Fixed text or a template, after the mode. */
+  subtitle?: string;
+  /** An entity whose state (an operating mode) leads the subtitle. */
+  mode?: string;
+  /** Without it there is no "kWh stored" line and no forecast. */
+  capacity_kwh?: number;
+  soc: string;
+  reserve?: SolarBatteryNumberSource;
+  charge_limit?: SolarBatteryNumberSource;
+  /** One signed sensor: positive charges (flip with `invert`)… */
+  battery_power?: string;
+  invert?: boolean;
+  /** …or two plain ones. */
+  charge_power?: string;
+  discharge_power?: string;
+  /** Total solar power; the sum of the inputs when left out. */
+  solar_power?: string;
+  mppt?: SolarBatteryMpptConfig[];
+  /** What the inverter feeds into the house. */
+  output_power?: string;
+  batteries?: SolarBatteryExtraConfig[];
+  chips?: SolarBatteryChipConfig[];
+  hide_mppt_without_sun?: boolean;
+  /** Below this many watts nothing flows. Default 10. */
+  idle_threshold_w?: number;
+  /** From this many watts values read in kW. Default 1000. */
+  kw_threshold?: number;
+  show_bar?: boolean;
+  show_flow?: boolean;
+  show_mppt?: boolean;
+  show_forecast?: boolean;
+  /** Header tap. Default more-info on `soc`. */
+  tap_action?: HaActionConfig;
+  solar_tap_action?: HaActionConfig;
+  battery_tap_action?: HaActionConfig;
+  output_tap_action?: HaActionConfig;
+  solar_color?: string;
+  battery_color?: string;
+  house_color?: string;
+  flow_tint_opacity?: number;
+  text_color?: string;
+  secondary_text_color?: string;
+  card_background?: string;
+  animation?: "auto" | "on" | "off";
+  glass_background?: boolean;
+  radius?: number;
+  corners?: CornerRadiusConfig;
+  card_version?: string;
+}
+
 export interface M3AlarmCardConfig extends DetailModeConfig {
   type: string;
   /** An alarm_control_panel entity. Required. */

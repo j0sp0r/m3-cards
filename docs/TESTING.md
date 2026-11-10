@@ -54,7 +54,7 @@ Beide Fehler ließen die Seite besser aussehen, als sie war.
 - Ein Handy oder ein per DevTools emuliertes Touch-Gerät für alle Drag-Interaktionen
   (Wave-Slider, Wischen) — Maus-Events allein decken `touch-action`-Konflikte nicht ab.
 
-## Cross-Cutting-Checkliste (für jede der 54 Karten)
+## Cross-Cutting-Checkliste (für jede der 55 Karten)
 
 Diese Punkte gelten kartenübergreifend, weil sie über gemeinsame `shared/*`-Module
 implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichzeitig.
@@ -1343,6 +1343,28 @@ Unscharfschalten; Code steht in der `configuration.yaml`).
 | Hell / dunkel | Theme umschalten | Alle Zustände lesbar, ohne UIX; Farben aus dem Theme |
 | Alarmo (vom Nutzer aus #47) | Mit `delay` und `open_sensors` | Countdown mit Sekunden und schrumpfendem Balken; offene Sensoren als Chips |
 
+## M3 Solar Battery Card
+
+Getestet mit der EcoFlow STREAM Ultra (`ecoflow_cloud`) und der Testseite
+`dev/poster/solarbatterytest.html` (laden, entladen, voll, Erweiterungsakku,
+minimal, nicht erreichbar; `?light`).
+
+| Test | Schritte | Erwartung |
+|---|---|---|
+| Laden | `battery_power` positiv über `idle_threshold_w` | Pill „Lädt“, Blitz im Icon, gestreifter Balken, „voll um HH:MM“ nach der Formel, Punkte Solar → Akku |
+| Entladen | `battery_power` negativ | Pill „Versorgt“ (lila), „reicht bis ca. HH:MM“ bis zur Reserve, „−X W Entladen“ |
+| Leerlauf | Leistung unter der Schwelle | Pill „Bereit“, keine Prognose, Strich statt Punkte, Wert ohne Vorzeichen |
+| Voll | `soc` ≥ `charge_limit` | Pill „Voll“, auch bei ein paar Watt Erhaltungsladung |
+| invert / getrennte Sensoren | `invert: true`; `charge_power` + `discharge_power` | Richtung stimmt in beiden Fällen |
+| Reserve und Limit | `reserve: 15` (oder Entität), `charge_limit: 90` | Marker an 15 % und 90 %, Beschriftung darunter |
+| Fehlende Werte | Sensor `unavailable` | „–“, nie 0; Prognose entfällt |
+| Nicht konfiguriert | ohne `output_power` / ohne `mppt` | Kachel samt Pfeil fehlt, keine Lücke |
+| Solareingänge | `max_watts` je Eingang | Säulen skalieren, „Spitze PVx · Y W“ bzw. „Keine Sonne“; `hide_mppt_without_sun` blendet aus |
+| Erweiterungsakku | `batteries` | Gewichteter Ladestand, Gesamtkapazität im Untertitel, eigene Zeile |
+| Tippen | Kacheln, Säulen, Chips, Icon | more-info des jeweiligen Sensors bzw. die konfigurierte Aktion |
+| Animation aus | `animation: off` / reduzierte Bewegung | Keine Punkte, Streifen oder Balkenanimation |
+| Hell / dunkel | Theme umschalten | Werte in den Kacheln lesbar (4,5:1) |
+
 ## Bekannte Einschränkungen
 
 Beide Punkte, die hier bis 2.0 standen — die Akzentfarben im hellen Theme und
@@ -1362,7 +1384,7 @@ kleiner konfigurierte Kachel angehoben und nicht abgeschnitten wird.
 1. Alle Cross-Cutting-Punkte (C1–C15) auf mindestens 3 unterschiedlichen Karten
    durchgehen (eine einfache, eine mit Editor-Unterinhalten wie Battery/Power-List,
    eine mit Animation wie Progress/Light).
-2. Jede der 54 Karten mindestens einmal mit einer Minimal-Config und einmal mit
+2. Jede der 55 Karten mindestens einmal mit einer Minimal-Config und einmal mit
    einer voll ausgereizten Config (alle Farben/Optionen gesetzt) rendern.
 3. `CHANGELOG.md` gegen die tatsächlich getesteten Änderungen abgleichen.
 4. Die Kartenzahl abgleichen. Zwei der vier Stellen zählen sich seit der

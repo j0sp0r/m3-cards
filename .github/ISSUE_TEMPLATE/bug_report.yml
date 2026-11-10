@@ -49,6 +49,7 @@ body:
         - Router (m3-router-card)
         - Router diagnostics (m3-router-diagnostics-card)
         - Search (m3-search-card)
+        - Solar Battery (m3-solar-battery-card)
         - Status (m3-status-card)
         - Supply (m3-supply-card)
         - System (m3-system-card)
