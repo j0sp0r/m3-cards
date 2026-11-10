@@ -397,7 +397,7 @@ export class M3MultiGraphCard extends TemplatedCard(LitElement) implements Lovel
     const lives = rows.filter((r) => !r.foreign && r.live !== null).map((r) => r.live as number);
     if (cfg.summary === "entity" && cfg.summary_entity) {
       const st = this.hass?.states[cfg.summary_entity];
-      const label = (st?.attributes?.friendly_name as string | undefined) ?? cfg.summary_entity;
+      const label = cfg.summary_name || ((st?.attributes?.friendly_name as string | undefined) ?? cfg.summary_entity);
       return { value: numericOf(st?.state) ?? undefined, label };
     }
     const summary = cfg.summary ?? classProfile(this._class).summary;

@@ -1336,6 +1336,7 @@ Mit einem harmlosen `input_boolean` testen.
 | Hell/Dunkel | Theme umschalten | Kurven und Chips bleiben unterscheidbar und lesbar |
 | Am Handy | 390 px Breite | Chips brechen um, Fußzeile bricht bei vielen Zeiträumen um, nichts läuft über |
 | Hilfslinien und „jetzt“ (#36) | `grid_lines: both`, `y_ticks: 5`, `show_y_labels: true`, `show_now_marker: true`; dann `grid_lines: none` und `vertical` in „7 Tage“ | Waagerechte Linien mit Wert am linken Rand, keiner davon auf der Höchst-/Tiefstwert-Pille; senkrechte Linien genau über den Zeitmarken; gestrichelte Linie am rechten Rand. `none` zeigt keine Linien. Ohne die Optionen sieht die Karte aus wie vorher |
+| Eigener Name unter dem großen Wert (#52) | `summary: entity`, `summary_entity` und `summary_name` setzen, dann `summary_name` leeren | Unter dem Wert steht der eigene Name; leer wieder der Name aus HA |
 
 ## M3 Alarm Card
 

@@ -7912,6 +7912,7 @@ in Home Assistant, else the device class (none for %, ppm, lx, W).
 | `default_range` | first of `ranges` | Range shown when the card opens |
 | `summary` | `mean` (`sum` for power) | The large value: `mean`, `median`, `sum` or `entity` |
 | `summary_entity` | — | The sensor shown large with `summary: entity` |
+| `summary_name` | the sensor's name | The label under that sensor's value |
 | `default_focus` | first sensor | Curve in focus at first: its sensor, or its position |
 | `decimals` | display precision, else by class | Decimal places |
 | `show_chips` | `true` | Chips (legend and focus picker) |

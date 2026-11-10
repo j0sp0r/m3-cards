@@ -4,6 +4,16 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format angelehnt an [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
+## [Unreleased]
+
+### Added
+
+- **Multi graph: a name of your own under the large value** (#52).
+  `summary_name` replaces the sensor's name under the value shown large
+  with `summary: entity`. The other sensors could already be renamed, each
+  entry with its own `name`; the editor now says that discovered sensors
+  are renamed by turning them into a fixed list.
+
 ## [2.8.0] – 2026-11-10
 
 **Upgrading:** the appliance and status cards now take the theme's primary

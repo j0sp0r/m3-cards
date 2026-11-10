@@ -3588,6 +3588,8 @@ export interface M3MultiGraphCardConfig extends EntityFilterConfig {
   summary?: MultiGraphSummary;
   /** The sensor shown large when `summary` is "entity". */
   summary_entity?: string;
+  /** The label under that sensor's value (#52); its friendly name otherwise. */
+  summary_name?: string;
   /** The curve in focus at first: its sensor, or its position. Default the first. */
   default_focus?: number | string;
   /** Default: the sensor's display precision, else by device class. */

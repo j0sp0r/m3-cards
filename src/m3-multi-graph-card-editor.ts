@@ -367,7 +367,9 @@ export class M3MultiGraphCardEditor extends LitElement implements LovelaceCardEd
         },
       },
     ];
-    if (cfg.summary === "entity") schema.push({ name: "summary_entity", selector: this._sensorSelector });
+    if (cfg.summary === "entity") {
+      schema.push({ name: "summary_entity", selector: this._sensorSelector }, { name: "summary_name", selector: { text: {} } });
+    }
     if (curves.length > 1) {
       schema.push({
         name: "default_focus",
@@ -434,6 +436,7 @@ export class M3MultiGraphCardEditor extends LitElement implements LovelaceCardEd
       default_range: "editor_multigraph_default_range",
       summary: "editor_multigraph_summary",
       summary_entity: "editor_multigraph_summary_entity_field",
+      summary_name: "editor_multigraph_summary_name",
       default_focus: "editor_multigraph_default_focus",
       decimals: "editor_multigraph_decimals",
       show_extremes: "editor_multigraph_show_extremes",
@@ -616,6 +619,7 @@ export class M3MultiGraphCardEditor extends LitElement implements LovelaceCardEd
                 default_range: initial,
                 summary: cfg.summary ?? classProfile(this._class).summary,
                 summary_entity: cfg.summary_entity,
+                summary_name: cfg.summary_name ?? "",
                 default_focus: curves[focusIndex]?.entity,
                 decimals: cfg.decimals ?? this._defaultDecimals,
                 show_extremes: cfg.show_extremes ?? true,
