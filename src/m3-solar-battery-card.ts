@@ -640,7 +640,7 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
       .header {
         display: flex;
         align-items: center;
-        gap: 14px;
+        gap: 12px;
         min-width: 0;
       }
 
@@ -654,7 +654,7 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
         justify-content: center;
         background: var(--sb-icon-bg);
         color: var(--sb-icon-ink);
-        --mdc-icon-size: 28px;
+        --mdc-icon-size: 24px;
         cursor: pointer;
       }
 
@@ -676,8 +676,8 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
       }
 
       .title {
-        font-size: 18px;
-        font-weight: 700;
+        font-size: 15px;
+        font-weight: 500;
         line-height: 1.2;
         color: var(--m3p-text, var(--primary-text-color));
         overflow: hidden;
@@ -686,7 +686,7 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
       }
 
       .subtitle {
-        font-size: 13px;
+        font-size: 12px;
         color: var(--m3p-secondary-text, var(--secondary-text-color));
         overflow: hidden;
         text-overflow: ellipsis;
@@ -697,16 +697,16 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
         flex-shrink: 0;
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        height: 36px;
-        padding: 0 14px;
-        border-radius: 18px;
+        gap: 4px;
+        height: 30px;
+        padding: 0 12px;
+        border-radius: 15px;
         background: var(--sb-pill-bg);
         color: var(--sb-pill-ink);
         font-size: 14px;
-        font-weight: 600;
+        font-weight: 700;
         white-space: nowrap;
-        --mdc-icon-size: 16px;
+        --mdc-icon-size: 15px;
         transition: background-color 300ms ${EASING}, color 300ms ${EASING};
       }
 
@@ -724,24 +724,24 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
       }
 
       .soc {
-        font-size: 56px;
-        font-weight: 600;
+        font-size: 32px;
+        font-weight: 700;
         line-height: 1;
-        letter-spacing: -1px;
+        letter-spacing: 0;
         font-variant-numeric: tabular-nums;
         color: var(--sb-soc);
       }
 
       .soc-unit {
-        font-size: 24px;
+        font-size: 16px;
         font-weight: 600;
-        margin-left: 4px;
+        margin-left: 3px;
         letter-spacing: 0;
       }
 
       .stored {
         margin-top: 4px;
-        font-size: 13px;
+        font-size: 12px;
         color: var(--m3p-secondary-text, var(--secondary-text-color));
       }
 
@@ -751,14 +751,14 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
       }
 
       .forecast-main {
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 700;
         color: var(--m3p-text, var(--primary-text-color));
       }
 
       .forecast-rate {
         margin-top: 2px;
-        font-size: 13px;
+        font-size: 12px;
         color: var(--m3p-secondary-text, var(--secondary-text-color));
       }
 
@@ -797,10 +797,10 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
 
       .marker {
         position: absolute;
-        top: 3px;
-        bottom: 3px;
-        width: 3px;
-        margin-left: -1.5px;
+        top: 2px;
+        bottom: 2px;
+        width: 2px;
+        margin-left: -1px;
         border-radius: 2px;
         background: #fff;
         box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.25);
@@ -808,14 +808,14 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
 
       .bar-labels {
         position: relative;
-        height: 16px;
-        margin-top: 6px;
+        height: 14px;
+        margin-top: 4px;
       }
 
       .bar-label {
         position: absolute;
         top: 0;
-        font-size: 12px;
+        font-size: 11px;
         white-space: nowrap;
         color: var(--m3p-secondary-text, var(--secondary-text-color));
       }
@@ -830,7 +830,7 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
       .tile {
         flex: 1 1 0;
         min-width: 0;
-        padding: 12px;
+        padding: 12px 10px;
         border-radius: ${unsafeCSS(SOLAR_BATTERY_TILE_RADIUS)}px;
         cursor: pointer;
         box-sizing: border-box;
@@ -852,12 +852,12 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
         display: flex;
         align-items: center;
         justify-content: center;
-        margin-bottom: 10px;
-        --mdc-icon-size: 18px;
+        margin-bottom: 8px;
+        --mdc-icon-size: 15px;
       }
 
       .tile-value {
-        font-size: 20px;
+        font-size: 17px;
         font-weight: 700;
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
@@ -866,14 +866,14 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
       }
 
       .tile-unit {
-        font-size: 12px;
+        font-size: 11px;
         font-weight: 500;
-        margin-left: 3px;
+        margin-left: 2px;
       }
 
       .tile-label {
         margin-top: 2px;
-        font-size: 12px;
+        font-size: 10px;
         color: var(--m3p-secondary-text, var(--secondary-text-color));
         white-space: nowrap;
         overflow: hidden;
@@ -881,7 +881,7 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
       }
 
       .link {
-        flex: 0 0 18px;
+        flex: 0 0 14px;
         position: relative;
         display: flex;
         align-items: center;
@@ -932,14 +932,14 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
           opacity: 1;
         }
         100% {
-          transform: translateX(13px);
+          transform: translateX(9px);
           opacity: 0;
         }
       }
 
       @keyframes sb-dot-back {
         0% {
-          transform: translateX(13px);
+          transform: translateX(9px);
           opacity: 0;
         }
         20%,
@@ -956,7 +956,7 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
       .section {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
       }
 
       .section-head {
@@ -967,13 +967,13 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
       }
 
       .section-title {
-        font-size: 15px;
+        font-size: 13px;
         font-weight: 500;
         color: var(--m3p-text, var(--primary-text-color));
       }
 
       .section-side {
-        font-size: 12px;
+        font-size: 11px;
         color: var(--m3p-secondary-text, var(--secondary-text-color));
         white-space: nowrap;
         overflow: hidden;
@@ -1001,25 +1001,25 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
         position: relative;
         width: 100%;
         height: ${unsafeCSS(SOLAR_BATTERY_MPPT_HEIGHT)}px;
-        border-radius: 14px;
+        border-radius: 12px;
         background: var(--sb-track);
         overflow: hidden;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
       }
 
       .column-fill {
         position: absolute;
-        left: 4px;
-        right: 4px;
-        bottom: 4px;
-        max-height: calc(100% - 8px);
-        border-radius: 10px;
+        left: 3px;
+        right: 3px;
+        bottom: 3px;
+        max-height: calc(100% - 6px);
+        border-radius: 8px;
         background: var(--sb-solar-fill);
         transition: height 700ms cubic-bezier(0.34, 1.56, 0.64, 1);
       }
 
       .column-value {
-        font-size: 14px;
+        font-size: 12px;
         font-weight: 600;
         font-variant-numeric: tabular-nums;
         color: var(--m3p-text, var(--primary-text-color));
@@ -1027,7 +1027,7 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
       }
 
       .column-label {
-        font-size: 12px;
+        font-size: 10px;
         color: var(--m3p-secondary-text, var(--secondary-text-color));
         white-space: nowrap;
         overflow: hidden;
@@ -1051,7 +1051,7 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
       }
 
       .extra-name {
-        font-size: 13px;
+        font-size: 12px;
         color: var(--m3p-text, var(--primary-text-color));
         white-space: nowrap;
         overflow: hidden;
@@ -1075,7 +1075,7 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
       }
 
       .extra-value {
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 600;
         font-variant-numeric: tabular-nums;
         color: var(--m3p-text, var(--primary-text-color));
@@ -1093,14 +1093,14 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
         display: inline-flex;
         align-items: center;
         gap: 6px;
-        height: 32px;
-        padding: 0 12px;
-        border-radius: 16px;
+        height: 28px;
+        padding: 0 10px;
+        border-radius: 14px;
         background: var(--sb-chip-bg);
         color: var(--m3p-text, var(--primary-text-color));
-        font-size: 13px;
+        font-size: 12px;
         white-space: nowrap;
-        --mdc-icon-size: 16px;
+        --mdc-icon-size: 14px;
         transition: border-radius 300ms ${EASING};
       }
 
