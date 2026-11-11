@@ -4,7 +4,12 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format angelehnt an [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
-## [Unreleased]
+## [2.8.1] – 2026-11-11
+
+> **Upgrading:** a cost card saved from the editor before 2.8.1 may carry
+> `statistic_type: state`, which the editor wrote by itself. If its `entity`
+> is a meter that keeps counting, switch the statistic type to *Detect
+> automatically* (or remove the line).
 
 ### Added
 
@@ -40,14 +45,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   `statistic_type: auto` tells the two apart from the last week's readings
   (a daily counter drops back about every other day, a meter or a monthly
   meter at most once) and sums a running counter by the differences between
-  its daily readings, a drop below 90 % counting as a reset. Not by the recorder's
-  change statistic, which counts a sensor dropping out for a moment as a
+  its daily readings, a drop below 90 % counting as a reset. Not by the
+  recorder's change statistic, which counts a sensor dropping out for a moment as a
   reset and adds the whole reading again. `state` and `change` still force
   either statistic. The month-end and budget notification follows the same
   choice.
   A card saved from the editor before carries `statistic_type: state`, which
-  the editor used to write by itself — switch it to *Detect automatically*
-  if the card shows a meter.
+  the editor used to write by itself (see *Upgrading*).
 
 - **Cover card: a curtain's buttons move the way it does** (#51). With a
   curtain preview the open, stop and close buttons were still stacked with
