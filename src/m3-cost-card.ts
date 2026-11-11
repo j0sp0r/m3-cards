@@ -39,7 +39,7 @@ import {
 import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, tintInk, fillColor , foregroundVars, tintBackground } from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { shouldAnimate, STANDARD_EASING } from "./shared/animation";
-import { detectCounterStatType, fetchDaySeries } from "./shared/ha-statistics";
+import { detectCounterKind, fetchDaySeries, fetchRunningDaySeries } from "./shared/ha-statistics";
 import {
   resolveCurrentPrice,
   formatCurrency,
@@ -258,19 +258,28 @@ export class M3CostCard extends TemplatedCard(LitElement) implements LovelaceCar
         // A daily-resetting counter is summed by its last reading per day:
         // many of them only ever populate the "state" statistic, and the
         // recorder's "change" double-counts a reset logged twice at midnight
-        // (see fetchEnergyMonths). A meter that keeps counting needs the
-        // change instead, or every day costs the whole reading (#55). With
-        // `statistic_type: auto`, the default, the card tells the two apart
-        // from the last week's readings.
+        // (see fetchEnergyMonths). A counter that keeps counting — a meter, a
+        // monthly utility_meter — would cost its whole reading every day that
+        // way (#55); it is summed by the differences between its last
+        // readings instead, which the recorder's "change" gets wrong on a
+        // sensor that drops out (see runningDayUse). `statistic_type: auto`,
+        // the default, tells the two apart from the last week's readings;
+        // `state` and `change` force the recorder's statistic as before.
         const configured = this._config.statistic_type;
-        const statType =
+        const entity = this._config.entity;
+        const hass = this.hass;
+        const kind =
           configured === "change" || configured === "state"
-            ? configured
-            : await detectCounterStatType(this.hass, this._config.entity, !isCustom);
+            ? undefined
+            : await detectCounterKind(hass, entity, !isCustom);
+        const series = (start: Date, end: Date) =>
+          kind === "running"
+            ? fetchRunningDaySeries(hass, entity, start, end, !isCustom)
+            : fetchDaySeries(hass, [entity], start, end, configured === "change" ? "change" : "state", !isCustom);
         const quantityFactor = isCustom ? (this._config.price_quantity_factor ?? 1) : 1;
         const [kwhMap, prevKwhMap] = await Promise.all([
-          fetchDaySeries(this.hass, [this._config.entity], window.start, window.end, statType, !isCustom),
-          fetchDaySeries(this.hass, [this._config.entity], prevWindow.start, prevWindow.end, statType, !isCustom),
+          series(window.start, window.end),
+          series(prevWindow.start, prevWindow.end),
         ]);
         currentDayMap = new Map(Array.from(kwhMap, ([k, v]) => [k, v * quantityFactor * price]));
         prevDayMap = new Map(Array.from(prevKwhMap, ([k, v]) => [k, v * quantityFactor * price]));

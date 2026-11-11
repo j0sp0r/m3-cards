@@ -38,8 +38,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   each day's last reading, which is right only for a counter that resets
   daily: a grid meter at 1780 kWh cost 1780 kWh every day. The new default
   `statistic_type: auto` tells the two apart from the last week's readings
-  and sums a meter by its change per day; `state` and `change` still force
-  either. The month-end and budget notification follows the same choice.
+  (a daily counter drops back about every other day, a meter or a monthly
+  meter at most once) and sums a running counter by the differences between
+  its daily readings, a drop counting as a reset. Not by the recorder's
+  change statistic, which counts a sensor dropping out for a moment as a
+  reset and adds the whole reading again. `state` and `change` still force
+  either statistic. The month-end and budget notification follows the same
+  choice.
   A card saved from the editor before carries `statistic_type: state`, which
   the editor used to write by itself — switch it to *Detect automatically*
   if the card shows a meter.

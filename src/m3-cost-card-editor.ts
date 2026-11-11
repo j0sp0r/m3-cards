@@ -38,11 +38,30 @@ import {
   type NotifyAutomationSpec,
 } from "./shared/notify-editor";
 import { formatCurrencyParts } from "./shared/pricing";
-import { detectCounterStatType, type StatisticType } from "./shared/ha-statistics";
+import { detectCounterKind, type CounterKind } from "./shared/ha-statistics";
 
 // Days in the current month as a Jinja expression — HA has no helper for it.
 const DAYS_IN_MONTH =
   "((now().replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)).day";
+
+/**
+ * The month's use of a running counter in Jinja, as `runningDayUse` counts it
+ * in the card: the step from one day's last reading to the next, and the
+ * reading itself after a drop (a reset).
+ */
+function runningQtyTemplate(entity: string): string {
+  return (
+    "{% set ns = namespace(prev=none, total=0) %}" +
+    `{% for r in (m3_stats.statistics['${entity}'] | default([])) %}` +
+    "{% set v = r.state | float(0) %}" +
+    "{% if ns.prev is not none %}" +
+    "{% set drop = v < ns.prev - ([0.01, (ns.prev * 0.001) | abs] | max) %}" +
+    "{% set ns.total = ns.total + ([v if drop else v - ns.prev, 0] | max) %}" +
+    "{% endif %}" +
+    "{% set ns.prev = v %}" +
+    "{% endfor %}{{ ns.total }}"
+  );
+}
 
 @customElement("m3-cost-card-editor")
 export class M3CostCardEditor extends LitElement implements LovelaceCardEditor {
@@ -114,7 +133,7 @@ export class M3CostCardEditor extends LitElement implements LovelaceCardEditor {
    */
   private _costPlan(
     mode: "budget" | "month_end",
-    detected?: StatisticType,
+    detected?: CounterKind,
   ): { prelude: Record<string, unknown>[]; expr: string; entity: string } | { error: TranslationKey } {
     const cfg = this._config;
     // Defaults to the card's own entity: a separate picker invited exactly the
@@ -127,12 +146,13 @@ export class M3CostCardEditor extends LitElement implements LovelaceCardEditor {
     const monetary = st.attributes.device_class === "monetary";
     const isCustom = cfg.price_unit === "custom";
     // Mirrors the card: the configured type, else what the card detects from
-    // the readings (#55) — "change" for a meter that keeps counting, "state"
-    // for a daily counter, which often populates only that. A cost entity is
-    // summed by its change, the way the card sums the energy dashboard's cost
-    // sensors.
+    // the readings (#55) — a counter that keeps counting is summed by the
+    // differences between its last readings per day, a daily counter by
+    // those readings. A cost entity is summed by its change, the way the card
+    // sums the energy dashboard's cost sensors.
     const configured = cfg.statistic_type === "auto" ? undefined : cfg.statistic_type;
-    const statType = monetary ? "change" : (configured ?? detected ?? "state");
+    const running = !monetary && !configured && detected === "running";
+    const statType = monetary ? "change" : (configured ?? "state");
 
     let quantityToCost: string;
     if (monetary) {
@@ -167,7 +187,11 @@ export class M3CostCardEditor extends LitElement implements LovelaceCardEditor {
       {
         action: "recorder.get_statistics",
         data: {
-          start_time: "{{ now().replace(day=1, hour=0, minute=0, second=0, microsecond=0) }}",
+          // A running counter needs the last day of the month before to
+          // count the first of this one from.
+          start_time: running
+            ? "{{ now().replace(day=1, hour=0, minute=0, second=0, microsecond=0) - timedelta(days=1) }}"
+            : "{{ now().replace(day=1, hour=0, minute=0, second=0, microsecond=0) }}",
           end_time: "{{ now() }}",
           statistic_ids: [entity],
           period: "day",
@@ -178,7 +202,9 @@ export class M3CostCardEditor extends LitElement implements LovelaceCardEditor {
       },
       {
         variables: {
-          m3_qty: `{{ (m3_stats.statistics['${entity}'] | default([])) | map(attribute='${statType}') | map('float', 0) | sum }}`,
+          m3_qty: running
+            ? runningQtyTemplate(entity)
+            : `{{ (m3_stats.statistics['${entity}'] | default([])) | map(attribute='${statType}') | map('float', 0) | sum }}`,
           m3_cost: `{{ ${expr} }}`,
         },
       },
@@ -255,7 +281,7 @@ export class M3CostCardEditor extends LitElement implements LovelaceCardEditor {
       planEntity &&
       (cfg.statistic_type ?? "auto") === "auto" &&
       planState?.attributes.device_class !== "monetary"
-        ? await detectCounterStatType(this.hass, planEntity, cfg.price_unit !== "custom")
+        ? await detectCounterKind(this.hass, planEntity, cfg.price_unit !== "custom")
         : undefined;
     const plan = this._costPlan(mode, detected);
     if ("error" in plan) return; // already handled by the blocker check

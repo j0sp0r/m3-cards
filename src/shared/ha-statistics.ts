@@ -654,58 +654,114 @@ export async function hasLongTermStatistics(
 }
 
 // How far the readings of a counter that never resets sit above their own
-// day-to-day steps before the card calls it cumulative. A meter at 1780 kWh
-// that moves 2 kWh a day is ~900x; a daily counter's last readings are each
-// one day's use, of the same order as the differences between them.
+// day-to-day steps before a short run is called cumulative. A meter at
+// 1780 kWh that moves 2 kWh a day is ~900x; a daily counter's last readings
+// are each one day's use, of the same order as the differences between them.
 const CUMULATIVE_RATIO = 10;
+// From this many day-to-day steps on, the number of drops decides alone.
+const CUMULATIVE_MIN_STEPS = 7;
+
+const dropTolerance = (previous: number): number => Math.max(0.01, Math.abs(previous) * 0.001);
 
 /**
  * Whether a run of last-readings-per-day (oldest first) comes from a counter
  * that keeps counting — a meter, a monthly or yearly utility_meter — rather
  * than one that starts over every day (#55). Summing those readings is only
- * right for the second kind; the first needs the change per day.
+ * right for the second kind.
  *
- * A daily counter drops back from one day to the next whenever a day used
- * less than the one before, which over a week happens; a running total never
- * drops. Without a drop it still has to stand far above its daily steps, so
- * a daily counter that happened to rise every day of a short run is not
- * mistaken for a meter. Fewer than two readings decide nothing.
+ * A daily counter drops back whenever a day used less than the one before:
+ * over a week, about every other day. A meter never drops, and a monthly
+ * meter once, at the start of the month. So a long run with at most one
+ * drop is a running counter. A short run (a sensor only a few days old)
+ * must not drop at all and stand far above its daily steps, so a daily
+ * counter that happened to rise a few days in a row is not taken for one.
+ * Fewer than two readings, or more than one zero, decide nothing.
  */
 export function looksCumulative(values: number[]): boolean {
   if (values.length < 2) return false;
+  // A running counter reads above zero, save right after a reset. An hourly
+  // counter of an appliance that sits idle ends most days at zero, and is
+  // no meter.
+  if (values.filter((v) => v === 0).length > 1) return false;
   const steps: number[] = [];
+  let drops = 0;
   for (let i = 1; i < values.length; i++) {
     const step = values[i] - values[i - 1];
     // A tiny dip is rounding or a recorder hiccup, not a reset.
-    if (step < -Math.max(0.01, Math.abs(values[i - 1]) * 0.001)) return false;
-    steps.push(Math.max(0, step));
+    if (step < -dropTolerance(values[i - 1])) drops++;
+    else steps.push(Math.max(0, step));
   }
+  if (values.length - 1 >= CUMULATIVE_MIN_STEPS) return drops <= 1;
+  if (drops > 0) return false;
   steps.sort((a, b) => a - b);
   const median = steps[Math.floor(steps.length / 2)];
   const lowest = Math.min(...values);
   return lowest > 0 && lowest > CUMULATIVE_RATIO * median;
 }
 
-/** Days of readings `detectCounterStatType` looks back over. */
+/**
+ * What a running counter used per day, from its last reading of each day and
+ * of the day before (oldest first). A drop is a reset — a monthly meter's
+ * first of the month, a meter replaced — and the reading after it is what was
+ * used since. Not the recorder's "change": that counts a sensor that went to
+ * zero for a moment as a reset and adds the whole reading again, which on a
+ * real meter here made 26 000 kWh of one November.
+ */
+export function runningDayUse(previous: number | undefined, days: [string, number][]): Map<string, number> {
+  const out = new Map<string, number>();
+  let prev = previous;
+  for (const [key, value] of days) {
+    if (prev !== undefined) {
+      const step = value - prev;
+      out.set(key, step < -dropTolerance(prev) ? Math.max(0, value) : Math.max(0, step));
+    }
+    prev = value;
+  }
+  return out;
+}
+
+const sortedDays = (byDay: Map<string, number>): [string, number][] =>
+  Array.from(byDay.entries()).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+
+/** Days of readings `detectCounterKind` looks back over. */
 const DETECT_DAYS = 8;
 
+export type CounterKind = "daily" | "running";
+
 /**
- * The statistic to sum a consumption counter by, when the config does not
- * say: "change" for a counter that keeps counting, "state" (the last reading
- * of each day) for one that resets daily — see `looksCumulative`.
+ * Whether a consumption counter starts over every day or keeps counting —
+ * see `looksCumulative`. Decides how the cost card sums it when the config
+ * does not say.
  */
-export async function detectCounterStatType(
+export async function detectCounterKind(
   hass: HomeAssistant,
   entityId: string,
   applyEnergyUnits = true,
   now = new Date(),
-): Promise<StatisticType> {
+): Promise<CounterKind> {
   const start = new Date(now);
   start.setHours(0, 0, 0, 0);
   start.setDate(start.getDate() - DETECT_DAYS);
   const byDay = await fetchDaySeries(hass, [entityId], start, now, "state", applyEnergyUnits);
-  const values = Array.from(byDay.entries())
-    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-    .map(([, v]) => v);
-  return looksCumulative(values) ? "change" : "state";
+  return looksCumulative(sortedDays(byDay).map(([, v]) => v)) ? "running" : "daily";
+}
+
+/**
+ * A running counter's use per day between `start` and `end`, from its last
+ * readings (see `runningDayUse`). The day before `start` is read too, so the
+ * first day has a reading to count from.
+ */
+export async function fetchRunningDaySeries(
+  hass: HomeAssistant,
+  entityId: string,
+  start: Date,
+  end: Date,
+  applyEnergyUnits = true,
+): Promise<Map<string, number>> {
+  const before = new Date(start);
+  before.setDate(before.getDate() - 1);
+  const byDay = sortedDays(await fetchDaySeries(hass, [entityId], before, end, "state", applyEnergyUnits));
+  const firstKey = localDayKey(start);
+  const previous = byDay.filter(([k]) => k < firstKey).pop()?.[1];
+  return runningDayUse(previous, byDay.filter(([k]) => k >= firstKey));
 }
