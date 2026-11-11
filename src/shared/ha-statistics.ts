@@ -699,11 +699,18 @@ export function looksCumulative(values: number[]): boolean {
   return lowest > 0 && lowest > CUMULATIVE_RATIO * median;
 }
 
+// A drop to below this share of the reading before is a reset; a smaller one
+// is not. The recorder draws the line at about the same place.
+const RESET_SHARE = 0.9;
+
 /**
  * What a running counter used per day, from its last reading of each day and
- * of the day before (oldest first). A drop is a reset — a monthly meter's
- * first of the month, a meter replaced — and the reading after it is what was
- * used since. Not the recorder's "change": that counts a sensor that went to
+ * of the day before (oldest first). A deep drop is a reset — a monthly
+ * meter's first of the month, a meter replaced — and the reading after it is
+ * what was used since. A shallow one is not: a sum of counters where one of
+ * them failed to reset (seen here: a "monthly" channel standing at 3600 kWh)
+ * drops a few percent, and taking that as a reset would book the whole
+ * reading on one day. That day counts nothing instead. Not the recorder's "change": that counts a sensor that went to
  * zero for a moment as a reset and adds the whole reading again, which on a
  * real meter here made 26 000 kWh of one November.
  */
@@ -713,7 +720,8 @@ export function runningDayUse(previous: number | undefined, days: [string, numbe
   for (const [key, value] of days) {
     if (prev !== undefined) {
       const step = value - prev;
-      out.set(key, step < -dropTolerance(prev) ? Math.max(0, value) : Math.max(0, step));
+      const reset = step < -dropTolerance(prev) && value < prev * RESET_SHARE;
+      out.set(key, reset ? Math.max(0, value) : Math.max(0, step));
     }
     prev = value;
   }

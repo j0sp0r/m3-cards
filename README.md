@@ -1709,7 +1709,7 @@ The "next" arrow is disabled once the current (running) period is reached.
 | `base_fee` | number | – | Base fee €/month, pro-rated for `period: month` |
 | `currency` | string | `EUR` | ISO currency code for formatting |
 | `entity` | string | – | Energy sensor (kWh); not needed with `price_source: energy_dashboard`. A meter that keeps counting and a counter that resets daily both work, see `statistic_type` |
-| `statistic_type` | `auto` \| `state` \| `change` | `auto` | How `entity` is summed per day. `auto` looks at the last week's readings: a counter that drops back about every other day resets daily and is summed by each day's last reading; one that drops at most once (a meter, a monthly or yearly `utility_meter`) is summed by the differences between those readings, a drop counting as a reset. `state` forces the last readings, `change` the recorder's change statistic |
+| `statistic_type` | `auto` \| `state` \| `change` | `auto` | How `entity` is summed per day. `auto` looks at the last week's readings: a counter that drops back about every other day resets daily and is summed by each day's last reading; one that drops at most once (a meter, a monthly or yearly `utility_meter`) is summed by the differences between those readings, a drop below 90 % of the reading before counting as a reset. `state` forces the last readings, `change` the recorder's change statistic |
 | `period` | `day` \| `month` \| `year` | `month` | Time range |
 | `show_projection` | boolean | `true` | Show the projection chip |
 | `show_comparison` | boolean | `true` | Show the comparison chip |

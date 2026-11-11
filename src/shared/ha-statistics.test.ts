@@ -124,6 +124,15 @@ describe("runningDayUse (#55)", () => {
     expect([...use.values()].map((v) => +v.toFixed(2))).toEqual([1.9, 2.3]);
   });
 
+  it("does not book a sum's shallow drop as a reset", () => {
+    // The author's monthly sum on 1 Nov: three counters reset, one did not.
+    const use = runningDayUse(3619.6, [
+      ["2026-11-01", 3532.5],
+      ["2026-11-02", 3547.5],
+    ]);
+    expect([...use.values()].map((v) => +v.toFixed(2))).toEqual([0, 15]);
+  });
+
   it("skips a first day with nothing to count from", () => {
     const use = runningDayUse(undefined, [
       ["2026-11-01", 1810.5],

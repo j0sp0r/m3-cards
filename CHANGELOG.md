@@ -40,7 +40,7 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   `statistic_type: auto` tells the two apart from the last week's readings
   (a daily counter drops back about every other day, a meter or a monthly
   meter at most once) and sums a running counter by the differences between
-  its daily readings, a drop counting as a reset. Not by the recorder's
+  its daily readings, a drop below 90 % counting as a reset. Not by the recorder's
   change statistic, which counts a sensor dropping out for a moment as a
   reset and adds the whole reading again. `state` and `change` still force
   either statistic. The month-end and budget notification follows the same

@@ -46,8 +46,8 @@ const DAYS_IN_MONTH =
 
 /**
  * The month's use of a running counter in Jinja, as `runningDayUse` counts it
- * in the card: the step from one day's last reading to the next, and the
- * reading itself after a drop (a reset).
+ * in the card: the step from one day's last reading to the next, the reading
+ * itself after a drop below 90 % (a reset), nothing after a shallower one.
  */
 function runningQtyTemplate(entity: string): string {
   return (
@@ -55,8 +55,8 @@ function runningQtyTemplate(entity: string): string {
     `{% for r in (m3_stats.statistics['${entity}'] | default([])) %}` +
     "{% set v = r.state | float(0) %}" +
     "{% if ns.prev is not none %}" +
-    "{% set drop = v < ns.prev - ([0.01, (ns.prev * 0.001) | abs] | max) %}" +
-    "{% set ns.total = ns.total + ([v if drop else v - ns.prev, 0] | max) %}" +
+    "{% set reset = v < ns.prev - ([0.01, (ns.prev * 0.001) | abs] | max) and v < ns.prev * 0.9 %}" +
+    "{% set ns.total = ns.total + ([v if reset else v - ns.prev, 0] | max) %}" +
     "{% endif %}" +
     "{% set ns.prev = v %}" +
     "{% endfor %}{{ ns.total }}"
