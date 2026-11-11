@@ -652,3 +652,60 @@ export async function hasLongTermStatistics(
     return false;
   }
 }
+
+// How far the readings of a counter that never resets sit above their own
+// day-to-day steps before the card calls it cumulative. A meter at 1780 kWh
+// that moves 2 kWh a day is ~900x; a daily counter's last readings are each
+// one day's use, of the same order as the differences between them.
+const CUMULATIVE_RATIO = 10;
+
+/**
+ * Whether a run of last-readings-per-day (oldest first) comes from a counter
+ * that keeps counting — a meter, a monthly or yearly utility_meter — rather
+ * than one that starts over every day (#55). Summing those readings is only
+ * right for the second kind; the first needs the change per day.
+ *
+ * A daily counter drops back from one day to the next whenever a day used
+ * less than the one before, which over a week happens; a running total never
+ * drops. Without a drop it still has to stand far above its daily steps, so
+ * a daily counter that happened to rise every day of a short run is not
+ * mistaken for a meter. Fewer than two readings decide nothing.
+ */
+export function looksCumulative(values: number[]): boolean {
+  if (values.length < 2) return false;
+  const steps: number[] = [];
+  for (let i = 1; i < values.length; i++) {
+    const step = values[i] - values[i - 1];
+    // A tiny dip is rounding or a recorder hiccup, not a reset.
+    if (step < -Math.max(0.01, Math.abs(values[i - 1]) * 0.001)) return false;
+    steps.push(Math.max(0, step));
+  }
+  steps.sort((a, b) => a - b);
+  const median = steps[Math.floor(steps.length / 2)];
+  const lowest = Math.min(...values);
+  return lowest > 0 && lowest > CUMULATIVE_RATIO * median;
+}
+
+/** Days of readings `detectCounterStatType` looks back over. */
+const DETECT_DAYS = 8;
+
+/**
+ * The statistic to sum a consumption counter by, when the config does not
+ * say: "change" for a counter that keeps counting, "state" (the last reading
+ * of each day) for one that resets daily — see `looksCumulative`.
+ */
+export async function detectCounterStatType(
+  hass: HomeAssistant,
+  entityId: string,
+  applyEnergyUnits = true,
+  now = new Date(),
+): Promise<StatisticType> {
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - DETECT_DAYS);
+  const byDay = await fetchDaySeries(hass, [entityId], start, now, "state", applyEnergyUnits);
+  const values = Array.from(byDay.entries())
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([, v]) => v);
+  return looksCumulative(values) ? "change" : "state";
+}

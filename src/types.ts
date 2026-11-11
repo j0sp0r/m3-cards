@@ -680,7 +680,12 @@ export type CostPeriod = "day" | "month" | "year";
 export interface M3CostCardConfig extends PricingConfig, NotifyConfigBase, DetailModeConfig {
   type: string;
   entity?: string;
-  statistic_type?: "change" | "state";
+  /**
+   * How `entity` is summed per day: `state` takes the last reading (a daily
+   * counter), `change` the change (a meter that keeps counting). `auto`, the
+   * default, tells the two apart from the last week's readings (#55).
+   */
+  statistic_type?: "auto" | "change" | "state";
   period?: CostPeriod;
   name?: string;
   icon?: string;

@@ -39,7 +39,7 @@ import {
 import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, tintInk, fillColor , foregroundVars, tintBackground } from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { shouldAnimate, STANDARD_EASING } from "./shared/animation";
-import { fetchDaySeries } from "./shared/ha-statistics";
+import { detectCounterStatType, fetchDaySeries } from "./shared/ha-statistics";
 import {
   resolveCurrentPrice,
   formatCurrency,
@@ -219,6 +219,7 @@ export class M3CostCard extends TemplatedCard(LitElement) implements LovelaceCar
     const key = JSON.stringify({
       source: this._config.price_source,
       entity: this._config.entity,
+      statType: this._config.statistic_type,
       priceEntity: this._config.price_entity,
       price: this._config.price,
       period: this._config.period,
@@ -249,17 +250,23 @@ export class M3CostCard extends TemplatedCard(LitElement) implements LovelaceCar
           return;
         }
         this._noPriceConfigured = false;
-        // "state" default matches the day/hour consumption bars elsewhere in
-        // the project: many real-world daily-resetting counters only ever
-        // populate the "state" statistic (last reading of the day), not
-        // "change" — see fetchEnergyDays / m3-energy-card. "change" is only
-        // correct for true lifetime (never-resetting) counters.
-        const statType = this._config.statistic_type ?? "state";
         // "custom" mode (any non-energy quantity, e.g. water in L priced per
         // m³) skips the recorder's energy-unit-class normalization — it only
         // converts within the "energy" class anyway, a no-op for anything
         // else — and instead applies the user's own price_quantity_factor.
         const isCustom = this._config.price_unit === "custom";
+        // A daily-resetting counter is summed by its last reading per day:
+        // many of them only ever populate the "state" statistic, and the
+        // recorder's "change" double-counts a reset logged twice at midnight
+        // (see fetchEnergyMonths). A meter that keeps counting needs the
+        // change instead, or every day costs the whole reading (#55). With
+        // `statistic_type: auto`, the default, the card tells the two apart
+        // from the last week's readings.
+        const configured = this._config.statistic_type;
+        const statType =
+          configured === "change" || configured === "state"
+            ? configured
+            : await detectCounterStatType(this.hass, this._config.entity, !isCustom);
         const quantityFactor = isCustom ? (this._config.price_quantity_factor ?? 1) : 1;
         const [kwhMap, prevKwhMap] = await Promise.all([
           fetchDaySeries(this.hass, [this._config.entity], window.start, window.end, statType, !isCustom),

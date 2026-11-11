@@ -247,6 +247,7 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Test | Schritte | Erwartung |
 |---|---|---|
 | `price_source: energy_dashboard/input_number/fixed` | Alle drei testen | Jede Quelle liefert einen plausiblen Tarif-Wert in der Tarif-Zeile |
+| Durchlaufender Zähler (#55) | `price_source: input_number`, `entity` einmal ein Zählerstand (`state_class: total`, läuft durch), einmal ein täglich zurückgesetzter Zähler | Beide zeigen dieselben Monatskosten in plausibler Höhe; der Zählerstand wird nicht pro Tag voll berechnet. `statistic_type: state` am Zählerstand zeigt den alten, zu hohen Wert |
 | `price_entity` auf `unavailable` | Bei `price_source: "input_number"` | Tarif-Zeile zeigt „–“, **nicht** „NaN“ |
 | Perioden-Navigation | Vor/Zurück-Buttons am Rand des verfügbaren Zeitraums | „Weiter“-Button deaktiviert sich korrekt an der Gegenwart (`atPresent`) |
 | Budget-Überschreitung | `budget` unter den erwarteten Monatswert setzen | Hochrechnung/Anzeige markiert Budget-Überschreitung visuell |

@@ -23,6 +23,17 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Cost card: a meter that keeps counting costs what it used, not its
+  reading** (#55). With `price_source: input_number` or `fixed` the card took
+  each day's last reading, which is right only for a counter that resets
+  daily: a grid meter at 1780 kWh cost 1780 kWh every day. The new default
+  `statistic_type: auto` tells the two apart from the last week's readings
+  and sums a meter by its change per day; `state` and `change` still force
+  either. The month-end and budget notification follows the same choice.
+  A card saved from the editor before carries `statistic_type: state`, which
+  the editor used to write by itself — switch it to *Detect automatically*
+  if the card shows a meter.
+
 - **Cover card: a curtain's buttons move the way it does** (#51). With a
   curtain preview the open, stop and close buttons were still stacked with
   arrows up and down; they now sit side by side, pointing to the side for a

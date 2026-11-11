@@ -44,6 +44,11 @@ period: month
   changes in practice, so a permanently visible slider isn't worth it).
 - **`fixed`**: a fixed `price` in the card config, no tariff interaction.
 
+With `input_number` and `fixed`, `entity` may be a grid meter that keeps
+counting or a counter that starts over every day: the card tells them apart
+by itself (`statistic_type: auto`) and sums the change per day or each day's
+last reading.
+
 `base_fee` (€/month) is added to the cost total pro-rated per day already
 elapsed, for `period: month`.
 
@@ -80,7 +85,8 @@ The "next" arrow is disabled once the current (running) period is reached.
 | `price_unit` | `eur_per_kwh` \| `ct_per_kwh` | detected from the helper / `eur_per_kwh` | Unit of the price |
 | `base_fee` | number | – | Base fee €/month, pro-rated for `period: month` |
 | `currency` | string | `EUR` | ISO currency code for formatting |
-| `entity` | string | – | Energy sensor (kWh); not needed with `price_source: energy_dashboard` |
+| `entity` | string | – | Energy sensor (kWh); not needed with `price_source: energy_dashboard`. A meter that keeps counting and a counter that resets daily both work, see `statistic_type` |
+| `statistic_type` | `auto` \| `state` \| `change` | `auto` | How `entity` is summed per day: `state` takes each day's last reading (a counter that resets daily), `change` the change over the day (a meter, or a monthly or yearly `utility_meter`). `auto` tells them apart from the last week: readings that never drop and stand far above their daily steps are a meter |
 | `period` | `day` \| `month` \| `year` | `month` | Time range |
 | `show_projection` | boolean | `true` | Show the projection chip |
 | `show_comparison` | boolean | `true` | Show the comparison chip |

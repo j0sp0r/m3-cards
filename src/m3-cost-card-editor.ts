@@ -38,6 +38,7 @@ import {
   type NotifyAutomationSpec,
 } from "./shared/notify-editor";
 import { formatCurrencyParts } from "./shared/pricing";
+import { detectCounterStatType, type StatisticType } from "./shared/ha-statistics";
 
 // Days in the current month as a Jinja expression — HA has no helper for it.
 const DAYS_IN_MONTH =
@@ -113,6 +114,7 @@ export class M3CostCardEditor extends LitElement implements LovelaceCardEditor {
    */
   private _costPlan(
     mode: "budget" | "month_end",
+    detected?: StatisticType,
   ): { prelude: Record<string, unknown>[]; expr: string; entity: string } | { error: TranslationKey } {
     const cfg = this._config;
     // Defaults to the card's own entity: a separate picker invited exactly the
@@ -124,10 +126,13 @@ export class M3CostCardEditor extends LitElement implements LovelaceCardEditor {
 
     const monetary = st.attributes.device_class === "monetary";
     const isCustom = cfg.price_unit === "custom";
-    // Mirrors the card: "state" unless told otherwise, because a daily
-    // resetting counter often populates only that. A cost entity is summed by
-    // its change, the way the card sums the energy dashboard's cost sensors.
-    const statType = monetary ? "change" : (cfg.statistic_type ?? "state");
+    // Mirrors the card: the configured type, else what the card detects from
+    // the readings (#55) — "change" for a meter that keeps counting, "state"
+    // for a daily counter, which often populates only that. A cost entity is
+    // summed by its change, the way the card sums the energy dashboard's cost
+    // sensors.
+    const configured = cfg.statistic_type === "auto" ? undefined : cfg.statistic_type;
+    const statType = monetary ? "change" : (configured ?? detected ?? "state");
 
     let quantityToCost: string;
     if (monetary) {
@@ -243,7 +248,16 @@ export class M3CostCardEditor extends LitElement implements LovelaceCardEditor {
       return;
     }
     const mode = this._notifyMode;
-    const plan = this._costPlan(mode);
+    const planEntity = cfg.notify_cost_entity || cfg.entity;
+    const planState = planEntity ? this.hass?.states[planEntity] : undefined;
+    const detected =
+      this.hass &&
+      planEntity &&
+      (cfg.statistic_type ?? "auto") === "auto" &&
+      planState?.attributes.device_class !== "monetary"
+        ? await detectCounterStatType(this.hass, planEntity, cfg.price_unit !== "custom")
+        : undefined;
+    const plan = this._costPlan(mode, detected);
     if ("error" in plan) return; // already handled by the blocker check
 
     this._notifyBusy = true;
@@ -426,7 +440,8 @@ export class M3CostCardEditor extends LitElement implements LovelaceCardEditor {
           select: {
             mode: "dropdown",
             options: [
-              { value: "state", label: this._t("editor_energy_statistic_type_state") },
+              { value: "auto", label: this._t("editor_cost_statistic_type_auto") },
+              { value: "state", label: this._t("editor_cost_statistic_type_state") },
               { value: "change", label: this._t("editor_energy_statistic_type_change") },
             ],
           },
@@ -592,7 +607,7 @@ export class M3CostCardEditor extends LitElement implements LovelaceCardEditor {
       price_unit_label: this._config.price_unit_label ?? "",
       price_quantity_factor: this._config.price_quantity_factor ?? 1,
       entity: this._config.entity,
-      statistic_type: this._config.statistic_type ?? "state",
+      statistic_type: this._config.statistic_type ?? "auto",
       base_fee: this._config.base_fee ?? 0,
       currency: this._config.currency ?? DEFAULT_COST_CURRENCY,
     };
