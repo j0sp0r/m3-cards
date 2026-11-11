@@ -57,8 +57,15 @@ export class M3EnergyFlowCardEditor extends LitElement implements LovelaceCardEd
         { name: "grid_import_entity", selector: { entity: { domain: "sensor" } } },
         { name: "grid_export_entity", selector: { entity: { domain: "sensor" } } },
         { name: "battery_entity", selector: { entity: { domain: "sensor" } } },
+        { name: "battery_invert", selector: { boolean: {} } },
+        { name: "battery_charge_entity", selector: { entity: { domain: "sensor" } } },
+        { name: "home_entity", selector: { entity: { domain: "sensor" } } },
       );
     }
+    fields.push({
+      name: "battery_soc_entity",
+      selector: { entity: { domain: "sensor", device_class: "battery" } },
+    });
     return fields;
   }
 
@@ -117,6 +124,10 @@ export class M3EnergyFlowCardEditor extends LitElement implements LovelaceCardEd
       grid_import_entity: "editor_flow_grid_import_entity",
       grid_export_entity: "editor_flow_grid_export_entity",
       battery_entity: "editor_flow_battery_entity",
+      battery_invert: "editor_flow_battery_invert",
+      battery_charge_entity: "editor_flow_battery_charge_entity",
+      battery_soc_entity: "editor_flow_battery_soc_entity",
+      home_entity: "editor_flow_home_entity",
       show_self_sufficiency: "editor_flow_show_self_sufficiency",
       subtitle: "editor_flow_subtitle",
       pv_name: "editor_flow_pv_name",
@@ -222,6 +233,10 @@ export class M3EnergyFlowCardEditor extends LitElement implements LovelaceCardEd
       grid_import_entity: this._config.grid_import_entity,
       grid_export_entity: this._config.grid_export_entity,
       battery_entity: this._config.battery_entity,
+      battery_invert: this._config.battery_invert ?? false,
+      battery_charge_entity: this._config.battery_charge_entity,
+      home_entity: this._config.home_entity,
+      battery_soc_entity: this._config.battery_soc_entity,
     };
     const contentData = {
       show_self_sufficiency: this._config.show_self_sufficiency ?? true,

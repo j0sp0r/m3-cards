@@ -436,7 +436,23 @@ export interface M3EnergyFlowCardConfig {
   solar_entity?: string;
   grid_import_entity?: string;
   grid_export_entity?: string;
+  /**
+   * `source: entities`: the battery's power or energy. Positive discharges
+   * and negative charges, as Home Assistant counts a battery; flip it with
+   * `battery_invert` for a sensor that counts charging as positive (#54).
+   * With `battery_charge_entity` it is the discharge alone.
+   */
   battery_entity?: string;
+  battery_invert?: boolean;
+  /** A separate charge sensor (positive), e.g. "charged today" in kWh. */
+  battery_charge_entity?: string;
+  /** State of charge in %, shown with the battery node. */
+  battery_soc_entity?: string;
+  /**
+   * The home's consumption from a sensor of its own, instead of solar plus
+   * import minus export and charge.
+   */
+  home_entity?: string;
   name?: string;
   icon?: string;
   /** Header line under the name. Default "Today", or "Now" for power sensors. */

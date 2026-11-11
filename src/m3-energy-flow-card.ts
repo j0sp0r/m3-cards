@@ -122,6 +122,8 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
   @state() private _gridExport = 0;
   @state() private _batteryCharge = 0;
   @state() private _batteryDischarge = 0;
+  /** `home_entity`'s reading; undefined computes the home from the flows. */
+  @state() private _homeReading?: number;
   @state() private _hasSolar = false;
   @state() private _hasBattery = false;
   @state() private _noEnergyDashboard = false;
@@ -225,7 +227,14 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
   private _readEntities(): void {
     const c = this._config;
     if (!c || !this.hass) return;
-    const ids = [c.solar_entity, c.grid_import_entity, c.grid_export_entity, c.battery_entity];
+    const ids = [
+      c.solar_entity,
+      c.grid_import_entity,
+      c.grid_export_entity,
+      c.battery_entity,
+      c.battery_charge_entity,
+      c.home_entity,
+    ];
     const sensors = ids
       .filter((id): id is string => !!id && !!this.hass!.states[id])
       .map((id) => {
@@ -233,22 +242,34 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
         return { unit: a.unit_of_measurement as string | undefined, deviceClass: a.device_class as string | undefined };
       });
     const measure = flowMeasure(sensors);
-    const read = (id?: string): number => {
-      if (!id) return 0;
+    const signed = (id?: string): number | undefined => {
+      if (!id) return undefined;
       const st = this.hass!.states[id];
       const raw = st ? parseFloat(st.state) : NaN;
-      if (!st || isNaN(raw)) return 0;
-      return Math.max(0, toBase(raw, st.attributes.unit_of_measurement as string | undefined, measure));
+      if (!st || isNaN(raw)) return undefined;
+      return toBase(raw, st.attributes.unit_of_measurement as string | undefined, measure);
     };
+    const read = (id?: string): number => Math.max(0, signed(id) ?? 0);
     this._measure = measure;
     this._noEnergyDashboard = false;
     this._hasSolar = !!c.solar_entity;
-    this._hasBattery = !!c.battery_entity;
+    this._hasBattery = !!c.battery_entity || !!c.battery_charge_entity;
     this._solarTotal = read(c.solar_entity);
     this._gridImport = read(c.grid_import_entity);
     this._gridExport = read(c.grid_export_entity);
-    this._batteryDischarge = read(c.battery_entity);
-    this._batteryCharge = 0;
+    // One signed sensor carries both directions; before #54 a negative
+    // reading was dropped, so charging never left the home's figure.
+    if (c.battery_charge_entity) {
+      this._batteryDischarge = read(c.battery_entity);
+      this._batteryCharge = read(c.battery_charge_entity);
+    } else {
+      const battery = (signed(c.battery_entity) ?? 0) * (c.battery_invert ? -1 : 1);
+      this._batteryDischarge = Math.max(0, battery);
+      this._batteryCharge = Math.max(0, -battery);
+    }
+    const home = c.home_entity ? signed(c.home_entity) : undefined;
+    this._homeReading = home === undefined ? undefined : Math.max(0, home);
+
     this._loading = false;
   }
 
@@ -303,11 +324,33 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
   private _unitDivisor = 1;
   private _unitLabel = "kWh";
 
-  private _nodeLabel(key: "pv" | "grid" | "home" | "battery"): string {
+  private _nodeLabel(key: "pv" | "grid" | "home" | "battery", soc?: number): string {
     const c = this._config!;
     const own = { pv: c.pv_name, grid: c.grid_name, home: c.home_name, battery: c.battery_name }[key];
-    const name = own || this._t(`flow_node_${key}` as TranslationKey);
+    let name = own || this._t(`flow_node_${key}` as TranslationKey);
+    // The state of charge goes with the name, as the node's number is the
+    // flow: "Battery 76 % · W".
+    if (soc !== undefined) name = `${name} ${formatNumber(this._language, Math.round(soc))} %`;
     return this._unitLabel ? `${name} · ${this._unitLabel}` : name;
+  }
+
+  /**
+   * What the home uses: `home_entity` when one is set, else what comes in
+   * (solar, import, battery discharge) less what goes elsewhere (export,
+   * battery charge). A hidden battery still counts — its charge is power
+   * the home did not use.
+   */
+  /** `battery_soc_entity` in %, with either source. */
+  private _batterySoc(): number | undefined {
+    const id = this._config?.battery_soc_entity;
+    const st = id ? this.hass?.states[id] : undefined;
+    const soc = st ? parseFloat(st.state) : NaN;
+    return isNaN(soc) ? undefined : soc;
+  }
+
+  private _homeConsumption(): number {
+    if (this._config?.source === "entities" && this._homeReading !== undefined) return this._homeReading;
+    return this._solarTotal + this._gridImport - this._gridExport - this._batteryCharge + this._batteryDischarge;
   }
 
   private _buildDiagram(
@@ -319,8 +362,7 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
     },
     showBattery: boolean,
   ): { nodes: FlowNodeData[]; flows: FlowLineData[]; viewHeight: number } {
-    const homeConsumption =
-      this._solarTotal + this._gridImport - this._gridExport - this._batteryCharge + this._batteryDischarge;
+    const homeConsumption = this._homeConsumption();
     // Solar goes to the battery first (a balcony battery sits between the
     // panels and the house), then out to the grid; the rest is the home's.
     const solarSpare = Math.max(0, this._solarTotal - this._gridExport);
@@ -396,7 +438,7 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
         color: colors.battery,
         icon: charging ? "mdi:battery-charging" : "mdi:battery-arrow-down-outline",
         value: batteryValue,
-        label: this._nodeLabel("battery"),
+        label: this._nodeLabel("battery", this._batterySoc()),
       });
       if (showBattery && chargeFromSolar > 0) {
         flows.push({
@@ -425,6 +467,9 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
       this._config?.grid_import_entity,
       this._config?.grid_export_entity,
       this._config?.battery_entity,
+      this._config?.battery_charge_entity,
+      this._config?.battery_soc_entity,
+      this._config?.home_entity,
     ]);
   }
 
@@ -487,8 +532,7 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
     );
     const maxFlow = Math.max(1, ...flows.map((f) => f.value));
 
-    const homeConsumption =
-      this._solarTotal + this._gridImport - this._gridExport - this._batteryCharge + this._batteryDischarge;
+    const homeConsumption = this._homeConsumption();
     const selfSufficiency =
       homeConsumption > 0
         ? Math.max(0, Math.min(100, ((homeConsumption - this._gridImport) / homeConsumption) * 100))

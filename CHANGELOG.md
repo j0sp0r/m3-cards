@@ -23,6 +23,16 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Energy flow card: a battery that charges** (#54). With `source:
+  entities` the battery sensor was read as discharge only and a negative
+  reading dropped, so charging was never taken off the home, which showed
+  the charge on top. The sensor is now signed as Home Assistant counts a
+  battery (positive discharges, negative charges); `battery_invert` flips it,
+  `battery_charge_entity` takes a separate charge sensor. A battery hidden
+  with `show_battery: never` still counts. New: `battery_soc_entity` shows
+  the state of charge with the battery's name, `home_entity` the home's own
+  consumption sensor in place of the calculated figure.
+
 - **Cost card: a meter that keeps counting costs what it used, not its
   reading** (#55). With `price_source: input_number` or `fixed` the card took
   each day's last reading, which is right only for a counter that resets

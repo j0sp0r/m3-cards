@@ -195,6 +195,9 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Autarkie-Balken | `show_self_sufficiency: true` bei 0 % und 100 % Grenzfällen | Balkenbreite clamped korrekt auf 0–100 %, kein Überlauf |
 | Leistungssensoren (#29) | `source: entities` mit drei W-Sensoren | „Jetzt“, Werte in W bzw. ab 1000 W in kW, „Autarkie jetzt“; Werte folgen jeder Änderung sofort |
 | Eigene Texte | `pv_name`, `grid_name`, `home_name`, `subtitle`, `unit` setzen | Texte erscheinen; `unit: kW` rechnet um, `unit: Watt` beschriftet nur |
+| Akku mit Vorzeichen (#54) | `source: entities`, Netz 1907 W, Akku-Sensor +9 W beim Laden mit `battery_invert: true`; dann −9 W ohne `invert` | Akku-Knoten „lädt“ mit 9 W, Haus 1898 W (nicht 1925) |
+| Versteckter Akku (#54) | Solar 58 W, Netz 427 W, Akku lädt 58 W, `show_battery: never` | Haus 427 W, nicht 485 |
+| Ladestand, eigener Hausverbrauch (#54) | `battery_soc_entity` setzen (beide Quellen); `home_entity` setzen | „Batterie 76 % · W“ unter dem Knoten; Haus zeigt den Sensorwert |
 
 ## M3 Counter Card
 
