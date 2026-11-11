@@ -85,6 +85,24 @@ A *band* keeps its captions: "Heat to" and "Cool above" are the only thing
 naming which of the two rows is which, alongside their colours. `expressive`
 has always drawn it this way; `tiles` now matches it.
 
+### Fan speed
+
+An air conditioner usually reports its fan speeds as `fan_modes` (`auto`,
+`low`, `medium`, `high`, or names of its own such as `turbo` or `1`–`5`).
+`show_fan_modes: true` offers them: in `tiles` as a row of pills under the
+mode row, in `expressive` as a button beside the mode button that opens a
+menu. The modes Home Assistant defines get an icon and a translated name;
+any other is shown by its name. Off by default, so an existing card does not
+grow a row; it appears only for an entity that reports fan modes and the
+`FAN_MODE` feature.
+
+```yaml
+type: custom:m3-climate-card
+entity: climate.living_room_ac
+show_fan_modes: true
+fan_modes_when: fan_only # only while the fan runs on its own
+```
+
 ### The `expressive` style
 
 <img src="docs/images/climate-card-expressive.png" alt="Climate Card: tiles vs expressive style (light theme)" width="640">
@@ -175,6 +193,8 @@ chevron, since the header no longer folds anything — see "Tapping the header".
 | `show_action_glow` | boolean | `true` | `style: expressive` only — the heat/cool frame around the card |
 | `show_presets` | boolean | `true` | Show preset selector (if the entity supports `preset_modes`) |
 | `preset_style` | `chip` \| `pill` | `chip` | Preset as its own wide row (`chip`) or as an extra pill in the mode row (`pill`) |
+| `show_fan_modes` | boolean | `false` | The fan speed, for an entity that reports `fan_modes` (an air conditioner, mostly). See [Fan speed](#fan-speed) |
+| `fan_modes_when` | `always` \| `fan_only` | `always` | Show the fan speed in every mode, or only while the HVAC mode is "fan only" |
 | `show_sensors` | boolean | `true` | Show sensor chips (temperature/humidity) |
 | `temperature_chip_placement` | `info_row` \| `header` | `info_row` | Current temperature in the sensor row or as a chip top-right in the header |
 | `temperature_sensor` | string | – | External temperature sensor, overrides `current_temperature` |

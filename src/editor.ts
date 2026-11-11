@@ -103,6 +103,23 @@ export class M3ClimateCardEditor
           },
         },
       },
+      { name: "show_fan_modes", selector: { boolean: {} } },
+      ...(this._config?.show_fan_modes
+        ? ([
+            {
+              name: "fan_modes_when",
+              selector: {
+                select: {
+                  mode: "dropdown",
+                  options: [
+                    { value: "always", label: this._t("editor_fan_modes_when_always") },
+                    { value: "fan_only", label: this._t("editor_fan_modes_when_fan_only") },
+                  ],
+                },
+              },
+            },
+          ] as SchemaEntry[])
+        : []),
       { name: "show_sensors", selector: { boolean: {} } },
       {
         name: "hidden_modes",
@@ -227,6 +244,8 @@ export class M3ClimateCardEditor
       battery_threshold: "editor_battery_threshold",
       glass_background: "editor_glass_background",
       preset_style: "editor_preset_style",
+      show_fan_modes: "editor_show_fan_modes",
+      fan_modes_when: "editor_fan_modes_when",
       hidden_modes: "editor_hidden_modes",
       temperature_chip_placement: "editor_temperature_chip_placement",
       height: "editor_height",
@@ -338,6 +357,8 @@ export class M3ClimateCardEditor
       show_action_glow: this._config.show_action_glow ?? true,
       show_presets: this._config.show_presets ?? true,
       preset_style: this._config.preset_style ?? "chip",
+      show_fan_modes: this._config.show_fan_modes ?? false,
+      fan_modes_when: this._config.fan_modes_when ?? "always",
       show_sensors: this._config.show_sensors ?? true,
       hidden_modes: this._config.hidden_modes ?? [],
     };

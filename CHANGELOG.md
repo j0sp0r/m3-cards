@@ -8,6 +8,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **Climate card: the fan speed** (#53). `show_fan_modes: true` offers the
+  entity's `fan_modes`: a row of pills under the mode row in `tiles`, a
+  button with a menu beside the mode button in `expressive`. The modes Home
+  Assistant names get an icon and a translated name, any other its own name.
+  `fan_modes_when: fan_only` shows them only in the fan-only mode. Off by
+  default, and only for an entity that reports fan modes.
+
 - **Multi graph: a name of your own under the large value** (#52).
   `summary_name` replaces the sensor's name under the value shown large
   with `summary: entity`. The other sensors could already be renamed, each

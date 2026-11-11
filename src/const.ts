@@ -157,6 +157,33 @@ export const PRESET_ICONS: Record<string, string> = {
 
 export const PRESET_ICON_FALLBACK = "mdi:tune-variant";
 
+/**
+ * Icons for the fan modes Home Assistant names in its climate integration
+ * (`FAN_*` in `homeassistant.components.climate.const`), plus the common
+ * spellings integrations add. A mode not in here — "turbo", "level 4", "3" —
+ * is shown by its name instead, since a guessed icon would claim a strength
+ * the card cannot know.
+ */
+export const FAN_MODE_ICONS: Record<string, string> = {
+  auto: "mdi:fan-auto",
+  off: "mdi:fan-off",
+  on: "mdi:fan",
+  low: "mdi:fan-speed-1",
+  medium: "mdi:fan-speed-2",
+  middle: "mdi:fan-speed-2",
+  mid: "mdi:fan-speed-2",
+  high: "mdi:fan-speed-3",
+  quiet: "mdi:fan-chevron-down",
+  silent: "mdi:fan-chevron-down",
+  focus: "mdi:target",
+  diffuse: "mdi:weather-windy",
+};
+
+export const FAN_MODE_ICON_FALLBACK = "mdi:fan";
+
+/** `ClimateEntityFeature.FAN_MODE` */
+export const CLIMATE_FEATURE_FAN_MODE = 8;
+
 export const WINDOW_OPEN_COLOR = PALETTE.home;
 
 export const DEFAULT_BATTERY_THRESHOLD = 20;

@@ -150,6 +150,17 @@ export interface M3ClimateCardConfig extends DetailModeConfig {
   show_action_glow?: boolean;
   /** Show the mode line under the card name in the header. @default true */
   show_header_status?: boolean;
+  /**
+   * The fan speed (#53): a row of the entity's `fan_modes` in style `tiles`,
+   * a button with a menu in style `expressive`. Only for an entity that
+   * reports fan modes. @default false
+   */
+  show_fan_modes?: boolean;
+  /**
+   * `always` (the default) shows the fan speed in every mode; `fan_only`
+   * only while the HVAC mode is "fan only".
+   */
+  fan_modes_when?: "always" | "fan_only";
   height?: number;
   radius?: number;
   corners?: CornerRadiusConfig;

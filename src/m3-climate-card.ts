@@ -25,6 +25,9 @@ import {
   MODE_ICONS,
   PRESET_ICONS,
   PRESET_ICON_FALLBACK,
+  FAN_MODE_ICONS,
+  FAN_MODE_ICON_FALLBACK,
+  CLIMATE_FEATURE_FAN_MODE,
   WINDOW_OPEN_COLOR,
   DEFAULT_BATTERY_THRESHOLD,
   DEFAULT_TEMP_STEP,
@@ -96,6 +99,7 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
   @state() private _config?: M3ClimateCardConfig;
   @state() private _presetMenuOpen = false;
   @state() private _modeMenuOpen = false;
+  @state() private _fanMenuOpen = false;
 
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
     await import("./editor");
@@ -165,7 +169,8 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
     super.disconnectedCallback();
     // The dropdown lives on document.body, so it would outlive a card removed
     // while its menu is open (view switch, editor preview).
-    if (this._modeMenuOpen || this._presetMenuOpen) closeDropdownMenu();
+    if (this._modeMenuOpen || this._presetMenuOpen || this._fanMenuOpen)
+      closeDropdownMenu();
   }
 
   private get _style(): ClimateCardStyle {
@@ -228,6 +233,58 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
     this.hass.callService("climate", "set_preset_mode", {
       entity_id: this._config.entity,
       preset_mode: preset,
+    });
+  }
+
+  private _selectFanMode(fanMode: string, unavailable: boolean): void {
+    if (unavailable || !this.hass || !this._config) return;
+    this.hass.callService("climate", "set_fan_mode", {
+      entity_id: this._config.entity,
+      fan_mode: fanMode,
+    });
+  }
+
+  private _fanModeIcon(fanMode?: string): string {
+    if (!fanMode) return FAN_MODE_ICON_FALLBACK;
+    return FAN_MODE_ICONS[fanMode.toLowerCase()] ?? FAN_MODE_ICON_FALLBACK;
+  }
+
+  /** Whether the mode has an icon of its own, or has to be shown by name. */
+  private _fanModeHasIcon(fanMode: string): boolean {
+    return fanMode.toLowerCase() in FAN_MODE_ICONS;
+  }
+
+  // The names HA defines are translated; anything an integration made up
+  // ("turbo", "level_4", "3") is shown as it comes, tidied up.
+  private _fanModeLabel(fanMode?: string): string {
+    if (!fanMode) return this._t("fan_mode");
+    const key = `fan_mode_${fanMode.toLowerCase()}` as TranslationKey;
+    const translated = this._t(key);
+    if (translated !== key) return translated;
+    return fanMode.charAt(0).toUpperCase() + fanMode.slice(1).replace(/_/g, " ");
+  }
+
+  private _openFanMenu(
+    event: Event,
+    fanModes: string[],
+    currentFanMode: string | undefined,
+    unavailable: boolean,
+  ): void {
+    if (unavailable || fanModes.length === 0) return;
+    this._fanMenuOpen = true;
+    openDropdownMenu({
+      anchor: event.currentTarget as HTMLElement,
+      label: this._t("fan_mode"),
+      items: fanModes.map((fanMode) => ({
+        value: fanMode,
+        label: this._fanModeLabel(fanMode),
+        icon: this._fanModeIcon(fanMode),
+        selected: fanMode === currentFanMode,
+      })),
+      onSelect: (fanMode) => this._selectFanMode(fanMode, unavailable),
+      onClose: () => {
+        this._fanMenuOpen = false;
+      },
     });
   }
 
@@ -489,6 +546,25 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
       ? attrs.preset_modes
       : [];
 
+    // The fan speed (#53) is opt-in: an air conditioner's card should not
+    // grow a row on update. It needs the entity to report its modes; the
+    // feature bit is checked too, so an integration that lists modes it then
+    // refuses does not get a row of dead buttons.
+    const fanModes: string[] = Array.isArray(attrs.fan_modes)
+      ? attrs.fan_modes.filter((m: unknown): m is string => typeof m === "string")
+      : [];
+    const fanSupported =
+      fanModes.length > 0 &&
+      ((attrs.supported_features ?? 0) & CLIMATE_FEATURE_FAN_MODE) !== 0;
+    const showFanModes =
+      config.show_fan_modes === true &&
+      fanSupported &&
+      (config.fan_modes_when !== "fan_only" ||
+        unavailable ||
+        currentMode === "fan_only");
+    const currentFanMode =
+      typeof attrs.fan_mode === "string" ? attrs.fan_mode : undefined;
+
     // In heat/cool a thermostat holds a band rather than one setpoint. The
     // attributes decide which it is — see shared/climate-target.ts.
     const target = readClimateTarget(attrs);
@@ -520,6 +596,9 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
       showPresets: config.show_presets !== false && presetModes.length > 0,
       showSensors: config.show_sensors !== false,
       presetStyle: config.preset_style ?? "chip",
+      fanModes,
+      showFanModes,
+      currentFanMode,
       tempInHeader: config.temperature_chip_placement === "header",
       target,
       step,
@@ -680,6 +759,8 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
                 `
               : nothing}
           </div>
+
+          ${v.showFanModes ? this._renderFanRow(v) : nothing}
 
           ${v.showSensors &&
           ((v.currentTemperature !== undefined && !v.tempInHeader) ||
@@ -1164,9 +1245,85 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
                   </button>
                 `
               : nothing}
+            ${v.showFanModes
+              ? html`
+                  <button
+                    class="preset-button fan-button ${showControlLabels
+                      ? ""
+                      : "icon-only"}"
+                    ?disabled=${v.dimUnavailable}
+                    aria-label=${`${this._t("fan_mode")}: ${this._fanModeLabel(v.currentFanMode)}`}
+                    title=${`${this._t("fan_mode")}: ${this._fanModeLabel(v.currentFanMode)}`}
+                    aria-haspopup="listbox"
+                    aria-expanded=${String(this._fanMenuOpen)}
+                    @click=${(event: Event) =>
+                      this._openFanMenu(
+                        event,
+                        v.fanModes,
+                        v.currentFanMode,
+                        v.dimUnavailable,
+                      )}
+                  >
+                    ${this._renderFanButtonContent(v.currentFanMode, showControlLabels)}
+                  </button>
+                `
+              : nothing}
           </div>
         </div>
       </ha-card>
+    `;
+  }
+
+  /**
+   * The expressive fan button. Icon-only, a mode with no icon of its own
+   * ("1", "2", "3") would show the plain fan — the same glyph as the mode
+   * button beside it in fan-only mode — so a short name is shown instead.
+   */
+  private _renderFanButtonContent(
+    fanMode: string | undefined,
+    showLabel: boolean,
+  ): TemplateResult {
+    const label = this._fanModeLabel(fanMode);
+    if (showLabel) {
+      return html`<ha-icon icon=${this._fanModeIcon(fanMode)}></ha-icon
+        ><span>${label}</span>`;
+    }
+    if (fanMode && !this._fanModeHasIcon(fanMode) && label.length <= 3) {
+      return html`<span class="fan-short">${label}</span>`;
+    }
+    return html`<ha-icon icon=${this._fanModeIcon(fanMode)}></ha-icon>`;
+  }
+
+  /**
+   * Style `tiles`: one pill per fan mode under the mode row, in the order the
+   * entity lists them (integrations list them weakest first). The active one
+   * takes the fan-only colour, as the fan is what it sets. A mode without a
+   * known icon shows its name, so "turbo" or "3" still says what it is.
+   */
+  private _renderFanRow(v: ClimateView): TemplateResult {
+    const color = this._modeColor("fan_only");
+    return html`
+      <div class="mode-row fan-row" role="group" aria-label=${this._t("fan_mode")}>
+        ${v.fanModes.map((fanMode) => {
+          const active = fanMode === v.currentFanMode && !v.unavailable;
+          const label = this._fanModeLabel(fanMode);
+          return html`
+            <button
+              class="pill fan-pill ${active ? "active" : ""}"
+              style=${`--pill-color: ${color};`}
+              ?disabled=${v.dimUnavailable}
+              aria-label=${label}
+              aria-pressed=${String(active)}
+              title=${label}
+              @click=${() => this._selectFanMode(fanMode, v.dimUnavailable)}
+            >
+              ${this._fanModeHasIcon(fanMode)
+                ? html`<ha-icon icon=${this._fanModeIcon(fanMode)}></ha-icon>`
+                : html`<span class="fan-pill-label">${label}</span>`}
+            </button>
+          `;
+        })}
+      </div>
     `;
   }
 
@@ -1359,6 +1516,35 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
     }
 
     .pill.active ha-icon {
+      color: color-mix(in srgb, var(--pill-color) 65%, black 35%);
+    }
+
+    /* Fan speeds: a lower row than the HVAC modes above it, the second
+       decision rather than the first. */
+    .fan-row .pill {
+      height: 44px;
+      min-width: 0;
+    }
+
+    .fan-row .pill.active {
+      border-radius: 14px;
+    }
+
+    .fan-pill-label {
+      font-size: 13px;
+      font-weight: 600;
+      padding: 0 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .style-expressive .fan-button .fan-short {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .fan-row .pill.active .fan-pill-label {
       color: color-mix(in srgb, var(--pill-color) 65%, black 35%);
     }
 
