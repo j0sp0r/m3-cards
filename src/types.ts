@@ -2039,6 +2039,55 @@ export interface M3LeakCardConfig extends NotifyConfigBase, DetailModeConfig {
   card_version?: string;
 }
 
+/** A filter over the availability card's watched devices. Entity ids accept `*` and `?`. */
+export interface AvailabilityFilterConfig {
+  devices?: string[];
+  integrations?: string[];
+  areas?: string[];
+  entities?: string[];
+}
+
+export type AvailabilityMuteDuration = "1h" | "24h" | "7d" | "forever";
+
+export interface M3AvailabilityCardConfig extends DetailModeConfig {
+  type: string;
+  /** @default "Erreichbarkeit" / "Availability" */
+  title?: string;
+  icon?: string;
+  /** Set: only this part of the install is watched. */
+  include?: AvailabilityFilterConfig;
+  exclude?: AvailabilityFilterConfig;
+  /** Entities without a device as rows of their own. @default false */
+  include_orphan_entities?: boolean;
+  /** Leave config and diagnostic entities out of the decision. @default true */
+  ignore_diagnostic?: boolean;
+  /** Up to here a device counts as "just went offline". @default 60 */
+  recent_minutes?: number;
+  /** From here a device is shown in the error colour. @default 24 */
+  critical_hours?: number;
+  /** Silence longer than this flags a device as quiet. Off by default. */
+  stale_hours?: number;
+  /** The integrations silence is checked for; nothing else is. */
+  stale_integrations?: string[];
+  /** Integration chips above the list. @default true */
+  show_filters?: boolean;
+  /** Rows before "+N more". @default 10 */
+  max_items?: number;
+  /** What a tap on the bell mutes for. @default "24h" */
+  mute_default?: AvailabilityMuteDuration;
+  accent_color?: string;
+  warn_color?: string;
+  critical_color?: string;
+  text_color?: string;
+  secondary_text_color?: string;
+  card_background?: string;
+  animation?: "auto" | "on" | "off";
+  glass_background?: boolean;
+  radius?: number;
+  corners?: CornerRadiusConfig;
+  card_version?: string;
+}
+
 export interface WasteEntityConfig {
   entity: string;
   name?: string;

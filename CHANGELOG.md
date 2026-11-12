@@ -6,6 +6,18 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Added
+
+- **Availability card** (`m3-availability-card`, card 56): the devices Home
+  Assistant cannot reach, one row per device rather than per entity.
+  "Just went offline" and "Offline for a while", red after a day, filter
+  chips per integration, a single line when everything answers. "Offline
+  since" survives restarts (one history lookup per outage). The bell mutes a
+  device for a set time or until it is back, with undo; mutes are stored per
+  user and follow you between devices. Optional silence detection for named
+  integrations. Reads only the registries the frontend already holds, so it
+  works without admin rights.
+
 ### Fixed
 
 - **Nav card: a bar at the bottom no longer covers the end of the view.**

@@ -11,6 +11,7 @@ body:
         - Alarm (m3-alarm-card)
         - Appliance (m3-appliance-card)
         - Aquarium (m3-aquarium-card)
+        - Availability (m3-availability-card)
         - Battery (m3-battery-card)
         - Button (m3-button-card)
         - Calendar (m3-calendar-card)
