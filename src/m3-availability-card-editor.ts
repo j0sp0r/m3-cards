@@ -74,7 +74,7 @@ export class M3AvailabilityCardEditor extends LitElement implements LovelaceCard
         selector: {
           select: {
             mode: "dropdown",
-            options: (["1h", "24h", "7d", "forever"] as const).map((d) => ({
+            options: (["1h", "24h", "7d", "forever", "permanent"] as const).map((d) => ({
               value: d,
               label: this._t(`avail_mute_${d}` as TranslationKey),
             })),

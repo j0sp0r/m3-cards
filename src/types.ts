@@ -2047,7 +2047,7 @@ export interface AvailabilityFilterConfig {
   entities?: string[];
 }
 
-export type AvailabilityMuteDuration = "1h" | "24h" | "7d" | "forever";
+export type AvailabilityMuteDuration = "1h" | "24h" | "7d" | "forever" | "permanent";
 
 export interface M3AvailabilityCardConfig extends DetailModeConfig {
   type: string;

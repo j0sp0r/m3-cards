@@ -8262,12 +8262,15 @@ install is watched.
 
 The bell on a row mutes it for `mute_default` (24 hours unless set
 otherwise); a long press, a right click, the context-menu key or
-Shift+Enter offer 1 hour, 24 hours, 7 days or until the device is back. A
-snackbar offers to undo it. Muted devices collect behind a small chip at the
-bottom, where each can be shown again.
+Shift+Enter offer 1 hour, 24 hours, 7 days, until the device is back, or
+permanently. A snackbar offers to undo it. Muted devices collect behind a
+small chip at the bottom, where each can be shown again.
 
 A mute covers one outage: once the device is reachable again it is
-forgotten. Mutes are stored in Home Assistant's per-user frontend data, so
+forgotten. **Permanently** is for a device whose outages are expected — a TV
+that is off whenever its plug is — and stays through every later outage until
+it is lifted by hand. To leave a device out entirely, including from the
+"of Y" count, use `exclude` instead. Mutes are stored in Home Assistant's per-user frontend data, so
 they hold on every device you are signed in on (with the browser's own
 storage as a fallback).
 
@@ -8305,7 +8308,7 @@ stale_integrations: [zigbee2mqtt]
 | `stale_integrations` | list | `[]` | The integrations `stale_hours` applies to |
 | `show_filters` | boolean | `true` | Integration chips, when more than one integration is involved |
 | `max_items` | number | `10` | Rows before "+N more"; `0` shows all |
-| `mute_default` | `1h` \| `24h` \| `7d` \| `forever` | `24h` | What a tap on the bell mutes for |
+| `mute_default` | `1h` \| `24h` \| `7d` \| `forever` \| `permanent` | `24h` | What a tap on the bell mutes for (`forever`: until back online) |
 | `warn_color` / `critical_color` | string | amber / red | The two state colours |
 | `accent_color` | string | green | The "All online" colour |
 | `detail_mode` | `sheet` \| `more_info` | `more_info` | For users without admin rights a tap opens the device's main entity; admins go to the device page |

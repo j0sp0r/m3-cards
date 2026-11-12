@@ -50,10 +50,15 @@ export async function saveUserData(hass: HomeAssistant | undefined, key: string,
   }
 }
 
-/** A muted device: until when (null: until it is back online), and since when. */
+/**
+ * A muted device: until when (null: no end time), since when, and whether it
+ * outlives the outage. A plain mute covers one outage; a permanent one stays
+ * for every later outage too — a TV that is off whenever its plug is off.
+ */
 export interface MuteEntry {
   until: number | null;
   at: number;
+  permanent?: boolean;
 }
 
 export type MuteMap = Record<string, MuteEntry>;
@@ -61,6 +66,7 @@ export type MuteMap = Record<string, MuteEntry>;
 /**
  * Drops expired mutes and, when the offline set is known, mutes of devices
  * that are reachable again — a mute covers one outage, not the next one.
+ * Permanent mutes stay until they are lifted by hand.
  * Returns the same object when nothing changed, so callers can skip a save.
  */
 export function pruneMutes(mutes: MuteMap, now: number, offlineKeys?: Set<string>): MuteMap {
@@ -68,7 +74,7 @@ export function pruneMutes(mutes: MuteMap, now: number, offlineKeys?: Set<string
   const out: MuteMap = {};
   for (const [key, entry] of Object.entries(mutes)) {
     const expired = entry.until !== null && entry.until <= now;
-    const recovered = offlineKeys !== undefined && !offlineKeys.has(key);
+    const recovered = !entry.permanent && offlineKeys !== undefined && !offlineKeys.has(key);
     if (expired || recovered) {
       changed = true;
       continue;
@@ -89,6 +95,7 @@ export const MUTE_DURATIONS = {
   "24h": 86_400_000,
   "7d": 604_800_000,
   forever: null,
+  permanent: null,
 } as const;
 
 export type MuteDuration = keyof typeof MUTE_DURATIONS;
@@ -99,11 +106,11 @@ export function parseMutes(raw: unknown): MuteMap {
   const out: MuteMap = {};
   for (const [key, v] of Object.entries(raw as Record<string, unknown>)) {
     if (!v || typeof v !== "object") continue;
-    const e = v as { until?: unknown; at?: unknown };
+    const e = v as { until?: unknown; at?: unknown; permanent?: unknown };
     const until = e.until === null ? null : typeof e.until === "number" ? e.until : undefined;
     const at = typeof e.at === "number" ? e.at : 0;
     if (until === undefined) continue;
-    out[key] = { until, at };
+    out[key] = e.permanent === true ? { until: null, at, permanent: true } : { until, at };
   }
   return out;
 }

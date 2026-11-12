@@ -202,6 +202,13 @@ describe("mutes", () => {
     expect(Object.keys(pruneMutes(m, NOW, new Set(["c"])))).toEqual(["c"]);
   });
 
+  it("keeps a permanent mute when the device comes back", () => {
+    const m = { tv: { until: null, at: 0, permanent: true }, plug: { until: null, at: 0 } };
+    expect(Object.keys(pruneMutes(m, NOW, new Set()))).toEqual(["tv"]);
+    expect(isMuted(m, "tv", NOW)).toBe(true);
+    expect(parseMutes({ tv: { until: 5, at: 1, permanent: true } })).toEqual({ tv: { until: null, at: 1, permanent: true } });
+  });
+
   it("returns the same object when nothing changed", () => {
     const m = { b: { until: null, at: 0 } };
     expect(pruneMutes(m, NOW, new Set(["b"]))).toBe(m);

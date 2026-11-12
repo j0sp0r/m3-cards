@@ -315,10 +315,15 @@ export class M3AvailabilityCard extends TemplatedCard(LitElement) implements Lov
     const previous = this._mutes[key];
     const span = MUTE_DURATIONS[duration];
     const now = Date.now();
-    this._mutes = { ...this._mutes, [key]: { until: span === null ? null : now + span, at: now } };
+    const permanent = duration === "permanent";
+    this._mutes = {
+      ...this._mutes,
+      [key]: permanent ? { until: null, at: now, permanent: true } : { until: span === null ? null : now + span, at: now },
+    };
     void saveUserData(this.hass, MUTES_KEY, this._mutes);
-    const message =
-      span === null
+    const message = permanent
+      ? this._t("avail_muted_permanent").replace("{name}", f.unit.name)
+      : span === null
         ? this._t("avail_muted_forever").replace("{name}", f.unit.name)
         : this._t("avail_muted_for").replace("{name}", f.unit.name).replace("{t}", this._durationLabel(duration));
     showSnackbar({
@@ -345,14 +350,14 @@ export class M3AvailabilityCard extends TemplatedCard(LitElement) implements Lov
   }
 
   private _openMuteMenu(f: FlaggedUnit, anchor: HTMLElement): void {
-    const durations: MuteDuration[] = ["1h", "24h", "7d", "forever"];
+    const durations: MuteDuration[] = ["1h", "24h", "7d", "forever", "permanent"];
     openDropdownMenu({
       anchor,
       label: this._t("avail_mute_menu"),
       items: durations.map((d) => ({
         value: d,
         label: this._durationLabel(d),
-        icon: d === "forever" ? "mdi:bell-off" : "mdi:bell-sleep",
+        icon: d === "permanent" ? "mdi:bell-cancel" : d === "forever" ? "mdi:bell-off" : "mdi:bell-sleep",
       })),
       onSelect: (value) => this._mute(f, value as MuteDuration),
     });
@@ -653,7 +658,11 @@ export class M3AvailabilityCard extends TemplatedCard(LitElement) implements Lov
                         (f) => html`<div class="muted-row">
                           <ha-icon icon=${unitIcon(f.unit.primary, this.hass?.states[f.unit.primary] as StateLike | undefined)}></ha-icon>
                           <span class="muted-name">${f.unit.name}</span>
-                          <span class="muted-when">${this._duration(f.since)}</span>
+                          <span class="muted-when"
+                            >${this._mutes[f.unit.key]?.permanent
+                              ? this._t("avail_muted_tag_permanent")
+                              : this._duration(f.since)}</span
+                          >
                           <button class="unmute" @click=${() => this._unmute(f)} aria-label=${`${this._t("avail_unmute")}: ${f.unit.name}`}>
                             <ha-icon icon="mdi:bell-ring-outline"></ha-icon>
                           </button>

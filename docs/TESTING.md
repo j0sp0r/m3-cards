@@ -451,6 +451,7 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Neustart | HA neu starten, während ein Gerät seit Tagen offline ist | Danach weiter „seit X Tagen“, nicht „seit 2 Min.“ |
 | Ausschlüsse | `exclude` mit Gerät, Integration, Bereich, Muster `sensor.*_linkquality` | Ausgeschlossenes taucht nicht auf, „von Y“ zählt es nicht |
 | Stummschalten | Glocke tippen, dann „Rückgängig“; Glocke halten (Rechtsklick, Kontextmenü-Taste, Umschalt+Enter) | Snackbar 5 s mit Rückgängig; Menü 1 Std./24 Std./7 Tage/Bis wieder online |
+| Dauerhaft stumm (#Wunsch 12.11.) | Gerät „dauerhaft“ stummschalten, wieder einschalten, erneut ausschalten | Bleibt stumm, steht in der Stumm-Liste mit „dauerhaft“; Aufheben dort zeigt es wieder |
 | Geräteübergreifend | Am Rechner stummschalten, am Handy öffnen | Auch dort stumm; kommt das Gerät zurück, ist die Stummschaltung weg |
 | Alles online | Alle Geräte erreichbar | Eine Zeile mit grünem WLAN-Symbol, „Y Geräte überwacht“, „Alle online“ |
 | Tipp auf eine Zeile | Als Admin und als Nicht-Admin | Admin: Geräteseite; sonst Details der Hauptentität |
