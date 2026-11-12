@@ -450,7 +450,7 @@ export class M3AvailabilityCard extends TemplatedCard(LitElement) implements Lov
         <div class="rtext">
           <div class="rname">${f.unit.name}</div>
           <div class="rsub">
-            ${parts ? html`<span>${parts}</span><span class="dot">·</span>` : nothing}<span class="dur">${when}</span>
+            ${parts ? html`<span class="parts">${parts}</span><span class="dot">·</span>` : nothing}<span class="dur">${when}</span>
           </div>
         </div>
         <button
@@ -886,12 +886,23 @@ export class M3AvailabilityCard extends TemplatedCard(LitElement) implements Lov
         overflow: hidden;
         text-overflow: ellipsis;
       }
+      /* The duration is what the row is about: it never shrinks, the room and
+         integration give way first. */
       .rsub {
+        display: flex;
+        min-width: 0;
         font-size: 13px;
         color: var(--av-secondary, var(--secondary-text-color));
         white-space: nowrap;
+      }
+      .rsub .parts {
+        min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
+      }
+      .rsub .dot,
+      .rsub .dur {
+        flex: 0 0 auto;
       }
       .rsub .dot {
         margin: 0 5px;
