@@ -796,7 +796,39 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     const right = edge(Math.max(0, window.innerWidth - rect.right));
     this.style.setProperty("--nav-dock-left", `${left}px`);
     this.style.setProperty("--nav-dock-right", `${right}px`);
+    this._measureReserve();
   };
+
+  /**
+   * The room a bottom bar takes from the view: from the top of the bar to the
+   * bottom of the screen, so a floating bar's gap and the phone's safe area
+   * are in it too. Held open by the host (see the stylesheet). Read from the
+   * bar's layout box, not its painted one: auto-hide slides the bar away with
+   * a transform, and the view should not jump each time it does.
+   */
+  private _measureReserve(): void {
+    if (this._position !== "bottom" || this.hasAttribute("inline")) {
+      this.style.removeProperty("--nav-reserve");
+      return;
+    }
+    const bar = this.renderRoot?.querySelector<HTMLElement>(".bar");
+    const dock = this.renderRoot?.querySelector<HTMLElement>(".dock");
+    if (!bar || !dock) return;
+    // The offsets add up to the bar's untransformed place inside the dock.
+    let offset = 0;
+    let node: HTMLElement | null = bar;
+    while (node && node !== dock) {
+      offset += node.offsetTop;
+      node = node.offsetParent as HTMLElement | null;
+    }
+    const top = node === dock ? dock.getBoundingClientRect().top + offset : bar.getBoundingClientRect().top;
+    const reserve = Math.max(0, Math.round(window.innerHeight - top));
+    if (reserve > 0 && reserve < window.innerHeight / 2) {
+      const value = `${reserve}px`;
+      if (this.style.getPropertyValue("--nav-reserve") !== value)
+        this.style.setProperty("--nav-reserve", value);
+    }
+  }
 
   /**
    * The view's content area — everything Home Assistant leaves to the
@@ -911,6 +943,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
 
   protected updated(changed: PropertyValues): void {
     super.updated(changed);
+    this._measureReserve();
     if (this._config?.swipe_navigation === true) this._syncBarOverflow();
     if (this._swipeInk && this._swipe) this._paintSwipeInk(this._swipe);
     if (this._settling) {
@@ -3176,7 +3209,8 @@ export class M3NavCard extends LitElement implements LovelaceCard {
         ></div>`
       : nothing;
 
-    if (!this._editing) return html`${scrim}${body}${this._renderSubmenu()}`;
+    if (!this._editing)
+      return html`${scrim}<div class="dock">${body}</div>${this._renderSubmenu()}`;
 
     // In the editor the bar is drawn in the flow, and a bar in the flow is a
     // thin strip with a lot of empty space in it — which reads as an empty
@@ -3208,7 +3242,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
               )}
             </div>`
           : nothing}
-        ${body}
+        <div class="dock">${body}</div>
       </div>
       ${this._renderSubmenu()}
     `;
@@ -3223,10 +3257,30 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     /* The docked variants leave the card flow entirely. Their grid slot then
        collapses, which is the point: the bar sits over the view rather than
        taking a row of it. Only "segmented" stays in flow. */
-    :host([variant="footer"]),
-    :host([variant="header"]),
-    :host([variant="floating"]),
-    :host([variant="sheet"]) {
+    /* The host stays in the flow and holds the bar's height open at the end of
+       the view, so the last card can scroll out from under a bottom bar
+       instead of disappearing behind it. Before, the host itself was fixed and
+       its slot collapsed to nothing — every dashboard needed a spacer card.
+       Only the frame inside is fixed. A bar at the top reserves nothing: its
+       slot is wherever the card was placed, rarely the top of the view. */
+    :host([variant="footer"]:not([inline])),
+    :host([variant="header"]:not([inline])),
+    :host([variant="floating"]:not([inline])),
+    :host([variant="sheet"]:not([inline])) {
+      pointer-events: none;
+      height: 0;
+    }
+
+    :host([variant="footer"][edge="bottom"]:not([inline])),
+    :host([variant="floating"][edge="bottom"]:not([inline])),
+    :host([variant="sheet"][edge="bottom"]:not([inline])) {
+      height: var(--nav-reserve, 0px);
+    }
+
+    :host([variant="footer"]) .dock,
+    :host([variant="header"]) .dock,
+    :host([variant="floating"]) .dock,
+    :host([variant="sheet"]) .dock {
       position: fixed;
       /* Measured from the slot the card was given, so the bar lines up with the
          content instead of running underneath Home Assistant's sidebar. Fixed
@@ -3237,16 +3291,16 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       pointer-events: none;
     }
 
-    :host([variant="footer"][edge="bottom"]),
-    :host([variant="floating"][edge="bottom"]),
-    :host([variant="sheet"][edge="bottom"]) {
+    :host([variant="footer"][edge="bottom"]) .dock,
+    :host([variant="floating"][edge="bottom"]) .dock,
+    :host([variant="sheet"][edge="bottom"]) .dock {
       bottom: 0;
     }
 
-    :host([variant="header"][edge="top"]),
-    :host([variant="footer"][edge="top"]),
-    :host([variant="floating"][edge="top"]),
-    :host([variant="sheet"][edge="top"]) {
+    :host([variant="header"][edge="top"]) .dock,
+    :host([variant="footer"][edge="top"]) .dock,
+    :host([variant="floating"][edge="top"]) .dock,
+    :host([variant="sheet"][edge="top"]) .dock {
       top: 0;
     }
 
@@ -4190,6 +4244,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
        goes back into the flow so it can be seen, measured by the grid, and
        configured. */
     :host([inline]) {
+      pointer-events: auto;
+    }
+
+    :host([inline]) .dock {
       position: static !important;
       pointer-events: auto;
     }

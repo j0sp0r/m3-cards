@@ -4838,6 +4838,10 @@ items:
     path: /lovelace/garden
 ```
 
+Put the card **last in the view**. A bar docked at the bottom keeps its own
+height free where the card sits, so the last card scrolls up clear of it
+instead of ending underneath; no spacer card is needed.
+
 ### The five variants
 
 | Variant | What it is | When it is the right one |

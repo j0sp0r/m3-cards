@@ -4,6 +4,18 @@ Alle nennenswerten Änderungen an diesem Projekt werden hier dokumentiert.
 Format angelehnt an [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
+## [Unreleased]
+
+### Fixed
+
+- **Nav card: a bar at the bottom no longer covers the end of the view.**
+  The docked bar took no room in the view, so the last card could never
+  scroll out from under it and every dashboard needed a spacer card at the
+  end. The card now holds the bar's height open where it sits — the bar's
+  own height plus a floating bar's gap and the phone's safe area — so placed
+  last in the view it keeps the content clear. Spacer cards added for this
+  can go.
+
 ## [2.8.1] – 2026-11-11
 
 > **Upgrading:** a cost card saved from the editor before 2.8.1 may carry
