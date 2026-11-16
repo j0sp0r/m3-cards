@@ -76,6 +76,8 @@ interface FlowNodeData {
   icon: string;
   value: number;
   label: string;
+  /** A second, smaller line under the label (the grid's other direction). */
+  sub?: string;
 }
 
 interface FlowLineData {
@@ -167,6 +169,7 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
   }
 
   public getGridOptions(): LovelaceGridOptions {
+    if (this._config?.layout === "compact") return { columns: 6, rows: "auto", min_columns: 3 };
     return {
       columns: "full",
       rows: "auto",
@@ -234,6 +237,7 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
       c.battery_entity,
       c.battery_charge_entity,
       c.home_entity,
+      c.grid_entity,
     ];
     const sensors = ids
       .filter((id): id is string => !!id && !!this.hass!.states[id])
@@ -255,8 +259,16 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
     this._hasSolar = !!c.solar_entity;
     this._hasBattery = !!c.battery_entity || !!c.battery_charge_entity;
     this._solarTotal = read(c.solar_entity);
-    this._gridImport = read(c.grid_import_entity);
-    this._gridExport = read(c.grid_export_entity);
+    // One signed grid sensor carries both directions (#57): positive draws
+    // from the grid, negative feeds in, as Home Assistant counts a grid meter.
+    if (c.grid_entity) {
+      const grid = (signed(c.grid_entity) ?? 0) * (c.grid_invert ? -1 : 1);
+      this._gridImport = Math.max(0, grid);
+      this._gridExport = Math.max(0, -grid);
+    } else {
+      this._gridImport = read(c.grid_import_entity);
+      this._gridExport = read(c.grid_export_entity);
+    }
     // One signed sensor carries both directions; before #54 a negative
     // reading was dropped, so charging never left the home's figure.
     if (c.battery_charge_entity) {
@@ -348,6 +360,31 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
     return isNaN(soc) ? undefined : soc;
   }
 
+  /**
+   * The grid node shows whichever way the grid is running (#57). It used to
+   * show the import alone, so a house feeding in read "0" beside a line
+   * running into the grid. Over a day both happen: the larger one is the
+   * number, the other a small line under the label.
+   */
+  private _gridView(): { icon: string; value: number; label: string; sub?: string; exporting: boolean } {
+    const exporting = this._gridExport > this._gridImport;
+    const value = exporting ? this._gridExport : this._gridImport;
+    const other = exporting ? this._gridImport : this._gridExport;
+    const icon = exporting
+      ? "mdi:transmission-tower-export"
+      : this._gridImport > 0
+        ? "mdi:transmission-tower-import"
+        : "mdi:transmission-tower";
+    const c = this._config!;
+    const name = exporting ? this._t("flow_node_export") : c.grid_name || this._t("flow_node_grid");
+    const label = this._unitLabel ? `${name} · ${this._unitLabel}` : name;
+    const sub =
+      other > 0
+        ? this._t(exporting ? "flow_import_short" : "flow_export_short").replace("{v}", this._formatNumber(other))
+        : undefined;
+    return { icon, value, label, sub, exporting };
+  }
+
   private _homeConsumption(): number {
     if (this._config?.source === "entities" && this._homeReading !== undefined) return this._homeReading;
     return this._solarTotal + this._gridImport - this._gridExport - this._batteryCharge + this._batteryDischarge;
@@ -370,15 +407,17 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
     const solarToHome = Math.max(0, solarSpare - chargeFromSolar);
     const solarToGrid = Math.min(this._gridExport, this._solarTotal);
 
+    const grid = this._gridView();
     const nodes: FlowNodeData[] = [
       {
         key: "grid",
         x: GRID_POS.x,
         y: GRID_POS.y,
         color: colors.grid,
-        icon: "mdi:transmission-tower",
-        value: this._gridImport,
-        label: this._nodeLabel("grid"),
+        icon: grid.icon,
+        value: grid.value,
+        label: grid.label,
+        sub: grid.sub,
       },
       {
         key: "home",
@@ -470,6 +509,7 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
       this._config?.battery_charge_entity,
       this._config?.battery_soc_entity,
       this._config?.home_entity,
+      this._config?.grid_entity,
     ]);
   }
 
@@ -552,13 +592,35 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
       "m3p-secondary-text": secondaryTextColorCss,
     });
 
+    const compact = this._config.layout === "compact";
+    const showHeader = this._config.show_header ?? !compact;
+    if (compact) {
+      return html`
+        <ha-card style=${`${cssVars} border-radius: ${radius};`}>
+          <div
+            class="card-inner compact ${glassCardClass(this._config.glass_background)} ${animate ? "" : "no-animations"}"
+            style=${`border-radius: ${radius};${cardBackgroundCss ? ` background: ${cardBackgroundCss};` : ""}`}
+          >
+            ${showHeader ? renderCardHeader({ icon, name, subtitle }) : nothing}
+            ${this._renderCompact(
+              { pv: pvColor, grid: gridColor, home: homeColor, battery: batteryColor },
+              showBattery,
+              this._config.show_self_sufficiency !== false ? selfSufficiency : undefined,
+              animate,
+              foregroundColor(this, selfSufficiencyColor),
+            )}
+          </div>
+        </ha-card>
+      `;
+    }
+
     return html`
       <ha-card style=${`${cssVars} border-radius: ${radius};`}>
         <div
           class="card-inner ${glassCardClass(this._config.glass_background)} ${animate ? "" : "no-animations"}"
           style=${`border-radius: ${radius};${cardBackgroundCss ? ` background: ${cardBackgroundCss};` : ""}`}
         >
-          ${renderCardHeader({ icon, name, subtitle })}
+          ${showHeader ? renderCardHeader({ icon, name, subtitle }) : nothing}
 
           <div class="diagram-wrap ${this._loading ? "loading" : ""}">
             <svg
@@ -594,6 +656,113 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
             : nothing}
         </div>
       </ha-card>
+    `;
+  }
+
+  /**
+   * `layout: compact` (#54): the nodes side by side, home third as the
+   * reporter listed them — solar, grid, home, battery — about as tall as a
+   * tile. A small arrow under each value says which way it runs relative to
+   * the home tile: the tiles left of home point right when they feed it, the
+   * battery right of it points left. The home tile carries the
+   * self-sufficiency instead of a bar of its own.
+   */
+  private _renderCompact(
+    colors: { pv: string; grid: string; home: string; battery: string },
+    showBattery: boolean,
+    selfSufficiency: number | undefined,
+    animate: boolean,
+    selfColor: string,
+  ): unknown {
+    const c = this._config!;
+    type Dir = "toHome" | "fromHome" | undefined;
+    interface Tile { key: string; color: string; icon: string; value: number; name: string; dir: Dir; side: "left" | "right" | "home"; note?: string; soc?: number }
+    const tiles: Tile[] = [];
+    if (this._hasSolar)
+      tiles.push({ key: "pv", color: colors.pv, icon: "mdi:white-balance-sunny", value: this._solarTotal, name: c.pv_name || this._t("flow_node_pv"), dir: this._solarTotal > 0 ? "toHome" : undefined, side: "left" });
+    const grid = this._gridView();
+    tiles.push({
+      key: "grid",
+      color: colors.grid,
+      icon: grid.icon,
+      value: grid.value,
+      // Always "Grid" here: a narrow tile has no room for "Export", and the
+      // icon and the arrow already say which way it runs.
+      name: c.grid_name || this._t("flow_node_grid"),
+      dir: grid.exporting ? "fromHome" : this._gridImport > 0 ? "toHome" : undefined,
+      side: "left",
+    });
+    tiles.push({
+      key: "home",
+      color: colors.home,
+      icon: "mdi:home",
+      value: Math.max(0, this._homeConsumption()),
+      name: c.home_name || this._t("flow_node_home"),
+      dir: undefined,
+      side: "home",
+      note: selfSufficiency !== undefined ? this._t("flow_compact_self").replace("{p}", String(Math.round(selfSufficiency))) : undefined,
+    });
+    if (showBattery) {
+      const charging = this._batteryCharge > this._batteryDischarge;
+      const soc = this._batterySoc();
+      // The state of charge is the icon's fill here, in steps of ten: a narrow
+      // tile has no room for "Battery 64 %" (the title carries the number).
+      const level = soc !== undefined ? Math.max(10, Math.min(100, Math.round(soc / 10) * 10)) : undefined;
+      const levelIcon =
+        level === undefined
+          ? charging
+            ? "mdi:battery-charging"
+            : "mdi:battery-arrow-down-outline"
+          : charging
+            ? `mdi:battery-charging-${level}`
+            : level === 100
+              ? "mdi:battery"
+              : `mdi:battery-${level}`;
+      tiles.push({
+        key: "battery",
+        color: colors.battery,
+        icon: levelIcon,
+        value: charging ? this._batteryCharge : this._batteryDischarge,
+        name: c.battery_name || this._t("flow_node_battery"),
+        soc,
+        dir: this._batteryDischarge > this._batteryCharge ? "toHome" : charging ? "fromHome" : undefined,
+        side: "right",
+      });
+    }
+    const arrowFor = (t: Tile): string | undefined => {
+      if (!t.dir) return undefined;
+      const right = (t.side === "left") === (t.dir === "toHome");
+      return right ? "mdi:chevron-double-right" : "mdi:chevron-double-left";
+    };
+    return html`
+      <div
+        class="compact-row"
+        style=${`grid-template-columns: repeat(${tiles.length}, minmax(0, 1fr)); --flow-self: ${selfColor};`}
+      >
+        ${tiles.map((t) => {
+          const fill = tintOn(this, t.color, c.node_tint_opacity, t.value > 0 ? 18 : 8);
+          const arrow = arrowFor(t);
+          return html`
+            <div
+              class="ctile ${t.side === "home" ? "home" : ""} ${t.value > 0 ? "" : "idle"}"
+              title=${`${t.name}${t.soc !== undefined ? ` ${Math.round(t.soc)} %` : ""}: ${this._formatNumber(t.value)} ${this._unitLabel}`}
+            >
+              <div class="cicon" style=${`background: ${fill}; color: ${foregroundOn(t.color, fill)};`}>
+                <ha-icon icon=${t.icon}></ha-icon>
+              </div>
+              <div class="cvalue">
+                ${this._formatNumber(t.value)}<span class="cunit">${this._unitLabel}</span>
+              </div>
+              <div class="cname">${t.name}</div>
+              ${arrow
+                ? html`<ha-icon class="carrow ${animate ? "moving" : ""} ${arrow.endsWith("left") ? "left" : "right"}" icon=${arrow} style=${`color: ${foregroundColor(this, t.color)};`}></ha-icon>`
+                : t.note
+                  ? html`<div class="cnote"><ha-icon icon="mdi:leaf"></ha-icon>${t.note}</div>`
+                  : html`<div class="carrow-spacer"></div>`}
+            </div>
+          `;
+        })}
+      </div>
     `;
   }
 
@@ -656,6 +825,9 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
         <text x=${node.x} y=${node.y + HALF + 16} text-anchor="middle" class="node-label">
           ${node.label}
         </text>
+        ${node.sub
+          ? svg`<text x=${node.x} y=${node.y + HALF + 30} text-anchor="middle" class="node-label node-sub">${node.sub}</text>`
+          : nothing}
       </g>
     `;
   }
@@ -720,6 +892,96 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
         fill: var(--m3p-secondary-text);
         opacity: 0.6;
         font-family: inherit;
+      }
+
+      .node-sub {
+        font-size: 10px;
+      }
+
+      /* layout: compact (#54) */
+      .compact-row {
+        display: grid;
+        gap: 6px;
+      }
+      .ctile {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+        min-width: 0;
+        padding: 8px 2px 6px;
+        border-radius: 18px;
+      }
+      .ctile.home {
+        background: color-mix(in srgb, var(--m3p-accent) 10%, var(--ha-card-background, var(--card-background-color)));
+      }
+      .cicon {
+        width: 36px;
+        height: 36px;
+        border-radius: 13px;
+        display: grid;
+        place-items: center;
+        --mdc-icon-size: 20px;
+        margin-bottom: 2px;
+      }
+      .ctile.idle .cicon {
+        opacity: 0.6;
+      }
+      .cvalue {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--m3p-text);
+        white-space: nowrap;
+        line-height: 1.2;
+      }
+      .cunit {
+        font-size: 10px;
+        font-weight: 600;
+        margin-left: 2px;
+        opacity: 0.7;
+      }
+      .cname,
+      .cnote {
+        max-width: 100%;
+        font-size: 10.5px;
+        color: var(--m3p-secondary-text);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.25;
+      }
+      .cnote {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+        font-weight: 700;
+        color: var(--flow-self, var(--m3p-secondary-text));
+        --mdc-icon-size: 12px;
+      }
+      .carrow,
+      .carrow-spacer {
+        height: 15px;
+        --mdc-icon-size: 15px;
+      }
+      .carrow.moving.right {
+        animation: m3-flow-nudge-right 1.4s ease-in-out infinite;
+      }
+      .carrow.moving.left {
+        animation: m3-flow-nudge-left 1.4s ease-in-out infinite;
+      }
+      @keyframes m3-flow-nudge-right {
+        0%, 100% { transform: translateX(-2px); opacity: 0.6; }
+        50% { transform: translateX(2px); opacity: 1; }
+      }
+      @keyframes m3-flow-nudge-left {
+        0%, 100% { transform: translateX(2px); opacity: 0.6; }
+        50% { transform: translateX(-2px); opacity: 1; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .carrow.moving.right,
+        .carrow.moving.left {
+          animation: none;
+        }
       }
 
       .self-sufficiency-row {

@@ -444,6 +444,20 @@ export interface M3EnergyFlowCardConfig {
    */
   battery_entity?: string;
   battery_invert?: boolean;
+  /**
+   * `source: entities`: one signed grid sensor instead of the import/export
+   * pair — positive draws from the grid, negative feeds in, as Home Assistant
+   * counts a grid meter; `grid_invert` flips it (#57).
+   */
+  grid_entity?: string;
+  grid_invert?: boolean;
+  /**
+   * `compact`: the nodes side by side in one row, about as tall as a tile,
+   * for a half-width slot next to a weather or status card (#54).
+   */
+  layout?: "full" | "compact";
+  /** The header with name and subtitle. Default: on, off for `compact`. */
+  show_header?: boolean;
   /** A separate charge sensor (positive), e.g. "charged today" in kWh. */
   battery_charge_entity?: string;
   /** State of charge in %, shown with the battery node. */

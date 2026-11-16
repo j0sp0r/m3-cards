@@ -18,8 +18,21 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   integrations. Reads only the registries the frontend already holds, so it
   works without admin rights.
 
+- **Energy flow card: `layout: compact`** (#54). The nodes side by side in
+  one row, about as tall as a tile, for a half-width slot next to a weather
+  or status card: arrows show which way each one runs relative to the home,
+  the home tile carries the self-sufficiency, the battery icon its state of
+  charge.
+- **Energy flow card: one signed grid sensor** (#57). `grid_entity`
+  (positive import, negative export, `grid_invert` to flip) in place of the
+  import/export pair.
+
 ### Fixed
 
+- **Energy flow card: the export is shown** (#57). The grid node showed the
+  import alone, so a house feeding in read "0" beside a line running into
+  the grid. It now shows whichever way the grid runs, with its own icon and
+  "Export"; over a day the other direction is a small line under the name.
 - **Nav card: a bar at the bottom no longer covers the end of the view.**
   The docked bar took no room in the view, so the last card could never
   scroll out from under it and every dashboard needed a spacer card at the

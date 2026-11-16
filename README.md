@@ -1195,6 +1195,32 @@ battery_invert: true
 battery_soc_entity: sensor.battery_level
 ```
 
+### Export
+
+The grid node shows whichever way the grid is running: while the house feeds
+in, its number is the export, its icon points out and its name reads
+"Export". Over a day both happen — then the larger one is the number and the
+other a small line under the name ("Import 3.1"). A single grid sensor that
+goes negative on export works as `grid_entity`.
+
+### Compact
+
+`layout: compact` puts the nodes side by side — solar, grid, home, battery —
+in one row about as tall as a weather or status tile, for a half-width slot.
+A small arrow under each value says which way it runs relative to the home
+tile, the home tile carries the self-sufficiency, and the battery icon fills
+with its state of charge. The header is off unless `show_header: true`.
+
+```yaml
+type: custom:m3-energy-flow-card
+layout: compact
+source: entities
+solar_entity: sensor.solar_power
+grid_entity: sensor.grid_power        # negative while exporting
+battery_entity: sensor.battery_power
+battery_soc_entity: sensor.battery_level
+```
+
 ### Energy or power
 
 With your own sensors the card follows their unit. Energy sensors (Wh,
@@ -1233,6 +1259,10 @@ paused) when `animation: "off"` or `prefers-reduced-motion` is active.
 |---|---|---|---|
 | `source` | `energy` \| `entities` | `energy` | Data source |
 | `solar_entity` / `grid_import_entity` / `grid_export_entity` / `battery_entity` | string | – | Only for `source: entities`. See [The battery](#the-battery) for the sign of `battery_entity` |
+| `grid_entity` | string | – | Only for `source: entities` — one signed grid sensor instead of the import/export pair: positive draws from the grid, negative feeds in |
+| `grid_invert` | boolean | `false` | `grid_entity` counts export as positive |
+| `layout` | `full` \| `compact` | `full` | `compact`: the nodes side by side in one row, about as tall as a tile. See [Compact](#compact) |
+| `show_header` | boolean | `true`, `false` for `compact` | The header with name and subtitle |
 | `battery_invert` | boolean | `false` | `battery_entity` counts charging as positive |
 | `battery_charge_entity` | string | – | A separate charge sensor; `battery_entity` is then the discharge alone |
 | `battery_soc_entity` | string | – | State of charge in %, shown with the battery's name (either source) |
