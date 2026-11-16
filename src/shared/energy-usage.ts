@@ -38,6 +38,20 @@ export function splitUsage(f: EnergyFlows): Usage {
   return { grid: gridUsed, solar: solarUsed, battery: batteryUsed, export: gridOut, total: gridUsed + solarUsed + batteryUsed };
 }
 
+/**
+ * The use of a whole period, split bucket by bucket and then added up — the
+ * way the energy dashboard counts it. Splitting the period's totals instead
+ * gives a different answer as soon as export and solar fall in different
+ * hours: a phase-balanced meter can show more export than solar over a
+ * month while every single day used its sun directly.
+ */
+export function sumUsage(usages: Usage[]): Usage {
+  return usages.reduce(
+    (a, u) => ({ grid: a.grid + u.grid, solar: a.solar + u.solar, battery: a.battery + u.battery, export: a.export + u.export, total: a.total + u.total }),
+    { grid: 0, solar: 0, battery: 0, export: 0, total: 0 },
+  );
+}
+
 /** The share of the home's use not drawn from the grid, 0–100. */
 export function selfSufficiency(u: Usage): number | undefined {
   if (!(u.total > 0)) return undefined;

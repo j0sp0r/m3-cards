@@ -42,7 +42,7 @@ import {
   subscribeSharedPeriod,
   type EnergyPeriod,
 } from "./shared/energy-period";
-import { NO_FLOWS, addFlows, scaleEnergy, selfSufficiency, splitUsage, type EnergyFlows, type Usage } from "./shared/energy-usage";
+import { NO_FLOWS, addFlows, scaleEnergy, selfSufficiency, splitUsage, sumUsage, type EnergyFlows, type Usage } from "./shared/energy-usage";
 
 console.info(
   `%c M3-ENERGY-USAGE-CARD %c v${CARD_VERSION} `,
@@ -544,7 +544,7 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
     };
     const data = this._data && this._data.key.startsWith(`${p.kind}|${p.start.getTime()}`) ? this._data : undefined;
     const usages = data ? data.buckets.map(splitUsage) : [];
-    const total = data ? splitUsage(data.total) : undefined;
+    const total = data ? sumUsage(usages) : undefined;
     const self = total ? selfSufficiency(total) : undefined;
     const hero = total ? scaleEnergy(total.total) : undefined;
     const animate = shouldAnimate(cfg.animation) && !isReducedMotion();

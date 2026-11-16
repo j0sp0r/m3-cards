@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { scaleEnergy, selfSufficiency, splitUsage } from "./energy-usage";
+import { scaleEnergy, selfSufficiency, splitUsage, sumUsage } from "./energy-usage";
 
 describe("splitUsage", () => {
   it("uses solar first, charges from the surplus, exports the rest", () => {
@@ -21,6 +21,17 @@ describe("splitUsage", () => {
   it("ignores negative and missing readings", () => {
     const u = splitUsage({ gridIn: -1, gridOut: NaN, solar: 2, batteryIn: 0, batteryOut: 0 });
     expect(u).toEqual({ grid: 0, solar: 2, battery: 0, export: 0, total: 2 });
+  });
+
+  it("splits per bucket, not over the period's totals", () => {
+    const days = [
+      { gridIn: 2, gridOut: 0, solar: 1, batteryIn: 0, batteryOut: 0 },
+      { gridIn: 2, gridOut: 3, solar: 0, batteryIn: 0, batteryOut: 0 },
+    ];
+    const perBucket = sumUsage(days.map(splitUsage));
+    expect(perBucket.solar).toBe(1);
+    // Over the totals the export (3) swallows the solar (1).
+    expect(splitUsage({ gridIn: 4, gridOut: 3, solar: 1, batteryIn: 0, batteryOut: 0 }).solar).toBe(0);
   });
 
   it("scales like the native dashboard", () => {
