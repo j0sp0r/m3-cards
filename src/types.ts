@@ -2179,6 +2179,45 @@ export interface M3TariffCardConfig extends DetailModeConfig {
   card_version?: string;
 }
 
+export type EnergyUsagePeriodKind = "day" | "week" | "month" | "year";
+
+export interface M3EnergyUsageCardConfig extends DetailModeConfig {
+  type: string;
+  title?: string;
+  /** Cards with the same key move their period together. @default "default" */
+  collection_key?: string;
+  /** The period on first load. @default "day" */
+  period?: EnergyUsagePeriodKind;
+  /** The periods the segmented button offers. @default ["day", "week", "month"] */
+  periods?: EnergyUsagePeriodKind[];
+  show_date?: boolean;
+  show_graph?: boolean;
+  show_table?: boolean;
+  /** Rows per device from the energy dashboard's individual devices. */
+  show_devices?: boolean;
+  max_devices?: number;
+  /** Override the energy dashboard's sources (statistic ids). */
+  sources?: {
+    grid_from?: string[];
+    grid_to?: string[];
+    solar?: string[];
+    battery_from?: string[];
+    battery_to?: string[];
+  };
+  grid_color?: string;
+  solar_color?: string;
+  battery_color?: string;
+  export_color?: string;
+  text_color?: string;
+  secondary_text_color?: string;
+  card_background?: string;
+  animation?: "auto" | "on" | "off";
+  glass_background?: boolean;
+  radius?: number;
+  corners?: CornerRadiusConfig;
+  card_version?: string;
+}
+
 export interface WasteEntityConfig {
   entity: string;
   name?: string;

@@ -18,6 +18,15 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   integrations. Reads only the registries the frontend already holds, so it
   works without admin rights.
 
+- **Energy usage card** (`m3-energy-usage-card`, card 58, #56). The energy
+  dashboard's use over a day, week, month or year in one card: a date
+  selection with arrows and a segmented button, the total with the
+  self-sufficiency, stacked bars (grid, battery, solar) with a breakdown on
+  tap, and a table of the sources with their costs, optionally per device.
+  Built on the dashboard's own configuration and statistics rather than its
+  components; cards with the same `collection_key` share their period, and
+  native energy cards on the view follow along where Home Assistant exposes
+  their period.
 - **Tariff card** (`m3-tariff-card`, card 57, refs #56). Use and cost over
   two or more tariffs (Heures Pleines / Heures Creuses or any number): total
   cost, the active tariff from an entity or a schedule with its price, its

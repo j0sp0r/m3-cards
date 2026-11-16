@@ -3336,3 +3336,11 @@ export const DEFAULT_TARIFF_ICON = "mdi:receipt-text-outline";
 export const DEFAULT_TARIFF_BASE = PALETTE.home;
 export const DEFAULT_TARIFF_HISTORY_DAYS = 7;
 export const TARIFF_REFRESH_MS = 5 * 60_000;
+
+// ---- Energy usage card ------------------------------------------------------
+export const DEFAULT_USAGE_RADIUS = RADIUS.card;
+export const USAGE_GRID_COLOR = PALETTE.grid;
+export const USAGE_SOLAR_COLOR = PALETTE.solar;
+export const USAGE_BATTERY_COLOR = PALETTE.ok;
+export const USAGE_EXPORT_COLOR = PALETTE.off;
+export const USAGE_REFRESH_MS = 5 * 60_000;

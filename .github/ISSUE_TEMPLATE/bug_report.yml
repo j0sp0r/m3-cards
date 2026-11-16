@@ -27,6 +27,7 @@ body:
         - Detail (m3-detail-card)
         - Energy (m3-energy-card)
         - Energy Flow (m3-energy-flow-card)
+        - Energy usage (m3-energy-usage-card)
         - Gauge (m3-gauge-card)
         - Group (m3-group-card)
         - Heading (m3-heading-card)

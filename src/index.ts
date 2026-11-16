@@ -61,5 +61,6 @@ export * from "./m3-alarm-card";
 export * from "./m3-solar-battery-card";
 export * from "./m3-availability-card";
 export * from "./m3-tariff-card";
+export * from "./m3-energy-usage-card";
 // Registers itself with shared/entity-detail.ts, which never imports it.
 import "./shared/detail-sheet";

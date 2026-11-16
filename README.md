@@ -9,7 +9,7 @@
 Material 3–inspired, native Lovelace cards for Home Assistant — built with
 TypeScript + [Lit](https://lit.dev), **without** any dependency on
 `button-card`, `card-mod`, `mod-card`, or `stack-in-card`. A single bundle
-(`m3-cards.js`) registers **57 cards**, all sharing one design language.
+(`m3-cards.js`) registers **58 cards**, all sharing one design language.
 
 <p align="center">
   <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.8.0"><img src="docs/images/release-2.8.jpg" alt="What's new in 2.8: the solar battery card, the alarm card, the compact media player and curtains in the cover card" width="880"></a>
@@ -38,6 +38,7 @@ card links to its full documentation further down.
 | [Counter](#m3-counter-card) | `m3-counter-card` | A meter reading as a rolling digit display |
 | [Solar Battery](#m3-solar-battery-card) | `m3-solar-battery-card` | A balcony solar battery with its own inverter: charge, forecast, solar → battery → house and the solar inputs |
 | [Tariff](#m3-tariff-card) | `m3-tariff-card` | Use and cost over two or more tariffs (peak / off-peak), with the active one |
+| [Energy usage](#m3-energy-usage-card) | `m3-energy-usage-card` | The energy dashboard's use per day, week or month — date selection, stacked bars, sources with costs |
 
 ### 🌡️ Climate & weather
 
@@ -8494,6 +8495,78 @@ schedule:
 The card ships German and English. French (or any language) can be added
 through `window.m3CardsTranslations` without a release; see the translation
 section in the main README.
+
+</details>
+
+## M3 Energy Usage Card
+
+The energy dashboard's view of a period, in one card: arrows and a segmented
+day / week / month to choose it, the total the home used with how much of it
+did not come from the grid, stacked bars per hour, day or month (grid at the
+bottom, battery, solar on top) and a table of the sources with their costs.
+It reads the energy dashboard's own configuration and statistics, so the
+numbers are the dashboard's.
+
+<img src="docs/images/energy-usage-card.png" alt="Energy Usage Card" width="440">
+
+<details>
+<summary>Configuration, examples & options</summary>
+
+```yaml
+type: custom:m3-energy-usage-card
+period: month
+```
+
+Each part can be left out, so the card can be only the date selection on top
+of a view and only the bars further down. Cards with the same
+`collection_key` move their period together:
+
+```yaml
+- type: custom:m3-energy-usage-card
+  show_graph: false
+  show_table: false          # just the date selection
+- type: custom:m3-energy-usage-card
+  show_date: false           # follows the one above
+  show_devices: true         # plus the dashboard's individual devices
+```
+
+### How it counts
+
+- **Sources** come from the energy dashboard (`energy/get_prefs`): every
+  grid import and export, solar and battery. `sources` overrides them with
+  statistic ids of your own.
+- **Use** follows the dashboard: solar first goes to the home, then into the
+  battery, then out to the grid; a battery charged from the grid is not
+  counted as use until it discharges. **Self-sufficient** is the share of the
+  use that did not come from the grid.
+- **Costs** are the dashboard's cost statistics — the ones you configured,
+  or the ones Home Assistant computes from a price (`energy/info`). Without
+  any the column shows "–".
+- Values switch between Wh, kWh and MWh as the dashboard does.
+- A tap on a bar shows its breakdown; a tap on a table row opens that
+  source's meter.
+
+### With Home Assistant's own energy cards
+
+Home Assistant's energy cards keep their period in an object on the
+connection that is not part of its public API. Where a native energy card on
+the same view has created it, this card follows that period and moves it
+along; where it has not, the card keeps its own. Nothing breaks if a Home
+Assistant update changes that object — the cards just stop moving together.
+
+### Configuration options
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `period` | `day` \| `week` \| `month` \| `year` | `day` | The period on first load |
+| `periods` | list | `[day, week, month]` | What the segmented button offers |
+| `show_date` / `show_graph` / `show_table` | boolean | `true` | The three parts |
+| `show_devices` / `max_devices` | boolean / number | `false` / `10` | Rows for the dashboard's individual devices, largest first |
+| `collection_key` | string | `default` | Cards with the same key share their period |
+| `sources` | object | from the dashboard | `grid_from`, `grid_to`, `solar`, `battery_from`, `battery_to`: lists of statistic ids |
+| `grid_color` / `solar_color` / `battery_color` / `export_color` | string | purple / orange / green / grey | The colours of the sources |
+| `title` | string | – | An optional title above the date |
+| `glass_background`, `radius`, `corners`, `text_color`, `secondary_text_color`, `card_background`, `animation` | | | As on every card |
 
 </details>
 
