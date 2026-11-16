@@ -400,8 +400,34 @@ export interface M3EnergyCardConfig extends NotifyConfigBase, DetailModeConfig {
 
 export type GaugeSource = "energy" | "entities";
 
+/** One coloured range of the needle gauge: from this value up to the next range. */
+export interface GaugeSegmentConfig {
+  from: number;
+  color: string;
+  label?: string;
+}
+
 export interface M3GaugeCardConfig {
   type: string;
+  /**
+   * `default`: the two-value balance arc. `needle`: a 270° dial with a needle
+   * and coloured ranges for one value (#56).
+   */
+  style?: "default" | "needle";
+  /** `style: needle` — the entity whose value the needle shows. */
+  entity?: string;
+  min?: number;
+  max?: number;
+  segments?: GaugeSegmentConfig[];
+  show_value?: boolean;
+  show_unit?: boolean;
+  show_ticks?: boolean;
+  tick_count?: number;
+  show_needle?: boolean;
+  /** Unit override; default the entity's. */
+  unit?: string;
+  /** A line under the value: text, or an entity shown as "name value unit". */
+  secondary?: string | { entity: string; name?: string };
   source?: GaugeSource;
   value_a_entity?: string;
   value_b_entity?: string;

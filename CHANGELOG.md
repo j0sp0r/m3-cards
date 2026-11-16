@@ -18,6 +18,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   integrations. Reads only the registries the frontend already holds, so it
   works without admin rights.
 
+- **Gauge card: `style: needle`** (refs #56). A dial for one value: a 270°
+  arc in coloured ranges (`segments`), filled up to the value, a needle that
+  springs to a new value, scale labels, the value in the opening and a pill
+  naming the current range. Existing gauge configs are unchanged.
 - **Energy flow card: `layout: compact`** (#54). The nodes side by side in
   one row, about as tall as a tile, for a half-width slot next to a weather
   or status card: arrows show which way each one runs relative to the home,

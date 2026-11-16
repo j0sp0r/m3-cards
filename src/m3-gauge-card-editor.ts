@@ -1,6 +1,6 @@
-import { LitElement, html, nothing } from "lit";
+import { LitElement, html, css, nothing } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
-import type { HomeAssistant, LovelaceCardEditor, M3GaugeCardConfig } from "./types";
+import type { GaugeSegmentConfig, HomeAssistant, LovelaceCardEditor, M3GaugeCardConfig } from "./types";
 import { DEFAULT_GAUGE_RADIUS } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import {
@@ -36,6 +36,140 @@ export class M3GaugeCardEditor extends LitElement implements LovelaceCardEditor 
 
   private _t(key: TranslationKey): string {
     return localize(key, this._language);
+  }
+
+  private get _needle(): boolean {
+    return this._config?.style === "needle";
+  }
+
+  private _styleSchema(): SchemaEntry[] {
+    return [
+      {
+        name: "style",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "default", label: this._t("editor_gauge_style_default") },
+              { value: "needle", label: this._t("editor_gauge_style_needle") },
+            ],
+          },
+        },
+      },
+    ];
+  }
+
+  private _needleSchema(): SchemaEntry[] {
+    return [
+      { name: "entity", selector: { entity: { domain: ["sensor", "number", "input_number"] } } },
+      { name: "min", selector: { number: { mode: "box" } } },
+      { name: "max", selector: { number: { mode: "box" } } },
+      { name: "show_needle", selector: { boolean: {} } },
+      { name: "show_value", selector: { boolean: {} } },
+      { name: "show_unit", selector: { boolean: {} } },
+      { name: "show_ticks", selector: { boolean: {} } },
+      { name: "tick_count", selector: { number: { min: 2, max: 9, mode: "box" } } },
+      { name: "secondary_entity", selector: { entity: {} } },
+      { name: "secondary_name", selector: { text: {} } },
+    ];
+  }
+
+  private _needleChanged(ev: CustomEvent): void {
+    if (!this._config) return;
+    const v = ev.detail.value as Record<string, unknown>;
+    const { secondary_entity, secondary_name, ...rest } = v;
+    const next: M3GaugeCardConfig = { ...this._config, ...(rest as Partial<M3GaugeCardConfig>) };
+    if (secondary_entity) next.secondary = { entity: secondary_entity as string, ...(secondary_name ? { name: secondary_name as string } : {}) };
+    else delete next.secondary;
+    this._config = next;
+    fireEvent(this, "config-changed", { config: next });
+  }
+
+  private _segmentChanged(index: number, ev: CustomEvent): void {
+    if (!this._config) return;
+    const segments = [...(this._config.segments ?? [])];
+    const v = ev.detail.value as GaugeSegmentConfig;
+    segments[index] = { from: Number(v.from ?? 0), color: v.color || "primary", ...(v.label ? { label: v.label } : {}) };
+    this._config = { ...this._config, segments };
+    fireEvent(this, "config-changed", { config: this._config });
+  }
+
+  private _addSegment(): void {
+    if (!this._config) return;
+    const segments = [...(this._config.segments ?? [])];
+    const last = segments[segments.length - 1];
+    segments.push({ from: last ? last.from + 1 : (this._config.min ?? 0), color: "orange" });
+    this._config = { ...this._config, segments };
+    fireEvent(this, "config-changed", { config: this._config });
+  }
+
+  private _removeSegment(index: number): void {
+    if (!this._config) return;
+    const segments = (this._config.segments ?? []).filter((_, i) => i !== index);
+    this._config = { ...this._config, segments };
+    fireEvent(this, "config-changed", { config: this._config });
+  }
+
+  private _segmentSchema(): SchemaEntry[] {
+    return [
+      { name: "from", selector: { number: { mode: "box" } } },
+      { name: "color", selector: { text: {} } },
+      { name: "label", selector: { text: {} } },
+    ];
+  }
+
+  private _renderNeedlePanels() {
+    const c = this._config!;
+    const sec = typeof c.secondary === "object" ? c.secondary : undefined;
+    const data = {
+      entity: c.entity,
+      min: c.min ?? 0,
+      max: c.max ?? 100,
+      show_needle: c.show_needle !== false,
+      show_value: c.show_value !== false,
+      show_unit: c.show_unit !== false,
+      show_ticks: c.show_ticks !== false,
+      tick_count: c.tick_count ?? 5,
+      secondary_entity: sec?.entity,
+      secondary_name: sec?.name,
+    };
+    return html`
+      <ha-expansion-panel outlined .header=${this._t("editor_entities")} expanded>
+        <ha-icon slot="leading-icon" icon="mdi:gauge"></ha-icon>
+        <div class="panel-content">
+          <ha-form
+            .hass=${this.hass}
+            .data=${data}
+            .schema=${this._needleSchema()}
+            .computeLabel=${this._computeLabel}
+            @value-changed=${this._needleChanged}
+          ></ha-form>
+        </div>
+      </ha-expansion-panel>
+      <ha-expansion-panel outlined .header=${this._t("editor_gauge_segments")} expanded>
+        <ha-icon slot="leading-icon" icon="mdi:palette-swatch-outline"></ha-icon>
+        <div class="panel-content">
+          ${(c.segments ?? []).map(
+            (seg, i) => html`<div class="seg-row">
+              <ha-form
+                .hass=${this.hass}
+                .data=${seg}
+                .schema=${this._segmentSchema()}
+                .computeLabel=${this._computeLabel}
+                @value-changed=${(e: CustomEvent) => this._segmentChanged(i, e)}
+              ></ha-form>
+              <ha-icon-button
+                .label=${"×"}
+                @click=${() => this._removeSegment(i)}
+              ><ha-icon icon="mdi:delete-outline"></ha-icon></ha-icon-button>
+            </div>`,
+          )}
+          <button class="add-btn" @click=${() => this._addSegment()}>
+            <ha-icon icon="mdi:plus"></ha-icon>${this._t("editor_gauge_add_segment")}
+          </button>
+        </div>
+      </ha-expansion-panel>
+    `;
   }
 
   private _sourceSchema(): SchemaEntry[] {
@@ -95,6 +229,20 @@ export class M3GaugeCardEditor extends LitElement implements LovelaceCardEditor 
   private _computeLabel = (schema: SchemaEntry): string => {
     const labelMap: Record<string, TranslationKey> = {
       source: "editor_gauge_source",
+      style: "editor_gauge_style",
+      entity: "editor_gauge_entity",
+      min: "editor_gauge_min",
+      max: "editor_gauge_max",
+      show_needle: "editor_gauge_show_needle",
+      show_value: "editor_gauge_show_value",
+      show_unit: "editor_gauge_show_unit",
+      show_ticks: "editor_gauge_show_ticks",
+      tick_count: "editor_gauge_tick_count",
+      secondary_entity: "editor_gauge_secondary_entity",
+      secondary_name: "editor_gauge_secondary_name",
+      from: "editor_gauge_segment_from",
+      color: "editor_gauge_segment_color",
+      label: "editor_gauge_segment_label",
       value_a_entity: "editor_gauge_value_a_entity",
       value_b_entity: "editor_gauge_value_b_entity",
       name: "editor_name",
@@ -206,7 +354,16 @@ export class M3GaugeCardEditor extends LitElement implements LovelaceCardEditor 
 
     return html`
       <div class="editor">
-        <ha-expansion-panel outlined .header=${this._t("editor_entities")} expanded>
+        <ha-form
+          .hass=${this.hass}
+          .data=${{ style: this._config.style ?? "default" }}
+          .schema=${this._styleSchema()}
+          .computeLabel=${this._computeLabel}
+          @value-changed=${this._valueChanged}
+        ></ha-form>
+        ${this._needle
+          ? this._renderNeedlePanels()
+          : html`<ha-expansion-panel outlined .header=${this._t("editor_entities")} expanded>
           <ha-icon slot="leading-icon" icon="mdi:database"></ha-icon>
           <div class="panel-content">
             <ha-form
@@ -217,7 +374,7 @@ export class M3GaugeCardEditor extends LitElement implements LovelaceCardEditor 
               @value-changed=${this._valueChanged}
             ></ha-form>
           </div>
-        </ha-expansion-panel>
+        </ha-expansion-panel>`}
 
         <ha-expansion-panel outlined .header=${this._t("editor_content")}>
           <ha-icon slot="leading-icon" icon="mdi:text-short"></ha-icon>
@@ -306,7 +463,35 @@ export class M3GaugeCardEditor extends LitElement implements LovelaceCardEditor 
     `;
   }
 
-  static styles = editorStyles;
+  static styles = [
+    editorStyles,
+    css`
+      .seg-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 4px;
+        margin-bottom: 8px;
+      }
+      .seg-row ha-form {
+        flex: 1;
+        min-width: 0;
+      }
+      .add-btn {
+        width: 100%;
+        height: 40px;
+        border: none;
+        border-radius: 8px;
+        background: color-mix(in srgb, var(--primary-text-color) 8%, transparent);
+        color: var(--primary-text-color);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        font: inherit;
+      }
+    `,
+  ];
 }
 
 declare global {

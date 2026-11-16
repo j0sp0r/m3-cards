@@ -45,6 +45,54 @@ The segments grow from 0 to their target angle on first render and ease
 smoothly on later value changes — respects the `animation` option and
 `prefers-reduced-motion` like the other cards.
 
+### Dial with a needle
+
+`style: needle` turns the card into a dial for one value: a 270° arc open at
+the bottom, divided into coloured ranges, a needle, and the value in the
+opening. Each range is a pale track and fills in its own colour up to the
+current value, so the dial reads without the needle too. The pill in the
+header names the range the value is in. Past `min` or `max` the needle rests
+at the stop and the number still shows the real value; an unavailable sensor
+hides the needle and shows "–". The needle springs to a new value with a
+slight overshoot; with reduced motion it jumps.
+
+Household power, three ranges:
+
+```yaml
+type: custom:m3-gauge-card
+style: needle
+entity: sensor.house_power
+name: House consumption
+subtitle: Instant power
+icon: mdi:flash
+min: 0
+max: 4000
+segments:
+  - from: 0
+    color: "#b3d88a"
+    label: Normal
+  - from: 1500
+    color: "#f0c987"
+    label: Elevated
+  - from: 3000
+    color: "#e8a08a"
+    label: High
+secondary:
+  entity: sensor.house_power_max_today
+  name: Max today
+```
+
+| Option (`style: needle`) | Type | Default | Description |
+|---|---|---|---|
+| `entity` | string | – | The value the needle shows |
+| `min` / `max` | number | `0` / `100` | Ends of the scale |
+| `segments` | list | one range in the theme colour | `{ from, color, label }`; each runs up to the next one's `from`. Colours as hex or a theme/HA colour name |
+| `show_needle` | boolean | `true` | `false`: the arc and its fill alone |
+| `show_value` / `show_unit` | boolean | `true` | The number and its unit |
+| `show_ticks` / `tick_count` | boolean / number | `true` / `5` | Scale labels inside the arc ("1k", "2k") |
+| `unit` | string | the entity's | Unit override |
+| `secondary` | string or `{ entity, name }` | – | A line under the value |
+
 ### Configuration options
 
 | Option | Type | Default | Description |

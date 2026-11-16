@@ -34,6 +34,20 @@ import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
 import { formatNumber } from "./shared/formatting";
 import { TemplatedCard } from "./shared/templated-card";
+import { isReducedMotion } from "./shared/animation";
+import {
+  angleOf,
+  arcPathDeg,
+  arcPieces,
+  compactTick,
+  fractionOf,
+  pointAt,
+  resolveSegments,
+  segmentFor,
+  springSettled,
+  springStep,
+  tickValues,
+} from "./shared/needle-gauge";
 
 console.info(
   `%c M3-GAUGE-CARD %c v${CARD_VERSION} `,
@@ -72,6 +86,13 @@ export class M3GaugeCard extends TemplatedCard(LitElement) implements LovelaceCa
   @state() private _energyValueB = 0;
   @state() private _noEnergyDashboard = false;
   @state() private _displayPA = 0;
+  /** style: needle — where the needle is drawn, as a fraction of the scale. */
+  @state() private _needlePos = 0;
+  private _needleVel = 0;
+  private _needleTarget = 0;
+  private _needleInit = false;
+  private _needleRaf?: number;
+  private _needleLast = 0;
 
   private _refreshTimer?: number;
   private _lastFetchKey?: string;
@@ -96,7 +117,13 @@ export class M3GaugeCard extends TemplatedCard(LitElement) implements LovelaceCa
   }
 
   protected shouldUpdate(changed: PropertyValues): boolean {
-    return hassChangeMatters(changed, this.hass, [this._config?.value_a_entity, this._config?.value_b_entity]);
+    const sec = this._config?.secondary;
+    return hassChangeMatters(changed, this.hass, [
+      this._config?.value_a_entity,
+      this._config?.value_b_entity,
+      this._config?.entity,
+      typeof sec === "object" ? sec.entity : undefined,
+    ]);
   }
 
   public setConfig(config: M3GaugeCardConfig): void {
@@ -113,6 +140,7 @@ export class M3GaugeCard extends TemplatedCard(LitElement) implements LovelaceCa
   }
 
   public getGridOptions(): LovelaceGridOptions {
+    if (this._config?.style === "needle") return { columns: 6, rows: "auto", min_columns: 6 };
     return {
       columns: "full",
       rows: "auto",
@@ -147,6 +175,8 @@ export class M3GaugeCard extends TemplatedCard(LitElement) implements LovelaceCa
       this._refreshTimer = undefined;
     }
     this._stopAnimationLoop();
+    if (this._needleRaf !== undefined) cancelAnimationFrame(this._needleRaf);
+    this._needleRaf = undefined;
   }
 
   protected updated(changed: PropertyValues): void {
@@ -155,7 +185,7 @@ export class M3GaugeCard extends TemplatedCard(LitElement) implements LovelaceCa
   }
 
   private _maybeFetch(): void {
-    if (!this.hass || !this._config || this._config.source !== "energy") return;
+    if (!this.hass || !this._config || this._config.source !== "energy" || this._config.style === "needle") return;
     const key = "energy";
     if (key === this._lastFetchKey) return;
     this._lastFetchKey = key;
@@ -222,6 +252,7 @@ export class M3GaugeCard extends TemplatedCard(LitElement) implements LovelaceCa
 
   protected render() {
     if (!this._config || !this.hass) return nothing;
+    if (this._config.style === "needle") return this._renderNeedleCard();
 
     const name = this._config.name || "Netzbilanz";
     const icon = this._config.icon || "mdi:transmission-tower";
@@ -353,6 +384,153 @@ export class M3GaugeCard extends TemplatedCard(LitElement) implements LovelaceCa
     `;
   }
 
+  // ---- style: needle (#56) ---------------------------------------------------
+
+  /**
+   * Carries the needle to its target on a spring. A new value only moves the
+   * target; the running loop bends toward it, so fast updates never queue up
+   * animations behind one another.
+   */
+  private _moveNeedle(target: number, animate: boolean): void {
+    this._needleTarget = target;
+    if (!this._needleInit || !animate) {
+      this._needleInit = true;
+      this._needlePos = target;
+      this._needleVel = 0;
+      return;
+    }
+    if (this._needleRaf !== undefined) return;
+    this._needleLast = performance.now();
+    const step = (now: number) => {
+      const dt = Math.min(0.05, (now - this._needleLast) / 1000);
+      this._needleLast = now;
+      const next = springStep(this._needlePos, this._needleVel, this._needleTarget, dt);
+      this._needleVel = next.vel;
+      if (springSettled(next.pos, next.vel, this._needleTarget) || document.hidden) {
+        this._needlePos = this._needleTarget;
+        this._needleVel = 0;
+        this._needleRaf = undefined;
+        return;
+      }
+      this._needlePos = next.pos;
+      this._needleRaf = requestAnimationFrame(step);
+    };
+    this._needleRaf = requestAnimationFrame(step);
+  }
+
+  private _renderNeedleCard() {
+    const cfg = this._config!;
+    const hass = this.hass!;
+    const st = cfg.entity ? hass.states[cfg.entity] : undefined;
+    const raw = st ? parseFloat(st.state) : NaN;
+    const available = !!st && Number.isFinite(raw);
+    const min = cfg.min ?? 0;
+    const max = cfg.max ?? 100;
+    const unit = cfg.unit ?? (st?.attributes.unit_of_measurement as string | undefined) ?? "";
+    const name = cfg.name || (st?.attributes.friendly_name as string | undefined) || cfg.entity || "";
+    const icon = cfg.icon || (st?.attributes.icon as string | undefined) || "mdi:gauge";
+    const neutral = "var(--secondary-text-color)";
+    const segs = resolveSegments(cfg.segments, min, max, resolveThemeColor("primary"));
+    const resolved = segs.map((s) => ({ ...s, color: resolveThemeColor(s.color) }));
+    const current = available ? segmentFor(raw, resolved) : undefined;
+    const animate = shouldAnimate(cfg.animation) && !isReducedMotion();
+    this._moveNeedle(available ? fractionOf(raw, min, max) : this._needleTarget, animate);
+    const pos = this._needlePos;
+
+    const { textColorCss, secondaryTextColorCss, cardBackgroundCss } = resolveCommonColors(cfg);
+    const headColor = current?.color ?? neutral;
+    const iconWell = tintOn(this, headColor, undefined, 18);
+    const pillBg = tintOn(this, headColor, undefined, 20);
+    const cssVars = buildCssVars({
+      "m3p-icon-color": foregroundOn(headColor, iconWell),
+      "m3p-icon-bg": iconWell,
+      "m3p-text": textColorCss,
+      "m3p-secondary-text": secondaryTextColorCss,
+    });
+    const radius = resolveCornerRadius(cfg.radius ?? DEFAULT_GAUGE_RADIUS, cfg.corners);
+
+    // The dial: 300 × 250 view, centre a little above the middle so the
+    // value fits into the opening at the bottom.
+    const CX = 150;
+    const CY = 132;
+    const R = 112;
+    const STROKE = 18;
+    const capDeg = ((STROKE / 2) / R) * (180 / Math.PI);
+    const { track, fill } = arcPieces(resolved, min, max, available ? pos : 0, 2, capDeg);
+    const ticks = cfg.show_ticks === false ? [] : tickValues(min, max, cfg.tick_count ?? 5);
+    const showNeedle = available && cfg.show_needle !== false;
+    const needleDeg = angleOf(pos);
+    const tip = pointAt(CX, CY, R - STROKE / 2 - 10, needleDeg);
+    const tail = pointAt(CX, CY, 16, needleDeg + 180);
+    const valueText = available ? formatNumber(this._language, raw, { maximumFractionDigits: Math.abs(raw) >= 100 ? 0 : 1 }) : "–";
+    const sec = cfg.secondary;
+    let secondaryText: string | undefined;
+    if (typeof sec === "string") secondaryText = sec;
+    else if (sec?.entity) {
+      const s2 = hass.states[sec.entity];
+      const v2 = s2 ? parseFloat(s2.state) : NaN;
+      const label = sec.name ?? (s2?.attributes.friendly_name as string | undefined) ?? sec.entity;
+      secondaryText = `${label} ${Number.isFinite(v2) ? formatNumber(this._language, v2, { maximumFractionDigits: Math.abs(v2) >= 100 ? 0 : 1 }) : "–"}${s2?.attributes.unit_of_measurement ? ` ${s2.attributes.unit_of_measurement}` : ""}`;
+    }
+    const ariaText = available
+      ? `${valueText} ${unit}${current?.label ? `, ${current.label}` : ""}`
+      : this._t("gauge_no_data");
+
+    return html`
+      <ha-card style=${`${cssVars} border-radius: ${radius};`}>
+        <div
+          class="card-inner ${glassCardClass(cfg.glass_background)}"
+          style=${`border-radius: ${radius};${cardBackgroundCss ? ` background: ${cardBackgroundCss};` : ""}`}
+        >
+          <div class="needle-head">
+            ${renderCardHeader({ icon, name, subtitle: cfg.subtitle || "" })}
+            ${current?.label
+              ? html`<div class="range-pill" style=${`background: ${pillBg}; color: ${foregroundOn(headColor, pillBg, 4.5)};`}>${current.label}</div>`
+              : !available
+                ? html`<div class="range-pill neutral">–</div>`
+                : nothing}
+          </div>
+          <div
+            class="dial"
+            role="meter"
+            aria-valuemin=${min}
+            aria-valuemax=${max}
+            aria-valuenow=${available ? raw : nothing}
+            aria-valuetext=${ariaText}
+            aria-label=${name}
+          >
+            <svg viewBox="0 0 300 250" class="dial-svg">
+              ${track.map(
+                (p) => svg`<path d=${arcPathDeg(CX, CY, R, p.fromDeg, p.toDeg)} stroke=${p.color} class="dial-track"></path>`,
+              )}
+              ${fill.map(
+                (p) => svg`<path d=${arcPathDeg(CX, CY, R, p.fromDeg, p.toDeg)} stroke=${p.color} class="dial-fill"></path>`,
+              )}
+              ${ticks.map((v) => {
+                const pt = pointAt(CX, CY, R - STROKE - 22, angleOf(fractionOf(v, min, max)));
+                return svg`<text x=${pt.x} y=${pt.y} class="dial-tick" text-anchor="middle" dominant-baseline="middle">${compactTick(v, this._language)}</text>`;
+              })}
+              ${showNeedle
+                ? svg`
+                    <line x1=${tail.x} y1=${tail.y} x2=${tip.x} y2=${tip.y} class="needle"></line>
+                    <circle cx=${CX} cy=${CY} r="13" class="hub"></circle>
+                    <circle cx=${CX} cy=${CY} r="6" class="hub-inner"></circle>`
+                : nothing}
+            </svg>
+            <div class="dial-readout">
+              ${cfg.show_value !== false
+                ? html`<div class="dial-value">
+                    ${valueText}${cfg.show_unit !== false && unit && available ? html`<span class="dial-unit">${unit}</span>` : nothing}
+                  </div>`
+                : nothing}
+              ${secondaryText ? html`<div class="dial-secondary">${secondaryText}</div>` : nothing}
+            </div>
+          </div>
+        </div>
+      </ha-card>
+    `;
+  }
+
   private _renderArc(
     a: number,
     b: number,
@@ -457,6 +635,94 @@ export class M3GaugeCard extends TemplatedCard(LitElement) implements LovelaceCa
         gap: 6px;
         font-size: 12px;
         color: var(--m3p-secondary-text);
+      }
+
+      /* style: needle */
+      .needle-head {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .needle-head > :first-child {
+        flex: 1;
+        min-width: 0;
+      }
+      .range-pill {
+        flex: 0 0 auto;
+        height: 32px;
+        padding: 0 14px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      .range-pill.neutral {
+        background: color-mix(in srgb, var(--primary-text-color) 8%, var(--ha-card-background, var(--card-background-color)));
+        color: var(--m3p-secondary-text);
+      }
+      .dial {
+        position: relative;
+        width: 100%;
+        max-width: 340px;
+        margin: 0 auto;
+      }
+      .dial-svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+      }
+      .dial-track,
+      .dial-fill {
+        fill: none;
+        stroke-width: 18px;
+        stroke-linecap: round;
+      }
+      .dial-track {
+        opacity: 0.28;
+      }
+      .dial-tick {
+        font-size: 15px;
+        font-weight: 500;
+        fill: var(--m3p-secondary-text);
+        opacity: 0.8;
+      }
+      .needle {
+        stroke: var(--primary-text-color);
+        stroke-width: 5px;
+        stroke-linecap: round;
+      }
+      .hub {
+        fill: var(--primary-text-color);
+      }
+      .hub-inner {
+        fill: var(--ha-card-background, var(--card-background-color, #1c1c1c));
+      }
+      .dial-readout {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        text-align: center;
+      }
+      .dial-value {
+        font-size: 34px;
+        font-weight: 700;
+        line-height: 1.05;
+        color: var(--m3p-text);
+        font-variant-numeric: tabular-nums;
+      }
+      .dial-unit {
+        font-size: 16px;
+        font-weight: 500;
+        margin-left: 3px;
+        opacity: 0.75;
+      }
+      .dial-secondary {
+        font-size: 13px;
+        color: var(--m3p-secondary-text);
+        margin-top: 2px;
       }
 
       .legend-swatch {
