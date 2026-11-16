@@ -103,6 +103,29 @@ export const IGNORED_DOMAINS = new Set([
   "tag",
 ]);
 
+/**
+ * Platforms of helpers a user can attach to any device. They live in Home
+ * Assistant itself and keep a state when the device is gone — a daily
+ * utility_meter on a dead plug reads "0", not unavailable — so they must never
+ * make a device count as reachable.
+ */
+export const HELPER_PLATFORMS = new Set([
+  "utility_meter",
+  "template",
+  "derivative",
+  "integration",
+  "statistics",
+  "min_max",
+  "group",
+  "threshold",
+  "filter",
+  "trend",
+  "switch_as_x",
+  "history_stats",
+  "counter",
+  "compensation",
+]);
+
 /** Which entity stands for a device, most telling domain first. */
 const PRIMARY_ORDER = [
   "camera",
@@ -212,9 +235,15 @@ export function buildWatchIndex(
   };
 
   const units: WatchedUnit[] = [];
-  for (const [deviceId, list] of byDevice) {
+  for (const [deviceId, all] of byDevice) {
     const device = devices?.[deviceId];
     if (!device || device.entry_type === "service") continue;
+    // The device's own integration decides, not helpers attached to it or a
+    // second integration that merely adds an entity.
+    const own = all.filter((e) => !e.platform || !HELPER_PLATFORMS.has(e.platform));
+    const integration = mostCommon(own.map((e) => e.platform));
+    const list = integration ? own.filter((e) => e.platform === integration) : own;
+    if (!list.length) continue;
     const ids = list.map((e) => e.entity_id);
     const primary = pickPrimary(ids);
     const areaId = device.area_id ?? list.find((e) => e.entity_id === primary)?.area_id ?? undefined;
@@ -224,7 +253,7 @@ export function buildWatchIndex(
       name: device.name_by_user || device.name || primary,
       areaId: areaId ?? undefined,
       areaName: areaId ? areas?.[areaId]?.name : undefined,
-      integration: mostCommon(list.map((e) => e.platform)),
+      integration,
       entities: ids,
       primary,
     };

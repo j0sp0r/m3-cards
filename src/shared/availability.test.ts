@@ -48,6 +48,21 @@ describe("buildWatchIndex", () => {
     expect(units.find((u) => u.key === "d2")!.primary).toBe("camera.garden");
   });
 
+  it("does not let a helper attached to the device keep it online", () => {
+    const withHelper = {
+      ...entities,
+      "sensor.solar_daily": { entity_id: "sensor.solar_daily", device_id: "d1", platform: "utility_meter" },
+    };
+    const plug = buildWatchIndex(withHelper, devices, areas).find((u) => u.key === "d1")!;
+    expect(plug.entities).not.toContain("sensor.solar_daily");
+    const flagged = evaluateUnits([plug], {
+      "switch.plug": { state: "unavailable", last_changed: iso(5) },
+      "sensor.plug_power": { state: "unavailable", last_changed: iso(5) },
+      "sensor.solar_daily": { state: "0", last_reported: iso(1) },
+    }, NOW);
+    expect(flagged.map((f) => f.unit.key)).toEqual(["d1"]);
+  });
+
   it("keeps diagnostics when asked to", () => {
     const plug = buildWatchIndex(entities, devices, areas, { ignoreDiagnostic: false }).find((u) => u.key === "d1")!;
     expect(plug.entities).toContain("sensor.plug_linkquality");

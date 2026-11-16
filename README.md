@@ -8264,7 +8264,10 @@ That watches every device in the install. A device counts as **offline**
 when every entity that decides it is `unavailable`. Buttons, update and event
 entities do not decide: several integrations keep them available while the
 device itself is gone. With `ignore_diagnostic` (the default) neither do
-config and diagnostic entities such as link quality.
+config and diagnostic entities such as link quality. Only the device's own
+integration decides: a helper attached to it — a daily `utility_meter` on a
+plug, a template, a derivative — keeps a state when the device is dead and is
+left out.
 
 **Offline since** survives a restart. A restart writes `unavailable` again
 and resets the entity's `last_changed`, so a device that has been dead for a
