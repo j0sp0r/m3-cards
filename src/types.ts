@@ -2128,6 +2128,57 @@ export interface M3AvailabilityCardConfig extends DetailModeConfig {
   card_version?: string;
 }
 
+/** One tariff of the tariff card. */
+export interface TariffEntryConfig {
+  name: string;
+  /** "HP", "HC" — shown after the name. */
+  short?: string;
+  /** Its kWh meter (total / total_increasing). */
+  energy: string;
+  /** €/kWh: a fixed number or an entity. */
+  price?: number | string;
+  /** A cost entity; wins over energy × price. */
+  cost?: string;
+  color?: string;
+  icon?: string;
+}
+
+export interface TariffScheduleConfig {
+  tariff: string;
+  from: string;
+  to: string;
+  days?: number[];
+}
+
+export interface M3TariffCardConfig extends DetailModeConfig {
+  type: string;
+  title?: string;
+  icon?: string;
+  /** ISO code; default Home Assistant's currency. */
+  currency?: string;
+  tariffs: TariffEntryConfig[];
+  /** An entity whose state names the active tariff (a utility_meter select, a sensor). */
+  active_tariff?: string;
+  /** Or time windows per tariff. */
+  schedule?: TariffScheduleConfig[];
+  /** A timestamp sensor for "until HH:MM". */
+  active_until?: string;
+  /** @default "day" */
+  period?: "day" | "week" | "month";
+  /** @default 7 */
+  history_days?: number;
+  show_history?: boolean;
+  accent_color?: string;
+  text_color?: string;
+  secondary_text_color?: string;
+  card_background?: string;
+  animation?: "auto" | "on" | "off";
+  glass_background?: boolean;
+  radius?: number;
+  corners?: CornerRadiusConfig;
+  card_version?: string;
+}
+
 export interface WasteEntityConfig {
   entity: string;
   name?: string;

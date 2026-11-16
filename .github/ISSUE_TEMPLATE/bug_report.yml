@@ -54,6 +54,7 @@ body:
         - Status (m3-status-card)
         - Supply (m3-supply-card)
         - System (m3-system-card)
+        - Tariff (m3-tariff-card)
         - Time (m3-time-card)
         - Todo (m3-todo-card)
         - Top Consumers (m3-top-consumers-card)

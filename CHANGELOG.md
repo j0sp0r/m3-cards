@@ -18,6 +18,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   integrations. Reads only the registries the frontend already holds, so it
   works without admin rights.
 
+- **Tariff card** (`m3-tariff-card`, card 57, refs #56). Use and cost over
+  two or more tariffs (Heures Pleines / Heures Creuses or any number): total
+  cost, the active tariff from an entity or a schedule with its price, its
+  saving against the dearest and "until HH:MM", the split of the period,
+  a tile per tariff and stacked history bars with a breakdown on tap. Cost
+  from a cost entity or use × price (a price entity's daily mean).
 - **Gauge card: `style: needle`** (refs #56). A dial for one value: a 270°
   arc in coloured ranges (`segments`), filled up to the value, a needle that
   springs to a new value, scale labels, the value in the opening and a pill

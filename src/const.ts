@@ -3329,3 +3329,10 @@ export const AVAILABILITY_ROW_GAP = SPACING.rowGap;
 export const AVAILABILITY_TICK_MS = 60_000;
 /** How far back the history is read to see an outage through restarts. */
 export const AVAILABILITY_HISTORY_DAYS = 30;
+
+// ---- Tariff card ------------------------------------------------------------
+export const DEFAULT_TARIFF_RADIUS = RADIUS.card;
+export const DEFAULT_TARIFF_ICON = "mdi:receipt-text-outline";
+export const DEFAULT_TARIFF_BASE = PALETTE.home;
+export const DEFAULT_TARIFF_HISTORY_DAYS = 7;
+export const TARIFF_REFRESH_MS = 5 * 60_000;
