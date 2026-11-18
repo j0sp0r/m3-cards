@@ -1,5 +1,6 @@
 import { LitElement, html, css, nothing, type PropertyValues, type TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
+import { keyed } from "lit/directives/keyed.js";
 import type {
   EnergyUsagePeriodKind,
   HomeAssistant,
@@ -14,8 +15,16 @@ import {
   USAGE_BATTERY_COLOR,
   USAGE_EXPORT_COLOR,
   USAGE_GRID_COLOR,
+  USAGE_COUNT_MS,
   USAGE_REFRESH_MS,
+  USAGE_SEGMENT_GAP,
+  USAGE_SEGMENT_HEIGHT,
+  USAGE_SEGMENT_PAD,
+  USAGE_SEGMENT_RADIUS,
+  USAGE_SEGMENT_RADIUS_ON,
+  USAGE_SLIDE_PX,
   USAGE_SOLAR_COLOR,
+  USAGE_STAGGER_TOTAL_MS,
   resolveCornerRadius,
 } from "./const";
 import { buildCssVars, foregroundOn, resolveCommonColors, resolveThemeColor, tintOn } from "./shared/color-config";
@@ -63,6 +72,7 @@ interface Sources {
 
 interface Loaded {
   key: string;
+  period: EnergyPeriod;
   buckets: EnergyFlows[];
   total: EnergyFlows;
   gridCost?: number;
@@ -100,6 +110,11 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
   @state() private _noDashboard = false;
   @state() private _tip?: number;
   @state() private _loading = false;
+  /** Where the last new period came from: −1 earlier, 1 later, 0 another kind. */
+  private _dir: -1 | 0 | 1 = 0;
+  /** The total as last painted, in kWh, for the count to the next one. */
+  private _heroFrom?: number;
+  private _heroFrame?: number;
 
   private _sources?: Sources;
   private _unsubShared?: () => void;
@@ -150,6 +165,7 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
   public disconnectedCallback(): void {
     super.disconnectedCallback();
     if (this._timer) window.clearInterval(this._timer);
+    if (this._heroFrame) cancelAnimationFrame(this._heroFrame);
     this._unsubShared?.();
     this._unsubShared = undefined;
     this._unsubHa?.();
@@ -175,6 +191,8 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
     if (this._unsubShared || !this.hass) return;
     this._period = getSharedPeriod(this._key, this._fallbackPeriod);
     this._unsubShared = subscribeSharedPeriod(this._key, this._fallbackPeriod, (p) => {
+      const old = this._period;
+      this._dir = !old || old.kind !== p.kind ? 0 : p.start > old.start ? 1 : p.start < old.start ? -1 : 0;
       this._period = p;
       this._tip = undefined;
     });
@@ -228,6 +246,7 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
   protected updated(changed: PropertyValues): void {
     super.updated(changed);
     void this._maybeFetch();
+    if (changed.has("_data")) this._countHero();
   }
 
   private async _loadSources(): Promise<Sources | undefined> {
@@ -304,7 +323,7 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
     const src = this._sources;
     if (!src) return;
     if (isFuture(p, new Date())) {
-      this._data = { key, buckets: bucketsOf(p).map(() => ({ ...NO_FLOWS })), total: { ...NO_FLOWS }, devices: [] };
+      this._data = { key, period: p, buckets: bucketsOf(p).map(() => ({ ...NO_FLOWS })), total: { ...NO_FLOWS }, devices: [] };
       return;
     }
     this._loading = true;
@@ -377,6 +396,7 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
         : [];
       this._data = {
         key,
+        period: p,
         buckets,
         total: buckets.reduce(addFlows, { ...NO_FLOWS }),
         gridCost: sumIds(src.gridCost, cost),
@@ -418,7 +438,9 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
           <button class="nav" aria-label=${this._t("usage_prev")} @click=${() => this._setPeriod(shiftPeriod(p, -1))}>
             <ha-icon icon="mdi:chevron-left"></ha-icon>
           </button>
-          <div class="date-label" aria-live="polite">${label}</div>
+          <div class="date-label" aria-live="polite">
+            ${keyed(label, html`<span class="slide" style=${this._slideStyle()}>${label}</span>`)}
+          </div>
           <button
             class="nav"
             aria-label=${this._t("usage_next")}
@@ -429,6 +451,12 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
           </button>
         </div>
         <div class="segmented" role="radiogroup">
+          ${periods.includes(p.kind)
+            ? html`<span
+                class="seg-ind"
+                style=${`width: calc((100% - ${2 * USAGE_SEGMENT_PAD + (periods.length - 1) * USAGE_SEGMENT_GAP}px) / ${periods.length}); transform: translateX(calc(${periods.indexOf(p.kind)} * (100% + ${USAGE_SEGMENT_GAP}px)));`}
+              ></span>`
+            : nothing}
           ${periods.map(
             (k) => html`<button
               class="seg-btn ${p.kind === k ? "on" : ""}"
@@ -447,6 +475,7 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
   private _renderGraph(p: EnergyPeriod, usages: Usage[], colors: Record<string, string>): TemplateResult {
     const max = Math.max(0.0001, ...usages.map((u) => u.total));
     const starts = bucketsOf(p);
+    const stagger = USAGE_STAGGER_TOTAL_MS / Math.max(1, usages.length);
     return html`
       <div class="bars" style=${`grid-template-columns: repeat(${usages.length}, minmax(0, 1fr)); gap: ${usages.length > 20 ? 3 : 6}px;`}>
         ${usages.map((u, i) => {
@@ -459,7 +488,7 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
           return html`<div class="col">
             <button
               class="bar"
-              style=${`height: ${Math.max(u.total > 0 ? 3 : 0, (u.total / max) * 100)}%;`}
+              style=${`height: ${Math.max(u.total > 0 ? 3 : 0, (u.total / max) * 100)}%; animation-delay: ${Math.round(i * stagger)}ms;`}
               aria-label=${`${bucketLabel(p, starts[i], 0, this._language) || starts[i].toLocaleString(this._language)}: ${this._energy(u.total)}`}
               aria-expanded=${open ? "true" : "false"}
               @click=${() => (this._tip = open ? undefined : i)}
@@ -532,6 +561,41 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
     `;
   }
 
+  private _slideStyle(): string {
+    return `--eu-slide: ${this._dir * USAGE_SLIDE_PX}px;`;
+  }
+
+  /** Counts the total from the figure last shown to the new one. */
+  private _countHero(): void {
+    const to = this._data ? sumUsage(this._data.buckets.map(splitUsage)).total : undefined;
+    const from = this._heroFrom;
+    this._heroFrom = to;
+    const el = this.renderRoot.querySelector<HTMLElement>(".hero-num");
+    const unitEl = this.renderRoot.querySelector<HTMLElement>(".hero-unit");
+    if (this._heroFrame) cancelAnimationFrame(this._heroFrame);
+    const cfg = this._config;
+    if (!el || to === undefined || from === undefined || from === to || !cfg || !shouldAnimate(cfg.animation) || isReducedMotion()) return;
+    // Into the text node Lit rendered, not over it: replacing the node
+    // (textContent) would pull it from under Lit's next update.
+    const write = (host: HTMLElement | null, text: string) => {
+      const node = [...(host?.childNodes ?? [])].find((n): n is Text => n.nodeType === Node.TEXT_NODE && !!n.data.trim());
+      if (node) node.data = text;
+    };
+    const paint = (kwh: number) => {
+      const s = scaleEnergy(kwh);
+      write(el, formatNumber(this._language, s.value, { maximumFractionDigits: s.unit === "Wh" ? 0 : 1 }));
+      write(unitEl, s.unit);
+    };
+    const t0 = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - t0) / USAGE_COUNT_MS);
+      paint(from + (to - from) * (1 - Math.pow(1 - t, 3)));
+      this._heroFrame = t < 1 ? requestAnimationFrame(step) : undefined;
+    };
+    paint(from);
+    this._heroFrame = requestAnimationFrame(step);
+  }
+
   protected render() {
     const cfg = this._config;
     if (!cfg || !this.hass) return nothing;
@@ -542,7 +606,10 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
       battery: cfg.battery_color ? resolveThemeColor(cfg.battery_color) : `color-mix(in srgb, ${USAGE_BATTERY_COLOR} 75%, white)`,
       export: cfg.export_color ? resolveThemeColor(cfg.export_color) : USAGE_EXPORT_COLOR,
     };
-    const data = this._data && this._data.key.startsWith(`${p.kind}|${p.start.getTime()}`) ? this._data : undefined;
+    // While the next period loads, the last one stays (dimmed) instead of the
+    // card collapsing and growing again; the new one then slides in.
+    const data = this._data;
+    const shownPeriod = data?.period ?? p;
     const usages = data ? data.buckets.map(splitUsage) : [];
     const total = data ? sumUsage(usages) : undefined;
     const self = total ? selfSufficiency(total) : undefined;
@@ -572,19 +639,26 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
                 ${cfg.show_graph !== false || cfg.show_table !== false
                   ? html`<div class="hero-row">
                       <div class="hero">
-                        ${hero ? html`${formatNumber(this._language, hero.value, { maximumFractionDigits: hero.unit === "Wh" ? 0 : 1 })}<span class="hero-unit">${hero.unit}</span>` : "–"}
+                        ${hero ? html`<span class="hero-num">${formatNumber(this._language, hero.value, { maximumFractionDigits: hero.unit === "Wh" ? 0 : 1 })}</span><span class="hero-unit">${hero.unit}</span>` : "–"}
                       </div>
                       ${self !== undefined
                         ? html`<div class="self"><ha-icon icon="mdi:leaf"></ha-icon>${this._t("usage_self").replace("{p}", String(self))}</div>`
                         : nothing}
                     </div>`
                   : nothing}
-                ${cfg.show_graph !== false && data
-                  ? usages.some((u) => u.total > 0)
-                    ? this._renderGraph(p, usages, colors)
-                    : html`<div class="empty">${this._t("usage_no_data")}</div>`
+                ${data
+                  ? keyed(
+                      data.key,
+                      html`<div class="period-body slide" style=${this._slideStyle()}>
+                        ${cfg.show_graph !== false
+                          ? usages.some((u) => u.total > 0)
+                            ? this._renderGraph(shownPeriod, usages, colors)
+                            : html`<div class="empty">${this._t("usage_no_data")}</div>`
+                          : nothing}
+                        ${cfg.show_table !== false && total && this._sources ? this._renderTable(total, colors) : nothing}
+                      </div>`,
+                    )
                   : nothing}
-                ${cfg.show_table !== false && data && total && this._sources ? this._renderTable(total, colors) : nothing}
               `}
         </div>
       </ha-card>
@@ -597,8 +671,8 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
       .card-inner {
         gap: var(--m3-card-gap, 12px);
       }
-      .card-inner.loading .bars,
-      .card-inner.loading .table {
+      .card-inner.loading .period-body,
+      .card-inner.loading .hero {
         opacity: 0.5;
         transition: opacity 200ms ease;
       }
@@ -619,6 +693,7 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
       }
       .date-label {
         flex: 1;
+        overflow: hidden;
         text-align: center;
         font-size: 17px;
         font-weight: 700;
@@ -644,29 +719,60 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
         cursor: default;
       }
       .segmented {
+        position: relative;
         display: flex;
-        gap: 4px;
-        padding: 3px;
-        border-radius: 14px;
+        gap: ${USAGE_SEGMENT_GAP}px;
+        padding: ${USAGE_SEGMENT_PAD}px;
+        border-radius: ${USAGE_SEGMENT_RADIUS}px;
         background: color-mix(in srgb, var(--primary-text-color) 6%, var(--ha-card-background, var(--card-background-color)));
       }
       .seg-btn {
         flex: 1;
-        height: 38px;
+        position: relative;
+        height: ${USAGE_SEGMENT_HEIGHT}px;
         border: none;
-        border-radius: 11px;
+        border-radius: ${USAGE_SEGMENT_RADIUS_ON}px;
         background: transparent;
         color: var(--eu-secondary, var(--secondary-text-color));
         font: inherit;
         font-size: 14px;
         font-weight: 600;
         cursor: pointer;
-        transition: background 200ms ease, border-radius 200ms ease;
+        transition: color 250ms ease;
       }
       .seg-btn.on {
-        background: color-mix(in srgb, var(--primary-color) 22%, var(--ha-card-background, var(--card-background-color)));
         color: var(--eu-text, var(--primary-text-color));
-        border-radius: 19px;
+      }
+      /* One pill that slides to the chosen period, rather than each button
+         lighting up on its own. */
+      .seg-ind {
+        position: absolute;
+        top: ${USAGE_SEGMENT_PAD}px;
+        left: ${USAGE_SEGMENT_PAD}px;
+        height: ${USAGE_SEGMENT_HEIGHT}px;
+        border-radius: ${USAGE_SEGMENT_RADIUS_ON}px;
+        background: color-mix(in srgb, var(--primary-color) 22%, var(--ha-card-background, var(--card-background-color)));
+        transition: transform 400ms cubic-bezier(0.2, 0, 0, 1);
+      }
+      .slide {
+        display: block;
+        animation: eu-in 350ms cubic-bezier(0.05, 0.7, 0.1, 1) both;
+      }
+      .period-body {
+        display: flex;
+        flex-direction: column;
+        gap: var(--m3-card-gap, 12px);
+      }
+      @keyframes eu-in {
+        from {
+          opacity: 0;
+          transform: translateX(var(--eu-slide, 0px));
+        }
+      }
+      @keyframes eu-grow {
+        from {
+          transform: scaleY(0);
+        }
       }
       .nav:focus-visible,
       .seg-btn:focus-visible,
@@ -727,7 +833,9 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
         border: none;
         background: none;
         cursor: pointer;
+        transform-origin: bottom;
         transition: height 400ms cubic-bezier(0.2, 0, 0, 1);
+        animation: eu-grow 500ms cubic-bezier(0.05, 0.7, 0.1, 1) backwards;
       }
       .seg {
         min-height: 2px;
@@ -836,13 +944,18 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
       }
       .no-animations .bar,
       .no-animations .seg-btn,
+      .no-animations .seg-ind,
       .no-animations .nav {
         transition: none;
+      }
+      .no-animations .bar,
+      .no-animations .slide {
+        animation: none;
       }
       @supports not (color: color-mix(in srgb, red 50%, blue)) {
         .segmented,
         .trow,
-        .seg-btn.on {
+        .seg-ind {
           background: var(--ha-card-background, var(--card-background-color));
         }
       }

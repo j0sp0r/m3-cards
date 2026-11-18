@@ -3344,3 +3344,18 @@ export const USAGE_SOLAR_COLOR = PALETTE.solar;
 export const USAGE_BATTERY_COLOR = PALETTE.ok;
 export const USAGE_EXPORT_COLOR = PALETTE.off;
 export const USAGE_REFRESH_MS = 5 * 60_000;
+/**
+ * The period switch: a pill track and a sliding pill concentric with it —
+ * its radius is the track's less the padding, so the curves run parallel.
+ */
+export const USAGE_SEGMENT_HEIGHT = 38;
+export const USAGE_SEGMENT_PAD = 3;
+export const USAGE_SEGMENT_GAP = 4;
+export const USAGE_SEGMENT_RADIUS = USAGE_SEGMENT_HEIGHT / 2 + USAGE_SEGMENT_PAD;
+export const USAGE_SEGMENT_RADIUS_ON = USAGE_SEGMENT_HEIGHT / 2;
+/** How far a new period slides in from the side it came from. */
+export const USAGE_SLIDE_PX = 24;
+/** The total counts from the old period's figure to the new one. */
+export const USAGE_COUNT_MS = 450;
+/** Each bar starts a little after the one before it, up to this in all. */
+export const USAGE_STAGGER_TOTAL_MS = 240;
