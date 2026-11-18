@@ -14,6 +14,7 @@ import {
 import { STANDARD_EASING } from "./animation";
 import { M3SheetBase } from "./sheet-base";
 import { POPUP_GRID_COLUMNS } from "./popup-hash";
+import type { PopupSize } from "./css-length";
 
 // The sheet m3-popup-card opens: a header in the detail view's design — icon,
 // title, close button — over the cards the popup holds.
@@ -45,18 +46,23 @@ export class M3PopupSheet extends M3SheetBase {
    */
   @property({ attribute: false }) public textColor?: string;
   @property({ attribute: false }) public secondaryTextColor?: string;
-  /** Checked lengths from the popup's `width` and `height` (#58). */
-  @property({ attribute: false }) public sheetWidth?: string;
-  @property({ attribute: false }) public sheetHeight?: string;
+  /** Checked sizes from the popup's `width`, `height` and their phone twins (#58). */
+  @property({ attribute: false }) public size: PopupSize = {};
 
   protected updated(changed: PropertyValues): void {
     super.updated?.(changed);
-    if (!changed.has("sheetWidth") && !changed.has("sheetHeight")) return;
+    if (!changed.has("size")) return;
     // On the host, so the dialog's own rules in the base sheet read them.
-    if (this.sheetWidth) this.style.setProperty("--m3-popup-width", this.sheetWidth);
-    else this.style.removeProperty("--m3-popup-width");
-    if (this.sheetHeight) this.style.setProperty("--m3-popup-height", this.sheetHeight);
-    else this.style.removeProperty("--m3-popup-height");
+    const vars: [string, string | undefined][] = [
+      ["--m3-popup-width", this.size.width],
+      ["--m3-popup-height", this.size.height],
+      ["--m3-popup-mobile-width", this.size.mobileWidth],
+      ["--m3-popup-mobile-height", this.size.mobileHeight],
+    ];
+    for (const [name, value] of vars) {
+      if (value) this.style.setProperty(name, value);
+      else this.style.removeProperty(name);
+    }
   }
 
   public open(opener?: HTMLElement): void {
@@ -159,17 +165,21 @@ export class M3PopupSheet extends M3SheetBase {
          themes set none: on a dashboard the wallpaper outlines them, in a
          sheet of their own colour nothing does. They get the rim every M3
          card draws, through the variables ha-card reads. */
-      /* A configured size (#58). The width only where the sheet stands
-         centred: a phone's sheet is the full width either way. Both stay
-         inside the screen, whatever was typed. */
+      /* A configured size (#58), one pair for the phone's bottom sheet and
+         one for the centred sheet. Both stay inside the screen, whatever
+         was typed. */
+      dialog {
+        max-width: min(var(--m3-popup-mobile-width, 100vw), 100vw);
+      }
       .sheet {
-        height: var(--m3-popup-height, auto);
+        height: var(--m3-popup-mobile-height, auto);
       }
       @media (min-width: 600px) and (min-height: 600px) {
         dialog {
           max-width: min(var(--m3-popup-width, ${DETAIL_SHEET_MAX_WIDTH}px), calc(100vw - ${2 * POPUP_SCREEN_MARGIN}px));
         }
         .sheet {
+          height: var(--m3-popup-height, auto);
           max-height: min(92dvh, calc(100dvh - ${2 * POPUP_SCREEN_MARGIN}px));
         }
       }

@@ -7350,10 +7350,22 @@ dashboard, and kept from then on: ten popups cost nothing until used, and a
 card keeps its state between openings.
 
 The sheet sizes itself to its cards. `width` and `height` set it instead —
-pixels or any length, such as `700px`, `80vw` or `70vh`. The width counts where
-the sheet stands centred, on a tablet or a desktop; a phone's sheet stays the
-full width. Both are held inside the screen, so `900px` on a small tablet
-still fits, and the cards scroll when the height is less than they need.
+pixels or any length, such as `700px`, `80vw` or `70vh` — where it stands
+centred, on a tablet or a desktop. A phone's bottom sheet has its own pair,
+`mobile_width` and `mobile_height`: without them it is the full width and
+takes `height`, and `mobile_height: auto` sizes it to its cards again. The
+sheet counts as a phone's below 600 pixels of width or height. Every size is
+held inside the screen, so `900px` on a small tablet still fits, and the cards
+scroll when the height is less than they need.
+
+```yaml
+type: custom:m3-popup-card
+hash: "#living-room"
+width: 700px
+height: 500px
+mobile_height: 80dvh
+cards: []
+```
 
 In edit mode the card shows as a dashed placeholder naming its hash, so it can
 be found and edited.
@@ -7385,8 +7397,10 @@ cards:
 | `text_color` | string | – | Text colour on the sheet — set as the theme's text colour there, so the cards in it follow too |
 | `secondary_text_color` | string | – | Secondary text colour on the sheet, for the cards in it as well |
 | `animation` | string | `auto` | `auto`, `on` or `off`. `off` opens and closes the sheet in place, without the slide |
-| `width` | string / number | – | The sheet's width on a tablet or desktop: a number of pixels or a length (`700px`, `80vw`). On a phone the sheet stays the full width. Held to the screen |
-| `height` | string / number | – | The sheet's height: a number of pixels or a length (`500px`, `70vh`). Held to the screen; the cards scroll when they need more |
+| `width` | string / number | – | The sheet's width on a tablet or desktop: a number of pixels or a length (`700px`, `80vw`). Held to the screen |
+| `height` | string / number | – | The sheet's height on a tablet or desktop (`500px`, `70vh`), and on a phone unless `mobile_height` is set. The cards scroll when they need more |
+| `mobile_width` | string / number | full width | The bottom sheet's width on a phone (`92vw`) |
+| `mobile_height` | string / number | `height` | The bottom sheet's height on a phone (`80dvh`); `auto` sizes it to its cards |
 | `cards` | list | `[]` | The cards in the sheet, in display order. Any Lovelace card — M3 or otherwise. Each one's `grid_options.columns` (of 12) sets its width |
 
 </details>

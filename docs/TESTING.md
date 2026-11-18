@@ -1241,6 +1241,7 @@ Pop-up mit `hash: "#test"` und zwei, drei Karten anlegen, dazu einen Button mit
 - [ ] Theme der Ansicht gilt auch im Pop-up
 - [ ] Desktop: zentriert, alle vier Ecken rund, blendet ein
 - [ ] `width: 700px`, `height: 500px` (#58): am Desktop 700 × 500, Inhalt scrollt, wenn er mehr braucht; am Handy volle Breite, 500 hoch
+- [ ] Dazu `mobile_width: 92vw`, `mobile_height: 80dvh`: am Handy schmaler und 80 % hoch, am Desktop unverändert 700 × 500; `mobile_height: auto` → Höhe nach Inhalt
 - [ ] `width: 2000px`, `height: 120vh`: bleibt mit Rand im Bildschirm; `width: abc` wird ignoriert (Standardbreite)
 
 ## M3 Router Card

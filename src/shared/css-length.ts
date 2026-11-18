@@ -13,3 +13,30 @@ export function cssLength(value: unknown): string | undefined {
   if (!m || !(Number(m[1]) > 0)) return undefined;
   return `${m[1]}${m[2] ?? "px"}`;
 }
+
+/** The popup's sizes per layout, as CSS custom properties take them. */
+export interface PopupSize {
+  /** Where the sheet stands centred: tablet, desktop. */
+  width?: string;
+  height?: string;
+  /** The phone's bottom sheet. */
+  mobileWidth?: string;
+  mobileHeight?: string;
+}
+
+/**
+ * `width` and `height` size the centred sheet. On a phone the height carries
+ * over unless `mobile_height` says otherwise — `auto` hands it back to the
+ * content — and the width does not: a phone's sheet is the full width unless
+ * `mobile_width` narrows it.
+ */
+export function popupSize(cfg: { width?: unknown; height?: unknown; mobile_width?: unknown; mobile_height?: unknown }): PopupSize {
+  const auto = (v: unknown) => typeof v === "string" && v.trim().toLowerCase() === "auto";
+  const height = cssLength(cfg.height);
+  return {
+    width: cssLength(cfg.width),
+    height,
+    mobileWidth: cssLength(cfg.mobile_width),
+    mobileHeight: auto(cfg.mobile_height) ? undefined : (cssLength(cfg.mobile_height) ?? height),
+  };
+}

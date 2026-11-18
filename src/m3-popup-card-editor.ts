@@ -42,7 +42,7 @@ export class M3PopupCardEditor extends LitElement implements LovelaceCardEditor<
     if (!this._config) return;
     const next = { ...this._config, ...(ev.detail.value as Record<string, unknown>) } as M3PopupCardConfig;
     // An emptied optional field leaves the config rather than staying as "".
-    for (const key of ["title", "icon", "width", "height"] as const) if (!next[key]) delete next[key];
+    for (const key of ["title", "icon", "width", "height", "mobile_width", "mobile_height"] as const) if (!next[key]) delete next[key];
     this._emit(next);
   }
 
@@ -55,6 +55,8 @@ export class M3PopupCardEditor extends LitElement implements LovelaceCardEditor<
       animation: "editor_progress_animation",
       width: "editor_popup_width",
       height: "editor_popup_height",
+      mobile_width: "editor_popup_mobile_width",
+      mobile_height: "editor_popup_mobile_height",
     };
     const key = labels[schema.name];
     return key ? this._t(key) : schema.name;
@@ -65,7 +67,9 @@ export class M3PopupCardEditor extends LitElement implements LovelaceCardEditor<
       ? this._t("editor_popup_hash_helper")
       : schema.name === "width" || schema.name === "height"
         ? this._t("editor_popup_size_helper")
-        : undefined;
+        : schema.name === "mobile_width" || schema.name === "mobile_height"
+          ? this._t("editor_popup_mobile_size_helper")
+          : undefined;
 
   private _colorChanged(key: "card_background" | "text_color" | "secondary_text_color", value: string): void {
     if (!this._config) return;
@@ -79,6 +83,8 @@ export class M3PopupCardEditor extends LitElement implements LovelaceCardEditor<
     return [
       { name: "width", selector: { text: {} } },
       { name: "height", selector: { text: {} } },
+      { name: "mobile_width", selector: { text: {} } },
+      { name: "mobile_height", selector: { text: {} } },
       { name: "glass_background", selector: { boolean: {} } },
       {
         name: "animation",
@@ -131,6 +137,8 @@ export class M3PopupCardEditor extends LitElement implements LovelaceCardEditor<
               .data=${{
                 width: this._config.width !== undefined ? String(this._config.width) : "",
                 height: this._config.height !== undefined ? String(this._config.height) : "",
+                mobile_width: this._config.mobile_width !== undefined ? String(this._config.mobile_width) : "",
+                mobile_height: this._config.mobile_height !== undefined ? String(this._config.mobile_height) : "",
                 glass_background: this._config.glass_background !== false,
                 animation: this._config.animation ?? "auto",
               }}

@@ -3866,11 +3866,17 @@ export interface M3PopupCardConfig {
   animation?: "auto" | "on" | "off";
   /**
    * The sheet's size (#58): a number of pixels or a length such as `700px`,
-   * `80vw`. Width counts where the sheet stands centred (tablet, desktop);
-   * on a phone it stays the full width. Both are held to the screen.
+   * `80vw`, for the sheet where it stands centred (tablet, desktop). Both
+   * are held to the screen.
    */
   width?: string | number;
   height?: string | number;
+  /**
+   * The same for a phone's bottom sheet. Without them it is the full width
+   * and takes `height`; `mobile_height: auto` sizes it to its cards again.
+   */
+  mobile_width?: string | number;
+  mobile_height?: string | number;
   card_version?: string;
 }
 
