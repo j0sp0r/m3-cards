@@ -49,7 +49,9 @@ describe("splitUsage", () => {
   });
 
   it("puts the y-axis on round steps just above the tallest bar", () => {
-    expect(axisTicks(23.4)).toEqual({ top: 30, ticks: [0, 10, 20, 30] });
+    expect(axisTicks(23.4)).toEqual({ top: 25, ticks: [0, 5, 10, 15, 20, 25] });
+    expect(axisTicks(21.3).top).toBe(25);
+    expect(axisTicks(27).top).toBe(30);
     expect(axisTicks(0.87)).toEqual({ top: 1, ticks: [0, 0.25, 0.5, 0.75, 1] });
     expect(axisTicks(14)).toEqual({ top: 15, ticks: [0, 5, 10, 15] });
     expect(axisTicks(0.3).ticks).toEqual([0, 0.1, 0.2, 0.3]);

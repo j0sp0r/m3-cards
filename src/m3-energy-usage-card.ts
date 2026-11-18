@@ -844,6 +844,8 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
         grid-template-rows: ${USAGE_PLOT_HEIGHT}px auto;
         column-gap: 8px;
         row-gap: 4px;
+        /* Room for the top value, which sits centred on its line. */
+        padding-top: 8px;
       }
       .plot.no-y {
         column-gap: 0;

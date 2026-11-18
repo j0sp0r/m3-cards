@@ -112,15 +112,22 @@ export function scaleEnergy(kwh: number): { value: number; unit: "Wh" | "kWh" | 
 }
 
 /**
- * The y-axis for bars up to `max`: a round step (1, 2, 2.5 or 5 × 10ⁿ) that
- * gives two to four lines above zero, and the top the bars are scaled to.
+ * The y-axis for bars up to `max`: of the round steps (1, 2, 2.5 or 5 × 10ⁿ)
+ * that give three to five lines above zero, the one whose top sits closest
+ * above the tallest bar — fewer lines when two reach the same top.
  */
 export function axisTicks(max: number): { top: number; ticks: number[] } {
   if (!(max > 0) || !Number.isFinite(max)) return { top: 1, ticks: [0, 1] };
-  const raw = max / 4;
-  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
-  const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => s >= raw)!;
-  const n = Math.ceil(max / step - 1e-9);
+  const mag = Math.pow(10, Math.floor(Math.log10(max)));
+  let best: { step: number; n: number } | undefined;
+  for (const m of [0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5]) {
+    const step = m * mag;
+    const n = Math.ceil(max / step - 1e-9);
+    if (n < 3 || n > 5) continue;
+    const top = n * step;
+    if (!best || top < best.n * best.step - 1e-9 || (Math.abs(top - best.n * best.step) < 1e-9 && n < best.n)) best = { step, n };
+  }
+  const { step, n } = best ?? { step: mag, n: Math.ceil(max / mag) };
   // Rounding keeps 0.1 + 0.2 from printing as 0.30000000000000004.
   const ticks = Array.from({ length: n + 1 }, (_, i) => Number((i * step).toPrecision(12)));
   return { top: ticks[ticks.length - 1], ticks };
