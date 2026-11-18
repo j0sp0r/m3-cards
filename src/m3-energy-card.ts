@@ -789,9 +789,15 @@ export class M3EnergyCard extends TemplatedCard(LitElement) implements LovelaceC
     const maxValue = Math.max(0.001, ...values.map(barExtent));
     // The optional y-axis: round values at the heights the bars use for
     // them, which start from the bars' minimum height rather than from 0.
-    const yTicks = this._config.y_axis === true ? [0, ...niceTicks(0, maxValue, 3).filter((t) => t > 0)] : [];
+    // Nothing to scale (every bar 0) gets no axis; ticks finer than the
+    // number format would print the same label twice, so those go too.
+    const rawTicks =
+      this._config.y_axis === true && maxValue > 0.001 ? [0, ...niceTicks(0, maxValue, 3).filter((t) => t > 0)] : [];
+    const yTicks = rawTicks.filter((t, i) => i === 0 || this._formatNumber(t) !== this._formatNumber(rawTicks[i - 1]));
     const tickBottom = (t: number) => (t === 0 ? 0 : geometry.minHeight + (geometry.maxHeight - geometry.minHeight) * (t / maxValue));
-    const tickLabels = yTicks.map((t, i) => (i === yTicks.length - 1 ? `${this._formatNumber(t)} ${unit}` : this._formatNumber(t)));
+    const tickLabels =
+      yTicks.length > 1 ? yTicks.map((t, i) => (i === yTicks.length - 1 ? `${this._formatNumber(t)} ${unit}` : this._formatNumber(t))) : [];
+    if (tickLabels.length === 0) yTicks.length = 0;
     // Wide enough for the longest label, so the bars start at one place.
     const yAxisWidth = yTicks.length ? Math.max(...tickLabels.map((l) => l.length)) * ENERGY_Y_AXIS_CHAR_PX + ENERGY_Y_AXIS_GAP_PX : 0;
     const showValueRow =
