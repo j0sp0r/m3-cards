@@ -5,6 +5,20 @@ import { DEFAULT_TARIFF_HISTORY_DAYS, DEFAULT_TARIFF_RADIUS } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { fireEvent, editorStyles, type SchemaEntry } from "./shared/editor-helpers";
 import { radiusLabelMap } from "./shared/radius-editor";
+import { tariffNotifyParts } from "./shared/tariff-notify";
+import { formatCurrencyParts } from "./shared/pricing";
+import {
+  notifyServiceSchema,
+  notifyTitleSchema,
+  notifyMessageSchema,
+  notifyTokenHint,
+  renderNotifyControls,
+  notifyActions,
+  saveNotifyAutomation,
+  resolveAutomationId,
+  setAutomationEnabled,
+  notifyStyles,
+} from "./shared/notify-editor";
 import {
   initAppearanceState,
   radiusPresetPatch,
@@ -19,6 +33,9 @@ export class M3TariffCardEditor extends LitElement implements LovelaceCardEditor
 
   @state() private _config?: M3TariffCardConfig;
   @state() private _appearance: AppearanceState = { showCustomRadius: false, showCorners: false, cornerCustom: {} };
+  @state() private _notifyBusy = false;
+  @state() private _notifyStatus: "idle" | "success" | "error" = "idle";
+  @state() private _notifyDetail = "";
 
   public setConfig(config: M3TariffCardConfig): void {
     this._config = config;
@@ -54,6 +71,11 @@ export class M3TariffCardEditor extends LitElement implements LovelaceCardEditor
       period: "editor_tariff_period",
       history_days: "editor_tariff_history_days",
       show_history: "editor_tariff_show_history",
+      notify_tariffs: "editor_tariff_notify_tariffs",
+      notify_advance: "editor_tariff_notify_advance",
+      notify_service: "editor_notify_service",
+      notify_title: "editor_notify_title",
+      notify_message: "editor_notify_message",
       ...radiusLabelMap,
     };
     const key = map[schema.name];
@@ -170,6 +192,130 @@ export class M3TariffCardEditor extends LitElement implements LovelaceCardEditor
     this._emit({ ...this._config, corners: { ...(this._config.corners ?? {}), [key]: ev.detail.value[key] as number } });
   }
 
+  // ---- notification -------------------------------------------------------
+
+  private _notifySchema(): SchemaEntry[] {
+    const c = this._config!;
+    const options = (c.tariffs ?? []).filter((t) => t.name).map((t) => ({ value: t.name, label: t.short ? `${t.name} (${t.short})` : t.name }));
+    return [
+      { name: "notify_tariffs", selector: { select: { mode: "list", multiple: true, options } } },
+      ...(c.schedule?.length ? [{ name: "notify_advance", selector: { number: { min: 0, max: 240, mode: "box", unit_of_measurement: "min" } } }] : []),
+      notifyServiceSchema(this.hass),
+      notifyTitleSchema(),
+      notifyMessageSchema(),
+    ] as SchemaEntry[];
+  }
+
+  private async _toggleNotify(enabled: boolean): Promise<void> {
+    if (!this._config || !this.hass) return;
+    this._emit({ ...this._config, notify_enabled: enabled });
+    if (enabled) {
+      await this._setupNotify();
+      return;
+    }
+    const id = this._config.notify_automation_id;
+    if (id) await setAutomationEnabled(this.hass, id, false);
+  }
+
+  private async _setupNotify(): Promise<void> {
+    const cfg = this._config;
+    const hass = this.hass;
+    if (!hass || !cfg) return;
+    const targets = cfg.notify_service ?? [];
+    if (targets.length === 0) {
+      this._notifyStatus = "error";
+      this._notifyDetail = this._t("editor_notify_missing");
+      return;
+    }
+    this._notifyBusy = true;
+    this._notifyStatus = "idle";
+    this._notifyDetail = "";
+    try {
+      const tariffs = cfg.tariffs ?? [];
+      const announce = (cfg.notify_tariffs ?? []).map((n) => tariffs.findIndex((t) => t.name === n)).filter((i) => i >= 0);
+      const currency = cfg.currency || ((hass.config as { currency?: string } | undefined)?.currency ?? "EUR");
+      const parts = tariffNotifyParts({
+        tariffs,
+        schedule: cfg.schedule,
+        activeEntity: cfg.active_tariff,
+        untilEntity: cfg.active_until,
+        announce,
+        advance: cfg.notify_advance ?? 0,
+        decimalComma: (1.5).toLocaleString(this._language).includes(","),
+        priceUnit: `${formatCurrencyParts(0, currency, this._language).symbol}/kWh`,
+        texts: {
+          now: this._t("editor_tariff_notify_now"),
+          until: this._t("editor_tariff_notify_until"),
+          soon: this._t("editor_tariff_notify_soon"),
+          custom: cfg.notify_message,
+        },
+      });
+      if (!parts.usable) throw new Error(this._t("editor_tariff_notify_unusable"));
+      const title = cfg.title || this._t("tariff_title");
+      const automationId = resolveAutomationId("tariff", cfg.notify_automation_id);
+      await saveNotifyAutomation(hass, {
+        id: automationId,
+        alias: `${title}: ${this._t("editor_tariff_notify_alias")}`,
+        description: this._t("editor_tariff_notify_description"),
+        mode: "queued",
+        variables: parts.variables,
+        triggers: parts.triggers,
+        conditions: parts.conditions,
+        actions: notifyActions(targets, title, parts.message, { title: cfg.notify_title }),
+      });
+      if (cfg.notify_automation_id !== automationId) this._emit({ ...cfg, notify_automation_id: automationId });
+      await setAutomationEnabled(hass, automationId, true);
+      this._notifyStatus = "success";
+    } catch (e) {
+      this._notifyStatus = "error";
+      this._notifyDetail = e instanceof Error ? e.message : String(e);
+    } finally {
+      this._notifyBusy = false;
+    }
+  }
+
+  private _renderNotify() {
+    const c = this._config!;
+    return html`
+      <ha-expansion-panel outlined .header=${this._t("editor_tariff_notify")}>
+        <ha-icon slot="leading-icon" icon="mdi:bell-outline"></ha-icon>
+        <div class="panel-content">
+          <div class="hint">${this._t("editor_tariff_notify_hint")}</div>
+          <ha-form
+            .hass=${this.hass}
+            .data=${{
+              notify_tariffs: c.notify_tariffs ?? [],
+              notify_advance: c.notify_advance ?? 0,
+              notify_service: c.notify_service ?? [],
+              notify_title: c.notify_title ?? "",
+              notify_message: c.notify_message ?? "",
+            }}
+            .schema=${this._notifySchema()}
+            .computeLabel=${this._computeLabel}
+            @value-changed=${this._valueChanged}
+          ></ha-form>
+          <div class="hint">${notifyTokenHint(this._language, ["tarif", "preis", "bis"])}</div>
+          ${renderNotifyControls({
+            hass: this.hass,
+            language: this._language,
+            enabled: c.notify_enabled ?? false,
+            automationId: c.notify_automation_id,
+            busy: this._notifyBusy,
+            status: this._notifyStatus,
+            detail: this._notifyDetail,
+            blockedReason: !c.schedule?.length && !c.active_tariff
+              ? this._t("editor_tariff_notify_unusable")
+              : c.notify_service?.length
+                ? undefined
+                : this._t("editor_notify_missing"),
+            onToggle: (on) => void this._toggleNotify(on),
+            onSetup: () => void this._setupNotify(),
+          })}
+        </div>
+      </ha-expansion-panel>
+    `;
+  }
+
   protected render() {
     if (!this.hass || !this._config) return nothing;
     const c = this._config;
@@ -248,12 +394,14 @@ export class M3TariffCardEditor extends LitElement implements LovelaceCardEditor
           onCornerPresetChanged: this._cornerPresetChanged.bind(this),
           onCornerValueChanged: this._cornerValueChanged.bind(this),
         })}
+        ${this._renderNotify()}
       </div>
     `;
   }
 
   static styles = [
     editorStyles,
+    notifyStyles,
     css`
       .tariff {
         border: 1px solid var(--divider-color, rgba(127, 127, 127, 0.3));

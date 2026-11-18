@@ -5,6 +5,23 @@ import { DEFAULT_USAGE_RADIUS } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { fireEvent, editorStyles, type SchemaEntry } from "./shared/editor-helpers";
 import { radiusLabelMap } from "./shared/radius-editor";
+import { loadEnergySources } from "./shared/energy-sources";
+import { energyReportParts, REPORT_TOKENS, type ReportMode } from "./shared/energy-usage-notify";
+import { formatCurrencyParts } from "./shared/pricing";
+import {
+  notifyServiceSchema,
+  notifyTitleSchema,
+  notifyMessageSchema,
+  notifyModeSchema,
+  notifyTimeSchema,
+  notifyTokenHint,
+  renderNotifyControls,
+  notifyActions,
+  saveNotifyAutomation,
+  resolveAutomationId,
+  setAutomationEnabled,
+  notifyStyles,
+} from "./shared/notify-editor";
 import {
   initAppearanceState,
   radiusPresetPatch,
@@ -19,6 +36,9 @@ export class M3EnergyUsageCardEditor extends LitElement implements LovelaceCardE
 
   @state() private _config?: M3EnergyUsageCardConfig;
   @state() private _appearance: AppearanceState = { showCustomRadius: false, showCorners: false, cornerCustom: {} };
+  @state() private _notifyBusy = false;
+  @state() private _notifyStatus: "idle" | "success" | "error" = "idle";
+  @state() private _notifyDetail = "";
 
   public setConfig(config: M3EnergyUsageCardConfig): void {
     this._config = config;
@@ -66,6 +86,11 @@ export class M3EnergyUsageCardEditor extends LitElement implements LovelaceCardE
       show_devices: "editor_usage_show_devices",
       max_devices: "editor_usage_max_devices",
       collection_key: "editor_usage_key",
+      notify_mode: "editor_usage_notify_mode",
+      notify_time: "editor_notify_time",
+      notify_service: "editor_notify_service",
+      notify_title: "editor_notify_title",
+      notify_message: "editor_notify_message",
       ...radiusLabelMap,
     };
     const key = map[schema.name];
@@ -111,6 +136,138 @@ export class M3EnergyUsageCardEditor extends LitElement implements LovelaceCardE
     this._emit({ ...this._config, corners: { ...(this._config.corners ?? {}), [key]: ev.detail.value[key] as number } });
   }
 
+  // ---- report -------------------------------------------------------------
+
+  private _notifySchema(): SchemaEntry[] {
+    return [
+      notifyModeSchema([
+        { value: "daily", label: this._t("editor_usage_notify_daily") },
+        { value: "weekly", label: this._t("editor_usage_notify_weekly") },
+        { value: "monthly", label: this._t("editor_usage_notify_monthly") },
+      ]),
+      notifyTimeSchema(),
+      notifyServiceSchema(this.hass),
+      notifyTitleSchema(),
+      notifyMessageSchema(),
+    ];
+  }
+
+  /** The report needs the recorder's statistics action (Home Assistant 2025.8). */
+  private get _canReport(): boolean {
+    return !!this.hass?.services?.recorder?.get_statistics;
+  }
+
+  private async _toggleNotify(enabled: boolean): Promise<void> {
+    if (!this._config || !this.hass) return;
+    this._emit({ ...this._config, notify_enabled: enabled });
+    if (enabled) {
+      await this._setupNotify();
+      return;
+    }
+    const id = this._config.notify_automation_id;
+    if (id) await setAutomationEnabled(this.hass, id, false);
+  }
+
+  private async _setupNotify(): Promise<void> {
+    const cfg = this._config;
+    const hass = this.hass;
+    if (!hass || !cfg) return;
+    const targets = cfg.notify_service ?? [];
+    if (targets.length === 0) {
+      this._notifyStatus = "error";
+      this._notifyDetail = this._t("editor_notify_missing");
+      return;
+    }
+    this._notifyBusy = true;
+    this._notifyStatus = "idle";
+    this._notifyDetail = "";
+    try {
+      const { sources } = await loadEnergySources(hass, cfg.sources);
+      if (!sources || sources.gridFrom.length + sources.solar.length + sources.batteryFrom.length === 0) {
+        throw new Error(this._t("usage_no_dashboard"));
+      }
+      const mode = (cfg.notify_mode as ReportMode | undefined) ?? "daily";
+      const currency = (hass.config as { currency?: string } | undefined)?.currency ?? "EUR";
+      const parts = energyReportParts({
+        sources,
+        mode,
+        time: cfg.notify_time || "08:00",
+        decimalComma: (1.5).toLocaleString(this._language).includes(","),
+        currency: formatCurrencyParts(0, currency, this._language).symbol,
+        texts: {
+          period: {
+            daily: this._t("editor_usage_notify_period_daily"),
+            weekly: this._t("editor_usage_notify_period_weekly"),
+            monthly: this._t("editor_usage_notify_period_monthly"),
+          },
+          message: this._t(sources.solar.length ? "editor_usage_notify_message_solar" : "editor_usage_notify_message"),
+          custom: cfg.notify_message,
+        },
+      });
+      const title = cfg.title || this._t("editor_usage_notify_default_title");
+      const automationId = resolveAutomationId("energy_report", cfg.notify_automation_id);
+      await saveNotifyAutomation(hass, {
+        id: automationId,
+        alias: `${title}: ${this._t("editor_usage_notify_alias")}`,
+        description: this._t("editor_usage_notify_description"),
+        mode: "single",
+        triggers: parts.triggers,
+        conditions: parts.conditions,
+        actions: [...parts.actions, ...notifyActions(targets, title, parts.message, { title: cfg.notify_title })],
+      });
+      if (cfg.notify_automation_id !== automationId) this._emit({ ...cfg, notify_automation_id: automationId });
+      await setAutomationEnabled(hass, automationId, true);
+      this._notifyStatus = "success";
+    } catch (e) {
+      this._notifyStatus = "error";
+      this._notifyDetail = e instanceof Error ? e.message : String(e);
+    } finally {
+      this._notifyBusy = false;
+    }
+  }
+
+  private _renderNotify() {
+    const c = this._config!;
+    return html`
+      <ha-expansion-panel outlined .header=${this._t("editor_usage_notify")}>
+        <ha-icon slot="leading-icon" icon="mdi:bell-outline"></ha-icon>
+        <div class="panel-content">
+          <div class="hint">${this._t("editor_usage_notify_hint")}</div>
+          <ha-form
+            .hass=${this.hass}
+            .data=${{
+              notify_mode: c.notify_mode ?? "daily",
+              notify_time: c.notify_time ?? "08:00",
+              notify_service: c.notify_service ?? [],
+              notify_title: c.notify_title ?? "",
+              notify_message: c.notify_message ?? "",
+            }}
+            .schema=${this._notifySchema()}
+            .computeLabel=${this._computeLabel}
+            @value-changed=${this._valueChanged}
+          ></ha-form>
+          <div class="hint">${notifyTokenHint(this._language, [...REPORT_TOKENS])}</div>
+          ${renderNotifyControls({
+            hass: this.hass,
+            language: this._language,
+            enabled: c.notify_enabled ?? false,
+            automationId: c.notify_automation_id,
+            busy: this._notifyBusy,
+            status: this._notifyStatus,
+            detail: this._notifyDetail,
+            blockedReason: !this._canReport
+              ? this._t("editor_usage_notify_needs_ha")
+              : c.notify_service?.length
+                ? undefined
+                : this._t("editor_notify_missing"),
+            onToggle: (on) => void this._toggleNotify(on),
+            onSetup: () => void this._setupNotify(),
+          })}
+        </div>
+      </ha-expansion-panel>
+    `;
+  }
+
   protected render() {
     if (!this.hass || !this._config) return nothing;
     const c = this._config;
@@ -153,11 +310,12 @@ export class M3EnergyUsageCardEditor extends LitElement implements LovelaceCardE
           onCornerPresetChanged: this._cornerPresetChanged.bind(this),
           onCornerValueChanged: this._cornerValueChanged.bind(this),
         })}
+        ${this._renderNotify()}
       </div>
     `;
   }
 
-  static styles = editorStyles;
+  static styles = [editorStyles, notifyStyles];
 }
 
 declare global {

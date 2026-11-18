@@ -80,6 +80,16 @@ schedule:
   may run past midnight and take `days` (0 = Sunday). `active_until` takes a
   timestamp sensor for "until HH:MM"; otherwise the schedule's end is used.
 
+### Notification
+
+The editor's *Notification* section creates a Home Assistant automation that
+says when a tariff begins: "Off-peak from now, 0.18 €/kWh, until 06:00".
+With a `schedule` it runs at the schedule's start times and, with
+`notify_advance`, also a few minutes before ("Off-peak begins in 15 min");
+without one it follows the `active_tariff` entity. `notify_tariffs` limits it
+to some tariffs, say only the cheap one. The message can be your own, with
+`{tarif}`, `{preis}` and `{bis}`.
+
 ### Configuration options
 
 | Option | Type | Default | Description |
@@ -91,6 +101,11 @@ schedule:
 | `period` | `day` \| `week` \| `month` | `day` | What the header, split and tiles sum |
 | `history_days` | number | `7` | Days in the history bars |
 | `show_history` | boolean | `true` | The history bars |
+| `notify_enabled` | boolean | `false` | The notification, set up from the editor. See [Notification](#notification) |
+| `notify_tariffs` | list | all | The tariffs to announce, by name |
+| `notify_advance` | number | `0` | Minutes ahead for a warning; schedule only |
+| `notify_service` | list | – | Recipients, e.g. `mobile_app_pixel` |
+| `notify_title` / `notify_message` | string | – | Your own title and text (`{tarif}`, `{preis}`, `{bis}`) |
 | `currency` | string | Home Assistant's | ISO currency code |
 | `title`, `icon` | string | "Electricity cost", `mdi:receipt-text-outline` | Header |
 | `accent_color` | string | blue | The hue the tariff tones are made from; `color` per tariff overrides |

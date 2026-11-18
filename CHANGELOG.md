@@ -12,6 +12,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   reports a device unreachable for `notify_minutes` (30 by default), one
   message per device, and with `notify_back` when it is back. It watches the
   devices the card knows, leaving out those muted for good.
+- **Tariff card: notification.** Says when a tariff begins, with its price
+  and end; with a schedule optionally a few minutes ahead, limited to the
+  tariffs you pick.
+- **Energy usage card: report.** Yesterday's, last week's or last month's
+  use, cost and self-sufficiency as a notification, counted hour by hour as
+  the card counts (Home Assistant 2025.8 or later).
 
 ## [2.9.0] – 2026-11-18
 

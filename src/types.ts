@@ -2156,7 +2156,7 @@ export interface TariffScheduleConfig {
   days?: number[];
 }
 
-export interface M3TariffCardConfig extends DetailModeConfig {
+export interface M3TariffCardConfig extends DetailModeConfig, NotifyConfigBase {
   type: string;
   title?: string;
   icon?: string;
@@ -2174,6 +2174,10 @@ export interface M3TariffCardConfig extends DetailModeConfig {
   /** @default 7 */
   history_days?: number;
   show_history?: boolean;
+  /** The notification: tariffs to announce by name; default all. */
+  notify_tariffs?: string[];
+  /** Minutes ahead for a warning (schedule only); 0 none. */
+  notify_advance?: number;
   accent_color?: string;
   text_color?: string;
   secondary_text_color?: string;
@@ -2187,7 +2191,7 @@ export interface M3TariffCardConfig extends DetailModeConfig {
 
 export type EnergyUsagePeriodKind = "day" | "week" | "month" | "year";
 
-export interface M3EnergyUsageCardConfig extends DetailModeConfig {
+export interface M3EnergyUsageCardConfig extends DetailModeConfig, NotifyConfigBase {
   type: string;
   title?: string;
   /** Cards with the same key move their period together. @default "default" */

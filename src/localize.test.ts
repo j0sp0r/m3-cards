@@ -68,6 +68,13 @@ const SUBSTITUTED_ELSEWHERE = new Map<string, string>([
   // Handed to availabilityNotifyParts, which fills {geraet} and {minuten} with Jinja.
   ["editor_avail_notify_offline", "availabilityNotifyParts()"],
   ["editor_avail_notify_back_text", "availabilityNotifyParts()"],
+  // Handed to energyReportParts, which fills the report's placeholders with Jinja.
+  ["editor_usage_notify_message", "energyReportParts()"],
+  ["editor_usage_notify_message_solar", "energyReportParts()"],
+  // Handed to tariffNotifyParts, which fills {tarif}, {preis}, {bis}, {minuten}.
+  ["editor_tariff_notify_now", "tariffNotifyParts()"],
+  ["editor_tariff_notify_until", "tariffNotifyParts()"],
+  ["editor_tariff_notify_soon", "tariffNotifyParts()"],
 ]);
 
 /**

@@ -62,6 +62,17 @@ the same view has created it, this card follows that period and moves it
 along; where it has not, the card keeps its own. Nothing breaks if a Home
 Assistant update changes that object — the cards just stop moving together.
 
+### Report
+
+The editor's *Report* section creates a Home Assistant automation that sends
+you the use: every morning for yesterday, on Mondays for last week, or on the
+first for last month — "Yesterday: 8.2 kWh used · 2.41 € · 3.1 kWh solar
+direct · 38 % self-sufficient". It asks the recorder itself and counts hour by
+hour (day by day for a week or a month) the way the card does, so the figures
+match. It needs Home Assistant 2025.8 or later. Placeholders for your own
+text: `{zeitraum}`, `{verbrauch}`, `{netz}`, `{solar}`, `{akku}`,
+`{einspeisung}`, `{kosten}`, `{autark}`.
+
 ### Configuration options
 
 | Option | Type | Default | Description |
@@ -72,6 +83,11 @@ Assistant update changes that object — the cards just stop moving together.
 | `y_axis` | boolean | `false` | Values and dashed lines beside the bars, on round steps, the unit at the top |
 | `show_devices` / `max_devices` | boolean / number | `false` / `10` | Rows for the dashboard's individual devices, largest first |
 | `collection_key` | string | `default` | Cards with the same key share their period |
+| `notify_enabled` | boolean | `false` | The report, set up from the editor. See [Report](#report) |
+| `notify_mode` | `daily` \| `weekly` \| `monthly` | `daily` | Yesterday, last week (Mondays) or last month (on the 1st) |
+| `notify_time` | time | `08:00` | When it is sent |
+| `notify_service` | list | – | Recipients |
+| `notify_title` / `notify_message` | string | – | Your own title and text |
 | `sources` | object | from the dashboard | `grid_from`, `grid_to`, `solar`, `battery_from`, `battery_to`: lists of statistic ids |
 | `grid_color` / `solar_color` / `battery_color` / `export_color` | string | purple / orange / green / grey | The colours of the sources |
 | `title` | string | – | An optional title above the date |

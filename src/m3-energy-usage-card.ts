@@ -35,6 +35,7 @@ import { localize, type TranslationKey } from "./localize";
 import { TemplatedCard } from "./shared/templated-card";
 import { formatNumber } from "./shared/formatting";
 import { openEntityDetail } from "./shared/entity-detail";
+import { loadEnergySources, type Sources } from "./shared/energy-sources";
 import { formatCurrencyParts } from "./shared/pricing";
 import { cachedStatsCall } from "./shared/ha-statistics";
 import {
@@ -60,17 +61,6 @@ console.info(
   "color: #f0a24a; background: #222; font-weight: 700; border-radius: 0 4px 4px 0;",
 );
 
-interface Sources {
-  gridFrom: string[];
-  gridTo: string[];
-  solar: string[];
-  batteryFrom: string[];
-  batteryTo: string[];
-  gridCost: string[];
-  exportCompensation: string[];
-  devices: { id: string; name?: string }[];
-}
-
 interface Loaded {
   key: string;
   period: EnergyPeriod;
@@ -80,16 +70,6 @@ interface Loaded {
   compensation?: number;
   devices: { id: string; name: string; kwh: number }[];
 }
-
-type GridSourcePrefs = {
-  type: string;
-  stat_energy_from?: string | null;
-  stat_energy_to?: string | null;
-  stat_cost?: string | null;
-  stat_compensation?: string | null;
-  flow_from?: { stat_energy_from?: string; stat_cost?: string | null }[];
-  flow_to?: { stat_energy_to?: string; stat_compensation?: string | null }[];
-};
 
 const DEFAULT_PERIODS: EnergyUsagePeriodKind[] = ["day", "week", "month"];
 
@@ -251,67 +231,9 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
   }
 
   private async _loadSources(): Promise<Sources | undefined> {
-    const hass = this.hass!;
-    const over = this._config?.sources;
-    try {
-      const [prefs, info] = await Promise.all([
-        hass.callWS<{ energy_sources: GridSourcePrefs[]; device_consumption?: { stat_consumption: string; name?: string }[] }>({ type: "energy/get_prefs" }),
-        hass.callWS<{ cost_sensors?: Record<string, string> }>({ type: "energy/info" }).catch(() => ({ cost_sensors: {} as Record<string, string> })),
-      ]);
-      const costs = info?.cost_sensors ?? {};
-      const grids = prefs.energy_sources.filter((s) => s.type === "grid");
-      const from: string[] = [];
-      const to: string[] = [];
-      const gridCost: string[] = [];
-      const comp: string[] = [];
-      for (const g of grids) {
-        // Both the flat format and the older flow_from / flow_to lists.
-        const fromList = g.flow_from ?? (g.stat_energy_from ? [{ stat_energy_from: g.stat_energy_from, stat_cost: g.stat_cost }] : []);
-        const toList = g.flow_to ?? (g.stat_energy_to ? [{ stat_energy_to: g.stat_energy_to, stat_compensation: g.stat_compensation }] : []);
-        for (const f of fromList) {
-          if (!f.stat_energy_from) continue;
-          from.push(f.stat_energy_from);
-          const c = f.stat_cost || costs[f.stat_energy_from];
-          if (c) gridCost.push(c);
-        }
-        for (const t of toList) {
-          if (!t.stat_energy_to) continue;
-          to.push(t.stat_energy_to);
-          const c = t.stat_compensation || costs[t.stat_energy_to];
-          if (c) comp.push(c);
-        }
-      }
-      const of = (type: string, field: "stat_energy_from" | "stat_energy_to") =>
-        prefs.energy_sources.filter((s) => s.type === type).map((s) => s[field]).filter((v): v is string => !!v);
-      const sources: Sources = {
-        gridFrom: over?.grid_from ?? from,
-        gridTo: over?.grid_to ?? to,
-        solar: over?.solar ?? of("solar", "stat_energy_from"),
-        batteryFrom: over?.battery_from ?? of("battery", "stat_energy_from"),
-        batteryTo: over?.battery_to ?? of("battery", "stat_energy_to"),
-        gridCost,
-        exportCompensation: comp,
-        devices: (prefs.device_consumption ?? []).map((d) => ({ id: d.stat_consumption, name: d.name })),
-      };
-      const any = sources.gridFrom.length + sources.solar.length + sources.batteryFrom.length;
-      this._noDashboard = any === 0;
-      return sources;
-    } catch {
-      if (over) {
-        return {
-          gridFrom: over.grid_from ?? [],
-          gridTo: over.grid_to ?? [],
-          solar: over.solar ?? [],
-          batteryFrom: over.battery_from ?? [],
-          batteryTo: over.battery_to ?? [],
-          gridCost: [],
-          exportCompensation: [],
-          devices: [],
-        };
-      }
-      this._noDashboard = true;
-      return undefined;
-    }
+    const r = await loadEnergySources(this.hass!, this._config?.sources);
+    this._noDashboard = r.noDashboard;
+    return r.sources;
   }
 
   private async _maybeFetch(): Promise<void> {
