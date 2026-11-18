@@ -6,43 +6,37 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
-### Added
+## [2.9.0] – 2026-11-18
 
-- **Energy card: `y_axis`**. Round values and dashed lines on the left of
-  the bars, the unit at the top. Off by default.
-- **Popup card: `width` and `height`** (#58). Pixels or any length
-  (`700px`, `80vw`, `70vh`) for the centred sheet on a tablet or desktop,
-  and `mobile_width` / `mobile_height` for a phone's bottom sheet, which
-  otherwise stays the full width and takes `height`. Every size is held
-  inside the screen. Without them nothing changes.
+### Added
 
 - **Availability card** (`m3-availability-card`, card 56): the devices Home
   Assistant cannot reach, one row per device rather than per entity.
   "Just went offline" and "Offline for a while", red after a day, filter
   chips per integration, a single line when everything answers. "Offline
   since" survives restarts (one history lookup per outage). The bell mutes a
-  device for a set time or until it is back, with undo; mutes are stored per
-  user and follow you between devices. Optional silence detection for named
-  integrations. Reads only the registries the frontend already holds, so it
-  works without admin rights.
-
-- **Energy usage card** (`m3-energy-usage-card`, card 58, #56). The energy
-  dashboard's use over a day, week, month or year in one card: a date
-  selection with arrows and a segmented button, the total with the
-  self-sufficiency, stacked bars (grid, battery, solar) with a breakdown on
-  tap, and a table of the sources with their costs, optionally per device.
-  Built on the dashboard's own configuration and statistics rather than its
-  components; cards with the same `collection_key` share their period, and
-  native energy cards on the view follow along where Home Assistant exposes
-  their period. Use and self-sufficiency are counted as the energy
-  dashboard counts them. An optional `y_axis` puts round values beside the
-  bars.
+  device for a set time, until it is back or for good, with undo; mutes are
+  stored per user and follow you between devices. Helpers attached to a
+  device (utility meters, templates) do not keep it online. Optional silence
+  detection for named integrations. Reads only the registries the frontend
+  already holds, so it works without admin rights.
 - **Tariff card** (`m3-tariff-card`, card 57, refs #56). Use and cost over
   two or more tariffs (Heures Pleines / Heures Creuses or any number): total
   cost, the active tariff from an entity or a schedule with its price, its
   saving against the dearest and "until HH:MM", the split of the period,
   a tile per tariff and stacked history bars with a breakdown on tap. Cost
   from a cost entity or use × price (a price entity's daily mean).
+- **Energy usage card** (`m3-energy-usage-card`, card 58, #56). The energy
+  dashboard's use over a day, week, month or year in one card: a date
+  selection with arrows and a segmented button, the total with the
+  self-sufficiency, stacked bars (grid, battery, solar) with a breakdown on
+  tap, and a table of the sources with their costs, optionally per device.
+  Built on the dashboard's own configuration and statistics rather than its
+  components, and counted the way the dashboard counts: the same figures.
+  Cards with the same `collection_key` share their period, and native
+  energy cards on the view follow along where Home Assistant exposes their
+  period. A new period slides in from its side; an optional `y_axis` puts
+  round values beside the bars.
 - **Gauge card: `style: needle`** (refs #56). A dial for one value: a 270°
   arc in coloured ranges (`segments`), filled up to the value, a needle that
   springs to a new value, scale labels, the value in the opening and a pill
@@ -55,6 +49,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 - **Energy flow card: one signed grid sensor** (#57). `grid_entity`
   (positive import, negative export, `grid_invert` to flip) in place of the
   import/export pair.
+- **Energy card: `y_axis`**. Round values and dashed lines on the left of
+  the bars, the unit at the top. Off by default.
+- **Popup card: `width` and `height`** (#58). Pixels or any length
+  (`700px`, `80vw`, `70vh`) for the centred sheet on a tablet or desktop,
+  and `mobile_width` / `mobile_height` for a phone's bottom sheet, which
+  otherwise stays the full width and takes `height`. Every size is held
+  inside the screen. Without them nothing changes.
 
 ### Fixed
 

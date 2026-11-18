@@ -12,11 +12,12 @@ TypeScript + [Lit](https://lit.dev), **without** any dependency on
 (`m3-cards.js`) registers **58 cards**, all sharing one design language.
 
 <p align="center">
-  <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.8.0"><img src="docs/images/release-2.8.jpg" alt="What's new in 2.8: the solar battery card, the alarm card, the compact media player and curtains in the cover card" width="880"></a>
+  <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.9.0"><img src="docs/images/release-2.9.jpg" alt="What's new in 2.9: the energy usage card, the tariff card, the availability card and the needle gauge" width="880"></a>
 </p>
 
 <p align="center"><sub>
-  What's new in 2.7: <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.7.0">the release notes</a> ·
+  Earlier: <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.8.0">2.8</a> ·
+  <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.7.0">2.7</a> ·
   2.6 as a video: <a href="https://github.com/j0sp0r/m3-cards/releases/download/v2.6.0/m3-cards-2.6.mp4">landscape</a> ·
   <a href="https://github.com/j0sp0r/m3-cards/releases/download/v2.6.0/m3-cards-2.6-phone.mp4">phone</a>
 </sub></p>
