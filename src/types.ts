@@ -378,6 +378,8 @@ export interface M3EnergyCardConfig extends NotifyConfigBase, DetailModeConfig {
   show_projection?: boolean;
   show_comparison?: boolean;
   show_average?: boolean;
+  /** Round values and dashed lines beside the bars. Default false. */
+  y_axis?: boolean;
   higher_is_better?: boolean;
   comparison_better_color?: string;
   comparison_worse_color?: string;
@@ -2192,6 +2194,8 @@ export interface M3EnergyUsageCardConfig extends DetailModeConfig {
   periods?: EnergyUsagePeriodKind[];
   show_date?: boolean;
   show_graph?: boolean;
+  /** Round values and dashed lines beside the bars. Default false. */
+  y_axis?: boolean;
   show_table?: boolean;
   /** Rows per device from the energy dashboard's individual devices. */
   show_devices?: boolean;

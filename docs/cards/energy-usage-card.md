@@ -69,6 +69,7 @@ Assistant update changes that object — the cards just stop moving together.
 | `period` | `day` \| `week` \| `month` \| `year` | `day` | The period on first load |
 | `periods` | list | `[day, week, month]` | What the segmented button offers |
 | `show_date` / `show_graph` / `show_table` | boolean | `true` | The three parts |
+| `y_axis` | boolean | `false` | Values and dashed lines beside the bars, on round steps, the unit at the top |
 | `show_devices` / `max_devices` | boolean / number | `false` / `10` | Rows for the dashboard's individual devices, largest first |
 | `collection_key` | string | `default` | Cards with the same key share their period |
 | `sources` | object | from the dashboard | `grid_from`, `grid_to`, `solar`, `battery_from`, `battery_to`: lists of statistic ids |

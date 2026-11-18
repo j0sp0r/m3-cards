@@ -36,7 +36,10 @@ import {
   ENERGY_MONTH_BAR_RADIUS,
   resolveCornerRadius,
   NEW_CARD_ACCENT,
+  ENERGY_Y_AXIS_CHAR_PX,
+  ENERGY_Y_AXIS_GAP_PX,
 } from "./const";
+import { niceTicks } from "./shared/smooth-path";
 import { resolveThemeColor, buildCssVars, resolveCommonColors, tintOn, tintInk, foregroundOn, fillColor, foregroundVars } from "./shared/color-config";
 import { glassCardStyles, glassCardClass, renderMissingEntity } from "./shared/glass-card";
 import { activateOnKey } from "./shared/a11y";
@@ -784,6 +787,13 @@ export class M3EnergyCard extends TemplatedCard(LitElement) implements LovelaceC
     // for a small solar setup), making every bar render at a fraction of the
     // available height regardless of how tall it should actually be.
     const maxValue = Math.max(0.001, ...values.map(barExtent));
+    // The optional y-axis: round values at the heights the bars use for
+    // them, which start from the bars' minimum height rather than from 0.
+    const yTicks = this._config.y_axis === true ? [0, ...niceTicks(0, maxValue, 3).filter((t) => t > 0)] : [];
+    const tickBottom = (t: number) => (t === 0 ? 0 : geometry.minHeight + (geometry.maxHeight - geometry.minHeight) * (t / maxValue));
+    const tickLabels = yTicks.map((t, i) => (i === yTicks.length - 1 ? `${this._formatNumber(t)} ${unit}` : this._formatNumber(t)));
+    // Wide enough for the longest label, so the bars start at one place.
+    const yAxisWidth = yTicks.length ? Math.max(...tickLabels.map((l) => l.length)) * ENERGY_Y_AXIS_CHAR_PX + ENERGY_Y_AXIS_GAP_PX : 0;
     const showValueRow =
       mode === "solar" || period === "month"
         ? false
@@ -906,8 +916,8 @@ export class M3EnergyCard extends TemplatedCard(LitElement) implements LovelaceC
     return html`
       <ha-card style=${`${cssVars} border-radius: ${radius};`}>
         <div
-          class="card-inner ${glassCardClass(this._config.glass_background)} ${shouldAnimate(this._config?.animation) ? "" : "no-animations"}"
-          style=${`border-radius: ${radius};${cardBackgroundCss ? ` background: ${cardBackgroundCss};` : ""}`}
+          class="card-inner ${glassCardClass(this._config.glass_background)} ${shouldAnimate(this._config?.animation) ? "" : "no-animations"} ${yAxisWidth ? "with-y" : ""}"
+          style=${`border-radius: ${radius};${cardBackgroundCss ? ` background: ${cardBackgroundCss};` : ""}${yAxisWidth ? ` --y-axis-w: ${yAxisWidth}px;` : ""}`}
         >
           ${renderCardHeader({
             icon,
@@ -991,6 +1001,12 @@ export class M3EnergyCard extends TemplatedCard(LitElement) implements LovelaceC
             : nothing}
 
           <div class="bars-row ${this._loading ? "loading" : ""}">
+            ${yTicks.map(
+              (t, i) => html`
+                <div class="y-line" style=${`bottom: ${tickBottom(t).toFixed(1)}px;`}></div>
+                <div class="y-label" style=${`bottom: ${tickBottom(t).toFixed(1)}px;`}>${tickLabels[i]}</div>
+              `,
+            )}
             ${period === "month" && this._config.show_average !== false && monthAverage !== undefined
               ? html`
                   <div
@@ -1133,6 +1149,37 @@ export class M3EnergyCard extends TemplatedCard(LitElement) implements LovelaceC
         font-weight: 700;
         opacity: 1;
         color: var(--m3p-accent-fg, var(--m3p-accent));
+      }
+
+      /* The optional y-axis takes a column on the left of every bar row, so
+         values, bars and labels stay above one another. */
+      .with-y .values-row,
+      .with-y .bars-row,
+      .with-y .labels-row {
+        padding-left: var(--y-axis-w);
+      }
+      .with-y .average-line {
+        left: var(--y-axis-w);
+      }
+      .y-line {
+        position: absolute;
+        left: var(--y-axis-w);
+        right: 0;
+        border-top: 1px dashed color-mix(in srgb, var(--primary-text-color) 14%, transparent);
+        pointer-events: none;
+      }
+      .y-label {
+        position: absolute;
+        left: 0;
+        width: calc(var(--y-axis-w) - ${ENERGY_Y_AXIS_GAP_PX}px);
+        transform: translateY(50%);
+        text-align: right;
+        font-size: 10px;
+        line-height: 1;
+        white-space: nowrap;
+        color: var(--m3p-secondary-text, var(--secondary-text-color));
+        font-variant-numeric: tabular-nums;
+        pointer-events: none;
       }
 
       .bars-row {

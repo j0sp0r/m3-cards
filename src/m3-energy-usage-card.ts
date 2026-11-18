@@ -16,6 +16,7 @@ import {
   USAGE_EXPORT_COLOR,
   USAGE_GRID_COLOR,
   USAGE_COUNT_MS,
+  USAGE_PLOT_HEIGHT,
   USAGE_REFRESH_MS,
   USAGE_SEGMENT_GAP,
   USAGE_SEGMENT_HEIGHT,
@@ -51,7 +52,7 @@ import {
   subscribeSharedPeriod,
   type EnergyPeriod,
 } from "./shared/energy-period";
-import { NO_FLOWS, addFlows, scaleEnergy, selfSufficiency, splitUsage, sumUsage, type EnergyFlows, type Usage } from "./shared/energy-usage";
+import { NO_FLOWS, addFlows, axisTicks, scaleEnergy, selfSufficiency, splitUsage, sumUsage, type EnergyFlows, type Usage } from "./shared/energy-usage";
 
 console.info(
   `%c M3-ENERGY-USAGE-CARD %c v${CARD_VERSION} `,
@@ -473,43 +474,61 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
   }
 
   private _renderGraph(p: EnergyPeriod, usages: Usage[], colors: Record<string, string>): TemplateResult {
-    const max = Math.max(0.0001, ...usages.map((u) => u.total));
+    const { top: max, ticks } = axisTicks(Math.max(...usages.map((u) => u.total)));
     const starts = bucketsOf(p);
     const stagger = USAGE_STAGGER_TOTAL_MS / Math.max(1, usages.length);
+    const yAxis = this._config?.y_axis === true;
+    // One unit for the whole axis, the top's, so the steps read evenly.
+    const unit = scaleEnergy(max).unit;
+    const factor = unit === "Wh" ? 1000 : unit === "MWh" ? 0.001 : 1;
+    const tickText = (v: number) => formatNumber(this._language, v * factor, { maximumFractionDigits: 2 });
     return html`
-      <div class="bars" style=${`grid-template-columns: repeat(${usages.length}, minmax(0, 1fr)); gap: ${usages.length > 20 ? 3 : 6}px;`}>
-        ${usages.map((u, i) => {
-          const open = this._tip === i;
-          const parts: [string, number][] = [
-            ["solar", u.solar],
-            ["battery", u.battery],
-            ["grid", u.grid],
-          ];
-          return html`<div class="col">
-            <button
-              class="bar"
-              style=${`height: ${Math.max(u.total > 0 ? 3 : 0, (u.total / max) * 100)}%; animation-delay: ${Math.round(i * stagger)}ms;`}
-              aria-label=${`${bucketLabel(p, starts[i], 0, this._language) || starts[i].toLocaleString(this._language)}: ${this._energy(u.total)}`}
-              aria-expanded=${open ? "true" : "false"}
-              @click=${() => (this._tip = open ? undefined : i)}
-            >
-              ${parts.map(([k, v]) => (v > 0 ? html`<span class="seg" style=${`flex: ${v} 1 0; background: ${colors[k]};`}></span>` : nothing))}
-            </button>
-            ${open
-              ? html`<div class="tip ${i > usages.length / 2 ? "left" : ""}" role="status">
-                  <div class="tip-head">${starts[i].toLocaleString(this._language, p.kind === "day" ? { hour: "2-digit", minute: "2-digit" } : p.kind === "year" ? { month: "long" } : { weekday: "short", day: "numeric", month: "short" })}</div>
-                  ${parts.map(([k, v]) =>
-                    v > 0
-                      ? html`<div class="tip-row"><span class="dot" style=${`background: ${colors[k]};`}></span>${this._t(`usage_${k}` as TranslationKey)}<b>${this._energy(v)}</b></div>`
-                      : nothing,
-                  )}
-                </div>`
-              : nothing}
-          </div>`;
-        })}
-      </div>
-      <div class="axis" style=${`grid-template-columns: repeat(${usages.length}, minmax(0, 1fr));`}>
-        ${starts.map((d, i) => html`<span>${bucketLabel(p, d, i, this._language)}</span>`)}
+      <div class="plot ${yAxis ? "" : "no-y"}">
+        ${yAxis
+          ? html`<div class="yaxis" aria-hidden="true">
+                ${ticks.map(
+                  (v) =>
+                    html`<span style=${`bottom: ${(v / max) * 100}%;`}>${v === max ? html`${tickText(v)} <small>${unit}</small>` : tickText(v)}</span>`,
+                )}
+              </div>
+              <div class="grid-lines" aria-hidden="true">
+                ${ticks.map((v) => html`<span style=${`bottom: ${(v / max) * 100}%;`}></span>`)}
+              </div>`
+          : nothing}
+        <div class="bars" style=${`grid-template-columns: repeat(${usages.length}, minmax(0, 1fr)); gap: ${usages.length > 20 ? 3 : 6}px;`}>
+          ${usages.map((u, i) => {
+            const open = this._tip === i;
+            const parts: [string, number][] = [
+              ["solar", u.solar],
+              ["battery", u.battery],
+              ["grid", u.grid],
+            ];
+            return html`<div class="col">
+              <button
+                class="bar"
+                style=${`height: ${Math.max(u.total > 0 ? 3 : 0, (u.total / max) * 100)}%; animation-delay: ${Math.round(i * stagger)}ms;`}
+                aria-label=${`${bucketLabel(p, starts[i], 0, this._language) || starts[i].toLocaleString(this._language)}: ${this._energy(u.total)}`}
+                aria-expanded=${open ? "true" : "false"}
+                @click=${() => (this._tip = open ? undefined : i)}
+              >
+                ${parts.map(([k, v]) => (v > 0 ? html`<span class="seg" style=${`flex: ${v} 1 0; background: ${colors[k]};`}></span>` : nothing))}
+              </button>
+              ${open
+                ? html`<div class="tip ${i > usages.length / 2 ? "left" : ""}" role="status">
+                    <div class="tip-head">${starts[i].toLocaleString(this._language, p.kind === "day" ? { hour: "2-digit", minute: "2-digit" } : p.kind === "year" ? { month: "long" } : { weekday: "short", day: "numeric", month: "short" })}</div>
+                    ${parts.map(([k, v]) =>
+                      v > 0
+                        ? html`<div class="tip-row"><span class="dot" style=${`background: ${colors[k]};`}></span>${this._t(`usage_${k}` as TranslationKey)}<b>${this._energy(v)}</b></div>`
+                        : nothing,
+                    )}
+                  </div>`
+                : nothing}
+            </div>`;
+          })}
+        </div>
+        <div class="axis" style=${`grid-template-columns: repeat(${usages.length}, minmax(0, 1fr));`}>
+          ${starts.map((d, i) => html`<span>${bucketLabel(p, d, i, this._language)}</span>`)}
+        </div>
       </div>
     `;
   }
@@ -817,9 +836,55 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
         font-weight: 700;
         --mdc-icon-size: 16px;
       }
-      .bars {
+      /* The y-axis takes the first column and the bars the second; the
+         lines run behind the bars, the x labels under them. */
+      .plot {
         display: grid;
-        height: 180px;
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-rows: ${USAGE_PLOT_HEIGHT}px auto;
+        column-gap: 8px;
+        row-gap: 4px;
+      }
+      .plot.no-y {
+        column-gap: 0;
+      }
+      .yaxis {
+        grid-column: 1;
+        grid-row: 1;
+        position: relative;
+        min-width: 24px;
+      }
+      .yaxis span {
+        position: absolute;
+        right: 0;
+        transform: translateY(50%);
+        font-size: 11px;
+        line-height: 1;
+        white-space: nowrap;
+        color: var(--eu-secondary, var(--secondary-text-color));
+        font-variant-numeric: tabular-nums;
+      }
+      .yaxis small {
+        font-size: 10px;
+        opacity: 0.8;
+      }
+      .grid-lines {
+        grid-column: 2;
+        grid-row: 1;
+        position: relative;
+        pointer-events: none;
+      }
+      .grid-lines span {
+        position: absolute;
+        left: 0;
+        right: 0;
+        border-top: 1px dashed color-mix(in srgb, var(--primary-text-color) 14%, transparent);
+      }
+      .bars {
+        grid-column: 2;
+        grid-row: 1;
+        display: grid;
+        height: 100%;
         align-items: end;
       }
       .col {
@@ -846,10 +911,11 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
         border-radius: 8px;
       }
       .axis {
+        grid-column: 2;
+        grid-row: 2;
         display: grid;
         font-size: 11px;
         color: var(--eu-secondary, var(--secondary-text-color));
-        margin-top: -4px;
       }
       .axis span {
         white-space: nowrap;

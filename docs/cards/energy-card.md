@@ -187,6 +187,7 @@ glass_background: true
 | `show_legend` | boolean | `true` | Only for `mode: solar`: "Generated"/"Forecast" legend below the bars (only visible if a forecast is present) |
 | `show_projection` | boolean | `true` | Only for `period: month`: show the current month's projection as a dashed outline |
 | `show_average` | boolean | `true` | Only for `period: month`: show the dashed average line |
+| `y_axis` | boolean | `false` | Round values and dashed lines on the left of the bars, the unit at the top |
 | `show_comparison` | boolean | `true` | Only for `period: month`: show comparison chips (previous month, average) below the header |
 | `higher_is_better` | boolean | `false` | Only for `period: month`: flip the comparison chip's color logic (for generation instead of consumption values) |
 | `comparison_better_color` | string | `#81c784` | Only for `period: month`: comparison chip color for "better" |

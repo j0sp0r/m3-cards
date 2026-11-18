@@ -389,6 +389,7 @@ export class M3EnergyCardEditor extends LitElement implements LovelaceCardEditor
       fields.push(
         { name: "show_projection", selector: { boolean: {} } },
         { name: "show_average", selector: { boolean: {} } },
+        { name: "y_axis", selector: { boolean: {} } },
         { name: "show_comparison", selector: { boolean: {} } },
         { name: "higher_is_better", selector: { boolean: {} } },
       );
@@ -450,6 +451,7 @@ export class M3EnergyCardEditor extends LitElement implements LovelaceCardEditor
       show_legend: "editor_energy_show_legend",
       show_projection: "editor_energy_show_projection",
       show_average: "editor_energy_show_average",
+      y_axis: "editor_y_axis",
       show_comparison: "editor_energy_show_comparison",
       higher_is_better: "editor_energy_higher_is_better",
       notify_mode: "editor_notify_mode",
@@ -565,6 +567,7 @@ export class M3EnergyCardEditor extends LitElement implements LovelaceCardEditor
       show_legend: this._config.show_legend ?? true,
       show_projection: this._config.show_projection ?? true,
       show_average: this._config.show_average ?? true,
+      y_axis: this._config.y_axis === true,
       show_comparison: this._config.show_comparison ?? true,
       higher_is_better: this._config.higher_is_better ?? false,
     };

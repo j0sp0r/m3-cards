@@ -471,6 +471,9 @@ export const ENERGY_REFRESH_HOUR_MS = 5 * 60 * 1000;
 // Above this many bars, the value row and every-other x-axis label are
 // dropped to avoid the hour view becoming unreadably cramped.
 export const ENERGY_DENSE_BAR_THRESHOLD = 12;
+/** The optional y-axis: its column is sized from the longest label. */
+export const ENERGY_Y_AXIS_CHAR_PX = 6;
+export const ENERGY_Y_AXIS_GAP_PX = 6;
 
 export const ENERGY_SOLAR_BAR_TINT_PERCENT = 30;
 export const ENERGY_FORECAST_OUTLINE_OPACITY = 55;
@@ -3346,6 +3349,8 @@ export const USAGE_SOLAR_COLOR = PALETTE.solar;
 export const USAGE_BATTERY_COLOR = PALETTE.ok;
 export const USAGE_EXPORT_COLOR = PALETTE.off;
 export const USAGE_REFRESH_MS = 5 * 60_000;
+/** The bars' plot area, its y-axis beside it. */
+export const USAGE_PLOT_HEIGHT = 180;
 /**
  * The period switch: a pill track and a sliding pill concentric with it —
  * its radius is the track's less the padding, so the curves run parallel.

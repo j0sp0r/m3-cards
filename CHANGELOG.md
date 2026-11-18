@@ -8,6 +8,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **Energy card: `y_axis`**. Round values and dashed lines on the left of
+  the bars, the unit at the top. Off by default.
 - **Popup card: `width` and `height`** (#58). Pixels or any length
   (`700px`, `80vw`, `70vh`) for the centred sheet on a tablet or desktop,
   and `mobile_width` / `mobile_height` for a phone's bottom sheet, which
@@ -32,7 +34,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   Built on the dashboard's own configuration and statistics rather than its
   components; cards with the same `collection_key` share their period, and
   native energy cards on the view follow along where Home Assistant exposes
-  their period.
+  their period. Use and self-sufficiency are counted as the energy
+  dashboard counts them. An optional `y_axis` puts round values beside the
+  bars.
 - **Tariff card** (`m3-tariff-card`, card 57, refs #56). Use and cost over
   two or more tariffs (Heures Pleines / Heures Creuses or any number): total
   cost, the active tariff from an entity or a schedule with its price, its
