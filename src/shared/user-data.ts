@@ -55,6 +55,9 @@ export async function saveUserData(hass: HomeAssistant | undefined, key: string,
  * outlives the outage. A plain mute covers one outage; a permanent one stays
  * for every later outage too — a TV that is off whenever its plug is off.
  */
+/** Where the availability card keeps its mutes in the user data. */
+export const AVAILABILITY_MUTES_KEY = "m3_availability_mutes";
+
 export interface MuteEntry {
   until: number | null;
   at: number;

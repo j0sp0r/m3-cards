@@ -6,6 +6,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Added
+
+- **Availability card: notification.** The editor creates an automation that
+  reports a device unreachable for `notify_minutes` (30 by default), one
+  message per device, and with `notify_back` when it is back. It watches the
+  devices the card knows, leaving out those muted for good.
+
 ## [2.9.0] – 2026-11-18
 
 ### Added

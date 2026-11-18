@@ -65,6 +65,9 @@ const SUBSTITUTED_ELSEWHERE = new Map<string, string>([
   ["vehicle_notify_low", "buildVehicleNotifyAutomation()"],
   ["vehicle_notify_unlocked", "buildVehicleNotifyAutomation()"],
   ["vehicle_notify_plug", "buildVehicleNotifyAutomation()"],
+  // Handed to availabilityNotifyParts, which fills {geraet} and {minuten} with Jinja.
+  ["editor_avail_notify_offline", "availabilityNotifyParts()"],
+  ["editor_avail_notify_back_text", "availabilityNotifyParts()"],
 ]);
 
 /**

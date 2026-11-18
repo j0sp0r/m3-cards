@@ -461,6 +461,7 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Alles online | Alle Geräte erreichbar | Eine Zeile mit grünem WLAN-Symbol, „Y Geräte überwacht“, „Alle online“ |
 | Tipp auf eine Zeile | Als Admin und als Nicht-Admin | Admin: Geräteseite; sonst Details der Hauptentität |
 | Still-Erkennung | `stale_hours` + `stale_integrations` | Nur Geräte dieser Integrationen, mit Uhr-Symbol und „still seit …“ |
+| Benachrichtigung | Im Editor Empfänger wählen, `notify_minutes: 1`, „auch wenn wieder da“; Gerät mit mehreren Entitäten vom Strom, nach 2 Min. wieder an | Eine Meldung „… seit 1 Min. nicht erreichbar“, nicht eine pro Entität; nach dem Einschalten eine „wieder erreichbar“. Dauerhaft stumme Geräte melden nichts; „Ausführen“ in der Automatisierung schickt eine Testmeldung |
 
 ## M3 Leak Card
 

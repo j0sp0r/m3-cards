@@ -2091,7 +2091,7 @@ export interface AvailabilityFilterConfig {
 
 export type AvailabilityMuteDuration = "1h" | "24h" | "7d" | "forever" | "permanent";
 
-export interface M3AvailabilityCardConfig extends DetailModeConfig {
+export interface M3AvailabilityCardConfig extends DetailModeConfig, NotifyConfigBase {
   type: string;
   /** @default "Erreichbarkeit" / "Availability" */
   title?: string;
@@ -2117,6 +2117,10 @@ export interface M3AvailabilityCardConfig extends DetailModeConfig {
   max_items?: number;
   /** What a tap on the bell mutes for. @default "24h" */
   mute_default?: AvailabilityMuteDuration;
+  /** The notification: minutes a device must be gone first. @default 30 */
+  notify_minutes?: number;
+  /** The notification also says when a device is back. @default false */
+  notify_back?: boolean;
   accent_color?: string;
   warn_color?: string;
   critical_color?: string;

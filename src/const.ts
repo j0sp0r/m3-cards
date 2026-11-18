@@ -3324,6 +3324,8 @@ export const AVAILABILITY_WARN_COLOR = PALETTE.light;
 export const AVAILABILITY_CRITICAL_COLOR = PALETTE.heat;
 export const AVAILABILITY_OK_COLOR = PALETTE.ok;
 export const DEFAULT_AVAILABILITY_RECENT_MINUTES = 60;
+/** The notification reports a device after this long offline. */
+export const DEFAULT_AVAILABILITY_NOTIFY_MINUTES = 30;
 export const DEFAULT_AVAILABILITY_CRITICAL_HOURS = 24;
 export const DEFAULT_AVAILABILITY_MAX_ITEMS = 10;
 export const AVAILABILITY_ROW_HEIGHT = 60;

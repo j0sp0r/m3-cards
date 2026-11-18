@@ -66,8 +66,7 @@ import {
   pruneMutes,
   saveUserData,
   type MuteDuration,
-  type MuteMap,
-} from "./shared/user-data";
+  type MuteMap, AVAILABILITY_MUTES_KEY } from "./shared/user-data";
 
 console.info(
   `%c M3-AVAILABILITY-CARD %c v${CARD_VERSION} `,
@@ -75,7 +74,7 @@ console.info(
   "color: #81c784; background: #222; font-weight: 700; border-radius: 0 4px 4px 0;",
 );
 
-const MUTES_KEY = "m3_availability_mutes";
+const MUTES_KEY = AVAILABILITY_MUTES_KEY;
 const HOLD_MS = 500;
 const FLIP_MS = 260;
 

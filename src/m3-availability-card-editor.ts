@@ -11,11 +11,26 @@ import {
   DEFAULT_AVAILABILITY_MAX_ITEMS,
   DEFAULT_AVAILABILITY_RADIUS,
   DEFAULT_AVAILABILITY_RECENT_MINUTES,
+  DEFAULT_AVAILABILITY_NOTIFY_MINUTES,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { fireEvent, editorStyles, type SchemaEntry } from "./shared/editor-helpers";
 import { radiusLabelMap } from "./shared/radius-editor";
-import { integrationTitle, type RegEntity } from "./shared/availability";
+import { buildWatchIndex, integrationTitle, type RegArea, type RegDevice, type RegEntity } from "./shared/availability";
+import { availabilityNotifyParts } from "./shared/availability-notify";
+import { AVAILABILITY_MUTES_KEY, loadUserData, parseMutes } from "./shared/user-data";
+import {
+  notifyServiceSchema,
+  notifyTitleSchema,
+  notifyMessageSchema,
+  notifyTokenHint,
+  renderNotifyControls,
+  notifyActions,
+  saveNotifyAutomation,
+  resolveAutomationId,
+  setAutomationEnabled,
+  notifyStyles,
+} from "./shared/notify-editor";
 import {
   initAppearanceState,
   radiusPresetPatch,
@@ -32,6 +47,9 @@ export class M3AvailabilityCardEditor extends LitElement implements LovelaceCard
 
   @state() private _config?: M3AvailabilityCardConfig;
   @state() private _appearance: AppearanceState = { showCustomRadius: false, showCorners: false, cornerCustom: {} };
+  @state() private _notifyBusy = false;
+  @state() private _notifyStatus: "idle" | "success" | "error" = "idle";
+  @state() private _notifyDetail = "";
 
   public setConfig(config: M3AvailabilityCardConfig): void {
     this._config = config;
@@ -137,6 +155,11 @@ export class M3AvailabilityCardEditor extends LitElement implements LovelaceCard
       stale_integrations: "editor_avail_stale_integrations",
       show_filters: "editor_avail_show_filters",
       max_items: "editor_avail_max_items",
+      notify_minutes: "editor_avail_notify_minutes",
+      notify_back: "editor_avail_notify_back",
+      notify_service: "editor_notify_service",
+      notify_title: "editor_notify_title",
+      notify_message: "editor_notify_message",
       ...radiusLabelMap,
     };
     const key = map[schema.name];
@@ -183,6 +206,139 @@ export class M3AvailabilityCardEditor extends LitElement implements LovelaceCard
     if (next.ignore_diagnostic !== false) delete next.ignore_diagnostic;
     if (!next.include_orphan_entities) delete next.include_orphan_entities;
     this._emit(next);
+  }
+
+  // ---- notification -------------------------------------------------------
+
+  private _notifySchema(): SchemaEntry[] {
+    return [
+      { name: "notify_minutes", selector: { number: { min: 1, max: 1440, mode: "box", unit_of_measurement: "min" } } },
+      { name: "notify_back", selector: { boolean: {} } },
+      notifyServiceSchema(this.hass),
+      notifyTitleSchema(),
+      notifyMessageSchema(),
+    ];
+  }
+
+  private async _toggleNotify(enabled: boolean): Promise<void> {
+    if (!this._config || !this.hass) return;
+    this._emit({ ...this._config, notify_enabled: enabled });
+    if (enabled) {
+      await this._setupNotify();
+      return;
+    }
+    const id = this._config.notify_automation_id;
+    if (id) await setAutomationEnabled(this.hass, id, false);
+  }
+
+  /**
+   * Writes the automation: the devices the card watches now, by the card's
+   * own rules and scope, minus those muted for good by the person setting it
+   * up — their mutes live in their user data, which the automation cannot read.
+   */
+  private async _setupNotify(): Promise<void> {
+    const cfg = this._config;
+    const hass = this.hass;
+    if (!hass || !cfg) return;
+    const targets = cfg.notify_service ?? [];
+    if (targets.length === 0) {
+      this._notifyStatus = "error";
+      this._notifyDetail = this._t("editor_notify_missing");
+      return;
+    }
+    this._notifyBusy = true;
+    this._notifyStatus = "idle";
+    this._notifyDetail = "";
+    try {
+      const units = buildWatchIndex(
+        hass.entities as Record<string, RegEntity> | undefined,
+        hass.devices as Record<string, RegDevice> | undefined,
+        hass.areas as Record<string, RegArea> | undefined,
+        {
+          include: cfg.include,
+          exclude: cfg.exclude,
+          ignoreDiagnostic: cfg.ignore_diagnostic,
+          includeOrphans: cfg.include_orphan_entities,
+          entityName: (id) => (hass.states[id]?.attributes?.friendly_name as string | undefined) ?? id,
+        },
+      );
+      const mutes = parseMutes(await loadUserData(hass, AVAILABILITY_MUTES_KEY));
+      const skip = new Set(Object.entries(mutes).filter(([, m]) => m.permanent).map(([k]) => k));
+      const parts = availabilityNotifyParts({
+        units,
+        skip,
+        minutes: cfg.notify_minutes ?? DEFAULT_AVAILABILITY_NOTIFY_MINUTES,
+        back: cfg.notify_back === true,
+        texts: {
+          offline: this._t("editor_avail_notify_offline"),
+          back: this._t("editor_avail_notify_back_text"),
+          customOffline: cfg.notify_message,
+        },
+      });
+      if (parts.devices === 0) throw new Error(this._t("editor_avail_notify_empty"));
+      const title = cfg.title || this._t("avail_title");
+      const automationId = resolveAutomationId("availability", cfg.notify_automation_id);
+      await saveNotifyAutomation(hass, {
+        id: automationId,
+        alias: `${title}: ${this._t("editor_avail_notify_alias")}`,
+        description: this._t("editor_avail_notify_description"),
+        // One message per device, each its own run: two devices dropping out
+        // together are two notifications, not one lost to "single".
+        mode: "queued",
+        variables: parts.variables,
+        triggers: parts.triggers,
+        conditions: parts.conditions,
+        actions: notifyActions(targets, title, parts.message, { title: cfg.notify_title }),
+      });
+      if (cfg.notify_automation_id !== automationId) this._emit({ ...cfg, notify_automation_id: automationId });
+      await setAutomationEnabled(hass, automationId, true);
+      this._notifyStatus = "success";
+      this._notifyDetail = String(parts.devices);
+    } catch (e) {
+      this._notifyStatus = "error";
+      this._notifyDetail = e instanceof Error ? e.message : String(e);
+    } finally {
+      this._notifyBusy = false;
+    }
+  }
+
+  private _renderNotify() {
+    const c = this._config!;
+    return html`
+      <ha-expansion-panel outlined .header=${this._t("editor_avail_notify")}>
+        <ha-icon slot="leading-icon" icon="mdi:bell-outline"></ha-icon>
+        <div class="panel-content">
+          <div class="hint">${this._t("editor_avail_notify_hint")}</div>
+          <ha-form
+            .hass=${this.hass}
+            .data=${{
+              notify_minutes: c.notify_minutes ?? DEFAULT_AVAILABILITY_NOTIFY_MINUTES,
+              notify_back: c.notify_back === true,
+              notify_service: c.notify_service ?? [],
+              notify_title: c.notify_title ?? "",
+              notify_message: c.notify_message ?? "",
+            }}
+            .schema=${this._notifySchema()}
+            .computeLabel=${this._computeLabel}
+            @value-changed=${(e: CustomEvent) => this._valueChanged(e)}
+          ></ha-form>
+          <div class="hint">${notifyTokenHint(this._language, ["geraet", "minuten"])}</div>
+          ${renderNotifyControls({
+            hass: this.hass,
+            language: this._language,
+            enabled: c.notify_enabled ?? false,
+            automationId: c.notify_automation_id,
+            busy: this._notifyBusy,
+            status: this._notifyStatus,
+            detail: this._notifyDetail,
+            blockedReason: c.notify_service?.length ? undefined : this._t("editor_notify_missing"),
+            successText: this._t("editor_avail_notify_success").replace("{n}", this._notifyDetail),
+            onToggle: (on) => void this._toggleNotify(on),
+            onSetup: () => void this._setupNotify(),
+          })}
+        </div>
+      </ha-expansion-panel>
+    `;
   }
 
   private _radiusPresetChanged(ev: CustomEvent): void {
@@ -262,6 +418,7 @@ export class M3AvailabilityCardEditor extends LitElement implements LovelaceCard
         ${this._panel("editor_avail_scope", "mdi:filter-variant", scope, this._scopeSchema(), (e) => this._scopeChanged(e))}
         ${this._panel("editor_avail_stale", "mdi:clock-alert-outline", stale, this._staleSchema(), (e) => this._valueChanged(e), false, this._t("editor_avail_stale_hint"))}
         ${this._panel("editor_avail_display", "mdi:view-dashboard-outline", display, this._displaySchema(), (e) => this._valueChanged(e))}
+        ${this._renderNotify()}
         ${renderAppearanceSection({
           hass: this.hass,
           language: this._language,
@@ -279,7 +436,7 @@ export class M3AvailabilityCardEditor extends LitElement implements LovelaceCard
     `;
   }
 
-  static styles = [editorStyles, css``];
+  static styles = [editorStyles, notifyStyles, css``];
 }
 
 declare global {

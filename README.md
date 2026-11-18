@@ -8403,6 +8403,21 @@ stale_hours: 26
 stale_integrations: [zigbee2mqtt]
 ```
 
+### Notification
+
+The editor's *Notification* section creates a Home Assistant automation that
+tells you when a device has been unreachable for `notify_minutes` (30 by
+default), with one message per device however many entities it has, and with
+`notify_back` a second one when it answers again. Pick the recipients, switch
+it on, done; the same button updates it later.
+
+The automation watches the devices the card knows at that moment, by the
+card's own rules and scope, and leaves out the devices you muted for good —
+your mutes are stored with your user, where an automation cannot read them.
+When devices are added, or you mute more of them for good, apply the settings
+again. The message can be your own, with `{geraet}` for the device and
+`{minuten}` for the delay.
+
 ### Configuration options
 
 | Option | Type | Default | Description |
@@ -8420,6 +8435,11 @@ stale_integrations: [zigbee2mqtt]
 | `show_filters` | boolean | `true` | Integration chips, when more than one integration is involved |
 | `max_items` | number | `10` | Rows before "+N more"; `0` shows all |
 | `mute_default` | `1h` \| `24h` \| `7d` \| `forever` \| `permanent` | `24h` | What a tap on the bell mutes for (`forever`: until back online) |
+| `notify_enabled` | boolean | `false` | The notification, set up from the editor. See [Notification](#notification) |
+| `notify_minutes` | number | `30` | Minutes a device must be gone before it is reported |
+| `notify_back` | boolean | `false` | Also report when it is back |
+| `notify_service` | list | – | Recipients, e.g. `mobile_app_pixel` |
+| `notify_title` / `notify_message` | string | – | Your own title and offline text (`{geraet}`, `{minuten}`) |
 | `warn_color` / `critical_color` | string | amber / red | The two state colours |
 | `accent_color` | string | green | The "All online" colour |
 | `detail_mode` | `sheet` \| `more_info` | `more_info` | For users without admin rights a tap opens the device's main entity; admins go to the device page |
