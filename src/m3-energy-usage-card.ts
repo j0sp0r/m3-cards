@@ -486,10 +486,8 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
       <div class="plot ${yAxis ? "" : "no-y"}">
         ${yAxis
           ? html`<div class="yaxis" aria-hidden="true">
-                ${ticks.map(
-                  (v) =>
-                    html`<span style=${`bottom: ${(v / max) * 100}%;`}>${v === max ? html`${tickText(v)} <small>${unit}</small>` : tickText(v)}</span>`,
-                )}
+                ${ticks.map((v) => html`<span style=${`bottom: ${(v / max) * 100}%;`}>${tickText(v)}</span>`)}
+                <span class="unit" style="bottom: 100%;">${unit}</span>
               </div>
               <div class="grid-lines" aria-hidden="true">
                 ${ticks.map((v) => html`<span style=${`bottom: ${(v / max) * 100}%;`}></span>`)}
@@ -844,8 +842,8 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
         grid-template-rows: ${USAGE_PLOT_HEIGHT}px auto;
         column-gap: 8px;
         row-gap: 4px;
-        /* Room for the top value, which sits centred on its line. */
-        padding-top: 8px;
+        /* Room for the top value, centred on its line, and the unit above it. */
+        padding-top: 18px;
       }
       .plot.no-y {
         column-gap: 0;
@@ -866,8 +864,11 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
         color: var(--eu-secondary, var(--secondary-text-color));
         font-variant-numeric: tabular-nums;
       }
-      .yaxis small {
-        font-size: 10px;
+      /* The unit sits small above the top number, so the column is only as
+         wide as the numbers. */
+      .yaxis .unit {
+        transform: translateY(-6px);
+        font-size: 9px;
         opacity: 0.8;
       }
       .grid-lines {

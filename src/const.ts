@@ -474,6 +474,9 @@ export const ENERGY_DENSE_BAR_THRESHOLD = 12;
 /** The optional y-axis: its column is sized from the longest label. */
 export const ENERGY_Y_AXIS_CHAR_PX = 6;
 export const ENERGY_Y_AXIS_GAP_PX = 6;
+/** The unit, small above the top number: its width per letter and its rise. */
+export const ENERGY_Y_AXIS_UNIT_CHAR_PX = 5;
+export const ENERGY_Y_AXIS_UNIT_RISE_PX = 12;
 
 export const ENERGY_SOLAR_BAR_TINT_PERCENT = 30;
 export const ENERGY_FORECAST_OUTLINE_OPACITY = 55;

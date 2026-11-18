@@ -37,6 +37,8 @@ import {
   resolveCornerRadius,
   NEW_CARD_ACCENT,
   ENERGY_Y_AXIS_CHAR_PX,
+  ENERGY_Y_AXIS_UNIT_CHAR_PX,
+  ENERGY_Y_AXIS_UNIT_RISE_PX,
   ENERGY_Y_AXIS_GAP_PX,
 } from "./const";
 import { niceTicks } from "./shared/smooth-path";
@@ -795,11 +797,13 @@ export class M3EnergyCard extends TemplatedCard(LitElement) implements LovelaceC
       this._config.y_axis === true && maxValue > 0.001 ? [0, ...niceTicks(0, maxValue, 3).filter((t) => t > 0)] : [];
     const yTicks = rawTicks.filter((t, i) => i === 0 || this._formatNumber(t) !== this._formatNumber(rawTicks[i - 1]));
     const tickBottom = (t: number) => (t === 0 ? 0 : geometry.minHeight + (geometry.maxHeight - geometry.minHeight) * (t / maxValue));
-    const tickLabels =
-      yTicks.length > 1 ? yTicks.map((t, i) => (i === yTicks.length - 1 ? `${this._formatNumber(t)} ${unit}` : this._formatNumber(t))) : [];
+    const tickLabels = yTicks.length > 1 ? yTicks.map((t) => this._formatNumber(t)) : [];
     if (tickLabels.length === 0) yTicks.length = 0;
-    // Wide enough for the longest label, so the bars start at one place.
-    const yAxisWidth = yTicks.length ? Math.max(...tickLabels.map((l) => l.length)) * ENERGY_Y_AXIS_CHAR_PX + ENERGY_Y_AXIS_GAP_PX : 0;
+    // Wide enough for the longest number, so the bars start at one place;
+    // the unit sits small above the top number rather than widening it.
+    const yAxisWidth = yTicks.length
+      ? Math.max(...tickLabels.map((l) => l.length * ENERGY_Y_AXIS_CHAR_PX), String(unit).length * ENERGY_Y_AXIS_UNIT_CHAR_PX) + ENERGY_Y_AXIS_GAP_PX
+      : 0;
     const showValueRow =
       mode === "solar" || period === "month"
         ? false
@@ -1013,6 +1017,9 @@ export class M3EnergyCard extends TemplatedCard(LitElement) implements LovelaceC
                 <div class="y-label" style=${`bottom: ${tickBottom(t).toFixed(1)}px;`}>${tickLabels[i]}</div>
               `,
             )}
+            ${yTicks.length
+              ? html`<div class="y-label y-unit" style=${`bottom: ${(tickBottom(yTicks[yTicks.length - 1]) + ENERGY_Y_AXIS_UNIT_RISE_PX).toFixed(1)}px;`}>${unit}</div>`
+              : nothing}
             ${period === "month" && this._config.show_average !== false && monthAverage !== undefined
               ? html`
                   <div
@@ -1186,6 +1193,10 @@ export class M3EnergyCard extends TemplatedCard(LitElement) implements LovelaceC
         color: var(--m3p-secondary-text, var(--secondary-text-color));
         font-variant-numeric: tabular-nums;
         pointer-events: none;
+      }
+      .y-unit {
+        font-size: 9px;
+        opacity: 0.8;
       }
 
       .bars-row {
