@@ -7349,6 +7349,12 @@ The cards inside are built the first time the popup opens, not with the
 dashboard, and kept from then on: ten popups cost nothing until used, and a
 card keeps its state between openings.
 
+The sheet sizes itself to its cards. `width` and `height` set it instead —
+pixels or any length, such as `700px`, `80vw` or `70vh`. The width counts where
+the sheet stands centred, on a tablet or a desktop; a phone's sheet stays the
+full width. Both are held inside the screen, so `900px` on a small tablet
+still fits, and the cards scroll when the height is less than they need.
+
 In edit mode the card shows as a dashed placeholder naming its hash, so it can
 be found and edited.
 
@@ -7379,6 +7385,8 @@ cards:
 | `text_color` | string | – | Text colour on the sheet — set as the theme's text colour there, so the cards in it follow too |
 | `secondary_text_color` | string | – | Secondary text colour on the sheet, for the cards in it as well |
 | `animation` | string | `auto` | `auto`, `on` or `off`. `off` opens and closes the sheet in place, without the slide |
+| `width` | string / number | – | The sheet's width on a tablet or desktop: a number of pixels or a length (`700px`, `80vw`). On a phone the sheet stays the full width. Held to the screen |
+| `height` | string / number | – | The sheet's height: a number of pixels or a length (`500px`, `70vh`). Held to the screen; the cards scroll when they need more |
 | `cards` | list | `[]` | The cards in the sheet, in display order. Any Lovelace card — M3 or otherwise. Each one's `grid_options.columns` (of 12) sets its width |
 
 </details>

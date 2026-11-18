@@ -1,4 +1,4 @@
-import { html, css, nothing, unsafeCSS } from "lit";
+import { html, css, nothing, unsafeCSS, type PropertyValues } from "lit";
 import { customElement, property } from "lit/decorators.js";
 import {
   DETAIL_BUTTON_RADIUS_PRESSED,
@@ -6,8 +6,10 @@ import {
   DETAIL_CLOSE_RADIUS,
   DETAIL_ICON_RADIUS,
   DETAIL_ICON_SIZE,
+  DETAIL_SHEET_MAX_WIDTH,
   POPUP_CARD_GAP,
   POPUP_CARD_RIM,
+  POPUP_SCREEN_MARGIN,
 } from "../const";
 import { STANDARD_EASING } from "./animation";
 import { M3SheetBase } from "./sheet-base";
@@ -43,6 +45,19 @@ export class M3PopupSheet extends M3SheetBase {
    */
   @property({ attribute: false }) public textColor?: string;
   @property({ attribute: false }) public secondaryTextColor?: string;
+  /** Checked lengths from the popup's `width` and `height` (#58). */
+  @property({ attribute: false }) public sheetWidth?: string;
+  @property({ attribute: false }) public sheetHeight?: string;
+
+  protected updated(changed: PropertyValues): void {
+    super.updated?.(changed);
+    if (!changed.has("sheetWidth") && !changed.has("sheetHeight")) return;
+    // On the host, so the dialog's own rules in the base sheet read them.
+    if (this.sheetWidth) this.style.setProperty("--m3-popup-width", this.sheetWidth);
+    else this.style.removeProperty("--m3-popup-width");
+    if (this.sheetHeight) this.style.setProperty("--m3-popup-height", this.sheetHeight);
+    else this.style.removeProperty("--m3-popup-height");
+  }
 
   public open(opener?: HTMLElement): void {
     this.present(opener, () => {
@@ -144,6 +159,21 @@ export class M3PopupSheet extends M3SheetBase {
          themes set none: on a dashboard the wallpaper outlines them, in a
          sheet of their own colour nothing does. They get the rim every M3
          card draws, through the variables ha-card reads. */
+      /* A configured size (#58). The width only where the sheet stands
+         centred: a phone's sheet is the full width either way. Both stay
+         inside the screen, whatever was typed. */
+      .sheet {
+        height: var(--m3-popup-height, auto);
+      }
+      @media (min-width: 600px) and (min-height: 600px) {
+        dialog {
+          max-width: min(var(--m3-popup-width, ${DETAIL_SHEET_MAX_WIDTH}px), calc(100vw - ${2 * POPUP_SCREEN_MARGIN}px));
+        }
+        .sheet {
+          max-height: min(92dvh, calc(100dvh - ${2 * POPUP_SCREEN_MARGIN}px));
+        }
+      }
+
       .cards {
         display: grid;
         grid-template-columns: repeat(${POPUP_GRID_COLUMNS}, minmax(0, 1fr));

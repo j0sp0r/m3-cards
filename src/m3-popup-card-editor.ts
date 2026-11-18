@@ -42,7 +42,7 @@ export class M3PopupCardEditor extends LitElement implements LovelaceCardEditor<
     if (!this._config) return;
     const next = { ...this._config, ...(ev.detail.value as Record<string, unknown>) } as M3PopupCardConfig;
     // An emptied optional field leaves the config rather than staying as "".
-    for (const key of ["title", "icon"] as const) if (!next[key]) delete next[key];
+    for (const key of ["title", "icon", "width", "height"] as const) if (!next[key]) delete next[key];
     this._emit(next);
   }
 
@@ -53,13 +53,19 @@ export class M3PopupCardEditor extends LitElement implements LovelaceCardEditor<
       icon: "editor_popup_icon",
       glass_background: "editor_glass_background",
       animation: "editor_progress_animation",
+      width: "editor_popup_width",
+      height: "editor_popup_height",
     };
     const key = labels[schema.name];
     return key ? this._t(key) : schema.name;
   };
 
   private _computeHelper = (schema: SchemaEntry): string | undefined =>
-    schema.name === "hash" ? this._t("editor_popup_hash_helper") : undefined;
+    schema.name === "hash"
+      ? this._t("editor_popup_hash_helper")
+      : schema.name === "width" || schema.name === "height"
+        ? this._t("editor_popup_size_helper")
+        : undefined;
 
   private _colorChanged(key: "card_background" | "text_color" | "secondary_text_color", value: string): void {
     if (!this._config) return;
@@ -71,6 +77,8 @@ export class M3PopupCardEditor extends LitElement implements LovelaceCardEditor<
 
   private _appearanceSchema(): SchemaEntry[] {
     return [
+      { name: "width", selector: { text: {} } },
+      { name: "height", selector: { text: {} } },
       { name: "glass_background", selector: { boolean: {} } },
       {
         name: "animation",
@@ -121,11 +129,14 @@ export class M3PopupCardEditor extends LitElement implements LovelaceCardEditor<
             <ha-form
               .hass=${this.hass}
               .data=${{
+                width: this._config.width !== undefined ? String(this._config.width) : "",
+                height: this._config.height !== undefined ? String(this._config.height) : "",
                 glass_background: this._config.glass_background !== false,
                 animation: this._config.animation ?? "auto",
               }}
               .schema=${this._appearanceSchema()}
               .computeLabel=${this._computeLabel}
+              .computeHelper=${this._computeHelper}
               @value-changed=${this._valueChanged}
             ></ha-form>
             ${colorRow(this._t("editor_progress_card_background"), this._config.card_background, (v) =>

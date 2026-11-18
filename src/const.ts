@@ -2925,6 +2925,8 @@ export const DETAIL_CHART_HALO = 10;
 // Between the cards it holds: two of the suite's row gaps, the space a
 // sections view leaves between cards.
 export const POPUP_CARD_GAP = SPACING.rowGap * 2;
+/** A sized popup (#58) keeps at least this much of the screen around it. */
+export const POPUP_SCREEN_MARGIN = 16;
 // The rim Home Assistant's own cards get inside a popup: the one every M3
 // card draws round its .card-inner (shared/glass-card.ts).
 export const POPUP_CARD_RIM = "rgba(100, 100, 100, 0.25)";

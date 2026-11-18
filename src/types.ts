@@ -3864,6 +3864,13 @@ export interface M3PopupCardConfig {
   secondary_text_color?: string;
   /** `off` opens and closes the sheet in place, without the slide. */
   animation?: "auto" | "on" | "off";
+  /**
+   * The sheet's size (#58): a number of pixels or a length such as `700px`,
+   * `80vw`. Width counts where the sheet stands centred (tablet, desktop);
+   * on a phone it stays the full width. Both are held to the screen.
+   */
+  width?: string | number;
+  height?: string | number;
   card_version?: string;
 }
 

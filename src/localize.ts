@@ -2453,6 +2453,9 @@ const translations = {
     // ---- Lights Overview, Chip Buttons, Group Card ----
     editor_popup_hash: "Hash",
     editor_popup_hash_helper: "Öffnet sich, wenn die Adresse auf diesen Hash endet. Ein Button öffnet es mit der Aktion „Navigieren“ zu z. B. #fernbedienungen.",
+    editor_popup_width: "Breite",
+    editor_popup_height: "Höhe",
+    editor_popup_size_helper: "Leer: automatisch. Z. B. 700px, 80vw, 70vh. Die Breite gilt auf Tablet und Desktop, am Handy bleibt das Pop-up voll breit.",
     editor_popup_title: "Titel",
     editor_popup_icon: "Icon",
     editor_popup_general: "Pop-up",
@@ -5841,6 +5844,9 @@ const translations = {
     // ---- Lights Overview, Chip Buttons, Group Card ----
     editor_popup_hash: "Hash",
     editor_popup_hash_helper: "Opens when the address ends in this hash. A button opens it with a navigate action to e.g. #remotes.",
+    editor_popup_width: "Width",
+    editor_popup_height: "Height",
+    editor_popup_size_helper: "Empty: automatic. E.g. 700px, 80vw, 70vh. The width applies on tablets and desktops; on a phone the popup stays the full width.",
     editor_popup_title: "Title",
     editor_popup_icon: "Icon",
     editor_popup_general: "Popup",

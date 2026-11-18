@@ -1240,6 +1240,8 @@ Pop-up mit `hash: "#test"` und zwei, drei Karten anlegen, dazu einen Button mit
 - [ ] Ein Detail-Sheet (`detail_mode: sheet`) aus einer Karte im Pop-up öffnet sich darüber; Zurück schließt zuerst das Detail, dann das Pop-up
 - [ ] Theme der Ansicht gilt auch im Pop-up
 - [ ] Desktop: zentriert, alle vier Ecken rund, blendet ein
+- [ ] `width: 700px`, `height: 500px` (#58): am Desktop 700 × 500, Inhalt scrollt, wenn er mehr braucht; am Handy volle Breite, 500 hoch
+- [ ] `width: 2000px`, `height: 120vh`: bleibt mit Rand im Bildschirm; `width: abc` wird ignoriert (Standardbreite)
 
 ## M3 Router Card
 

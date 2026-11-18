@@ -8,6 +8,7 @@ import { GroupChildrenController } from "./shared/group-children";
 import { hashMatches, normalizeHash, popupCardSpan, withoutHash } from "./shared/popup-hash";
 import { TemplatedCard } from "./shared/templated-card";
 import { shouldAnimate } from "./shared/animation";
+import { cssLength } from "./shared/css-length";
 import "./shared/popup-sheet";
 import type { M3PopupSheet } from "./shared/popup-sheet";
 
@@ -285,6 +286,8 @@ export class M3PopupCard extends TemplatedCard(LitElement) implements LovelaceCa
         .background=${this._resolved("card_background")}
         .textColor=${this._resolved("text_color")}
         .secondaryTextColor=${this._resolved("secondary_text_color")}
+        .sheetWidth=${cssLength(this._config.width)}
+        .sheetHeight=${cssLength(this._config.height)}
         .animated=${shouldAnimate(this._config.animation)}
         .historyLeaver=${this._leaveHistory}
         .onClosed=${this._onSheetClosed}

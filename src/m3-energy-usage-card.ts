@@ -578,8 +578,12 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
     // Into the text node Lit rendered, not over it: replacing the node
     // (textContent) would pull it from under Lit's next update.
     const write = (host: HTMLElement | null, text: string) => {
-      const node = [...(host?.childNodes ?? [])].find((n): n is Text => n.nodeType === Node.TEXT_NODE && !!n.data.trim());
-      if (node) node.data = text;
+      for (const n of host?.childNodes ?? []) {
+        if (n instanceof Text && n.data.trim()) {
+          n.data = text;
+          return;
+        }
+      }
     };
     const paint = (kwh: number) => {
       const s = scaleEnergy(kwh);

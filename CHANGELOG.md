@@ -8,6 +8,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **Popup card: `width` and `height`** (#58). Pixels or any length
+  (`700px`, `80vw`, `70vh`). The width applies where the sheet stands
+  centred (tablet, desktop); on a phone it stays the full width. Both are
+  held inside the screen. Without them nothing changes.
+
 - **Availability card** (`m3-availability-card`, card 56): the devices Home
   Assistant cannot reach, one row per device rather than per entity.
   "Just went offline" and "Offline for a while", red after a day, filter
