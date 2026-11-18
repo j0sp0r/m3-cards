@@ -71,6 +71,8 @@ A small arrow under each value says which way it runs relative to the home
 tile, the home tile carries the self-sufficiency, and the battery icon fills
 with its state of charge. The header is off unless `show_header: true`.
 
+<img src="docs/images/energy-flow-compact.png" alt="Energy Flow Card, layout: compact — exporting and charging above, drawing from the grid below" width="400">
+
 ```yaml
 type: custom:m3-energy-flow-card
 layout: compact

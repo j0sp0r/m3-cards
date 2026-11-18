@@ -56,6 +56,8 @@ at the stop and the number still shows the real value; an unavailable sensor
 hides the needle and shows "–". The needle springs to a new value with a
 slight overshoot; with reduced motion it jumps.
 
+<img src="docs/images/gauge-needle.png" alt="Gauge Card with style: needle — household power in three ranges" width="400">
+
 Household power, three ranges:
 
 ```yaml

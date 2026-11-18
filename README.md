@@ -1140,6 +1140,8 @@ at the stop and the number still shows the real value; an unavailable sensor
 hides the needle and shows "–". The needle springs to a new value with a
 slight overshoot; with reduced motion it jumps.
 
+<img src="docs/images/gauge-needle.png" alt="Gauge Card with style: needle — household power in three ranges" width="400">
+
 Household power, three ranges:
 
 ```yaml
@@ -1262,6 +1264,8 @@ in one row about as tall as a weather or status tile, for a half-width slot.
 A small arrow under each value says which way it runs relative to the home
 tile, the home tile carries the self-sufficiency, and the battery icon fills
 with its state of charge. The header is off unless `show_header: true`.
+
+<img src="docs/images/energy-flow-compact.png" alt="Energy Flow Card, layout: compact — exporting and charging above, drawing from the grid below" width="400">
 
 ```yaml
 type: custom:m3-energy-flow-card
