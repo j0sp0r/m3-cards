@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import { afterEach, describe, expect, it } from "vitest";
-import { localize, type CustomTranslationRegistry } from "./localize";
+import { localize, type CustomTranslationRegistry, type TranslationKey } from "./localize";
+import uk from "./translations/uk";
 
 /**
  * A string in `localize.ts` carrying a `{placeholder}` is a promise that the
@@ -140,6 +141,22 @@ describe("user translations (window.m3CardsTranslations)", () => {
     expect(localize("energy_weekday_today")).toBe("Today");
   });
 
+  it.each(["uk", "uk-UA", "UK-ua"])("selects Ukrainian for %s", (language) => {
+    expect(localize("energy_weekday_today", language)).toBe("Сьогодні");
+    expect(localize("editor_entity", language)).toBe("Сутність");
+  });
+
+  it("resolves regional and base overrides before built-in Ukrainian", () => {
+    register({
+      uk: { energy_weekday_today: "Нині", multigraph_summary_mean: "Середнє значення" },
+      "uk-UA": { energy_weekday_today: "Цього дня" },
+    });
+    expect(localize("energy_weekday_today", "uk-UA")).toBe("Цього дня");
+    expect(localize("energy_weekday_today", "uk")).toBe("Нині");
+    expect(localize("multigraph_summary_mean", "uk-UA")).toBe("Середнє значення");
+    expect(localize("editor_entity", "uk-UA")).toBe("Сутність");
+  });
+
   it("a partial map overrides its keys and leaves the rest in English", () => {
     register({ nl: { energy_weekday_today: "Vandaag" } });
     expect(localize("energy_weekday_today", "nl")).toBe("Vandaag");
@@ -187,5 +204,17 @@ describe("user translations (window.m3CardsTranslations)", () => {
     expect(localize("energy_weekday_today", "nl")).toBe("Today");
     register({ nl: { energy_weekday_today: "Vandaag" } });
     expect(localize("energy_weekday_today", "nl")).toBe("Vandaag");
+  });
+});
+
+describe("Ukrainian translation placeholders", () => {
+  it("preserves the placeholders used by the English strings", () => {
+    const placeholders = /\{[a-z_]+\}|\[\[[a-z_]+\]\]/g;
+    const mismatches = (Object.keys(uk) as TranslationKey[]).filter((key) => {
+      const english = localize(key, "en").match(placeholders) ?? [];
+      const ukrainian = localize(key, "uk").match(placeholders) ?? [];
+      return english.sort().join() !== ukrainian.sort().join();
+    });
+    expect(mismatches).toEqual([]);
   });
 });

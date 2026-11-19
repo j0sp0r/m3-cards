@@ -1,6 +1,8 @@
-export type Lang = "de" | "en";
+import uk from "./translations/uk";
 
-const translations = {
+export type Lang = "de" | "en" | "uk";
+
+const defaultTranslations = {
   de: {
     off: "Aus",
     heat: "Heizen",
@@ -6793,7 +6795,7 @@ const translations = {
   },
 } as const;
 
-export type TranslationKey = keyof (typeof translations)["en"];
+export type TranslationKey = keyof (typeof defaultTranslations)["en"];
 
 /**
  * A user-supplied translation map: any subset of the built-in keys. Keys it
@@ -6801,13 +6803,14 @@ export type TranslationKey = keyof (typeof translations)["en"];
  */
 export type CustomTranslations = Partial<Record<TranslationKey, string>>;
 
+const translations: Record<Lang, CustomTranslations> = { ...defaultTranslations, uk };
+
 /**
  * Translations supplied from outside the bundle, keyed by language tag
  * (`nl`, `nl-BE`, `fr`, …).
  *
- * The bundle ships German and English only. Anyone else gets English, and
- * before this had no way to change a single word of it. A small module
- * registered as its own Lovelace resource fills this in:
+ * A small module registered as its own Lovelace resource can add a language
+ * or override the wording in a language shipped with the bundle:
  *
  *   window.m3CardsTranslations = { ...window.m3CardsTranslations, nl: { energy_weekday_today: "Vandaag" } };
  *   window.dispatchEvent(new Event("m3-cards-translations-loaded"));
@@ -6839,8 +6842,10 @@ declare global {
  */
 export const TRANSLATIONS_LOADED_EVENT = "m3-cards-translations-loaded";
 
-function resolveLang(language?: string): Lang {
-  return language?.toLowerCase().startsWith("de") ? "de" : "en";
+export function resolveLang(language?: string): Lang {
+  const normalized = language?.toLowerCase();
+  if (normalized?.startsWith("de")) return "de";
+  return normalized?.split("-", 1)[0] === "uk" ? "uk" : "en";
 }
 
 /**
@@ -6867,5 +6872,5 @@ export function localize(key: TranslationKey, language?: string): string {
   const custom = customString(key, language);
   if (custom !== undefined) return custom;
   const lang = resolveLang(language);
-  return translations[lang][key] ?? translations.en[key] ?? key;
+  return translations[lang][key] ?? defaultTranslations.en[key] ?? key;
 }
