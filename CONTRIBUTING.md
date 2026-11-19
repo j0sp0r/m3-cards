@@ -104,9 +104,9 @@ keyboard activation** (Enter/Space) via `src/shared/a11y.ts`.
 does not remove it — lit-html commits `setAttribute(name, value ?? '')`, so
 `aria-haspopup=${open ? "listbox" : undefined}` lands as `aria-haspopup=""`.
 
-**User-facing strings go in `src/localize.ts`, in both `de` and `en`.** Check
-for an existing key first — the file is long enough that adding a duplicate is
-easy, and a duplicate key is a silent overwrite, not an error.
+**User-facing strings go in `src/localize.ts`, in both `de` and `en`.** Add the
+Ukrainian wording in `src/translations/uk.ts` when available. Check for an
+existing key first and keep placeholder names the same across languages.
 
 ## Two traps worth knowing
 
