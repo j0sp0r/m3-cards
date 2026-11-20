@@ -71,6 +71,7 @@ import { tintOn, foregroundColor , resolveThemeColor } from "./shared/color-conf
 import { shouldAnimate } from "./shared/animation";
 import { migrateAnimationsField } from "./shared/config-migration";
 import { activateOnKey } from "./shared/a11y";
+import { SetpointDraft, parseTarget } from "./shared/setpoint-draft";
 import { openDropdownMenu, closeDropdownMenu } from "./shared/dropdown-menu";
 import { TemplatedCard } from "./shared/templated-card";
 import {
@@ -100,6 +101,14 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
   @state() private _presetMenuOpen = false;
   @state() private _modeMenuOpen = false;
   @state() private _fanMenuOpen = false;
+  /** Bumped when a draft target moves: a draft is not a property. */
+  @state() private _draftTick = 0;
+  /** The target being typed in ("single", "low", "high"), while its field is open. */
+  @state() private _editing?: string;
+  private _editCancelled = false;
+  private _draft = new SetpointDraft(this, () => {
+    this._draftTick += 1;
+  });
 
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
     await import("./editor");
@@ -369,10 +378,90 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
     unavailable: boolean,
   ): void {
     if (unavailable || !this.hass || !this._config) return;
-    let next = currentTemp + direction * step;
+    // From the draft: a step taken before the thermostat confirmed the last
+    // one goes on from there instead of repeating it.
+    const base = this._draft.get("single", currentTemp) ?? currentTemp;
+    let next = base + direction * step;
     next = Math.min(max, Math.max(min, next));
-    next = Math.round(next / step) * step;
-    setTargetTemperature(this.hass, this._config.entity, next);
+    next = Number((Math.round(next / step) * step).toFixed(4));
+    const entity = this._config.entity;
+    this._draft.set({ single: next }, () => setTargetTemperature(this.hass, entity, next));
+  }
+
+  /** A typed target: sent at once, a band's other bound kept a step away. */
+  private _commitTyped(
+    key: string,
+    text: string,
+    limits: { step: number; min: number; max: number },
+    current: { value?: number; low?: number; high?: number },
+  ): void {
+    this._editing = undefined;
+    if (!this.hass || !this._config) return;
+    const v = parseTarget(text, limits);
+    if (v === undefined) return;
+    const entity = this._config.entity;
+    if (key === "single") {
+      this._draft.set({ single: v }, () => setTargetTemperature(this.hass, entity, v), true);
+      return;
+    }
+    const low = this._draft.get("low", current.low);
+    const high = this._draft.get("high", current.high);
+    if (low === undefined || high === undefined) return;
+    const range =
+      key === "low"
+        ? { low: Math.min(v, high - limits.step), high }
+        : { low, high: Math.max(v, low + limits.step) };
+    this._draft.set(range, () => setTargetRange(this.hass, entity, range), true);
+  }
+
+  /** Opens the typed field, or the details, as `target_tap_action` says. */
+  private _tapTarget(key: string, disabled: boolean): void {
+    if (this._config?.target_tap_action === "edit" && !disabled) {
+      this._editCancelled = false;
+      this._editing = key;
+      return;
+    }
+    this._fireMoreInfo(this._config?.entity);
+  }
+
+  /** The typed field, in place of the reading. */
+  private _renderTargetInput(label: string, value: number | undefined, onTyped: (text: string) => void) {
+    return html`<input
+      class="target-input"
+      type="text"
+      inputmode="decimal"
+      enterkeyhint="done"
+      aria-label=${label}
+      .value=${value === undefined ? "" : this._formatNumber(value)}
+      @click=${(e: Event) => e.stopPropagation()}
+      @keydown=${(e: KeyboardEvent) => {
+        e.stopPropagation();
+        if (e.key === "Enter") {
+          e.preventDefault();
+          (e.target as HTMLInputElement).blur();
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          this._editCancelled = true;
+          this._editing = undefined;
+        }
+      }}
+      @blur=${(e: FocusEvent) => {
+        if (this._editCancelled) {
+          this._editCancelled = false;
+          return;
+        }
+        onTyped((e.target as HTMLInputElement).value);
+      }}
+    />`;
+  }
+
+  protected updated(changed: PropertyValues): void {
+    super.updated?.(changed);
+    if (changed.has("_editing") && this._editing) {
+      const input = this.renderRoot.querySelector<HTMLInputElement>(".target-input");
+      input?.focus();
+      input?.select();
+    }
   }
 
   /**
@@ -391,9 +480,11 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
     unavailable: boolean,
   ): void {
     if (unavailable || !this.hass || !this._config) return;
-    const next = nudgeRange(current, bound, direction * limits.step, limits);
+    const base = { low: this._draft.get("low", current.low), high: this._draft.get("high", current.high) };
+    const next = nudgeRange(base, bound, direction * limits.step, limits);
     if (!next) return;
-    setTargetRange(this.hass, this._config.entity, next);
+    const entity = this._config.entity;
+    this._draft.set({ low: next.low, high: next.high }, () => setTargetRange(this.hass, entity, next));
   }
 
   /**
@@ -425,8 +516,14 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
     accent?: string;
     stepLabels?: { minus: string; plus: string };
     onStep: (direction: 1 | -1) => void;
+    /** Which target this row is: "single", "low" or "high". */
+    editKey: string;
+    onTyped: (text: string) => void;
   }) {
-    const { value, label, caption, unit, blank, disabled, accent, stepLabels, onStep } = opts;
+    const { value, label, caption, unit, blank, disabled, accent, stepLabels, onStep, editKey, onTyped } = opts;
+    const minus = this._draft.hold(() => onStep(-1));
+    const plus = this._draft.hold(() => onStep(1));
+    const editing = this._editing === editKey && !disabled;
     const missing = blank || value === undefined;
     // Number and unit are separate elements so the unit can ride smaller —
     // but they are one reading, which `white-space: nowrap` on .value keeps
@@ -440,7 +537,12 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
           class="stepper-btn minus"
           ?disabled=${disabled}
           aria-label=${stepLabels?.minus ?? nothing}
-          @click=${() => onStep(-1)}
+          @pointerdown=${minus.down}
+          @pointerup=${minus.up}
+          @pointerleave=${minus.up}
+          @pointercancel=${minus.up}
+          @click=${minus.click}
+          @contextmenu=${minus.menu}
         >
           −
         </button>
@@ -449,19 +551,26 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
           role="button"
           tabindex="0"
           aria-label=${label}
-          @click=${() => this._fireMoreInfo(this._config?.entity)}
-          @keydown=${activateOnKey(() => this._fireMoreInfo(this._config?.entity))}
+          @click=${() => this._tapTarget(editKey, disabled || missing)}
+          @keydown=${activateOnKey(() => this._tapTarget(editKey, disabled || missing))}
         >
-          <div class="value" style=${valueStyle}>${reading}${missing
-            ? nothing
-            : html`<span class="unit"> ${unit}</span>`}</div>
+          ${editing
+            ? html`<div class="value" style=${valueStyle}>${this._renderTargetInput(label, value, onTyped)}<span class="unit"> ${unit}</span></div>`
+            : html`<div class="value" style=${valueStyle}>${reading}${missing
+                ? nothing
+                : html`<span class="unit"> ${unit}</span>`}</div>`}
           ${caption ? html`<div class="label">${caption}</div>` : nothing}
         </div>
         <button
           class="stepper-btn plus"
           ?disabled=${disabled}
           aria-label=${stepLabels?.plus ?? nothing}
-          @click=${() => onStep(1)}
+          @pointerdown=${plus.down}
+          @pointerup=${plus.up}
+          @pointerleave=${plus.up}
+          @pointercancel=${plus.up}
+          @click=${plus.click}
+          @contextmenu=${plus.menu}
         >
           +
         </button>
@@ -816,7 +925,9 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
             : (() => {
                 const target = v.target;
                 return this._renderStepper({
-                  value: target.value,
+                  value: this._draft.get("single", target.value),
+                  editKey: "single",
+                  onTyped: (text: string) => this._commitTyped("single", text, v.limits, target),
                   label: this._t("target_temperature"),
                   unit: v.tempUnit,
                   blank: v.unavailable,
@@ -875,7 +986,9 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
         aria-label=${this._t("target_temp_range")}
       >
         ${this._renderStepper({
-          value: target.low,
+          value: this._draft.get("low", target.low),
+          editKey: "low",
+          onTyped: (text: string) => this._commitTyped("low", text, limits, target),
           label: lowLabel,
           caption: lowLabel,
           unit,
@@ -887,7 +1000,9 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
             this._handleBandStep("low", target, direction, limits, dimUnavailable),
         })}
         ${this._renderStepper({
-          value: target.high,
+          value: this._draft.get("high", target.high),
+          editKey: "high",
+          onTyped: (text: string) => this._commitTyped("high", text, limits, target),
           label: highLabel,
           caption: highLabel,
           unit,
@@ -921,6 +1036,8 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
     /** A band bound's own heat/cool colour, in place of the card's mode colour. */
     accent?: string;
     onStep: (direction: 1 | -1) => void;
+    editKey: string;
+    onTyped: (text: string) => void;
   }) {
     const {
       value,
@@ -934,7 +1051,12 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
       minusColor,
       plusColor,
       onStep,
+      editKey,
+      onTyped,
     } = opts;
+    const minus = this._draft.hold(() => onStep(-1));
+    const plus = this._draft.hold(() => onStep(1));
+    const editing = this._editing === editKey && !disabled;
     // The unit as Home Assistant reports it, like `tiles` prints it — a bare
     // degree sign would hide whether the number is °C or °F.
     const missing = blank || value === undefined;
@@ -952,7 +1074,12 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
           style=${`--m3-stepper-color: ${minusColor};`}
           ?disabled=${disabled}
           aria-label=${stepLabels?.minus ?? nothing}
-          @click=${() => onStep(-1)}
+          @pointerdown=${minus.down}
+          @pointerup=${minus.up}
+          @pointerleave=${minus.up}
+          @pointercancel=${minus.up}
+          @click=${minus.click}
+          @contextmenu=${minus.menu}
         >
           <ha-icon icon="mdi:minus"></ha-icon>
         </button>
@@ -964,10 +1091,12 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
           role="button"
           tabindex="0"
           aria-label=${ariaLabel}
-          @click=${() => this._fireMoreInfo(this._config?.entity)}
-          @keydown=${activateOnKey(() => this._fireMoreInfo(this._config?.entity))}
+          @click=${() => this._tapTarget(editKey, disabled || missing)}
+          @keydown=${activateOnKey(() => this._tapTarget(editKey, disabled || missing))}
         >
-          <span class="value">${reading}</span>
+          ${editing
+            ? html`<span class="value">${this._renderTargetInput(ariaLabel, value, onTyped)} ${unit}</span>`
+            : html`<span class="value">${reading}</span>`}
           ${caption ? html`<span class="caption">${caption}</span>` : nothing}
         </div>
         <button
@@ -975,7 +1104,12 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
           style=${`--m3-stepper-color: ${plusColor};`}
           ?disabled=${disabled}
           aria-label=${stepLabels?.plus ?? nothing}
-          @click=${() => onStep(1)}
+          @pointerdown=${plus.down}
+          @pointerup=${plus.up}
+          @pointerleave=${plus.up}
+          @pointercancel=${plus.up}
+          @click=${plus.click}
+          @contextmenu=${plus.menu}
         >
           <ha-icon icon="mdi:plus"></ha-icon>
         </button>
@@ -1006,7 +1140,9 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
         aria-label=${this._t("target_temp_range")}
       >
         ${this._renderExpressiveSetpoint({
-          value: target.low,
+          value: this._draft.get("low", target.low),
+          editKey: "low",
+          onTyped: (text: string) => this._commitTyped("low", text, limits, target),
           unit,
           blank: unavailable,
           disabled,
@@ -1020,7 +1156,9 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
             this._handleBandStep("low", target, direction, limits, dimUnavailable),
         })}
         ${this._renderExpressiveSetpoint({
-          value: target.high,
+          value: this._draft.get("high", target.high),
+          editKey: "high",
+          onTyped: (text: string) => this._commitTyped("high", text, limits, target),
           unit,
           blank: unavailable,
           disabled,
@@ -1166,7 +1304,9 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
             : (() => {
                 const target = v.target;
                 return this._renderExpressiveSetpoint({
-                  value: target.value,
+                  value: this._draft.get("single", target.value),
+                  editKey: "single",
+                  onTyped: (text: string) => this._commitTyped("single", text, v.limits, target),
                   unit: v.tempUnit,
                   blank: v.unavailable,
                   disabled: v.dimUnavailable || target.value === undefined,
@@ -1634,6 +1774,30 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
 
     .stepper-btn:active {
       transform: scale(0.88);
+    }
+
+    /* Held for a repeat: no text selection, no callout, no double-tap zoom. */
+    .stepper-btn {
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+    }
+
+    /* The typed target: the reading itself, editable, with a line under it. */
+    .target-input {
+      width: 3.6ch;
+      padding: 0;
+      margin: 0;
+      border: none;
+      border-bottom: 2px solid var(--primary-color);
+      border-radius: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      letter-spacing: inherit;
+      text-align: center;
+      outline: none;
     }
 
     .stepper-btn:disabled {

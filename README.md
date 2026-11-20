@@ -494,6 +494,7 @@ chevron, since the header no longer folds anything — see "Tapping the header".
 | `show_header_status` | boolean | `true` | Show the mode line under the card name in the header |
 | `show_control_labels` | boolean | `true` | `style: expressive` only — text labels on the mode and preset buttons; `false` leaves both as icon-only circles |
 | `show_action_glow` | boolean | `true` | `style: expressive` only — the heat/cool frame around the card |
+| `target_tap_action` | `more_info` \| `edit` | `more_info` | A tap on the target temperature: open the details, or a field to type the value (Enter sets it, Escape cancels) |
 | `show_presets` | boolean | `true` | Show preset selector (if the entity supports `preset_modes`) |
 | `preset_style` | `chip` \| `pill` | `chip` | Preset as its own wide row (`chip`) or as an extra pill in the mode row (`pill`) |
 | `show_fan_modes` | boolean | `false` | The fan speed, for an entity that reports `fan_modes` (an air conditioner, mostly). See [Fan speed](#fan-speed) |

@@ -90,6 +90,18 @@ export class M3ClimateCardEditor
             { name: "show_action_glow", selector: { boolean: {} } },
           ] as SchemaEntry[])
         : []),
+      {
+        name: "target_tap_action",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "more_info", label: this._t("editor_target_tap_more_info") },
+              { value: "edit", label: this._t("editor_target_tap_edit") },
+            ],
+          },
+        },
+      },
       { name: "show_presets", selector: { boolean: {} } },
       {
         name: "preset_style",
@@ -236,6 +248,7 @@ export class M3ClimateCardEditor
       show_control_labels: "editor_show_control_labels",
       show_action_glow: "editor_show_action_glow",
       show_presets: "editor_show_presets",
+      target_tap_action: "editor_target_tap_action",
       show_sensors: "editor_show_sensors",
       temperature_sensor: "editor_temperature_sensor",
       humidity_sensor: "editor_humidity_sensor",
@@ -356,6 +369,7 @@ export class M3ClimateCardEditor
       show_control_labels: this._config.show_control_labels ?? true,
       show_action_glow: this._config.show_action_glow ?? true,
       show_presets: this._config.show_presets ?? true,
+      target_tap_action: this._config.target_tap_action ?? "more_info",
       preset_style: this._config.preset_style ?? "chip",
       show_fan_modes: this._config.show_fan_modes ?? false,
       fan_modes_when: this._config.fan_modes_when ?? "always",

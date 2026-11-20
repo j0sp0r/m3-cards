@@ -92,6 +92,8 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 |---|---|---|
 | HVAC-Modi | Jeden verfügbaren Modus-Pill antippen | `climate.set_hvac_mode` wird korrekt aufgerufen, Pill-Farbe wechselt |
 | Zieltemperatur | Plus/Minus antippen, danach direkt auf die Anzeige tippen | Stepper ändert Temperatur in `target_temp_step`-Schritten; Tippen auf die Anzeige öffnet More-Info |
+| Gedrückt halten | Plus oder Minus 3 s halten, loslassen; dann dreimal schnell tippen | Wert läuft nach kurzer Pause weiter, dann schneller; kein Kontextmenü, keine Textmarkierung. Ein einziger `set_temperature` nach dem Loslassen bzw. nach dem dritten Tipp (Logbuch), Wert springt nicht zurück |
+| Wert eintippen | `target_tap_action: edit`, auf die Zahl tippen, 21,5 eingeben, Enter; dann 40 eingeben; dann Escape | Feld mit Tastatur, 21,5 wird gesetzt; 40 wird auf das Maximum gesetzt; Escape lässt den Wert stehen. Bei einem Band bleiben die Grenzen einen Schritt auseinander |
 | Sollwert ohne Beschriftung | Thermostat mit **einem** Sollwert, Stil `tiles` | Unter der Zahl steht **nichts** mehr — kein „Zieltemperatur". Die Zahl sitzt mittig in ihrer Fläche |
 | Band behält seine Beschriftung | Thermostat im Modus `heat_cool`, Stil `tiles` | „Heizen bis" und „Kühlen ab" stehen weiterhin unter den beiden Zahlen — sonst wäre nicht erkennbar, welche welche ist |
 | Vorlesesoftware | Mit Tab auf die Sollwert-Anzeige | Sie wird weiterhin als „Zieltemperatur" angesagt, obwohl nichts gezeichnet ist |

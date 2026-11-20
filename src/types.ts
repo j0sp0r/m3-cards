@@ -117,6 +117,12 @@ export type ClimateCardStyle = "tiles" | "expressive";
 export interface M3ClimateCardConfig extends DetailModeConfig {
   type: string;
   entity: string;
+  /**
+   * A tap on the target: `edit` opens a field to type it, `more_info` the
+   * details. Holding − or + repeats the step either way.
+   * @default "more_info"
+   */
+  target_tap_action?: "more_info" | "edit";
   name?: string;
   icon?: string;
   /** @default "tiles" */

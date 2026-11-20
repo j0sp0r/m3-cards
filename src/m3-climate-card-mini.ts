@@ -22,6 +22,7 @@ import { formatNumber } from "./shared/formatting";
 import { renderMissingEntity } from "./shared/glass-card";
 import { shouldAnimate } from "./shared/animation";
 import { migrateAnimationsField } from "./shared/config-migration";
+import { SetpointDraft } from "./shared/setpoint-draft";
 import { activateOnKey } from "./shared/a11y";
 import { tintOn, tintInk, foregroundOn, foregroundColor , resolveThemeColor } from "./shared/color-config";
 import { TemplatedCard } from "./shared/templated-card";
@@ -47,6 +48,11 @@ export class M3ClimateCardMini extends TemplatedCard(LitElement) implements Love
   @property({ attribute: false }) public hass?: HomeAssistant;
 
   @state() private _config?: M3ClimateCardMiniConfig;
+  /** Bumped when a draft target moves: a draft is not a property. */
+  @state() private _draftTick = 0;
+  private _draft = new SetpointDraft(this, () => {
+    this._draftTick += 1;
+  });
 
   // Which end of a band the minus/plus buttons move. A thermostat in
   // heat/cool holds two setpoints, and this tile has room for one pair of
@@ -181,10 +187,12 @@ export class M3ClimateCardMini extends TemplatedCard(LitElement) implements Love
     unavailable: boolean,
   ): void {
     if (unavailable || !this.hass || !this._config) return;
-    let next = currentTemp + direction * step;
+    const base = this._draft.get("single", currentTemp) ?? currentTemp;
+    let next = base + direction * step;
     next = Math.min(max, Math.max(min, next));
-    next = Math.round(next / step) * step;
-    setTargetTemperature(this.hass, this._config.entity, next);
+    next = Number((Math.round(next / step) * step).toFixed(4));
+    const entity = this._config.entity;
+    this._draft.set({ single: next }, () => setTargetTemperature(this.hass, entity, next));
   }
 
   /**
@@ -203,9 +211,11 @@ export class M3ClimateCardMini extends TemplatedCard(LitElement) implements Love
     unavailable: boolean,
   ): void {
     if (unavailable || !this.hass || !this._config) return;
-    const next = nudgeRange(range, this._bound, direction * step, { step, min, max });
+    const base = { low: this._draft.get("low", range.low), high: this._draft.get("high", range.high) };
+    const next = nudgeRange(base, this._bound, direction * step, { step, min, max });
     if (!next) return;
-    setTargetRange(this.hass, this._config.entity, next);
+    const entity = this._config.entity;
+    this._draft.set({ low: next.low, high: next.high }, () => setTargetRange(this.hass, entity, next));
   }
 
   private _selectBound(bound: TargetBound): void {
@@ -270,6 +280,8 @@ export class M3ClimateCardMini extends TemplatedCard(LitElement) implements Love
           </button>
         `;
       };
+      const minusR = this._draft.hold(() => this._handleRangeStep(-1, target, step, min, max, dimUnavailable));
+      const plusR = this._draft.hold(() => this._handleRangeStep(1, target, step, min, max, dimUnavailable));
       return html`
         <div
           class="stepper-row range"
@@ -279,17 +291,25 @@ export class M3ClimateCardMini extends TemplatedCard(LitElement) implements Love
           <button
             class="stepper-btn minus"
             ?disabled=${locked}
-            @click=${() =>
-              this._handleRangeStep(-1, target, step, min, max, dimUnavailable)}
+            @pointerdown=${minusR.down}
+            @pointerup=${minusR.up}
+            @pointerleave=${minusR.up}
+            @pointercancel=${minusR.up}
+            @click=${minusR.click}
+            @contextmenu=${minusR.menu}
           >
             −
           </button>
-          ${renderBound("low", target.low)} ${renderBound("high", target.high)}
+          ${renderBound("low", this._draft.get("low", target.low))} ${renderBound("high", this._draft.get("high", target.high))}
           <button
             class="stepper-btn plus"
             ?disabled=${locked}
-            @click=${() =>
-              this._handleRangeStep(1, target, step, min, max, dimUnavailable)}
+            @pointerdown=${plusR.down}
+            @pointerup=${plusR.up}
+            @pointerleave=${plusR.up}
+            @pointercancel=${plusR.up}
+            @click=${plusR.click}
+            @contextmenu=${plusR.menu}
           >
             +
           </button>
@@ -297,15 +317,20 @@ export class M3ClimateCardMini extends TemplatedCard(LitElement) implements Love
       `;
     }
 
-    const targetTemp = target.value;
+    const targetTemp = this._draft.get("single", target.value);
+    const minusS = this._draft.hold(() => targetTemp !== undefined && this._handleStep(-1, targetTemp, step, min, max, dimUnavailable));
+    const plusS = this._draft.hold(() => targetTemp !== undefined && this._handleStep(1, targetTemp, step, min, max, dimUnavailable));
     return html`
       <div class="stepper-row">
         <button
           class="stepper-btn minus"
           ?disabled=${dimUnavailable || targetTemp === undefined}
-          @click=${() =>
-            targetTemp !== undefined &&
-            this._handleStep(-1, targetTemp, step, min, max, dimUnavailable)}
+          @pointerdown=${minusS.down}
+          @pointerup=${minusS.up}
+          @pointerleave=${minusS.up}
+          @pointercancel=${minusS.up}
+          @click=${minusS.click}
+          @contextmenu=${minusS.menu}
         >
           −
         </button>
@@ -324,9 +349,12 @@ export class M3ClimateCardMini extends TemplatedCard(LitElement) implements Love
         <button
           class="stepper-btn plus"
           ?disabled=${dimUnavailable || targetTemp === undefined}
-          @click=${() =>
-            targetTemp !== undefined &&
-            this._handleStep(1, targetTemp, step, min, max, dimUnavailable)}
+          @pointerdown=${plusS.down}
+          @pointerup=${plusS.up}
+          @pointerleave=${plusS.up}
+          @pointercancel=${plusS.up}
+          @click=${plusS.click}
+          @contextmenu=${plusS.menu}
         >
           +
         </button>
@@ -667,6 +695,14 @@ export class M3ClimateCardMini extends TemplatedCard(LitElement) implements Love
       flex-shrink: 0;
       gap: 2px;
       margin-top: auto;
+    }
+
+    /* Held for a repeat: no text selection, no callout, no double-tap zoom. */
+    .stepper-btn {
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
     }
 
     .stepper-btn {

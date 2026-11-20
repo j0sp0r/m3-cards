@@ -8,6 +8,14 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **Climate cards: hold − or + to keep going.** The step repeats while the
+  button is held, slowly first, then faster. Steps now build on each other
+  in the card and the value is sent once, a moment after the last one —
+  before, a second tap within the thermostat's reply stepped from the old
+  value again. Climate card and mini climate card.
+- **Climate card: `target_tap_action: edit`.** A tap on the target opens a
+  field to type the temperature; held to the thermostat's limits and step.
+
 - **Availability card: notification.** The editor creates an automation that
   reports a device unreachable for `notify_minutes` (30 by default), one
   message per device, and with `notify_back` when it is back. It watches the
