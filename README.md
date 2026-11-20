@@ -494,7 +494,7 @@ chevron, since the header no longer folds anything — see "Tapping the header".
 | `show_header_status` | boolean | `true` | Show the mode line under the card name in the header |
 | `show_control_labels` | boolean | `true` | `style: expressive` only — text labels on the mode and preset buttons; `false` leaves both as icon-only circles |
 | `show_action_glow` | boolean | `true` | `style: expressive` only — the heat/cool frame around the card |
-| `target_tap_action` | `more_info` \| `edit` | `more_info` | A tap on the target temperature: open the details, or a field to type the value (Enter sets it, Escape cancels) |
+| `target_tap_action` | `edit` \| `more_info` | `edit` | A tap on the target temperature: a field to type the value (Enter sets it, Escape cancels), or `more_info` for the details as before |
 | `show_presets` | boolean | `true` | Show preset selector (if the entity supports `preset_modes`) |
 | `preset_style` | `chip` \| `pill` | `chip` | Preset as its own wide row (`chip`) or as an extra pill in the mode row (`pill`) |
 | `show_fan_modes` | boolean | `false` | The fan speed, for an entity that reports `fan_modes` (an air conditioner, mostly). See [Fan speed](#fan-speed) |
@@ -610,7 +610,7 @@ enough. An unavailable sensor drops the segment rather than printing a dash.
 | `name` | string | entity `friendly_name` | Displayed name |
 | `icon` | string | `mdi:radiator` (heating only) / `mdi:air-conditioner` | Icon in the icon tile |
 | `show_humidity` | boolean | `false` | Add the humidity to the status line, next to the temperature |
-| `target_tap_action` | `more_info` \| `edit` | `more_info` | A tap on the target temperature: open the details, or a field to type the value |
+| `target_tap_action` | `edit` \| `more_info` | `edit` | A tap on the target temperature: a field to type the value, or `more_info` for the details as before |
 | `humidity_sensor` | string | – | Where that humidity comes from. Most thermostats report none of their own, so this is usually the room's sensor. Setting it turns the reading on by itself |
 | `glass_background` | boolean | `true` | Frosted glass background (off for solid themes) |
 | `animations` | boolean | `true` | Transitions for icon tile/on-off button/stepper; `false` disables them |

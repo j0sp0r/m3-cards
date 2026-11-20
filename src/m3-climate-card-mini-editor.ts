@@ -289,7 +289,7 @@ export class M3ClimateCardMiniEditor
       name: this._config.name,
       icon: this._config.icon,
       show_humidity: this._config.show_humidity ?? false,
-      target_tap_action: this._config.target_tap_action ?? "more_info",
+      target_tap_action: this._config.target_tap_action ?? "edit",
       humidity_sensor: this._config.humidity_sensor,
     };
 

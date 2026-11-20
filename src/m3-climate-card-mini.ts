@@ -341,7 +341,7 @@ export class M3ClimateCardMini extends TemplatedCard(LitElement) implements Love
 
     const targetTemp = this._draft.get("single", target.value);
     const tapTarget = () => {
-      if (this._config?.target_tap_action === "edit" && !dimUnavailable && targetTemp !== undefined) {
+      if (this._config?.target_tap_action !== "more_info" && !dimUnavailable && targetTemp !== undefined) {
         this._editCancelled = false;
         this._editing = true;
       } else this._fireMoreInfo(this._config?.entity);

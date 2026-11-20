@@ -120,7 +120,7 @@ export interface M3ClimateCardConfig extends DetailModeConfig {
   /**
    * A tap on the target: `edit` opens a field to type it, `more_info` the
    * details. Holding − or + repeats the step either way.
-   * @default "more_info"
+   * @default "edit"
    */
   target_tap_action?: "more_info" | "edit";
   name?: string;
@@ -180,7 +180,7 @@ export interface M3ClimateCardConfig extends DetailModeConfig {
 export interface M3ClimateCardMiniConfig extends DetailModeConfig {
   type: string;
   entity: string;
-  /** A tap on the target: `edit` opens a field to type it. @default "more_info" */
+  /** A tap on the target: `edit` opens a field to type it, `more_info` the details. @default "edit" */
   target_tap_action?: "more_info" | "edit";
   name?: string;
   icon?: string;

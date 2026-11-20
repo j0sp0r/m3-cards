@@ -414,9 +414,9 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
     this._draft.set(range, () => setTargetRange(this.hass, entity, range), true);
   }
 
-  /** Opens the typed field, or the details, as `target_tap_action` says. */
+  /** Opens the typed field (the default), or the details with `more_info`. */
   private _tapTarget(key: string, disabled: boolean): void {
-    if (this._config?.target_tap_action === "edit" && !disabled) {
+    if (this._config?.target_tap_action !== "more_info" && !disabled) {
       this._editCancelled = false;
       this._editing = key;
       return;
