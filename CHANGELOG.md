@@ -13,8 +13,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   in the card and the value is sent once, a moment after the last one —
   before, a second tap within the thermostat's reply stepped from the old
   value again. Climate card and mini climate card.
-- **Climate card: `target_tap_action: edit`.** A tap on the target opens a
+- **Climate cards: `target_tap_action: edit`.** A tap on the target opens a
   field to type the temperature; held to the thermostat's limits and step.
+  Climate card and mini climate card.
 
 - **Availability card: notification.** The editor creates an automation that
   reports a device unreachable for `notify_minutes` (30 by default), one

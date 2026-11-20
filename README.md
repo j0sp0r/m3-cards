@@ -610,6 +610,7 @@ enough. An unavailable sensor drops the segment rather than printing a dash.
 | `name` | string | entity `friendly_name` | Displayed name |
 | `icon` | string | `mdi:radiator` (heating only) / `mdi:air-conditioner` | Icon in the icon tile |
 | `show_humidity` | boolean | `false` | Add the humidity to the status line, next to the temperature |
+| `target_tap_action` | `more_info` \| `edit` | `more_info` | A tap on the target temperature: open the details, or a field to type the value |
 | `humidity_sensor` | string | – | Where that humidity comes from. Most thermostats report none of their own, so this is usually the room's sensor. Setting it turns the reading on by itself |
 | `glass_background` | boolean | `true` | Frosted glass background (off for solid themes) |
 | `animations` | boolean | `true` | Transitions for icon tile/on-off button/stepper; `false` disables them |

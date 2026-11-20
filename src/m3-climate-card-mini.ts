@@ -22,7 +22,7 @@ import { formatNumber } from "./shared/formatting";
 import { renderMissingEntity } from "./shared/glass-card";
 import { shouldAnimate } from "./shared/animation";
 import { migrateAnimationsField } from "./shared/config-migration";
-import { SetpointDraft } from "./shared/setpoint-draft";
+import { SetpointDraft, parseTarget } from "./shared/setpoint-draft";
 import { activateOnKey } from "./shared/a11y";
 import { tintOn, tintInk, foregroundOn, foregroundColor , resolveThemeColor } from "./shared/color-config";
 import { TemplatedCard } from "./shared/templated-card";
@@ -50,6 +50,9 @@ export class M3ClimateCardMini extends TemplatedCard(LitElement) implements Love
   @state() private _config?: M3ClimateCardMiniConfig;
   /** Bumped when a draft target moves: a draft is not a property. */
   @state() private _draftTick = 0;
+  /** The typed field on the target is open. */
+  @state() private _editing = false;
+  private _editCancelled = false;
   private _draft = new SetpointDraft(this, () => {
     this._draftTick += 1;
   });
@@ -165,6 +168,25 @@ export class M3ClimateCardMini extends TemplatedCard(LitElement) implements Love
       minimumFractionDigits: digits,
       maximumFractionDigits: digits,
     });
+  }
+
+  /** A typed target, sent at once. */
+  private _commitTyped(text: string, limits: { step: number; min: number; max: number }): void {
+    this._editing = false;
+    if (!this.hass || !this._config) return;
+    const v = parseTarget(text, limits);
+    if (v === undefined) return;
+    const entity = this._config.entity;
+    this._draft.set({ single: v }, () => setTargetTemperature(this.hass, entity, v), true);
+  }
+
+  protected updated(changed: PropertyValues): void {
+    super.updated?.(changed);
+    if (changed.has("_editing") && this._editing) {
+      const input = this.renderRoot.querySelector<HTMLInputElement>(".target-input");
+      input?.focus();
+      input?.select();
+    }
   }
 
   private _fireMoreInfo(entityId?: string): void {
@@ -318,6 +340,12 @@ export class M3ClimateCardMini extends TemplatedCard(LitElement) implements Love
     }
 
     const targetTemp = this._draft.get("single", target.value);
+    const tapTarget = () => {
+      if (this._config?.target_tap_action === "edit" && !dimUnavailable && targetTemp !== undefined) {
+        this._editCancelled = false;
+        this._editing = true;
+      } else this._fireMoreInfo(this._config?.entity);
+    };
     const minusS = this._draft.hold(() => targetTemp !== undefined && this._handleStep(-1, targetTemp, step, min, max, dimUnavailable));
     const plusS = this._draft.hold(() => targetTemp !== undefined && this._handleStep(1, targetTemp, step, min, max, dimUnavailable));
     return html`
@@ -339,12 +367,38 @@ export class M3ClimateCardMini extends TemplatedCard(LitElement) implements Love
           role="button"
           tabindex="0"
           aria-label=${this._t("target_temperature")}
-          @click=${() => this._fireMoreInfo(this._config?.entity)}
-          @keydown=${activateOnKey(() =>
-            this._fireMoreInfo(this._config?.entity),
-          )}
+          @click=${() => tapTarget()}
+          @keydown=${activateOnKey(() => tapTarget())}
         >
-          ${readout(targetTemp)}
+          ${this._editing && targetTemp !== undefined
+            ? html`<input
+                class="target-input"
+                type="text"
+                inputmode="decimal"
+                enterkeyhint="done"
+                aria-label=${this._t("target_temperature")}
+                .value=${this._formatNumber(targetTemp)}
+                @click=${(e: Event) => e.stopPropagation()}
+                @keydown=${(e: KeyboardEvent) => {
+                  e.stopPropagation();
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    (e.target as HTMLInputElement).blur();
+                  } else if (e.key === "Escape") {
+                    e.preventDefault();
+                    this._editCancelled = true;
+                    this._editing = false;
+                  }
+                }}
+                @blur=${(e: FocusEvent) => {
+                  if (this._editCancelled) {
+                    this._editCancelled = false;
+                    return;
+                  }
+                  this._commitTyped((e.target as HTMLInputElement).value, { step, min, max });
+                }}
+              />°`
+            : readout(targetTemp)}
         </div>
         <button
           class="stepper-btn plus"
@@ -695,6 +749,20 @@ export class M3ClimateCardMini extends TemplatedCard(LitElement) implements Love
       flex-shrink: 0;
       gap: 2px;
       margin-top: auto;
+    }
+
+    .target-input {
+      width: 3.6ch;
+      padding: 0;
+      margin: 0;
+      border: none;
+      border-bottom: 2px solid var(--primary-color);
+      border-radius: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-align: center;
+      outline: none;
     }
 
     /* Held for a repeat: no text selection, no callout, no double-tap zoom. */

@@ -180,6 +180,8 @@ export interface M3ClimateCardConfig extends DetailModeConfig {
 export interface M3ClimateCardMiniConfig extends DetailModeConfig {
   type: string;
   entity: string;
+  /** A tap on the target: `edit` opens a field to type it. @default "more_info" */
+  target_tap_action?: "more_info" | "edit";
   name?: string;
   icon?: string;
   /** A humidity reading for the status line. Most thermostats report none —
