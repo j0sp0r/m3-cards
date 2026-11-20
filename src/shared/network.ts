@@ -311,7 +311,12 @@ export interface Problem {
   detail?: string;
 }
 
-/** Keys of online devices sharing an IP with a different MAC. */
+/**
+ * Keys of online devices sharing an IP with a different MAC. A repeater or
+ * access point shows up with its own address and a locally administered
+ * second one on the same IP; that is one device, not a conflict — so it
+ * takes two universal (not private) addresses on one IP.
+ */
 export function ipConflicts(devices: NetDevice[]): Set<string> {
   const byIp = new Map<string, NetDevice[]>();
   for (const d of devices) {
@@ -322,8 +327,8 @@ export function ipConflicts(devices: NetDevice[]): Set<string> {
   }
   const out = new Set<string>();
   for (const list of byIp.values()) {
-    const macs = new Set(list.map((d) => d.mac ?? d.key));
-    if (macs.size > 1) for (const d of list) out.add(d.key);
+    const universal = new Set(list.filter((d) => !d.randomMac).map((d) => d.mac ?? d.key));
+    if (universal.size > 1) for (const d of list) out.add(d.key);
   }
   return out;
 }

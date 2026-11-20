@@ -95,14 +95,18 @@ describe("names, icons, signal", () => {
 
 describe("problems", () => {
   it("finds weak signals, reconnects, IP conflicts and custom text", () => {
-    const a = dev({ mac: "AA:00:00:00:00:01", key: "a", ip: "192.168.0.5", signal: -80 });
-    const b = dev({ mac: "AA:00:00:00:00:02", key: "b", ip: "192.168.0.5" });
+    const a = dev({ mac: "A8:00:00:00:00:01", key: "a", ip: "192.168.0.5", signal: -80 });
+    const b = dev({ mac: "A8:00:00:00:00:02", key: "b", ip: "192.168.0.5" });
     const conflicts = ipConflicts([a, b]);
     expect(conflicts).toEqual(new Set(["a", "b"]));
     const p = problemsOf(a, { weakBelow: -75, reconnectThreshold: 10 }, { conflicts, reconnects: new Map([["a", 14]]), custom: new Map([["a", "Akku leer"]]) });
     expect(p.map((x) => x.kind)).toEqual(["weak", "reconnects", "ip_conflict", "custom"]);
     expect(problemsOf(dev({ signal: -70 }), { weakBelow: -75 }, { conflicts: new Set() })).toEqual([]);
     expect(problemsOf(a, { weakBelow: -75, ipConflict: false }, { conflicts })).toHaveLength(1);
+    // A repeater: its own address and a private second one on one IP.
+    const ap = dev({ mac: "8C:90:2D:00:00:01", key: "ap", ip: "192.168.0.243" });
+    const apPriv = dev({ mac: "8A:80:2D:00:00:01", key: "ap2", ip: "192.168.0.243" });
+    expect(ipConflicts([ap, apPriv]).size).toBe(0);
   });
 
   it("counts switches between home and away", () => {
