@@ -54,7 +54,7 @@ Beide Fehler ließen die Seite besser aussehen, als sie war.
 - Ein Handy oder ein per DevTools emuliertes Touch-Gerät für alle Drag-Interaktionen
   (Wave-Slider, Wischen) — Maus-Events allein decken `touch-action`-Konflikte nicht ab.
 
-## Cross-Cutting-Checkliste (für jede der 58 Karten)
+## Cross-Cutting-Checkliste (für jede der 59 Karten)
 
 Diese Punkte gelten kartenübergreifend, weil sie über gemeinsame `shared/*`-Module
 implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichzeitig.
@@ -466,6 +466,20 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Tipp auf eine Zeile | Als Admin und als Nicht-Admin | Admin: Geräteseite; sonst Details der Hauptentität |
 | Still-Erkennung | `stale_hours` + `stale_integrations` | Nur Geräte dieser Integrationen, mit Uhr-Symbol und „still seit …“ |
 | Benachrichtigung | Im Editor Empfänger wählen, `notify_minutes: 1`, „auch wenn wieder da“; Gerät mit mehreren Entitäten vom Strom, nach 2 Min. wieder an | Eine Meldung „… seit 1 Min. nicht erreichbar“, nicht eine pro Entität; nach dem Einschalten eine „wieder erreichbar“. Dauerhaft stumme Geräte melden nichts; „Ausführen“ in der Automatisierung schickt eine Testmeldung |
+
+## M3 Network Card
+
+| Test | Schritte | Erwartung |
+|---|---|---|
+| Mehrere Quellen | Ein Gerät per `device_trackers` und per `clients_entity` | Eine Zeile; Werte der zuerst genannten Quelle, Lücken aus der zweiten |
+| Erststart | Speicher leer (`frontend/get_user_data` → null), Karte öffnen | Nichts als neu; alle Geräte im Speicher als bekannt |
+| Neues Gerät | Danach ein Gerät dazu | „neu vor X“ in Blau, blauer Hinweis „1 neues Gerät im Netz“; Tipp setzt Filter Neu |
+| Bekannt/Benennen | „Bekannt“, „Benennen“ (Name, Icon), jeweils Rückgängig; an anderem Gerät öffnen | Snackbar mit Rückgängig; Zustand auch am anderen Gerät |
+| Private MAC | Gerät mit `x2/x6/xA/xE`-MAC; `random_mac_handling` flag / merge_by_name / ignore | „private Adresse“; mit gleichnamigem Gerät zusammengeführt; ausgeblendet |
+| Probleme | Signal −80 dBm, zwei MACs mit einer IP, `reconnects` mit 12 Wechseln, `problem_template` | Bernstein-Text, mehrere als „… +1“; Hinweis bernstein nur ohne neue Geräte |
+| Router-Kacheln | Nur `download` gemappt | Eine Kachel über die ganze Breite, keine Lücke; `unavailable` → Kachel fehlt |
+| Suche + Filter | Filter WLAN, Suche nach IP-Teil | Beides zusammen; bei Suche/Filter alle Treffer, sonst `max_items` + „weitere anzeigen“ |
+| Datenschutz | Liste und Detail-Sheet ansehen | MAC nur im Sheet vollständig |
 
 ## M3 Leak Card
 

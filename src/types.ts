@@ -2099,6 +2099,81 @@ export interface AvailabilityFilterConfig {
 
 export type AvailabilityMuteDuration = "1h" | "24h" | "7d" | "forever" | "permanent";
 
+/** The network card's router block: every entity optional. */
+export interface NetworkRouterConfig {
+  name?: string;
+  /** binary_sensor (on = online) or a sensor (online/connected/up). */
+  status?: string;
+  /** A timestamp ("online since") or seconds of uptime. */
+  uptime?: string;
+  /** "5G", "LTE", "Glasfaser" … as text. */
+  connection_type?: string;
+  download?: string;
+  upload?: string;
+  /** dBm (RSRP or RSSI). */
+  signal?: string;
+  /** Good at or above `good`, fair at or above `fair`. @default {good: -90, fair: -105} */
+  signal_thresholds?: { good?: number; fair?: number };
+  /** Data used, as a chip. */
+  data_used?: string;
+}
+
+export interface NetworkOverrideConfig {
+  mac?: string;
+  entity?: string;
+  name?: string;
+  icon?: string;
+  /** An entity with the device's signal in dBm. */
+  signal?: string;
+  /** Shows a pin: the device has a reserved address. */
+  fixed_ip?: boolean;
+}
+
+export interface M3NetworkCardConfig extends DetailModeConfig, NotifyConfigBase {
+  type: string;
+  title?: string;
+  icon?: string;
+  router?: NetworkRouterConfig;
+  /** device_tracker entities, in order of trust. */
+  device_trackers?: string[];
+  /** Every device_tracker of these integrations (fritz, unifi, nmap_tracker …). */
+  integrations?: string[];
+  /** An entity whose attribute lists the devices: [{mac, ip, host_name, connection, band, signal}]. */
+  clients_entity?: string;
+  /** @default "clients" */
+  clients_attribute?: string;
+  overrides?: NetworkOverrideConfig[];
+  /** @default "flag" */
+  random_mac_handling?: "flag" | "merge_by_name" | "ignore";
+  /** dBm. @default -75 */
+  weak_signal_below?: number;
+  /** Count home/away switches in the last 24 h. @default false */
+  reconnects?: boolean;
+  /** @default 10 */
+  reconnect_threshold?: number;
+  /** @default true */
+  ip_conflict?: boolean;
+  /** Jinja per device (variable `device`): a problem text, or empty. */
+  problem_template?: string;
+  show_search?: boolean;
+  show_filters?: boolean;
+  /** Offline devices dimmed at the end of "All". @default false */
+  show_offline?: boolean;
+  /** @default 6 */
+  max_items?: number;
+  /** Notify about a new device while the card is open. @default false */
+  notify_new?: boolean;
+  accent_color?: string;
+  text_color?: string;
+  secondary_text_color?: string;
+  card_background?: string;
+  animation?: "auto" | "on" | "off";
+  glass_background?: boolean;
+  radius?: number;
+  corners?: CornerRadiusConfig;
+  card_version?: string;
+}
+
 export interface M3AvailabilityCardConfig extends DetailModeConfig, NotifyConfigBase {
   type: string;
   /** @default "Erreichbarkeit" / "Availability" */

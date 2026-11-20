@@ -39,6 +39,7 @@ body:
         - Multi Graph (m3-multi-graph-card)
         - NAS (m3-nas-card)
         - Nav (m3-nav-card)
+        - Network (m3-network-card)
         - Occupancy (m3-occupancy-card)
         - Openings (m3-openings-card)
         - Popup (m3-popup-card)

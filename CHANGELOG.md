@@ -8,6 +8,16 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **Network card** (`m3-network-card`, card 59): the router — online since,
+  connection type, download, upload, signal, data used — and the devices on
+  the network, from device_trackers, the trackers of whole integrations or a
+  list entity, merged by MAC. New devices and problems (weak signal,
+  reconnects, IP conflicts, a template of your own) light up a hint line;
+  search, filter chips, a detail sheet with the full MAC, "Known" and
+  "Name it" with undo, kept per user. Private (random) MAC addresses are
+  spotted and flagged, merged by name or hidden. On the first run everything
+  already there is known.
+
 - **Climate cards: hold − or + to keep going.** The step repeats while the
   button is held, slowly first, then faster. Steps now build on each other
   in the card and the value is sent once, a moment after the last one —

@@ -3340,6 +3340,26 @@ export const AVAILABILITY_TICK_MS = 60_000;
 /** How far back the history is read to see an outage through restarts. */
 export const AVAILABILITY_HISTORY_DAYS = 30;
 
+// ---- m3-network-card ---------------------------------------------------------
+export const DEFAULT_NETWORK_RADIUS = RADIUS.card;
+export const DEFAULT_NETWORK_ICON = "mdi:router-wireless";
+/** Neu = info blue, problem = amber, OK = the accent green, offline dimmed. */
+export const NETWORK_NEW_COLOR = PALETTE.cool;
+export const NETWORK_WARN_COLOR = PALETTE.light;
+export const NETWORK_BAD_COLOR = PALETTE.heat;
+export const NETWORK_OK_COLOR = PALETTE.ok;
+export const DEFAULT_NETWORK_MAX_ITEMS = 6;
+export const DEFAULT_NETWORK_WEAK_SIGNAL = -75;
+export const DEFAULT_NETWORK_RECONNECTS = 10;
+export const DEFAULT_NETWORK_SIGNAL_GOOD = -90;
+export const DEFAULT_NETWORK_SIGNAL_FAIR = -105;
+export const NETWORK_ROW_HEIGHT = 60;
+export const NETWORK_ICON_SIZE = 40;
+export const NETWORK_ICON_RADIUS = 14;
+export const NETWORK_TICK_MS = 60_000;
+/** Reconnect counts come from the history, asked at most this often. */
+export const NETWORK_HISTORY_MS = 10 * 60_000;
+
 // ---- Tariff card ------------------------------------------------------------
 export const DEFAULT_TARIFF_RADIUS = RADIUS.card;
 export const DEFAULT_TARIFF_ICON = "mdi:receipt-text-outline";
