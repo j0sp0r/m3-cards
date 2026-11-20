@@ -17,6 +17,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   "Name it" with undo, kept per user. Private (random) MAC addresses are
   spotted and flagged, merged by name or hidden. On the first run everything
   already there is known.
+  `clients_entity` takes several lists in order of trust, each with its own
+  attribute and a default `connection` — an access point's list first
+  (Wi-Fi, band, signal), the router's after as `wired`. Naming a device
+  offers Home Assistant's icon search and suggestions for the usual devices.
 
 - **Climate cards: hold − or + to keep going.** The step repeats while the
   button is held, slowly first, then faster. Steps now build on each other
