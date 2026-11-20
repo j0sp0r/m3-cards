@@ -52,6 +52,14 @@ describe("sources and merging", () => {
       { hostname: "--", ip_addr: "--" },
     ]);
     expect(l).toHaveLength(2);
+    expect(fromList([{ mac: "AC:00:00:00:00:09", ip: "192.168.0.9" }], "wired")[0].connection).toBe("wired");
+    // An access point's list first, the router's (everything "wired") after:
+    // a device on both stays wireless, one only the router knows is LAN.
+    const ap = fromList([{ mac: "AC:00:00:00:00:09", signal: -50, band: "5GHz", connection: "wireless" }]);
+    const rt = fromList([{ mac: "AC:00:00:00:00:09", hostname: "phone" }, { mac: "AC:00:00:00:00:10", hostname: "nas" }], "wired");
+    const both = mergeDevices([ap, rt]);
+    expect(both.find((d) => d.host === "phone")?.connection).toBe("wireless");
+    expect(both.find((d) => d.host === "nas")?.connection).toBe("wired");
     expect(l[1]).toMatchObject({ connection: "wired", host: "desktop" });
     const m = mergeDevices([[t], l]);
     expect(m).toHaveLength(2);

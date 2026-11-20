@@ -9,6 +9,58 @@ import {
 } from "../const";
 import { STANDARD_EASING } from "./animation";
 import { M3SheetBase } from "./sheet-base";
+import type { HomeAssistant } from "../types";
+
+/** Icons for the usual devices, with words to find them by. */
+const SUGGESTED: [string, string][] = [
+  ["mdi:cellphone", "handy phone smartphone telefon"],
+  ["mdi:tablet", "tablet ipad"],
+  ["mdi:laptop", "laptop notebook macbook"],
+  ["mdi:monitor", "pc desktop computer monitor"],
+  ["mdi:television", "tv fernseher television"],
+  ["mdi:speaker", "lautsprecher speaker sonos echo nest"],
+  ["mdi:cctv", "kamera camera überwachung"],
+  ["mdi:doorbell-video", "klingel türklingel doorbell ring"],
+  ["mdi:printer", "drucker printer"],
+  ["mdi:printer-3d", "3d drucker printer bambu"],
+  ["mdi:power-socket-eu", "steckdose plug socket shelly"],
+  ["mdi:lightbulb", "lampe licht light bulb"],
+  ["mdi:server", "server nas homeassistant"],
+  ["mdi:router-wireless", "router access point repeater wlan"],
+  ["mdi:robot-vacuum", "saugroboter vacuum roborock"],
+  ["mdi:washing-machine", "waschmaschine washer"],
+  ["mdi:tumble-dryer", "trockner dryer"],
+  ["mdi:dishwasher", "spülmaschine dishwasher"],
+  ["mdi:fridge", "kühlschrank fridge"],
+  ["mdi:gamepad-variant", "konsole console playstation xbox switch"],
+  ["mdi:watch", "uhr watch smartwatch"],
+  ["mdi:car-electric", "auto car ev"],
+  ["mdi:battery-charging", "akku batterie battery ecoflow powerstation"],
+  ["mdi:thermostat", "thermostat heizung"],
+  ["mdi:air-conditioner", "klima klimaanlage ac"],
+  ["mdi:paw", "tier haustier petkit futter"],
+  ["mdi:chip", "esp mikrocontroller sensor iot"],
+  ["mdi:solar-power", "solar pv wechselrichter"],
+  ["mdi:help-network-outline", "unbekannt unknown"],
+];
+
+/** Home Assistant's icon picker is loaded with its editors; this fetches them once. */
+let pickerLoad: Promise<boolean> | undefined;
+function loadIconPicker(): Promise<boolean> {
+  if (customElements.get("ha-form")) return Promise.resolve(true);
+  pickerLoad ??= (async () => {
+    try {
+      const helpers = await (window as unknown as { loadCardHelpers?: () => Promise<{ createCardElement: (c: unknown) => HTMLElement }> }).loadCardHelpers?.();
+      const tile = helpers?.createCardElement({ type: "tile", entity: "sun.sun" }) as unknown as { constructor: { getConfigElement?: () => Promise<unknown> } } | undefined;
+      await tile?.constructor.getConfigElement?.();
+      await Promise.race([customElements.whenDefined("ha-form"), new Promise((r) => setTimeout(r, 3000))]);
+    } catch {
+      // Without it the plain field stays.
+    }
+    return !!customElements.get("ha-form");
+  })();
+  return pickerLoad;
+}
 
 // The network card's detail sheet: everything known about one device —
 // the whole MAC address is shown only here — and what can be done with it:
@@ -56,6 +108,8 @@ export class M3NetworkSheet extends M3SheetBase {
   @property({ attribute: false }) public onKnown?: () => void;
   @property({ attribute: false }) public onForget?: () => void;
   @property({ attribute: false }) public onIgnore?: () => void;
+  @property({ attribute: false }) public hass?: HomeAssistant;
+  @state() private _picker = false;
   @state() private _renaming = false;
   @state() private _name = "";
   @state() private _icon = "";
@@ -65,10 +119,19 @@ export class M3NetworkSheet extends M3SheetBase {
     this._renaming = rename;
     this._name = this.view?.name ?? "";
     this._icon = this.view?.iconValue ?? "";
+    void loadIconPicker().then((ok) => (this._picker = ok));
     this.present(opener, () => {
       if (this._body) this._body.scrollTop = 0;
       if (rename) this.renderRoot.querySelector<HTMLInputElement>("#net-name")?.focus();
     });
+  }
+
+  /** The suggestions that match what is typed (an icon name or a word); all of them for nothing typed or a full mdi: name. */
+  private _suggestions(): [string, string][] {
+    const q = this._icon.trim().toLowerCase().replace(/^mdi:/, "");
+    if (!q || this._icon.startsWith("mdi:")) return SUGGESTED;
+    const hits = SUGGESTED.filter(([icon, words]) => icon.includes(q) || words.includes(q));
+    return hits.length ? hits : SUGGESTED;
   }
 
   private _save(): void {
@@ -100,13 +163,36 @@ export class M3NetworkSheet extends M3SheetBase {
               <span>${l.name}</span>
               <input id="net-name" type="text" .value=${this._name} @input=${(e: Event) => (this._name = (e.target as HTMLInputElement).value)} />
             </label>
-            <label class="field">
+            <div class="field">
               <span>${l.icon}</span>
-              <div class="icon-input">
-                <ha-icon icon=${this._icon || v.icon}></ha-icon>
-                <input type="text" placeholder="mdi:cellphone" .value=${this._icon} @input=${(e: Event) => (this._icon = (e.target as HTMLInputElement).value)} />
+              ${this._picker && this.hass
+                ? html`<ha-form
+                    .hass=${this.hass}
+                    .data=${{ icon: this._icon }}
+                    .schema=${[{ name: "icon", selector: { icon: { placeholder: v.icon } } }]}
+                    .computeLabel=${() => ""}
+                    @value-changed=${(e: CustomEvent) => (this._icon = (e.detail.value?.icon as string) ?? "")}
+                  ></ha-form>`
+                : html`<div class="icon-input">
+                    <ha-icon icon=${this._icon || v.icon}></ha-icon>
+                    <input type="text" placeholder="mdi:cellphone" .value=${this._icon} @input=${(e: Event) => (this._icon = (e.target as HTMLInputElement).value)} />
+                  </div>`}
+              <div class="suggest" role="listbox" aria-label=${l.icon}>
+                ${this._suggestions().map(
+                  ([icon]) => html`<button
+                    type="button"
+                    class="sicon ${this._icon === icon ? "on" : ""}"
+                    role="option"
+                    aria-selected=${this._icon === icon ? "true" : "false"}
+                    aria-label=${icon.replace("mdi:", "")}
+                    title=${icon.replace("mdi:", "")}
+                    @click=${() => (this._icon = icon)}
+                  >
+                    <ha-icon icon=${icon}></ha-icon>
+                  </button>`,
+                )}
               </div>
-            </label>
+            </div>
             <div class="actions">
               <button type="button" class="btn" @click=${() => (this._renaming = false)}>${l.cancel}</button>
               <button type="submit" class="btn filled">${l.save}</button>
@@ -304,6 +390,34 @@ export class M3NetworkSheet extends M3SheetBase {
         font: inherit;
         outline: none;
         padding: 0;
+      }
+      .suggest {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+        gap: 6px;
+        margin-top: 4px;
+      }
+      .sicon {
+        height: 44px;
+        border-radius: 14px;
+        border: 1px solid color-mix(in srgb, var(--primary-text-color) 14%, transparent);
+        background: transparent;
+        color: var(--primary-text-color);
+        display: grid;
+        place-items: center;
+        cursor: pointer;
+        --mdc-icon-size: 22px;
+        transition: border-radius 200ms ${EASING};
+      }
+      .sicon.on {
+        border-color: transparent;
+        border-radius: 22px;
+        background: var(--ns-icon-bg);
+        color: var(--ns-icon-fg);
+      }
+      .sicon:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
       }
       .field input:focus-visible {
         outline: 2px solid var(--primary-color);

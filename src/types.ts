@@ -2118,6 +2118,12 @@ export interface NetworkRouterConfig {
   data_used?: string;
 }
 
+export interface NetworkClientsSource {
+  entity: string;
+  attribute?: string;
+  connection?: "wired" | "wireless";
+}
+
 export interface NetworkOverrideConfig {
   mac?: string;
   entity?: string;
@@ -2138,8 +2144,14 @@ export interface M3NetworkCardConfig extends DetailModeConfig, NotifyConfigBase 
   device_trackers?: string[];
   /** Every device_tracker of these integrations (fritz, unifi, nmap_tracker …). */
   integrations?: string[];
-  /** An entity whose attribute lists the devices: [{mac, ip, host_name, connection, band, signal}]. */
-  clients_entity?: string;
+  /**
+   * Entities whose attribute lists the devices: [{mac, ip, host_name,
+   * connection, band, signal}]. Several, in order of trust; an object sets a
+   * list's own attribute, or the connection its devices have unless they
+   * say otherwise (a router behind which an access point serves Wi-Fi:
+   * the access point's list first, the router's as `wired`).
+   */
+  clients_entity?: string | (string | NetworkClientsSource)[];
   /** @default "clients" */
   clients_attribute?: string;
   overrides?: NetworkOverrideConfig[];

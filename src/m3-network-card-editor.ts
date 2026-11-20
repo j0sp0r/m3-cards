@@ -78,7 +78,7 @@ export class M3NetworkCardEditor extends LitElement implements LovelaceCardEdito
     return [
       { name: "device_trackers", selector: { entity: { domain: "device_tracker", multiple: true } } },
       { name: "integrations", selector: { select: { mode: "dropdown", multiple: true, custom_value: true, options: this._trackerIntegrations() } } },
-      { name: "clients_entity", selector: { entity: {} } },
+      { name: "clients_entity", selector: { entity: { multiple: true } } },
       { name: "clients_attribute", selector: { text: {} } },
     ];
   }
@@ -163,7 +163,16 @@ export class M3NetworkCardEditor extends LitElement implements LovelaceCardEdito
   private _valueChanged(ev: CustomEvent): void {
     if (!this._config) return;
     const next: Record<string, unknown> = { ...this._config };
-    for (const [k, v] of Object.entries(ev.detail.value as Record<string, unknown>)) {
+    const value = { ...(ev.detail.value as Record<string, unknown>) };
+    // The picker deals in entity ids; a list written with per-entity
+    // options in YAML keeps those options for the entities still picked.
+    if (Array.isArray(value.clients_entity)) {
+      const before = Array.isArray(this._config.clients_entity) ? this._config.clients_entity : this._config.clients_entity ? [this._config.clients_entity] : [];
+      value.clients_entity = (value.clients_entity as string[]).map((id) => before.find((b) => typeof b !== "string" && b.entity === id) ?? id);
+      const ids = value.clients_entity as unknown[];
+      if (ids.length === 1 && typeof ids[0] === "string") value.clients_entity = ids[0];
+    }
+    for (const [k, v] of Object.entries(value)) {
       if (v === undefined || v === "" || v === null || (Array.isArray(v) && !v.length)) delete next[k];
       else next[k] = v;
     }
@@ -251,7 +260,7 @@ export class M3NetworkCardEditor extends LitElement implements LovelaceCardEdito
           {
             device_trackers: c.device_trackers ?? [],
             integrations: c.integrations ?? [],
-            clients_entity: c.clients_entity ?? "",
+            clients_entity: (Array.isArray(c.clients_entity) ? c.clients_entity : c.clients_entity ? [c.clients_entity] : []).map((x) => (typeof x === "string" ? x : x.entity)),
             clients_attribute: c.clients_attribute ?? "",
           },
           this._sourcesSchema(),

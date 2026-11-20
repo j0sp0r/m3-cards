@@ -7,6 +7,7 @@ import type {
   LovelaceCardEditor,
   LovelaceGridOptions,
   M3NetworkCardConfig,
+  NetworkClientsSource,
 } from "./types";
 import {
   CARD_VERSION,
@@ -184,13 +185,22 @@ export class M3NetworkCard extends TemplatedCard(LitElement) implements Lovelace
     return ids.filter((id) => hass.states[id]);
   }
 
+  /** The list entities, as objects, in the order given. */
+  private _listSources(): NetworkClientsSource[] {
+    const raw = this._config?.clients_entity;
+    const list = raw === undefined ? [] : Array.isArray(raw) ? raw : [raw];
+    return list
+      .map((x) => (typeof x === "string" ? { entity: x } : x))
+      .filter((x): x is NetworkClientsSource => !!x && typeof x.entity === "string" && !!x.entity);
+  }
+
   /** What the device list depends on, cheaply: to skip renders between ticks. */
   private _sourceSignature(): string {
     const hass = this.hass!;
     const cfg = this._config!;
     const parts: string[] = [];
     for (const id of this._trackerIds()) parts.push(`${id}:${hass.states[id]?.last_updated}`);
-    if (cfg.clients_entity) parts.push(`${cfg.clients_entity}:${hass.states[cfg.clients_entity]?.last_updated}`);
+    for (const src of this._listSources()) parts.push(`${src.entity}:${hass.states[src.entity]?.last_updated}`);
     for (const o of cfg.overrides ?? []) if (o.signal) parts.push(`${o.signal}:${hass.states[o.signal]?.state}`);
     const r = cfg.router ?? {};
     for (const id of [r.status, r.uptime, r.connection_type, r.download, r.upload, r.signal, r.data_used]) if (id) parts.push(`${id}:${hass.states[id]?.state}`);
@@ -210,9 +220,9 @@ export class M3NetworkCard extends TemplatedCard(LitElement) implements Lovelace
       });
     });
     const sources: NetDevice[][] = [trackers];
-    if (cfg.clients_entity) {
-      const list = hass.states[cfg.clients_entity]?.attributes?.[cfg.clients_attribute || "clients"];
-      sources.push(fromList(list));
+    for (const src of this._listSources()) {
+      const list = hass.states[src.entity]?.attributes?.[src.attribute ?? cfg.clients_attribute ?? "clients"];
+      sources.push(fromList(list, src.connection));
     }
     let devices = applyRandomMacs(mergeDevices(sources), cfg.random_mac_handling ?? "flag");
     // A signal entity from an override fills in what the source does not say.
@@ -570,6 +580,7 @@ export class M3NetworkCard extends TemplatedCard(LitElement) implements Lovelace
     sheet.onKnown = () => this._markKnown(row);
     sheet.onForget = () => this._forget(row);
     sheet.onIgnore = () => this._ignore(row);
+    sheet.hass = this.hass;
     sheet.glass = this._config?.glass_background !== false;
     sheet.animated = this._animate;
     sheet.open(opener, rename);
@@ -714,7 +725,7 @@ export class M3NetworkCard extends TemplatedCard(LitElement) implements Lovelace
     const newCount = counts.new;
     const problemCount = counts.problems;
     const routerOffline = router?.online === false;
-    const noSource = !cfg.device_trackers?.length && !cfg.integrations?.length && !cfg.clients_entity;
+    const noSource = !cfg.device_trackers?.length && !cfg.integrations?.length && this._listSources().length === 0;
 
     const { textColorCss, secondaryTextColorCss, cardBackgroundCss } = resolveCommonColors(cfg);
     const ok = this._accent();

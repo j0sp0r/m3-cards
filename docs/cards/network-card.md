@@ -57,7 +57,8 @@ data, so it follows you between devices). A device it has not met before is
 **new**, with "new 12 min ago". On the very first run every device already
 there is taken as known, so the card does not open with the whole network
 as new. **Known** takes a device as known; **Name it** gives it a name and an
-icon. Both can be undone, and the detail sheet (a tap on the row) can forget
+icon (Home Assistant's icon search, plus suggestions for the usual devices).
+Names live in Home Assistant only — nothing is written to the router. Both can be undone, and the detail sheet (a tap on the row) can forget
 a device again or hide it.
 
 Phones and tablets use a **private, random MAC address** per network. The
@@ -101,6 +102,19 @@ integrations: [nmap_tracker]
 random_mac_handling: merge_by_name
 ```
 
+A router with an access point behind it: the router sees every Wi-Fi device
+as wired, only the access point knows better. List the access point first —
+its devices are Wi-Fi, with band and signal — and the router after it, with
+`connection: wired` for what only the router knows:
+
+```yaml
+type: custom:m3-network-card
+clients_entity:
+  - sensor.ap_clients
+  - entity: sensor.router_clients
+    connection: wired
+```
+
 A mobile router without trackers (here a ZTE read by pyscript) for the status,
 its client list as a list entity, and Nmap on top:
 
@@ -128,7 +142,7 @@ The MAC address shows in full only in the detail sheet, never in the list.
 | `router` | object | – | `name`, `status`, `uptime` (timestamp or seconds), `connection_type`, `download`, `upload`, `signal` (dBm), `signal_thresholds` (`good` −90, `fair` −105), `data_used`. Every entity is optional; tiles not mapped leave no gap |
 | `device_trackers` | list | – | `device_tracker` entities |
 | `integrations` | list | – | Every `device_tracker` of these integrations |
-| `clients_entity` | entity | – | An entity listing the devices in an attribute |
+| `clients_entity` | entity or list | – | Entities listing the devices in an attribute, in order of trust; an item may be `{entity, attribute, connection}` (`wired`/`wireless` for devices that do not say) |
 | `clients_attribute` | string | `clients` | The attribute holding the list |
 | `overrides` | list | – | Per device (`mac` or `entity`): `name`, `icon`, `signal` (an entity), `fixed_ip` (shows a pin) |
 | `random_mac_handling` | `flag` \| `merge_by_name` \| `ignore` | `flag` | Private MAC addresses |

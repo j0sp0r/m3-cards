@@ -145,8 +145,11 @@ export function fromTracker(entityId: string, st: StateLike, ha?: { name?: strin
   };
 }
 
-/** The devices in a list entity's attribute; every listed device is online. */
-export function fromList(list: unknown): NetDevice[] {
+/**
+ * The devices in a list entity's attribute; every listed device is online.
+ * `connection` is what a device is when it does not say.
+ */
+export function fromList(list: unknown, connection?: Connection): NetDevice[] {
   if (!Array.isArray(list)) return [];
   const out: NetDevice[] = [];
   for (const raw of list) {
@@ -163,7 +166,7 @@ export function fromList(list: unknown): NetDevice[] {
       host: str(a.host_name ?? a.hostname ?? a.name),
       manufacturer: str(a.manufacturer ?? a.vendor),
       online: a.online === false ? false : true,
-      connection: connectionOf(a),
+      connection: connectionOf(a) ?? connection,
       band: bandOf(a),
       ssid: str(a.ssid),
       signal: signalOf(a),
