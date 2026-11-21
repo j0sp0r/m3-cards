@@ -2272,6 +2272,16 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       .segment:active {
         border-radius: ${DETAIL_PILL_RADIUS_ACTIVE}px;
       }
+      /* At the track's ends the outer corners stay concentric with the track,
+         so only the inner corners square off. */
+      .segment:first-child {
+        border-top-left-radius: ${DETAIL_PILL_RADIUS}px;
+        border-bottom-left-radius: ${DETAIL_PILL_RADIUS}px;
+      }
+      .segment:last-child {
+        border-top-right-radius: ${DETAIL_PILL_RADIUS}px;
+        border-bottom-right-radius: ${DETAIL_PILL_RADIUS}px;
+      }
 
       .tiles {
         display: grid;
