@@ -8,6 +8,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **Detail card: a second sensor in the graph.** `secondary_entity` draws
+  another numeric sensor into the same graph on its own scale, its figures
+  at the right edge in its colour — temperature and humidity of one room in
+  one card. Its reading stands beside the large one and in the tooltip;
+  `secondary_color` sets its colour. Asked for on Reddit.
+
 - **Network card** (`m3-network-card`, card 59): the router — online since,
   connection type, download, upload, signal, data used — and the devices on
   the network, from device_trackers, the trackers of whole integrations or a

@@ -4508,6 +4508,14 @@ export interface M3DetailCardConfig {
   icon?: string;
   /** The entity's colour. Defaults by device_class. */
   color?: string;
+  /**
+   * A second numeric sensor drawn into the same graph on its own scale, its
+   * figures at the right edge — humidity beside temperature, say. Its value
+   * stands beside the large one; the tiles and the trend stay the entity's.
+   */
+  secondary_entity?: string;
+  /** The second curve's colour. Defaults by its device_class. */
+  secondary_color?: string;
   /** The window the graph opens on, until the viewer picks another. */
   range?: DetailRangeOption;
   /** The windows offered above the graph, in this order. */

@@ -11,6 +11,8 @@ import {
   DETAIL_CHART_PADDING,
   DETAIL_CLOSE_RADIUS,
   DETAIL_DEFAULT_ACCENT,
+  DETAIL_SECONDARY_FALLBACK,
+  DETAIL_SECOND_AXIS_W,
   DETAIL_DEVICE_CLASS_COLORS,
   DETAIL_DEVICE_CLASS_ICONS,
   DETAIL_BINARY_CLASS_COLORS,
@@ -160,6 +162,9 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
 
   @state() private _config?: M3DetailCardConfig;
   @state() private _series?: EntitySeries;
+  /** The second sensor's series (`secondary_entity`), read with the first. */
+  @state() private _series2?: EntitySeries;
+  private _series2Entity?: string;
   /** Whether the folded "history and details" part is open, per entity. */
   @state() private _detailsOpen = false;
   /** Folding shut: the content is still there, animating, but the button already says closed. */
@@ -264,7 +269,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     // itself what is worth a render. It gets every hass, whatever this card
     // decides about its own.
     if (changed.has("hass") && this._control) this._control.hass = this.hass;
-    return hassChangeMatters(changed, this.hass, [this._config?.entity]);
+    return hassChangeMatters(changed, this.hass, [this._config?.entity, this._config?.secondary_entity]);
   }
 
   protected willUpdate(changed: PropertyValues): void {
@@ -500,7 +505,8 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     if (!hass || !entity || !hass.states[entity]) return;
     const kind = this._kind(hass.states[entity]);
     if (kind === "info") return;
-    const key = `${entity}|${this._range}|${kind}`;
+    const second = kind === "numeric" ? this._secondary()?.entity_id : undefined;
+    const key = `${entity}|${second ?? ""}|${this._range}|${kind}`;
     if (key === this._fetchKey) return;
     this._fetchKey = key;
     const seq = ++this._fetchSeq;
@@ -526,6 +532,13 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       if (seq !== this._fetchSeq) return;
       this._series = series;
       this._seriesEntity = entity;
+    });
+    if (second !== this._series2Entity) this._series2 = undefined;
+    if (!second) return;
+    void fetchEntitySeries(hass, second, this._range).then((series) => {
+      if (seq !== this._fetchSeq) return;
+      this._series2 = series;
+      this._series2Entity = second;
     });
   }
 
@@ -609,6 +622,28 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
    */
   private _minColor(accent: string): string {
     return accent.toLowerCase() === DETAIL_MIN_COLOR.toLowerCase() ? DETAIL_MIN_ALT_COLOR : DETAIL_MIN_COLOR;
+  }
+
+  /**
+   * The curves' width: short of the halo, and with a second scale short of
+   * its figures at the right edge too. The pointer maps through the same.
+   */
+  private _plotWidth(width: number): number {
+    return width - DETAIL_CHART_HALO - (this._secondary() && this._config?.y_axis !== false ? DETAIL_SECOND_AXIS_W : 0);
+  }
+
+  /** The second sensor, when one is set, exists and is a number to draw. */
+  private _secondary(): HassEntity | undefined {
+    const id = this._config?.secondary_entity;
+    const st = id && id !== this._config?.entity ? this.hass?.states[id] : undefined;
+    return st && this._kind(st) === "numeric" ? st : undefined;
+  }
+
+  /** Its colour: as configured, else by device class — never the first curve's. */
+  private _secondaryAccent(st: HassEntity, accent: string): string {
+    if (this._config?.secondary_color) return resolveThemeColor(this._config.secondary_color);
+    const own = this._accent(st, false);
+    return own === accent ? DETAIL_SECONDARY_FALLBACK : own;
   }
 
   private _accent(st: HassEntity, own = true): string {
@@ -726,7 +761,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     if (e.pointerType !== "mouse" && e.type === "pointermove" && !e.buttons && e.pressure === 0) return;
     window.clearTimeout(this._hoverTimer);
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const plotW = Math.max(1, rect.width - DETAIL_CHART_HALO);
+    const plotW = Math.max(1, this._plotWidth(rect.width));
     const fraction = Math.min(1, Math.max(0, (e.clientX - rect.left) / plotW));
     const span = DETAIL_RANGE_MS[this._series.range];
     this._hoverT = this._now - span + fraction * span;
@@ -872,10 +907,12 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const config = this._config;
     if (!config || entityId === config.entity) return;
     const apply = () => {
-      const { name: _n, icon: _i, color: _c, ...rest } = config;
+      const { name: _n, icon: _i, color: _c, secondary_entity: _s, secondary_color: _sc, ...rest } = config;
       void _n;
       void _i;
       void _c;
+      void _s;
+      void _sc;
       const control_card = typeof rest.control_card === "object" ? undefined : rest.control_card;
       this.setConfig({ ...rest, control_card, entity: entityId });
       this._hoverT = undefined;
@@ -914,8 +951,11 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     let body: unknown = nothing;
     let tooltip: unknown = nothing;
     let guide: unknown = nothing;
+    let tooltipAt: { hx: number; hy: number; hover: SeriesPoint } | undefined;
     if (width > 0 && min && max) {
-      const plotW = width - DETAIL_CHART_HALO;
+      // With a second scale its figures need the right edge to themselves:
+      // the curves stop short of them, as they stop short of the halo.
+      const plotW = this._plotWidth(width);
       const lo = min.v as number;
       const hi = max.v as number;
       // A difference at float noise is a flat line, not a scale to zoom into.
@@ -947,15 +987,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       if (hover) {
         const hx = x(hover.t);
         const hy = y(hover.v as number);
-        tooltip = html`<div
-          class="tooltip ${hy < 52 ? "below" : ""}"
-          style="left:${Math.min(Math.max(hx, 48), width - 48)}px; top:${hy}px"
-        >
-          <b>${this._format(hover.v as number, this._decimals(st))}${st.attributes.unit_of_measurement
-            ? html`<span class="tip-unit">${st.attributes.unit_of_measurement}</span>`
-            : nothing}</b>
-          <span>${this._tooltipTime(hover.t, series.range)}</span>
-        </div>`;
+        tooltipAt = { hx, hy, hover };
         guide = svg`<line class="guide" x1=${hx} x2=${hx} y1="0" y2=${height}></line>`;
       }
       // A quiet scale: three or four round values, a faint dashed line each,
@@ -968,11 +1000,64 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       // happened to cross at the left edge. A thin halo in the surface colour
       // keeps them readable where the line runs through, with no box.
       const grid = ticks.map((v) => svg`<line class="grid" x1="0" x2=${plotW} y1=${y(v)} y2=${y(v)}></line>`);
-      const tickLabels = ticks.map(
-        (v) => svg`<text class="ytick" x="0" y=${y(v) - 3}>${this._format(v, tickPlaces)}</text>`,
-      );
+      const tickLabels = (fill?: string) =>
+        ticks.map(
+          (v) => svg`<text class="ytick" x="0" y=${y(v) - 3} style=${fill ? `fill:${fill}` : ""}>${this._format(v, tickPlaces)}</text>`,
+        );
       const minColor = fillColor(this, this._minColor(accent));
       const lineColor = fillColor(this, accent);
+
+      // The second sensor: its own scale over the same height, a line without
+      // a fill (two fills muddy each other), its figures at the right edge in
+      // its colour — and then the first curve's figures in theirs, so each
+      // side says which line it measures.
+      const st2 = this._secondary();
+      const s2 = st2 && this._series2 && this._series2.source !== "none" ? this._series2 : undefined;
+      let second: unknown = nothing;
+      let tip2: unknown = nothing;
+      let tickFill: string | undefined;
+      if (st2 && s2) {
+        const points2 = windowPoints(this._pointsWithLive(s2.points, st2, t1), t0);
+        const ext2 = seriesExtremes(points2);
+        if (ext2.min && ext2.max) {
+          const lo2 = ext2.min.v as number;
+          const hi2 = ext2.max.v as number;
+          const spread2 = hi2 - lo2 > Math.abs(hi2) * 1e-9 ? hi2 - lo2 : Math.abs(hi2) * 0.1 || 1;
+          const y2Lo = lo2 - spread2 * DETAIL_CHART_PADDING;
+          const y2Hi = hi2 + spread2 * DETAIL_CHART_PADDING;
+          const y2 = (v: number) => bottom - ((v - y2Lo) / (y2Hi - y2Lo)) * (bottom - top);
+          const runs2: XY[][] = [];
+          let r2: XY[] = [];
+          for (const p of points2) {
+            if (p.v === null) {
+              if (r2.length) runs2.push(r2);
+              r2 = [];
+            } else r2.push({ x: x(p.t), y: y2(p.v) });
+          }
+          if (r2.length) runs2.push(r2);
+          const color2 = fillColor(this, this._secondaryAccent(st2, accent));
+          const text2 = foregroundColor(this, this._secondaryAccent(st2, accent));
+          tickFill = foregroundColor(this, accent);
+          const ticks2 = this._config?.y_axis === false ? [] : niceTicks(y2Lo, y2Hi, 3);
+          const places2 = tickDecimals(ticks2);
+          const last2 = [...points2].reverse().find((p) => p.v !== null);
+          const hover2 = this._hoverT !== undefined ? nearestValued(points2, this._hoverT, t0) : undefined;
+          const dot2 = hover2 ?? last2;
+          second = svg`
+            ${runs2.map((r) => svg`<path class="line second" d=${monotonePath(r)} stroke=${color2}></path>`)}
+            ${ticks2.map(
+              (v) => svg`<text class="ytick right" x=${width} y=${y2(v) - 3} style=${`fill:${text2}`}>${this._format(v, places2)}</text>`,
+            )}
+            ${dot2 ? svg`<circle cx=${x(dot2.t)} cy=${y2(dot2.v as number)} r="4.5" fill=${color2}></circle>` : nothing}
+          `;
+          if (hover2)
+            tip2 = html`<b class="tip2" style=${`color:${text2}`}
+              >${this._format(hover2.v as number, this._decimals(st2))}${st2.attributes.unit_of_measurement
+                ? html`<span class="tip-unit">${st2.attributes.unit_of_measurement}</span>`
+                : nothing}</b
+            >`;
+        }
+      }
       body = svg`
         <defs>
           <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
@@ -983,7 +1068,8 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         ${grid}
         ${runs.map((r) => svg`<path class="area" d=${monotoneArea(r, height)} fill="url(#fill)"></path>`)}
         ${runs.map((r) => svg`<path class="line" d=${monotonePath(r)} stroke=${lineColor}></path>`)}
-        ${tickLabels}
+        ${second}
+        ${tickLabels(tickFill)}
         ${lo !== hi
           ? svg`
               <circle class="ring" cx=${x(min.t)} cy=${y(lo)} r="4" stroke=${minColor}></circle>
@@ -998,6 +1084,19 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
             `
           : nothing}
       `;
+      if (tooltipAt) {
+        const { hx, hy, hover } = tooltipAt;
+        tooltip = html`<div
+          class="tooltip ${hy < 52 ? "below" : ""}"
+          style="left:${Math.min(Math.max(hx, 48), width - 48)}px; top:${hy}px"
+        >
+          <b>${this._format(hover.v as number, this._decimals(st))}${st.attributes.unit_of_measurement
+            ? html`<span class="tip-unit">${st.attributes.unit_of_measurement}</span>`
+            : nothing}</b>
+          ${tip2}
+          <span>${this._tooltipTime(hover.t, series.range)}</span>
+        </div>`;
+      }
     }
 
     const labels = this._labels(t0, series.range);
@@ -1101,11 +1200,24 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
           <span class="number">${text}</span>${unit ? html`<span class="unit">${unit}</span>` : nothing}
         </div>
         <div class="value-side">
+          ${this._renderSecondValue(accent)}
           ${this._renderTrend(st, decimals)}
           <span class="since">${this._since(st.last_changed)}</span>
         </div>
       </div>
     `;
+  }
+
+  /** The second sensor's reading, beside the large one, in its curve's colour. */
+  private _renderSecondValue(accent: string): unknown {
+    const st2 = this._secondary();
+    if (!st2) return nothing;
+    const n = Number(st2.state);
+    const ok = !MISSING.has(st2.state) && Number.isFinite(n);
+    const unit = st2.attributes.unit_of_measurement as string | undefined;
+    return html`<span class="second-value" style=${`color:${foregroundColor(this, this._secondaryAccent(st2, accent))}`} title=${this._names(st2, false).title}
+      >${ok ? this._format(n, this._decimals(st2)) : this._stateText(st2) || "—"}${ok && unit ? html`<span class="unit">${unit}</span>` : nothing}</span
+    >`;
   }
 
   private _renderRanges(accent: string): unknown {
@@ -2012,6 +2124,27 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         display: inline-block;
       }
 
+      .second-value {
+        font-size: 20px;
+        font-weight: 400;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+      }
+      .second-value .unit {
+        font-size: 13px;
+        margin-left: 2px;
+        opacity: 0.8;
+      }
+      .tooltip .tip2 {
+        display: block;
+      }
+      .line.second {
+        stroke-width: 2;
+      }
+      .ytick.right {
+        text-anchor: end;
+        fill-opacity: 0.6;
+      }
       .since {
         font-size: 12px;
         opacity: 0.6;

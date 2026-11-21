@@ -2941,6 +2941,10 @@ export const POPUP_PLACEHOLDER_RADIUS = RADIUS.card;
 export const DETAIL_TICK_MS = 60_000;
 export const DETAIL_DEFAULT_ACCENT = THEME_PRIMARY;
 export const DETAIL_MIN_COLOR = PALETTE.solar;
+/** The second curve when its own class colour is the first curve's. */
+export const DETAIL_SECONDARY_FALLBACK = PALETTE.grid;
+/** Room at the right edge for the second scale's figures. */
+export const DETAIL_SECOND_AXIS_W = 20;
 export const DETAIL_MIN_ALT_COLOR = PALETTE.cool;
 export const DETAIL_TREND_UP_COLOR = PALETTE.ok;
 export const DETAIL_TREND_DOWN_COLOR = PALETTE.heat;

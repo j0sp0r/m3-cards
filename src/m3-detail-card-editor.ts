@@ -45,6 +45,7 @@ export class M3DetailCardEditor extends LitElement implements LovelaceCardEditor
       { name: "entity", selector: { entity: {} } },
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },
+      { name: "secondary_entity", selector: { entity: { domain: ["sensor", "number", "input_number"] } } },
     ];
   }
 
@@ -131,6 +132,7 @@ export class M3DetailCardEditor extends LitElement implements LovelaceCardEditor
       entity: "editor_entity",
       name: "editor_name",
       icon: "editor_icon",
+      secondary_entity: "editor_detail_secondary_entity",
       range: "editor_detail_range",
       ranges: "editor_detail_ranges",
       stats: "editor_detail_stats",
@@ -175,6 +177,7 @@ export class M3DetailCardEditor extends LitElement implements LovelaceCardEditor
     }
     // "auto" is the absence of the option, not a fourth value.
     if (next.details === "auto") delete next.details;
+    if (!next.secondary_entity) delete next.secondary_entity;
     this._emit(next as unknown as M3DetailCardConfig);
   }
 
@@ -228,7 +231,7 @@ export class M3DetailCardEditor extends LitElement implements LovelaceCardEditor
   protected render() {
     if (!this.hass || !this._config) return nothing;
     const cfg = this._config;
-    const entityData = { entity: cfg.entity, name: cfg.name, icon: cfg.icon };
+    const entityData = { entity: cfg.entity, name: cfg.name, icon: cfg.icon, secondary_entity: cfg.secondary_entity };
     const graphData = {
       range: cfg.range ?? "24h",
       ranges: cfg.ranges ?? [...DETAIL_DEFAULT_RANGES],
