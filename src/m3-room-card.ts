@@ -557,11 +557,18 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
 
   private get _areaEntities(): string[] {
     if (!this.hass || !this._config?.area) return [];
-    const all = areaEntityIds(this.hass, this._config.area);
-    const excluded = this._config.excluded_entities;
-    if (!excluded?.length) return all;
-    const drop = new Set(excluded);
-    return all.filter((id) => !drop.has(id));
+    const drop = new Set(this._config.excluded_entities ?? []);
+    // `categories[].entities` (#43): a category that names its devices keeps
+    // only those; the others of its domain go as if excluded one by one.
+    const only = new Map<string, Set<string>>();
+    for (const c of this._config.categories ?? []) {
+      if (c.entities?.length) only.set(c.domain, new Set(c.entities));
+    }
+    return areaEntityIds(this.hass, this._config.area).filter((id) => {
+      if (drop.has(id)) return false;
+      const keep = only.get(id.split(".")[0]);
+      return !keep || keep.has(id);
+    });
   }
 
   /**

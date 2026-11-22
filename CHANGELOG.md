@@ -8,6 +8,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **Room card: only these devices (#43).** `categories[].entities` keeps a
+  category to the devices named there — on a room with fifteen switches,
+  naming two beats excluding thirteen. In the editor under each category as
+  "Only these devices"; empty means all of them, as before.
+
 - **Detail card: a second sensor in the graph.** `secondary_entity` draws
   another numeric sensor into the same graph on its own scale, its figures
   at the right edge in its colour — temperature and humidity of one room in

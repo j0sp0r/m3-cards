@@ -189,7 +189,7 @@ area_picture: banner
 | `hidden_categories` | list | – | |
 | `excluded_entities` | list | – | Individual devices to leave out, whatever category they fall into |
 | `category_tap` | `list` \| `toggle` | `list` | What a tap does when a tile holds several devices |
-| `categories` | list | – | Per category: `{ domain, name, icon, color, hidden, badge, tap_action }` |
+| `categories` | list | – | Per category: `{ domain, name, icon, color, hidden, badge, tap_action, entities }`. `entities` keeps only the devices named there, for a room where naming two beats excluding thirteen |
 | `show_sensors` | boolean | `true` | |
 | `temperature_entity` / `humidity_entity` / `power_entity` | string | discovered | |
 | `power_threshold` | number | `5` | Watts |

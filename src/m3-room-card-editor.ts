@@ -554,6 +554,7 @@ export class M3RoomCardEditor extends LitElement implements LovelaceCardEditor {
       name: "editor_name",
       icon: "editor_icon",
       tap_action: "editor_tap_action",
+      only_entities: "editor_room_only_entities",
       detail_path: "editor_room_detail_path",
       mode: "editor_room_mode",
       cards_columns: "editor_room_cards_columns",
@@ -759,6 +760,7 @@ export class M3RoomCardEditor extends LitElement implements LovelaceCardEditor {
                       icon: this._override(domain)?.icon ?? "",
                       badge: this._override(domain)?.badge ?? "auto",
                       tap_action: this._override(domain)?.tap_action,
+                      only_entities: this._override(domain)?.entities ?? [],
                     }}
                     .schema=${[
                       { name: "tile_name", selector: { text: {} } },
@@ -778,13 +780,21 @@ export class M3RoomCardEditor extends LitElement implements LovelaceCardEditor {
                         },
                       },
                       { name: "tap_action", selector: { ui_action: {} } },
+                      {
+                        name: "only_entities",
+                        selector: { entity: { multiple: true, include_entities: this._entitiesOf(domain) } },
+                      },
                     ]}
                     .computeLabel=${this._computeLabel}
+                    .computeHelper=${(s: { name: string }) =>
+                      s.name === "only_entities" ? this._t("editor_room_only_entities_helper") : undefined}
                     @value-changed=${(ev: CustomEvent) => {
-                      const { tile_name, ...rest } = ev.detail.value as Record<string, unknown>;
+                      const { tile_name, only_entities, ...rest } = ev.detail.value as Record<string, unknown>;
+                      const only = Array.isArray(only_entities) && only_entities.length ? (only_entities as string[]) : undefined;
                       this._patchCategory(domain, {
                         ...rest,
                         name: tile_name as string,
+                        entities: only,
                       } as Partial<RoomCategoryConfig>);
                     }}
                   ></ha-form>

@@ -2770,6 +2770,12 @@ export interface RoomCategoryConfig {
    */
   badge?: "auto" | "count" | "state" | "none";
   tap_action?: HaActionConfig;
+  /**
+   * Only these of the category's devices (#43): on a room with fifteen
+   * switches, naming the two you want beats excluding thirteen. Unset or
+   * empty, the category shows everything the area holds.
+   */
+  entities?: string[];
 }
 
 /**
