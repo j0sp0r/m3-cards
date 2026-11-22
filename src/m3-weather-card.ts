@@ -18,6 +18,7 @@ import {
   DEFAULT_WEATHER_PRECIPITATION_COLOR,
   DEFAULT_WEATHER_CHIPS,
   WEATHER_HEADER_ICON_RADIUS,
+  WEATHER_NARROW_WIDTH,
   WEATHER_CHIP_RADIUS,
   WEATHER_DAY_ROW_HEIGHT,
   WEATHER_DAY_ROW_RADIUS,
@@ -365,6 +366,12 @@ export class M3WeatherCard extends TemplatedCard(LitElement) implements Lovelace
     };
   }
 
+  /** `decimals` (#46), held to 0–2: a whole degree unless asked otherwise. */
+  private get _decimals(): number {
+    const d = Number(this._config?.decimals ?? 0);
+    return Number.isFinite(d) ? Math.max(0, Math.min(2, Math.round(d))) : 0;
+  }
+
   private _formatNumber(value: number, decimals = 0): string {
     return formatNumber(this._language, value, {
       minimumFractionDigits: decimals,
@@ -492,7 +499,7 @@ export class M3WeatherCard extends TemplatedCard(LitElement) implements Lovelace
                         </div>
                         <div class="header-text">
                           <div class="header-temp">
-                            ${currentTemp !== undefined ? `${this._formatNumber(currentTemp)}°` : "–"}
+                            ${currentTemp !== undefined ? `${this._formatNumber(currentTemp, this._decimals)}°` : "–"}
                           </div>
                           <div class="header-condition">${conditionText}</div>
                           ${staleHint ? html`<div class="header-stale">${staleHint}</div>` : nothing}
@@ -807,12 +814,20 @@ export class M3WeatherCard extends TemplatedCard(LitElement) implements Lovelace
   static styles = [
     glassCardStyles,
     css`
+      /* Stretched by a taller card in the same row (#46), the content sits in
+         the middle rather than at the top over an empty foot. */
+      .card-inner {
+        justify-content: center;
+        container: weather-card / inline-size;
+      }
+
       .header {
         display: flex;
         align-items: center;
         gap: 12px;
         cursor: pointer;
       }
+
 
       .header.static {
         cursor: default;
@@ -897,6 +912,23 @@ export class M3WeatherCard extends TemplatedCard(LitElement) implements Lovelace
       .chip ha-icon {
         --mdc-icon-size: 14px;
         opacity: 0.75;
+      }
+
+      /* A half-width slot on a phone (#46): the chips' column beside the
+         temperature cut the condition to "R…". Below this width the chips go
+         under the header as a row, and the condition has the line to itself. */
+      @container weather-card (max-width: ${unsafeCSS(WEATHER_NARROW_WIDTH)}px) {
+        .header {
+          flex-wrap: wrap;
+        }
+        .header-chips {
+          flex-direction: row;
+          flex-wrap: wrap;
+          width: 100%;
+        }
+        .header-chips .chip {
+          flex: 0 0 auto;
+        }
       }
 
       .hint-text {

@@ -85,6 +85,7 @@ tap_action:
 | `days` | number | `0` | Number of days in the daily overview (`0` = hidden) |
 | `show_days_toggle` | boolean | `true` | Collapsible from 4 days on with a "Show N more" button; `false` = always show all configured days directly |
 | `sensors` | object | – | Own sensors: `temperature` and any chip key (`apparent_temperature`, `wind_speed`, `humidity`, `pressure`, `uv_index`, `visibility`). Each replaces the weather entity's value and brings its own unit |
+| `decimals` | number | `0` | Decimal places of the large current temperature, 0–2 — `1` for a station sensor that reports 5.7 |
 | `tap_action` | action | `more-info` | Tap on the current conditions |
 | `chips` | list (`apparent_temperature`\|`wind_speed`\|`humidity`\|`pressure`\|`uv_index`\|`visibility`) | apparent temp, wind, humidity | Header chips shown |
 | `show_sun` | boolean | `true` | Sunrise/sunset markers on the curve (from `sun.sun`) |

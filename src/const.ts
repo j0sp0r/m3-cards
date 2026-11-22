@@ -745,6 +745,8 @@ export const DEFAULT_WEATHER_CHIPS: WeatherChipType[] = [
 ];
 export const WEATHER_HEADER_ICON_SIZE = 56;
 export const WEATHER_HEADER_ICON_RADIUS = RADIUS.squircle56;
+/** Below this card width the header chips go under the temperature (#46). */
+export const WEATHER_NARROW_WIDTH = 260;
 export const WEATHER_CHIP_RADIUS = RADIUS.chip;
 export const WEATHER_DAY_ROW_HEIGHT = 44;
 export const WEATHER_DAY_ROW_RADIUS = RADIUS.row;

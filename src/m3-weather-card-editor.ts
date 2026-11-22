@@ -68,6 +68,7 @@ export class M3WeatherCardEditor extends LitElement implements LovelaceCardEdito
     return [
       { name: "name", selector: { text: {} } },
       { name: "show_current", selector: { boolean: {} } },
+      { name: "decimals", selector: { number: { min: 0, max: 2, step: 1, mode: "box" } } },
       { name: "hours", selector: { number: { min: 0, max: 24, step: 1, mode: "box" } } },
       { name: "show_chart", selector: { boolean: {} } },
       { name: "show_hour_labels", selector: { boolean: {} } },
@@ -166,6 +167,7 @@ export class M3WeatherCardEditor extends LitElement implements LovelaceCardEdito
       show_hourly_icons: "editor_weather_show_hourly_icons",
       show_hourly_temperatures: "editor_weather_show_hourly_temperatures",
       show_temp_axis: "editor_weather_show_temp_axis",
+      decimals: "editor_weather_decimals",
       days: "editor_weather_days",
       show_days_toggle: "editor_weather_show_days_toggle",
       chips: "editor_weather_chips",
@@ -259,6 +261,7 @@ export class M3WeatherCardEditor extends LitElement implements LovelaceCardEdito
     const contentData = {
       name: this._config.name,
       show_current: this._config.show_current ?? true,
+      decimals: this._config.decimals ?? 0,
       hours: this._config.hours,
       show_chart: this._config.show_chart ?? true,
       show_hour_labels: this._config.show_hour_labels ?? true,

@@ -8,6 +8,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **Weather card: `decimals` (#46).** Decimal places of the large current
+  temperature, 0–2 — a station sensor that reports 5.7 no longer reads "6°".
+
 - **Chip buttons card: `frameless` (#37).** No card around the row — no
   background, border or padding — so the chips sit in the grid like a header
   line, as on the presence card.
@@ -66,6 +69,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Weather and appliance cards: centred when stretched (#46).** Beside a
+  taller card in the same row the content sat at the top over an empty
+  foot; it now sits in the middle. On a weather card narrower than 260px the
+  chips go under the temperature as a row, so the condition is no longer cut
+  to "R…".
 - **Energy flow card: compact layout in a half-width slot (#54).** Four tiles
   in a phone's half-width slot put the numbers on top of each other. Below
   300px (three tiles: 200px) they now go to two columns; the arrows give way

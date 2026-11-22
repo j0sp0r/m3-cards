@@ -1497,6 +1497,8 @@ export interface M3WeatherCardConfig extends DetailModeConfig {
    * is unavailable falls back to the weather entity's value.
    */
   sensors?: Partial<Record<"temperature" | WeatherChipType, string>>;
+  /** Decimal places of the large current temperature (#46). Default 0. */
+  decimals?: number;
   /** Tap on the current conditions. Default: more-info on the weather entity. */
   tap_action?: HaActionConfig;
   show_current?: boolean;
