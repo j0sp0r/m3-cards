@@ -149,8 +149,8 @@ export class M3ChipButtonsCard extends TemplatedCard(LitElement) implements Love
             this._config.animation,
           )
             ? ""
-            : "no-animations"}"
-          style=${`border-radius: ${radius};${cardBackgroundCss ? ` background: ${cardBackgroundCss};` : ""}`}
+            : "no-animations"} ${this._config.frameless ? "frameless" : ""}"
+          style=${`border-radius: ${radius};${cardBackgroundCss && !this._config.frameless ? ` background: ${cardBackgroundCss};` : ""}`}
         >
           ${renderChipButtons(this, this.hass, this._config, {
             pressedKey: this._pressedKey,
@@ -175,6 +175,18 @@ export class M3ChipButtonsCard extends TemplatedCard(LitElement) implements Love
 
       .card-inner.no-animations .m3-chip-button {
         transition: none;
+      }
+
+      /* frameless (#37), as on the presence card: the row sits straight in
+         the dashboard grid, like a header line. */
+      .card-inner.frameless {
+        padding: 0;
+        border: none;
+        background: none;
+        box-shadow: none;
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        transform: none;
       }
     `,
   ];

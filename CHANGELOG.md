@@ -8,6 +8,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **Chip buttons card: `frameless` (#37).** No card around the row — no
+  background, border or padding — so the chips sit in the grid like a header
+  line, as on the presence card.
+
 - **Room card: only these devices (#43).** `categories[].entities` keeps a
   category to the devices named there — on a room with fifteen switches,
   naming two beats excluding thirteen. In the editor under each category as

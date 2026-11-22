@@ -76,6 +76,7 @@ export class M3ChipButtonsCardEditor
       },
       { name: "wrap", selector: { boolean: {} } },
       { name: "shape_by_state", selector: { boolean: {} } },
+      { name: "frameless", selector: { boolean: {} } },
       {
         name: "justify",
         selector: {
@@ -118,6 +119,7 @@ export class M3ChipButtonsCardEditor
       ...radiusLabelMap,
       stretch: "editor_chip_buttons_stretch",
       wrap: "editor_chip_buttons_wrap",
+      frameless: "editor_chip_buttons_frameless",
       justify: "editor_chip_buttons_justify",
       glass_background: "editor_glass_background",
       animation: "editor_progress_animation",
@@ -194,6 +196,7 @@ export class M3ChipButtonsCardEditor
       stretch:
         this._config.stretch === "smart" ? "smart" : this._config.stretch ? "equal" : "off",
       wrap: this._config.wrap ?? false,
+      frameless: this._config.frameless ?? false,
       shape_by_state: this._config.shape_by_state ?? false,
       justify: this._config.justify ?? "start",
     };

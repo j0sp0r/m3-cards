@@ -113,6 +113,7 @@ faded, so the card can still be found and opened.
 | `justify` | `start` \| `center` \| `end` \| `space-between` | `start` | Horizontal alignment of the chip row |
 | `radius` | number (px) | `28` | Card corner radius |
 | `corners` | object | – | Optional per-corner override, same as every other card |
+| `frameless` | boolean | `false` | No card around the row: no background, border or padding, so the chips sit in the grid like a header line |
 | `glass_background` | boolean | `true` | Frosted glass background |
 | `card_background` | string | – | Override background color |
 | `animation` | `auto` \| `on` \| `off` | `auto` | Press animation; `auto` respects `prefers-reduced-motion` |

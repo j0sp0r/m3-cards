@@ -3500,6 +3500,8 @@ export interface ChipButtonsRowConfig {
 
 export interface M3ChipButtonsCardConfig extends ChipButtonsRowConfig, DetailModeConfig {
   type: string;
+  /** No card around the row (#37): the chips sit in the grid like a header line. */
+  frameless?: boolean;
   glass_background?: boolean;
   animation?: "auto" | "on" | "off";
   radius?: number;
