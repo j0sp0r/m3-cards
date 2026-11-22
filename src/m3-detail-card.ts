@@ -9,6 +9,10 @@ import {
   DETAIL_CHART_HALO,
   DETAIL_CHART_HEIGHT,
   DETAIL_CHART_PADDING,
+  DETAIL_STRONG_SMOOTHING_SHARE,
+  MULTI_GRAPH_PX_PER_POINT,
+  MULTI_GRAPH_MIN_POINTS,
+  MULTI_GRAPH_MAX_POINTS,
   DETAIL_CLOSE_RADIUS,
   DETAIL_DEFAULT_ACCENT,
   DETAIL_SECONDARY_FALLBACK,
@@ -81,11 +85,14 @@ import {
   seriesExtremes,
   windowPoints,
   seriesStats,
+  smoothPoints,
+  spanRange,
   type DetailRange,
   type EntitySeries,
   type SeriesPoint,
 } from "./shared/entity-history";
 import { monotoneArea, monotonePath, niceTicks, tickDecimals, type XY } from "./shared/smooth-path";
+import { bucketCount, smoothCurve, stepMeans } from "./shared/multi-graph";
 import { defaultControlCard, detailKind, isTwoState, type DetailKind } from "./shared/detail-kind";
 import {
   clipSegments,
@@ -945,7 +952,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const span = DETAIL_RANGE_MS[series.range];
     const t1 = this._now;
     const t0 = t1 - span;
-    const points = windowPoints(this._pointsWithLive(series.points, st, t1), t0);
+    const points = this._drawnPoints(windowPoints(this._pointsWithLive(series.points, st, t1), t0), t0, t1, width);
     const { min, max } = seriesExtremes(points);
 
     let body: unknown = nothing;
@@ -958,10 +965,12 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       const plotW = this._plotWidth(width);
       const lo = min.v as number;
       const hi = max.v as number;
+      const scale = spanRange(lo, hi, this._config?.y_min_span);
       // A difference at float noise is a flat line, not a scale to zoom into.
-      const spread = hi - lo > Math.abs(hi) * 1e-9 ? hi - lo : Math.abs(hi) * 0.1 || 1;
-      const yLo = lo - spread * DETAIL_CHART_PADDING;
-      const yHi = hi + spread * DETAIL_CHART_PADDING;
+      const spread =
+        scale.hi - scale.lo > Math.abs(scale.hi) * 1e-9 ? scale.hi - scale.lo : Math.abs(scale.hi) * 0.1 || 1;
+      const yLo = scale.lo - spread * DETAIL_CHART_PADDING;
+      const yHi = scale.hi + spread * DETAIL_CHART_PADDING;
       const top = DETAIL_CHART_HALO;
       const bottom = height - DETAIL_CHART_HALO;
       const x = (t: number) => ((t - t0) / span) * plotW;
@@ -1017,11 +1026,14 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       let tip2: unknown = nothing;
       let tickFill: string | undefined;
       if (st2 && s2) {
-        const points2 = windowPoints(this._pointsWithLive(s2.points, st2, t1), t0);
+        const points2 = this._drawnPoints(windowPoints(this._pointsWithLive(s2.points, st2, t1), t0), t0, t1, width);
         const ext2 = seriesExtremes(points2);
         if (ext2.min && ext2.max) {
-          const lo2 = ext2.min.v as number;
-          const hi2 = ext2.max.v as number;
+          const { lo: lo2, hi: hi2 } = spanRange(
+            ext2.min.v as number,
+            ext2.max.v as number,
+            this._config?.secondary_y_min_span,
+          );
           const spread2 = hi2 - lo2 > Math.abs(hi2) * 1e-9 ? hi2 - lo2 : Math.abs(hi2) * 0.1 || 1;
           const y2Lo = lo2 - spread2 * DETAIL_CHART_PADDING;
           const y2Hi = hi2 + spread2 * DETAIL_CHART_PADDING;
@@ -1126,6 +1138,27 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         })}
       </div>
     `;
+  }
+
+  /**
+   * The points a curve is drawn through. By default the multi graph card's
+   * way, so a room reads the same in both: the time-weighted mean of the
+   * readings in buckets about 4px wide, softened over a few buckets, ending
+   * on the live reading at now. `smoothing: none` draws every reading (thinned
+   * to the point budget, spikes kept); `strong` adds a moving mean over a
+   * thirtieth of the period on top, which on a month leaves the trend.
+   */
+  private _drawnPoints(points: SeriesPoint[], t0: number, t1: number, width: number): SeriesPoint[] {
+    const mode = this._config?.smoothing ?? "auto";
+    if (mode === "none" || !(width > 0) || !(t1 > t0)) return points;
+    const n = bucketCount(this._plotWidth(width), MULTI_GRAPH_PX_PER_POINT, MULTI_GRAPH_MIN_POINTS, MULTI_GRAPH_MAX_POINTS);
+    const step = (t1 - t0) / n;
+    const means = smoothCurve(stepMeans(points, t0, t1, n), Math.max(1, Math.round(n / 32)));
+    let out: SeriesPoint[] = means.map((v, i) => ({ t: t0 + (i + 0.5) * step, v }));
+    if (mode === "strong") out = smoothPoints(out, (t1 - t0) * DETAIL_STRONG_SMOOTHING_SHARE);
+    const live = points[points.length - 1];
+    if (live && live.v !== null && live.t >= t1 - step && out[out.length - 1]?.v !== null) out.push(live);
+    return out;
   }
 
   /**

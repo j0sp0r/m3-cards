@@ -4487,6 +4487,7 @@ export interface M3RemoteCardConfig extends DetailModeConfig {
 
 export type DetailRangeOption = "1h" | "24h" | "7d" | "30d";
 export type DetailStat = "min" | "mean" | "max" | "sum";
+export type DetailSmoothing = "auto" | "none" | "strong";
 
 /** What a tap that would open more-info opens instead. See shared/entity-detail.ts. */
 export type DetailMode = "more_info" | "sheet";
@@ -4538,6 +4539,17 @@ export interface M3DetailCardConfig {
   show_tooltip?: boolean;
   /** A few round values up the side of the curve. Default true. */
   y_axis?: boolean;
+  /**
+   * How the curves are drawn. `auto` (default): bucket means about 4px wide,
+   * softened, as the multi graph card draws them. `none`: every reading,
+   * spikes kept. `strong`: `auto` plus a moving mean over a thirtieth of the
+   * period. Drawing only — the tiles keep the readings.
+   */
+  smoothing?: DetailSmoothing;
+  /** The least the first scale spans, in the entity's unit. */
+  y_min_span?: number;
+  /** The least the second sensor's scale spans, in its unit. */
+  secondary_y_min_span?: number;
   /**
    * History, tiles and the device's other entities: shown, folded behind a
    * button, or left out. Default: folded for a switch, shown for the rest.

@@ -235,3 +235,39 @@ describe("windowPoints", () => {
     expect(windowPoints([{ t: 0, v: null }, { t: 250, v: 1 }], 200)).toEqual([{ t: 250, v: 1 }]);
   });
 });
+
+describe("smoothPoints", () => {
+  it("averages within the window and keeps holes as breaks", async () => {
+    const { smoothPoints } = await import("./entity-history");
+    const pts: SeriesPoint[] = [
+      { t: 0, v: 0 },
+      { t: 10, v: 10 },
+      { t: 20, v: 0 },
+      { t: 30, v: null },
+      { t: 40, v: 5 },
+      { t: 50, v: 7 },
+    ];
+    const out = smoothPoints(pts, 20);
+    expect(out.map((p) => p.t)).toEqual([0, 10, 20, 30, 40, 50]);
+    expect(out.map((p) => p.v)).toEqual([5, 10 / 3, 5, null, 6, 6]);
+  });
+
+  it("returns the points unchanged without a window", async () => {
+    const { smoothPoints } = await import("./entity-history");
+    const pts: SeriesPoint[] = [
+      { t: 0, v: 1 },
+      { t: 1, v: 9 },
+      { t: 2, v: 1 },
+    ];
+    expect(smoothPoints(pts, 0)).toEqual(pts);
+  });
+});
+
+describe("spanRange", () => {
+  it("widens a narrow range about its middle and leaves a wide one alone", async () => {
+    const { spanRange } = await import("./entity-history");
+    expect(spanRange(17, 19, 6)).toEqual({ lo: 15, hi: 21 });
+    expect(spanRange(10, 30, 6)).toEqual({ lo: 10, hi: 30 });
+    expect(spanRange(17, 19)).toEqual({ lo: 17, hi: 19 });
+  });
+});

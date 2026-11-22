@@ -389,6 +389,54 @@ export function windowPoints(points: readonly SeriesPoint[], t0: number): Series
   return [{ t: t0, v: held.v }, ...inside];
 }
 
+/**
+ * A centred moving mean over `windowMs`, for drawing only.
+ *
+ * Each point becomes the mean of the points within half a window either side
+ * of it, inside its own unbroken stretch: a hole stays a hole and no stretch
+ * borrows from the next. At the ends the window is one-sided, so the line
+ * still starts and ends where the readings do in time. `windowMs <= 0` returns
+ * the points as they are.
+ */
+export function smoothPoints(points: readonly SeriesPoint[], windowMs: number): SeriesPoint[] {
+  if (!(windowMs > 0) || points.length < 3) return [...points];
+  const half = windowMs / 2;
+  const out: SeriesPoint[] = [];
+  let start = 0;
+  while (start < points.length) {
+    if (points[start].v === null) {
+      out.push(points[start]);
+      start++;
+      continue;
+    }
+    let end = start;
+    while (end < points.length && points[end].v !== null) end++;
+    // Two pointers over the stretch [start, end): the window only moves right.
+    let lo = start;
+    let hi = start;
+    let sum = 0;
+    for (let i = start; i < end; i++) {
+      const t = points[i].t;
+      while (hi < end && points[hi].t <= t + half) sum += points[hi++].v as number;
+      while (points[lo].t < t - half) sum -= points[lo++].v as number;
+      out.push({ t, v: sum / (hi - lo) });
+    }
+    start = end;
+  }
+  return out;
+}
+
+/**
+ * The value range a scale spans: the readings', widened about its middle to
+ * at least `minSpan` when one is given, so a swing of a degree does not fill
+ * the whole height.
+ */
+export function spanRange(lo: number, hi: number, minSpan?: number): { lo: number; hi: number } {
+  if (!(typeof minSpan === "number" && minSpan > 0) || hi - lo >= minSpan) return { lo, hi };
+  const mid = (lo + hi) / 2;
+  return { lo: mid - minSpan / 2, hi: mid + minSpan / 2 };
+}
+
 export function seriesExtremes(points: readonly SeriesPoint[]): SeriesExtremes {
   const out: SeriesExtremes = {};
   for (const p of points) {

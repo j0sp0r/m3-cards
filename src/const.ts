@@ -2921,6 +2921,9 @@ export const DETAIL_CHART_HEIGHT = 170;
 // Room above the highest and below the lowest reading, as a share of the span,
 // so the extreme rings are never clipped by the plot's edge.
 export const DETAIL_CHART_PADDING = 0.18;
+// `smoothing: strong`: a moving mean over this share of the period on screen,
+// a day on a month, which leaves the trend.
+export const DETAIL_STRONG_SMOOTHING_SHARE = 1 / 30;
 // The current-value halo's radius: the plot keeps this much clear on the right
 // so the halo is not cut in half.
 export const DETAIL_CHART_HALO = 10;

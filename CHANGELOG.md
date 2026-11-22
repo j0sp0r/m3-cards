@@ -13,6 +13,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   at the right edge in its colour — temperature and humidity of one room in
   one card. Its reading stands beside the large one and in the tooltip;
   `secondary_color` sets its colour. Asked for on Reddit.
+- **Detail card: the graph drawn like the multi graph card.** The curves
+  are now bucket means about 4px wide, softened, as on the multi graph card,
+  so a room reads the same in both; a month no longer shows every hourly
+  swing at full height. `smoothing: none` brings back every reading,
+  `strong` leaves the trend. `y_min_span` / `secondary_y_min_span` keep a
+  scale from zooming into a swing of a degree. The tiles keep the readings.
 
 - **Network card** (`m3-network-card`, card 59): the router — online since,
   connection type, download, upload, signal, data used — and the devices on

@@ -7310,6 +7310,9 @@ The period last picked is remembered per entity on that device.
 | `trend_inverted` | boolean | `false` | For readings where rising is bad news |
 | `show_tooltip` | boolean | `true` | The reading under the pointer on the curve |
 | `y_axis` | boolean | `true` | Three or four round values up the side of the curve, with faint guide lines |
+| `smoothing` | `auto` \| `none` \| `strong` | `auto` | How the curves are drawn. `auto` as the multi graph card draws them: the time-weighted mean of the readings in buckets about 4px wide, softened over a few buckets. `none` draws every reading and keeps each spike. `strong` adds a moving mean over a thirtieth of the period, a day on a month, which leaves the trend. The tooltip reads the drawn line; the tiles keep the readings |
+| `y_min_span` | number | – | The least the scale spans, in the entity's unit. With `6` on a temperature a swing of one degree takes a sixth of the height instead of all of it |
+| `secondary_y_min_span` | number | – | The same for the second sensor's scale |
 | `show_related` / `max_related` | boolean / number | `true` / `5` | The device's other entities, including diagnostic ones such as battery |
 | `control_card` | `auto` \| `none` \| card config | `auto` | The card at the top of a `control` view; `[[entity]]` stands for the entity |
 | `type_overrides` | map | – | Layout per entity id or domain, see above |

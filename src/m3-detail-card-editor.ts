@@ -71,6 +71,23 @@ export class M3DetailCardEditor extends LitElement implements LovelaceCardEditor
       { name: "trend_inverted", selector: { boolean: {} } },
       { name: "show_tooltip", selector: { boolean: {} } },
       { name: "y_axis", selector: { boolean: {} } },
+      {
+        name: "smoothing",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "auto", label: this._t("editor_detail_smoothing_auto") },
+              { value: "none", label: this._t("editor_detail_smoothing_none") },
+              { value: "strong", label: this._t("editor_detail_smoothing_strong") },
+            ],
+          },
+        },
+      },
+      { name: "y_min_span", selector: { number: { mode: "box", min: 0, step: "any" } } },
+      ...(this._config?.secondary_entity
+        ? [{ name: "secondary_y_min_span", selector: { number: { mode: "box", min: 0, step: "any" } } }]
+        : []),
     ];
   }
 
@@ -139,6 +156,9 @@ export class M3DetailCardEditor extends LitElement implements LovelaceCardEditor
       trend_inverted: "editor_detail_trend_inverted",
       show_tooltip: "editor_detail_show_tooltip",
       y_axis: "editor_detail_y_axis",
+      smoothing: "editor_detail_smoothing",
+      y_min_span: "editor_detail_y_min_span",
+      secondary_y_min_span: "editor_detail_secondary_y_min_span",
       show_related: "editor_detail_show_related",
       max_related: "editor_detail_max_related",
       control_card: "editor_detail_control_card",
@@ -156,6 +176,7 @@ export class M3DetailCardEditor extends LitElement implements LovelaceCardEditor
       ranges: "editor_detail_ranges_helper",
       stats: "editor_detail_stats_helper",
       control_card: "editor_detail_control_card_helper",
+      y_min_span: "editor_detail_y_min_span_helper",
     };
     const key = helpers[schema.name];
     return key ? this._t(key) : undefined;
@@ -178,6 +199,11 @@ export class M3DetailCardEditor extends LitElement implements LovelaceCardEditor
     // "auto" is the absence of the option, not a fourth value.
     if (next.details === "auto") delete next.details;
     if (!next.secondary_entity) delete next.secondary_entity;
+    // Off and empty are the defaults, so the keys go rather than stay as noise.
+    if (next.smoothing === "auto") delete next.smoothing;
+    for (const key of ["y_min_span", "secondary_y_min_span"]) {
+      if (!(typeof next[key] === "number" && (next[key] as number) > 0)) delete next[key];
+    }
     this._emit(next as unknown as M3DetailCardConfig);
   }
 
@@ -239,6 +265,9 @@ export class M3DetailCardEditor extends LitElement implements LovelaceCardEditor
       trend_inverted: cfg.trend_inverted ?? false,
       show_tooltip: cfg.show_tooltip ?? true,
       y_axis: cfg.y_axis ?? true,
+      smoothing: cfg.smoothing ?? "auto",
+      y_min_span: cfg.y_min_span,
+      secondary_y_min_span: cfg.secondary_y_min_span,
     };
     const behaviorData = {
       details: cfg.details ?? "auto",
