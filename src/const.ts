@@ -1691,6 +1691,14 @@ export const ROOM_HEADER_ICON = 56;
 /** area_picture: banner (#43) — the photo band across the top. */
 export const ROOM_BANNER_HEIGHT = 112;
 export const ROOM_HEADER_ICON_RADIUS = RADIUS.squircle56;
+/**
+ * Below this card width (a half-width slot on a phone) the header is
+ * rearranged: the frame's 44px icon, and the fold pill moves under the name
+ * in place of the subtitle, so the name has the row to itself (#43).
+ */
+export const ROOM_NARROW_WIDTH = 260;
+export const ROOM_HEADER_ICON_NARROW = 44;
+export const ROOM_HEADER_ICON_RADIUS_NARROW = RADIUS.squircle44;
 export const ROOM_DOT = 10;
 export const ROOM_DOT_PULSE_MS = 2200;
 

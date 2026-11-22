@@ -28,6 +28,9 @@ import {
   ROOM_HEADER_ICON,
   ROOM_BANNER_HEIGHT,
   ROOM_HEADER_ICON_RADIUS,
+  ROOM_NARROW_WIDTH,
+  ROOM_HEADER_ICON_NARROW,
+  ROOM_HEADER_ICON_RADIUS_NARROW,
   ROOM_HOLD_MS,
   ROOM_POWER_THRESHOLD,
   ROOM_PRESENCE_BORDER,
@@ -1514,7 +1517,7 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
               ></div>`
             : nothing}
           <div
-            class="header ${headerTappable ? "tappable" : ""}"
+            class="header ${headerTappable ? "tappable" : ""} ${pillFold ? "has-pill" : ""}"
             role=${headerTappable ? "button" : nothing}
             tabindex=${headerTappable ? "0" : nothing}
             aria-expanded=${showFoldArrow ? String(!this._folded) : nothing}
@@ -1547,7 +1550,7 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
                   aria-label=${`${name}: ${pillText}`}
                   @click=${this._toggleFold}
                 >
-                  ${pillText}${renderPillChevron(this._folded)}
+                  <span class="pill-text">${pillText}</span>${renderPillChevron(this._folded)}
                 </button>`
               : nothing}
           </div>
@@ -1592,6 +1595,7 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
       .card-inner {
         gap: 0;
         position: relative;
+        container: room-card / inline-size;
       }
 
       /* The nested cards stack like they would in a section, with the same
@@ -1893,6 +1897,48 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
         font-weight: 700;
         color: var(--m3p-secondary-text, var(--secondary-text-color));
         background: color-mix(in srgb, var(--m3p-secondary-text, var(--secondary-text-color)) 14%, transparent);
+      }
+
+      /* A half-width slot on a phone (#43): the 56px well and the pill beside
+         the name left the name no room at all. The well drops to the frame's
+         44px and the pill moves under the name, in place of the subtitle it
+         repeats, so the name has the row to itself. */
+      @container room-card (max-width: ${unsafeCSS(ROOM_NARROW_WIDTH)}px) {
+        .header.has-pill {
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr);
+          grid-template-areas: "icon name" "icon pill";
+          column-gap: 10px;
+          row-gap: 4px;
+        }
+        .header.has-pill .text {
+          display: contents;
+        }
+        .header.has-pill .room-icon {
+          grid-area: icon;
+        }
+        .header.has-pill .name {
+          grid-area: name;
+          align-self: end;
+        }
+        .header.has-pill .subtitle {
+          display: none;
+        }
+        .header.has-pill .fold-pill {
+          grid-area: pill;
+          justify-self: start;
+          align-self: start;
+          max-width: 100%;
+        }
+        .room-icon {
+          width: ${unsafeCSS(ROOM_HEADER_ICON_NARROW)}px;
+          height: ${unsafeCSS(ROOM_HEADER_ICON_NARROW)}px;
+          border-radius: ${unsafeCSS(ROOM_HEADER_ICON_RADIUS_NARROW)}px;
+          --mdc-icon-size: 24px;
+        }
+        .header {
+          gap: 10px;
+        }
       }
 
       .body {

@@ -55,6 +55,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   use, cost and self-sufficiency as a notification, counted hour by hour as
   the card counts (Home Assistant 2025.8 or later).
 
+### Fixed
+
+- **Room card: a header that fits a half-width slot (#43).** Below 260px the
+  icon drops to 44px and the fold pill moves under the name, in place of the
+  subtitle it repeats, so "Wohnzimmer" is no longer cut to its first letter.
+
 ## [2.9.0] – 2026-11-18
 
 ### Added
