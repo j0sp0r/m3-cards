@@ -10,6 +10,7 @@ import type {
   LovelaceCardEditor,
   LovelaceGridOptions,
   M3NavCardConfig,
+  NavBadgeConfig,
   NavBadgeStyle,
   NavItemConfig,
   NavLabelPosition,
@@ -1211,6 +1212,18 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     };
 
     add(this._config?.hidden);
+    const button = this._config?.action_button;
+    add(button?.badge?.template);
+    add(button?.badge?.show_if);
+    // The menu entries' fields render too (#38): a templated name there
+    // showed as an empty label because nothing subscribed to it.
+    for (const entry of button?.menu ?? []) {
+      add(entry.name);
+      add(entry.color);
+      add(entry.hidden);
+      add(entry.badge?.template);
+      add(entry.badge?.show_if);
+    }
     for (const item of this._config?.items ?? []) {
       add(item.name);
       add(item.icon);
@@ -1241,7 +1254,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
   }
 
   /** `users` (#38): an entry limited to some users is left out for everyone else. */
-  private _forThisUser(item: NavItemConfig): boolean {
+  private _forThisUser(item: { users?: string[] }): boolean {
     if (!item.users?.length) return true;
     const user = this.hass?.user;
     // Not known yet (the first render): shown, rather than flashing in later.
@@ -1279,6 +1292,12 @@ export class M3NavCard extends LitElement implements LovelaceCard {
 
   private _watchedEntities(): (string | undefined)[] {
     const out: (string | undefined)[] = [];
+    const button = this._config?.action_button;
+    const badged: { badge?: NavBadgeConfig }[] = [...(button?.menu ?? []), ...(button ? [button] : [])];
+    for (const item of badged) {
+      out.push(item.badge?.entity);
+      for (const id of item.badge?.count_entities ?? []) out.push(id);
+    }
     for (const item of this._config?.items ?? []) {
       out.push(item.badge?.entity);
       for (const id of item.badge?.count_entities ?? []) out.push(id);
@@ -1336,7 +1355,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
 
   // ---- items ---------------------------------------------------------------
 
-  private _badgeFor(item: NavItemConfig, color: string): ResolvedItem["badge"] {
+  private _badgeFor(
+    item: { badge?: NavBadgeConfig; badge_style?: NavBadgeStyle },
+    color: string,
+  ): ResolvedItem["badge"] {
     const badge = item.badge;
     if (!badge) return undefined;
     if (badge.show_if !== undefined && !this._resolveBool(badge.show_if)) {
@@ -1413,7 +1435,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     const quelle: NavItemConfig[] =
       this._bubbleFits || this._variant === "sheet"
         ? cfg.items
-        : [...cfg.items, ...(cfg.action_button?.menu ?? [])];
+        : [...cfg.items, ...this._actionMenu];
 
     const out: ResolvedItem[] = [];
     quelle.forEach((item, index) => {
@@ -2542,8 +2564,11 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     `;
   }
 
+  /** The entries this user sees (#38): `users` and `hidden` apply here too. */
   private get _actionMenu(): NavActionMenuEntry[] {
-    return this._config?.action_button?.menu ?? [];
+    return (this._config?.action_button?.menu ?? []).filter(
+      (entry) => this._forThisUser(entry) && !this._resolveBool(entry.hidden),
+    );
   }
 
   private _runActionButton = (e: Event): void => {
@@ -2645,7 +2670,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     const bekannt = new Set(eigene.map((item) => item.path).filter(Boolean));
     const items: NavSheetItem[] = [
       ...eigene,
-      ...(this._config?.action_button?.menu ?? [])
+      ...this._actionMenu
         .filter((entry) => !entry.path || !bekannt.has(entry.path))
         .map(({ name, icon, color, path, tap_action }) => ({
           name,
@@ -2792,18 +2817,40 @@ export class M3NavCard extends LitElement implements LovelaceCard {
   // ---- rendering -----------------------------------------------------------
 
   private _renderBadge(item: ResolvedItem): TemplateResult | typeof nothing {
-    const badge = item.badge;
+    return this._renderBadgeOf(item.badge);
+  }
+
+  /**
+   * The action button's badge (#38): its own when configured; otherwise a dot
+   * while any entry behind it has one, so a count of pending updates is not
+   * hidden until the menu is opened.
+   */
+  private _bubbleBadge(entries: NavActionMenuEntry[], color: string): ResolvedItem["badge"] {
+    const own = this._config?.action_button;
+    if (own?.badge) return this._badgeFor(own, color);
+    for (const entry of entries) {
+      const badge = this._badgeFor(entry, color);
+      if (badge) return { ...badge, text: "", dot: true };
+    }
+    return undefined;
+  }
+
+  private _renderBadgeOf(
+    badge: ResolvedItem["badge"],
+    place: "corner" | "inline" = "corner",
+  ): TemplateResult | typeof nothing {
     if (!badge) return nothing;
+    const where = place === "inline" ? "inline" : "";
     if (badge.dot) {
       return html`<span
-        class="badge dot"
+        class="badge dot ${where}"
         style=${`background: ${badge.color};`}
         aria-hidden="true"
       ></span>`;
     }
     const background = badge.color;
     return html`<span
-      class="badge"
+      class="badge ${where}"
       style=${`background: ${background}; color: ${foregroundOn("#ffffff", background, 4.5, this)};`}
       >${badge.text}</span
     >`;
@@ -2864,6 +2911,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
                   </span>`
                 : nothing}
               <span class="menu-label">${this._resolve(entry.name) || ""}</span>
+              ${this._renderBadgeOf(this._badgeFor(entry, color), "inline")}
             </div>
           `;
         })}
@@ -2940,6 +2988,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     const visible = (rule: NavLabelVisibility): boolean => visibleFor(rule, item.active);
     const showLabel = !!item.name && visible(this._labelVisibility);
     const showIcon = visible(this._iconVisibility);
+    // An icon that comes and goes while the label stays (#38): the badge used
+    // to sit by the label and jump onto the icon as the entry became active.
+    // It stays by the label then, where every state of the entry has it.
+    const badgeOnLabel = !!item.name && this._iconVisibility !== "always" && this._labelVisibility === "always";
     // Mid-swipe the entry is drawn as an inactive one; what only the active
     // entry shows keeps its room but goes unseen, so nothing reflows.
     const hideIcon = this._swipeInk && item.active && !visibleFor(this._iconVisibility, false);
@@ -3006,14 +3058,14 @@ export class M3NavCard extends LitElement implements LovelaceCard {
           ? html`
               <span class="glyph ${hideIcon ? "swipe-unseen" : ""}" style=${this._stacked ? indicator : nothing}>
                 ${this._glyph(item)}
-                ${this._renderBadge(item)}
+                ${badgeOnLabel ? nothing : this._renderBadge(item)}
               </span>
             `
           : nothing}
         ${showLabel
           ? html`<span class="label ${hideLabel ? "swipe-unseen" : ""}" data-text=${item.name}>${item.name}</span>`
           : nothing}
-        ${showIcon ? nothing : this._renderBadge(item)}
+        ${showIcon && !badgeOnLabel ? nothing : this._renderBadge(item)}
         ${this._swipeInk && !item.disabled
           ? html`<span
               class="swipe-ink"
@@ -3095,7 +3147,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     // editor hides the section to match, and a config that still names an
     // action button keeps it: switching back to a floating bar brings it out
     // again rather than losing what was configured.
-    const bubble = this._bubbleFits && cfg.action_button?.icon
+    const bubble = this._bubbleFits && cfg.action_button?.icon && this._forThisUser(cfg.action_button)
       ? (() => {
           const color = resolveThemeColor(
             cfg.action_button?.color ?? cfg.accent_color ?? DEFAULT_NAV_COLOR,
@@ -3128,6 +3180,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
               >
                 <ha-icon class="bubble-glyph" icon=${cfg.action_button!.icon}></ha-icon>
                 <ha-icon class="bubble-glyph close" icon=${closeIcon}></ha-icon>
+                ${open ? nothing : this._renderBadgeOf(this._bubbleBadge(entries, color))}
               </div>
             </div>
           `;
@@ -3724,6 +3777,13 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     .bubble.open .bubble-glyph.close {
       opacity: 1;
       transform: none;
+    }
+
+    /* In a menu row (#38): after the label, in the row's flow. */
+    .badge.inline {
+      position: static;
+      margin-left: auto;
+      flex-shrink: 0;
     }
 
     .badge.dot {

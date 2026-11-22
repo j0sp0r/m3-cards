@@ -3233,12 +3233,20 @@ export type NavPageTransition = "none" | "fade" | "up";
  * of the button when it is tapped.
  */
 export interface NavActionMenuEntry {
+  /** Accepts Jinja2 (#38). */
   name?: string;
   icon?: string;
   /** Overrides the button's colour for this entry alone. */
   color?: string;
   path?: string;
   tap_action?: HaActionConfig;
+  /** Only for these users, by name or id (#38) — as on the bar's entries. */
+  users?: string[];
+  /** Accepts Jinja2. Leaves the entry out while it renders true. */
+  hidden?: string;
+  /** A badge on the entry (#38), as on the bar's entries. */
+  badge?: NavBadgeConfig;
+  badge_style?: NavBadgeStyle;
 }
 
 export interface NavActionButton {
@@ -3252,6 +3260,14 @@ export interface NavActionButton {
    * `tap_action` is ignored; without them it just runs `tap_action`.
    */
   menu?: NavActionMenuEntry[];
+  /** The button only for these users, by name or id (#38). */
+  users?: string[];
+  /**
+   * A badge on the button (#38), as on the bar's entries. Without one of
+   * its own, the button shows a dot while any of its entries has a badge.
+   */
+  badge?: NavBadgeConfig;
+  badge_style?: NavBadgeStyle;
 }
 
 export interface NavSheetAction {

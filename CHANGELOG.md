@@ -8,6 +8,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **Nav card: the action button's menu catches up with the bar (#38).**
+  Menu entries take `users` and `hidden`, so an entry meant for one person
+  stays theirs, and `badge` / `badge_style`, shown after the label. The
+  button itself takes `users` and a `badge`; without one of its own it shows
+  a dot while any entry behind it has a badge, so a count of pending updates
+  is not hidden until the menu opens.
+
 - **Weather card: `decimals` (#46).** Decimal places of the large current
   temperature, 0–2 — a station sensor that reports 5.7 no longer reads "6°".
 
@@ -69,6 +76,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Nav card: templates in the action menu, a badge that stays put (#38).**
+  A Jinja name on a menu entry showed as an empty label, since nothing
+  subscribed to it. With `icon_visibility: active_only` a badge jumped from
+  the label onto the icon as the entry became active; it stays by the label.
 - **Weather and appliance cards: centred when stretched (#46).** Beside a
   taller card in the same row the content sat at the top over an empty
   foot; it now sits in the middle. On a weather card narrower than 260px the
