@@ -1963,7 +1963,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         border-radius: ${DETAIL_RELATED_ICON_RADIUS}px;
         display: grid;
         place-items: center;
-        background: var(--ri-bg);
+        background: var(--m3-icon-background, var(--ri-bg));
         color: var(--ri-ink);
         --mdc-icon-size: 15px;
       }
@@ -2012,7 +2012,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         border-radius: ${DETAIL_ICON_RADIUS}px;
         display: grid;
         place-items: center;
-        background: var(--dc-icon-bg);
+        background: var(--m3-icon-background, var(--dc-icon-bg));
         color: var(--dc-icon-ink);
         --mdc-icon-size: 22px;
       }

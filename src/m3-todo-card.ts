@@ -775,7 +775,7 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
         align-items: center;
         justify-content: center;
         color: var(--m3t-accent-fg, var(--m3t-accent));
-        background: var(--m3t-accent-tint);
+        background: var(--m3-icon-background, var(--m3t-accent-tint));
       }
 
       .header-icon ha-icon {

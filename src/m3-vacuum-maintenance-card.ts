@@ -422,7 +422,7 @@ export class M3VacuumMaintenanceCard
         @click=${() => this._fireMoreInfo(part.entity)}
         @keydown=${activateOnKey(() => this._fireMoreInfo(part.entity))}
       >
-        <div class="part-icon" style=${`background: color-mix(in srgb, ${color} 16%, transparent); color: ${color};`}>
+        <div class="part-icon" style=${`background: var(--m3-icon-background, color-mix(in srgb, ${color} 16%, transparent)); color: ${color};`}>
           <ha-icon icon=${this._partIcon(part.key, part.cfg)}></ha-icon>
         </div>
         <div class="part-body">
@@ -550,7 +550,7 @@ export class M3VacuumMaintenanceCard
       <div class="part">
         <div
           class="part-icon"
-          style=${`background: color-mix(in srgb, ${color} 16%, transparent); color: ${color};`}
+          style=${`background: var(--m3-icon-background, color-mix(in srgb, ${color} 16%, transparent)); color: ${color};`}
         >
           <ha-icon icon=${state.config.icon ?? "mdi:calendar-refresh-outline"}></ha-icon>
         </div>

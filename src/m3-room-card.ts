@@ -1,3 +1,4 @@
+import { iconWell, iconWellsOff } from "./shared/icon-well";
 import { LitElement, html, css, nothing, unsafeCSS } from "lit";
 import type { PropertyValues, TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
@@ -76,6 +77,7 @@ import { handleAction, isActionable } from "./shared/actions";
 import {
   buildCssVars,
   fillColor,
+  foregroundColor,
   foregroundOn,
   inkOn,
   resolveCommonColors,
@@ -1253,6 +1255,7 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
 
     const rowBackground = tintOn(this, "var(--primary-text-color)", undefined, ROOM_SHEET_ROW_TINT);
     const activeFill = fillColor(this, category.color, 3);
+    const wellsOff = iconWellsOff(this);
 
     return html`
       <div class="scrim ${this._sheetClosing ? "closing" : ""}" @click=${this._closeSheet}>
@@ -1291,9 +1294,11 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
                 >
                   <div
                     class="sheet-icon"
-                    style=${`background: ${wellBackground}; color: ${
+                    style=${`background: ${iconWell(wellBackground)}; color: ${
                       on
-                        ? inkOn(wellBackground, this)
+                        ? wellsOff
+                          ? foregroundColor(this, category.color)
+                          : inkOn(wellBackground, this)
                         : foregroundOn("var(--primary-text-color)", wellBackground, 3, this)
                     };`}
                   >
@@ -1385,8 +1390,12 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
     const wellBackground = category.active
       ? fillColor(this, category.color, 3)
       : tintOn(this, "var(--primary-text-color)", undefined, ROOM_TILE_ICON_TINT_IDLE);
+    // Wells turned off by the theme (#64): the solid well's dark ink would
+    // sit on the tile itself, so an active glyph takes the accent instead.
     const wellInk = category.active
-      ? inkOn(wellBackground, this)
+      ? iconWellsOff(this)
+        ? foregroundColor(this, category.color)
+        : inkOn(wellBackground, this)
       : foregroundOn("var(--primary-text-color)", wellBackground, 3, this);
 
     return html`
@@ -1404,7 +1413,7 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
           ? nothing
           : activateOnKey(() => this._toggleCategory(category))}
       >
-        <div class="well" style=${`background: ${wellBackground}; color: ${wellInk};`}>
+        <div class="well" style=${`background: ${iconWell(wellBackground)}; color: ${wellInk};`}>
           <ha-icon icon=${category.icon}></ha-icon>
         </div>
         <div class="tile-name" title=${category.name}>${category.name}</div>
@@ -1535,7 +1544,7 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
               class="room-icon ${pictureInIcon ? "picture" : ""}"
               style=${pictureInIcon
                 ? `background-image: ${picture};`
-                : `background: ${headerBackground}; color: ${foregroundOn(occupied && showPresence ? presenceColor : accent, headerBackground, 3, this)};`}
+                : `background: ${iconWell(headerBackground)}; color: ${foregroundOn(occupied && showPresence ? presenceColor : accent, headerBackground, 3, this)};`}
             >
               ${pictureInIcon ? nothing : html`<ha-icon icon=${icon}></ha-icon>`}
               ${occupied && showPresence ? html`<span class="dot"></span>` : nothing}

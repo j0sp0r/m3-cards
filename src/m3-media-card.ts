@@ -1962,7 +1962,7 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--m3p-icon-bg);
+        background: var(--m3-icon-background, var(--m3p-icon-bg));
         color: var(--m3p-icon-color-fg, var(--m3p-icon-color));
       }
 
@@ -2667,7 +2667,7 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
         width: ${MEDIA_BROWSE_ROW_ICON_SIZE}px;
         height: ${MEDIA_BROWSE_ROW_ICON_SIZE}px;
         border-radius: ${MEDIA_BROWSE_ROW_ICON_RADIUS}px;
-        background: var(--m3p-icon-bg);
+        background: var(--m3-icon-background, var(--m3p-icon-bg));
         color: var(--mc-accent-fg, var(--mc-accent));
         display: flex;
         align-items: center;

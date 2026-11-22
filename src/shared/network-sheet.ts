@@ -245,7 +245,7 @@ export class M3NetworkSheet extends M3SheetBase {
         border-radius: ${DETAIL_ICON_RADIUS}px;
         display: grid;
         place-items: center;
-        background: var(--ns-icon-bg);
+        background: var(--m3-icon-background, var(--ns-icon-bg));
         color: var(--ns-icon-fg);
         --mdc-icon-size: 22px;
       }
@@ -412,7 +412,7 @@ export class M3NetworkSheet extends M3SheetBase {
       .sicon.on {
         border-color: transparent;
         border-radius: 22px;
-        background: var(--ns-icon-bg);
+        background: var(--m3-icon-background, var(--ns-icon-bg));
         color: var(--ns-icon-fg);
       }
       .sicon:focus-visible {

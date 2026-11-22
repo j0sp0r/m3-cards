@@ -8,6 +8,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **Icons without a background (#64).** `m3-icon-background: none` in a
+  theme removes the tinted surface behind the icons on every card, for the
+  current Google Home look. Unset, nothing changes. An icon that sat in dark
+  ink on a solid surface takes its colour instead, so it still reads.
+
 - **Nav card: the action button's menu catches up with the bar (#38).**
   Menu entries take `users` and `hidden`, so an entry meant for one person
   stays theirs, and `badge` / `badge_style`, shown after the label. The

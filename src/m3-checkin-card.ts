@@ -918,7 +918,7 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
         overflow: hidden;
         box-sizing: border-box;
         border: 2px solid color-mix(in srgb, var(--ci-tone) var(--ci-tint), var(--ha-card-background, var(--card-background-color, #1c1c1c)));
-        background: var(--m3p-icon-bg);
+        background: var(--m3-icon-background, var(--m3p-icon-bg));
         color: var(--m3p-icon-color);
         font-size: 11px;
         font-weight: 700;

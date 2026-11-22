@@ -14,6 +14,7 @@ import {
 } from "../const";
 import { STANDARD_EASING } from "./animation";
 import { inkOn, tintOn } from "./color-config";
+import { iconWell } from "./icon-well";
 
 // The "are you sure?" sheet.
 //
@@ -101,7 +102,7 @@ export function renderConfirmDialog(options: ConfirmDialogOptions): TemplateResu
               class="confirm-sheet"
               style=${`--confirm-accent: ${accent}; --confirm-ink: ${inkOn(accent, options.host)};`}
             >
-              <div class="confirm-icon" style=${`background: ${iconBg};`}>
+              <div class="confirm-icon" style=${`background: ${iconWell(iconBg)};`}>
                 <ha-icon icon=${icon}></ha-icon>
               </div>
               <h2 class="confirm-title">${request.title}</h2>

@@ -860,7 +860,7 @@ export class M3CalendarCard extends TemplatedCard(LitElement) implements Lovelac
     }
 
     .m3-icon-swatch {
-      background: var(--m3c-icon-bg);
+      background: var(--m3-icon-background, var(--m3c-icon-bg));
       color: var(--m3c-accent);
     }
 

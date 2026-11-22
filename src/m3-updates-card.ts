@@ -56,6 +56,7 @@ import { discoveryChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
 import { openEntityDetail } from "./shared/entity-detail";
 import { isHiddenEntity } from "./shared/ha-registry";
+import { iconWell } from "./shared/icon-well";
 
 console.info(
   `%c M3-UPDATES-CARD %c v${CARD_VERSION} `,
@@ -742,7 +743,7 @@ export class M3UpdatesCard extends TemplatedCard(LitElement) implements Lovelace
         @click=${this._moreInfo(row.entity)}
         @keydown=${activateOnKey(this._moreInfo(row.entity))}
       >
-        <div class="row-icon" style=${`background: ${tintOn(this, color, undefined, 20)}; color: ${tintInk(this, color, undefined, 20, 3)};`}>
+        <div class="row-icon" style=${`background: ${iconWell(tintOn(this, color, undefined, 20))}; color: ${tintInk(this, color, undefined, 20, 3)};`}>
           ${row.picture
             ? html`<img src=${row.picture} alt="" />`
             : html`<ha-icon icon=${GROUP_ICONS[row.group]}></ha-icon>`}
@@ -822,7 +823,7 @@ export class M3UpdatesCard extends TemplatedCard(LitElement) implements Lovelace
         height: ${UPDATES_CHIP_HEIGHT}px;
         padding: 0 10px;
         border-radius: ${UPDATES_CHIP_RADIUS}px;
-        background: var(--m3p-icon-bg);
+        background: var(--m3-icon-background, var(--m3p-icon-bg));
         color: var(--m3p-icon-color-fg, var(--m3p-icon-color));
         font-size: 13px;
         font-weight: 700;
@@ -873,7 +874,7 @@ export class M3UpdatesCard extends TemplatedCard(LitElement) implements Lovelace
         width: ${UPDATES_CORE_ICON_SIZE}px;
         height: ${UPDATES_CORE_ICON_SIZE}px;
         border-radius: ${UPDATES_CORE_ICON_RADIUS}px;
-        background: var(--upd-core-icon-bg);
+        background: var(--m3-icon-background, var(--upd-core-icon-bg));
         color: var(--upd-accent-fg, var(--upd-accent));
         display: flex;
         align-items: center;

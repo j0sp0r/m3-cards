@@ -960,7 +960,7 @@ export class M3TimeCard extends TemplatedCard(LitElement) implements LovelaceCar
         align-items: center;
         justify-content: center;
         color: var(--m3ti-accent-tint-ink, var(--m3ti-accent-fg, var(--m3ti-accent)));
-        background: var(--m3ti-accent-tint);
+        background: var(--m3-icon-background, var(--m3ti-accent-tint));
       }
 
       .header-icon ha-icon {

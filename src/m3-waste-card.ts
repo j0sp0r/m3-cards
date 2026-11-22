@@ -31,6 +31,7 @@ import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters, listEntities } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
 import { openEntityDetail } from "./shared/entity-detail";
+import { iconWell } from "./shared/icon-well";
 
 console.info(
   `%c M3-WASTE-CARD %c v${CARD_VERSION} `,
@@ -350,7 +351,7 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
         )}
       </div>`;
     }
-    return html`<div class="hero-icon" style=${`background: ${tintOn(this, primaryColor, undefined, 22)}; color: ${tintInk(this, primaryColor, undefined, 22, 3)};`}>
+    return html`<div class="hero-icon" style=${`background: ${iconWell(tintOn(this, primaryColor, undefined, 22))}; color: ${tintInk(this, primaryColor, undefined, 22, 3)};`}>
       <ha-icon icon=${sameDayStreams[0]?.icon ?? DEFAULT_WASTE_ICON}></ha-icon>
     </div>`;
   }
@@ -527,7 +528,7 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
         tabindex="0"
         @click=${() => this._moreInfo(s.entity)}
       >
-        <div class="row-icon" style=${`background: ${iconBgCss}; color: ${iconInkCss};`}>
+        <div class="row-icon" style=${`background: ${iconWell(iconBgCss)}; color: ${iconInkCss};`}>
           <ha-icon icon=${s.icon}></ha-icon>
         </div>
         <div class="row-text">

@@ -650,14 +650,14 @@ export class M3ClimateCardMini extends TemplatedCard(LitElement) implements Love
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--m3-icon-inactive-bg);
+      background: var(--m3-icon-background, var(--m3-icon-inactive-bg));
       color: var(--m3-icon-inactive-color);
       cursor: pointer;
       transition: all 0.35s cubic-bezier(0.2, 0, 0, 1);
     }
 
     .icon-swatch.active {
-      background: var(--m3-icon-active-bg);
+      background: var(--m3-icon-background, var(--m3-icon-active-bg));
       color: var(--m3-icon-active-color);
     }
 

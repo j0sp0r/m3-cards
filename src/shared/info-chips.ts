@@ -22,6 +22,7 @@ import { prettifyState } from "./appliance";
 import { buildCssVars, foregroundColor, foregroundOn, inkOn, resolveThemeColor, tintOn } from "./color-config";
 import { isMissingState, isOnState } from "./entity-actions";
 import { formatNumber } from "./formatting";
+import { iconWellsOff } from "./icon-well";
 import { findStateRule, numericState } from "./state-rules";
 import { glassBackground } from "./glass-card";
 
@@ -139,6 +140,9 @@ function renderInfoChip(cfg: InfoChipConfig, ctx: InfoChipContext): TemplateResu
     // checked against that, not against a tint that is no longer drawn.
     "m3a-chip-text": foregroundColor(host, color),
     "m3a-chip-ink": inkOn(color, host),
+    // The on tile's glyph: dark or white on the solid well, or the colour as
+    // text on the card when the theme turns icon wells off (#64).
+    "m3a-tile-ink": iconWellsOff(host) ? foregroundColor(host, color) : inkOn(color, host),
     // The tile's well, as the button card's: a wash of the colour carrying the
     // colour as its glyph, and the solid colour with dark or white ink once on.
     "m3a-well": tintOn(host, color, undefined, 20),
@@ -300,7 +304,7 @@ export const infoChipStyles = css`
     border-radius: 50%;
     display: grid;
     place-items: center;
-    background: var(--m3a-well, color-mix(in srgb, var(--m3a-chip, var(--m3p-secondary-text)) 20%, transparent));
+    background: var(--m3-icon-background, var(--m3a-well, color-mix(in srgb, var(--m3a-chip, var(--m3p-secondary-text)) 20%, transparent)));
     color: var(--m3a-well-ink, var(--m3a-chip-text, var(--m3p-secondary-text)));
     transition:
       background 0.25s ease,
@@ -321,8 +325,8 @@ export const infoChipStyles = css`
 
   .tile.on .tile-icon {
     border-radius: ${unsafeCSS(APPLIANCE_TILE_ICON_RADIUS_ON)};
-    background: var(--m3a-chip);
-    color: var(--m3a-chip-ink);
+    background: var(--m3-icon-background, var(--m3a-chip));
+    color: var(--m3a-tile-ink);
   }
 
   /* Three classes deep on purpose: the pill's ".chip ha-icon" further down

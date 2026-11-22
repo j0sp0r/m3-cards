@@ -591,7 +591,7 @@ export class M3LeakCard extends TemplatedCard(LitElement) implements LovelaceCar
         display: flex;
         align-items: center;
         justify-content: center;
-        background: color-mix(in srgb, var(--m3p-icon-color) 22%, var(--ha-card-background, var(--card-background-color)));
+        background: var(--m3-icon-background, color-mix(in srgb, var(--m3p-icon-color) 22%, var(--ha-card-background, var(--card-background-color))));
         color: var(--m3p-icon-color-fg, var(--m3p-icon-color));
       }
       .banner-icon ha-icon {

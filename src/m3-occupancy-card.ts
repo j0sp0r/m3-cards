@@ -550,7 +550,7 @@ export class M3OccupancyCard extends TemplatedCard(LitElement) implements Lovela
         align-items: center;
         justify-content: center;
         color: var(--m3o-accent-fg, var(--m3o-accent));
-        background: var(--m3o-accent-tint);
+        background: var(--m3-icon-background, var(--m3o-accent-tint));
       }
 
       .header-icon ha-icon {
@@ -685,12 +685,12 @@ export class M3OccupancyCard extends TemplatedCard(LitElement) implements Lovela
         color: var(--m3o-secondary-text);
         /* On the row, like the segments — 7% over the card left it two points
            from a row tinted 5% over the same card, which is no edge at all. */
-        background: color-mix(in srgb, var(--primary-text-color) ${OCCUPANCY_TINT_ON_ROW}%, var(--m3o-row, var(--ha-card-background, var(--card-background-color))));
+        background: var(--m3-icon-background, color-mix(in srgb, var(--primary-text-color) ${OCCUPANCY_TINT_ON_ROW}%, var(--m3o-row, var(--ha-card-background, var(--card-background-color)))));
       }
 
       .row.occupied .row-icon {
         color: var(--m3o-accent-fg, var(--m3o-accent));
-        background: color-mix(in srgb, var(--m3o-accent) 20%, var(--ha-card-background, var(--card-background-color)));
+        background: var(--m3-icon-background, color-mix(in srgb, var(--m3o-accent) 20%, var(--ha-card-background, var(--card-background-color))));
       }
 
       .row-icon ha-icon {

@@ -545,7 +545,7 @@ export class M3ProgressCard extends TemplatedCard(LitElement) implements Lovelac
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--m3p-icon-bg);
+      background: var(--m3-icon-background, var(--m3p-icon-bg));
       color: var(--m3p-icon-color);
     }
 

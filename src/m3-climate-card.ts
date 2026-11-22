@@ -1542,7 +1542,7 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--m3-icon-bg);
+      background: var(--m3-icon-background, var(--m3-icon-bg));
       color: var(--m3-icon-color);
     }
 

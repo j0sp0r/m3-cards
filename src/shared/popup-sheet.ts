@@ -118,7 +118,7 @@ export class M3PopupSheet extends M3SheetBase {
         border-radius: ${DETAIL_ICON_RADIUS}px;
         display: grid;
         place-items: center;
-        background: var(--pp-icon-bg);
+        background: var(--m3-icon-background, var(--pp-icon-bg));
         color: var(--pp-icon-ink);
         --mdc-icon-size: 22px;
       }

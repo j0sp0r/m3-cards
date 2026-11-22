@@ -784,7 +784,7 @@ export class M3RouterDiagnosticsCard
         display: flex;
         align-items: center;
         justify-content: center;
-        background: var(--m3r-temp-tint);
+        background: var(--m3-icon-background, var(--m3r-temp-tint));
         color: var(--m3r-temp);
       }
 

@@ -1,3 +1,4 @@
+import { iconWell } from "./shared/icon-well";
 import { LitElement, html, css, nothing, unsafeCSS } from "lit";
 import type { PropertyValues, TemplateResult } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
@@ -576,7 +577,7 @@ export class M3StatusCard extends TemplatedCard(LitElement) implements LovelaceC
     return html`
       <div
         class="well"
-        style=${`width: ${size}px; height: ${size}px; border-radius: ${radius}px; background: ${background}; color: ${foregroundOn(color, background, 3, this)}; --mdc-icon-size: ${Math.round(size * 0.52)}px;`}
+        style=${`width: ${size}px; height: ${size}px; border-radius: ${radius}px; background: ${iconWell(background)}; color: ${foregroundOn(color, background, 3, this)}; --mdc-icon-size: ${Math.round(size * 0.52)}px;`}
       >
         <ha-icon icon=${icon}></ha-icon>
       </div>

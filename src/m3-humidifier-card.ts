@@ -1123,7 +1123,7 @@ export class M3HumidifierCard extends TemplatedCard(LitElement) implements Lovel
     }
 
     .m3-icon-swatch {
-      background: var(--m3h-icon-bg);
+      background: var(--m3-icon-background, var(--m3h-icon-bg));
       color: var(--m3h-icon-fg);
     }
 

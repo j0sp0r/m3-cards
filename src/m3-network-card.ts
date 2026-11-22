@@ -886,7 +886,7 @@ export class M3NetworkCard extends TemplatedCard(LitElement) implements Lovelace
         border-radius: var(--nw-head-r);
         display: grid;
         place-items: center;
-        background: var(--nw-head-bg);
+        background: var(--m3-icon-background, var(--nw-head-bg));
         color: var(--nw-head-fg);
         --mdc-icon-size: 24px;
       }
@@ -1154,16 +1154,16 @@ export class M3NetworkCard extends TemplatedCard(LitElement) implements Lovelace
         border-radius: var(--nw-icon-r);
         display: grid;
         place-items: center;
-        background: color-mix(in srgb, var(--primary-text-color) 9%, var(--ha-card-background, var(--card-background-color)));
+        background: var(--m3-icon-background, color-mix(in srgb, var(--primary-text-color) 9%, var(--ha-card-background, var(--card-background-color))));
         color: var(--nw-text, var(--primary-text-color));
         --mdc-icon-size: 22px;
       }
       .row.new .ricon {
-        background: var(--nw-new-bg);
+        background: var(--m3-icon-background, var(--nw-new-bg));
         color: var(--nw-new-fg);
       }
       .row.problem .ricon {
-        background: var(--nw-warn-bg);
+        background: var(--m3-icon-background, var(--nw-warn-bg));
         color: var(--nw-warn-fg);
       }
       .badge {

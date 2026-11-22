@@ -695,7 +695,7 @@ export class M3AvailabilityCard extends TemplatedCard(LitElement) implements Lov
         border-radius: var(--av-head-r);
         display: grid;
         place-items: center;
-        background: var(--av-head-bg);
+        background: var(--m3-icon-background, var(--av-head-bg));
         color: var(--av-head-fg, var(--av-head));
         --mdc-icon-size: 24px;
       }
@@ -850,16 +850,16 @@ export class M3AvailabilityCard extends TemplatedCard(LitElement) implements Lov
         border-radius: var(--av-icon-r);
         display: grid;
         place-items: center;
-        background: var(--av-warn-icon);
+        background: var(--m3-icon-background, var(--av-warn-icon));
         color: var(--av-warn-fg, var(--av-warn));
         --mdc-icon-size: 22px;
       }
       .row.critical .ricon {
-        background: var(--av-crit-icon);
+        background: var(--m3-icon-background, var(--av-crit-icon));
         color: var(--av-crit-fg, var(--av-crit));
       }
       .row.stale .ricon {
-        background: color-mix(in srgb, var(--primary-text-color) 12%, var(--ha-card-background, var(--card-background-color)));
+        background: var(--m3-icon-background, color-mix(in srgb, var(--primary-text-color) 12%, var(--ha-card-background, var(--card-background-color))));
         color: var(--av-secondary, var(--secondary-text-color));
       }
       .badge {

@@ -139,6 +139,7 @@ import { TapHold, fireHaptic } from "./shared/tap-hold";
 import { stopSwipe } from "./shared/swipe";
 import { SliderIntent, capturePointer } from "./shared/slider-intent";
 import { swipeOutcome, swipeShown, slideToPage, noteNavArrival, type SwipeDirection } from "./shared/nav-swipe";
+import { iconWell } from "./shared/icon-well";
 
 const EASING = unsafeCSS(STANDARD_EASING);
 
@@ -2697,7 +2698,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
           const glyph = html`
             <span
               class="sheet-tile-glyph"
-              style=${`background: ${tint}; color: ${foregroundOn(color, tint, 3, this)};`}
+              style=${`background: ${iconWell(tint)}; color: ${foregroundOn(color, tint, 3, this)};`}
             >
               <ha-icon icon=${this._resolve(item.icon) || DEFAULT_NAV_ICON}></ha-icon>
             </span>
@@ -2906,7 +2907,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
               @keydown=${activateOnKey(() => this._runActionMenuEntry(index))}
             >
               ${entry.icon
-                ? html`<span class="menu-glyph" style=${`background: ${glyph};`}>
+                ? html`<span class="menu-glyph" style=${`background: ${iconWell(glyph)};`}>
                     <ha-icon icon=${entry.icon}></ha-icon>
                   </span>`
                 : nothing}
@@ -2970,7 +2971,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
               @keydown=${activateOnKey(() => this._runSubmenuEntry(index, entryIndex))}
             >
               ${entry.icon
-                ? html`<span class="submenu-glyph" style=${`background: ${tint};`}>
+                ? html`<span class="submenu-glyph" style=${`background: ${iconWell(tint)};`}>
                     <ha-icon icon=${entry.icon}></ha-icon>
                   </span>`
                 : nothing}

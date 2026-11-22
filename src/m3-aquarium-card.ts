@@ -70,6 +70,7 @@ import { hassChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
 import { openEntityDetail } from "./shared/entity-detail";
 import { feedingStatus, type FeedingStatus } from "./shared/aquarium-feeding";
+import { iconWell } from "./shared/icon-well";
 
 console.info(
   `%c M3-AQUARIUM-CARD %c v${CARD_VERSION} `,
@@ -1057,7 +1058,7 @@ export class M3AquariumCard extends TemplatedCard(LitElement) implements Lovelac
                   ${thumbnailMode
                     ? this._renderCameraThumbnail()
                     : html`
-                        <div class="icon-swatch" style=${`background: ${tintOn(this, accentColor, this._config.accent_opacity, 18)}; color: ${tintInk(this, accentColor, this._config.accent_opacity, 18, 3)};`}>
+                        <div class="icon-swatch" style=${`background: ${iconWell(tintOn(this, accentColor, this._config.accent_opacity, 18))}; color: ${tintInk(this, accentColor, this._config.accent_opacity, 18, 3)};`}>
                           <ha-icon icon=${icon}></ha-icon>
                         </div>
                       `}
@@ -1562,7 +1563,7 @@ export class M3AquariumCard extends TemplatedCard(LitElement) implements Lovelac
       }
 
       .tile-icon.active {
-        background: var(--tile-icon-bg);
+        background: var(--m3-icon-background, var(--tile-icon-bg));
         /* The glyph sits in the well, so it is measured against the well. */
         color: var(--tile-icon-color, var(--tile-color));
         opacity: 1;

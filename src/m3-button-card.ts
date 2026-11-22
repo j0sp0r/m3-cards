@@ -1,3 +1,4 @@
+import { iconWellsOff } from "./shared/icon-well";
 import { LitElement, html, css, nothing, type PropertyValues, unsafeCSS } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type {
@@ -701,8 +702,12 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
     // The glyph sits in the well, so it is measured against the well rather
     // than against the card — otherwise an active button shows an accent icon
     // on an accent-tinted ground and the glyph disappears.
+    // Wells turned off by the theme (#64): a solid well's dark ink would sit
+    // on the card itself, so the glyph takes the accent as text instead.
     const iconInkActive = solidIcon
-      ? inkOn(iconBgActive, this)
+      ? iconWellsOff(this)
+        ? foregroundColor(this, color)
+        : inkOn(iconBgActive, this)
       : foregroundOn(color, iconBgActive);
     const iconInkInactive = foregroundOn(inactiveColor, iconBgInactive);
     const name =
@@ -1049,7 +1054,7 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
       align-items: center;
       justify-content: center;
       color: var(--m3-btn-icon-ink-inactive, var(--m3-btn-inactive-color));
-      background: var(--m3-btn-icon-bg-inactive);
+      background: var(--m3-icon-background, var(--m3-btn-icon-bg-inactive));
       transition: all 0.25s ease;
       cursor: pointer;
     }
@@ -1059,7 +1064,7 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
     }
 
     .icon-container.active {
-      background: var(--m3-btn-icon-bg-active);
+      background: var(--m3-icon-background, var(--m3-btn-icon-bg-active));
       color: var(--m3-btn-icon-ink-active, var(--m3-btn-color));
     }
 
@@ -1086,7 +1091,7 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
 
     /* Slider mode: opaque chip so the fill behind it doesn't double-tint. */
     .card-inner.sliderable .icon-container.active {
-      background: var(--m3-btn-icon-bg-active-solid);
+      background: var(--m3-icon-background, var(--m3-btn-icon-bg-active-solid));
     }
 
     .icon-bare {

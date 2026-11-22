@@ -53,6 +53,7 @@ import { hassChangeMatters } from "./shared/should-update";
 import { formatNumber } from "./shared/formatting";
 import { TemplatedCard } from "./shared/templated-card";
 import { openEntityDetail } from "./shared/entity-detail";
+import { iconWell } from "./shared/icon-well";
 
 console.info(
   `%c M3-COST-CARD %c v${CARD_VERSION} `,
@@ -362,7 +363,7 @@ export class M3CostCard extends TemplatedCard(LitElement) implements LovelaceCar
             style=${`border-radius: ${radius};${cardBackgroundCss ? ` background: ${cardBackgroundCss};` : ""}`}
           >
             <div class="main-row">
-              <div class="main-icon" style=${`background: ${tintOn(this, accentColor, this._config.accent_opacity, 18)}; color: ${tintInk(this, accentColor, this._config.accent_opacity, 18, 3)};`}>
+              <div class="main-icon" style=${`background: ${iconWell(tintOn(this, accentColor, this._config.accent_opacity, 18))}; color: ${tintInk(this, accentColor, this._config.accent_opacity, 18, 3)};`}>
                 <ha-icon icon=${icon}></ha-icon>
               </div>
               <div class="main-text">
@@ -457,7 +458,7 @@ export class M3CostCard extends TemplatedCard(LitElement) implements LovelaceCar
           <div class="main-row">
             <div
               class="main-icon"
-              style=${`background: ${tintOn(this, isCredit ? COST_BETTER_COLOR : accentColor, this._config.accent_opacity, 18)}; color: ${tintInk(this, isCredit ? COST_BETTER_COLOR : accentColor, this._config.accent_opacity, 18, 3)};`}
+              style=${`background: ${iconWell(tintOn(this, isCredit ? COST_BETTER_COLOR : accentColor, this._config.accent_opacity, 18))}; color: ${tintInk(this, isCredit ? COST_BETTER_COLOR : accentColor, this._config.accent_opacity, 18, 3)};`}
             >
               <ha-icon icon=${icon}></ha-icon>
             </div>
@@ -544,7 +545,7 @@ export class M3CostCard extends TemplatedCard(LitElement) implements LovelaceCar
         <div class="nav-info">
           <div
             class="nav-icon"
-            style=${`background: ${tintOn(this, accentColor, this._config?.accent_opacity, 20)}; color: ${tintInk(this, accentColor, this._config?.accent_opacity, 20)};`}
+            style=${`background: ${iconWell(tintOn(this, accentColor, this._config?.accent_opacity, 20))}; color: ${tintInk(this, accentColor, this._config?.accent_opacity, 20)};`}
           >
             <ha-icon icon="mdi:calendar-month-outline"></ha-icon>
           </div>
@@ -668,7 +669,7 @@ export class M3CostCard extends TemplatedCard(LitElement) implements LovelaceCar
       >
         <div
           class="tariff-icon"
-          style=${`background: ${tintOn(this, accentColor, this._config.accent_opacity, 20)}; color: ${tintInk(this, accentColor, this._config.accent_opacity, 20)};`}
+          style=${`background: ${iconWell(tintOn(this, accentColor, this._config.accent_opacity, 20))}; color: ${tintInk(this, accentColor, this._config.accent_opacity, 20)};`}
         >
           <ha-icon icon="mdi:tag-outline"></ha-icon>
         </div>

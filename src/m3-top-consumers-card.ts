@@ -49,6 +49,7 @@ import { formatNumber } from "./shared/formatting";
 import { discoveryChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
 import { openEntityDetail } from "./shared/entity-detail";
+import { iconWell } from "./shared/icon-well";
 
 console.info(
   `%c M3-TOP-CONSUMERS-CARD %c v${CARD_VERSION} `,
@@ -498,7 +499,7 @@ export class M3TopConsumersCard extends TemplatedCard(LitElement) implements Lov
         title=${row.name}
       >
         <div class="bar-fill" style=${`width: ${barPct}%; background: ${tintOn(this, row.color, undefined, 22)};`}></div>
-        <div class="icon-squircle" style=${`background: ${tintOn(this, row.color, undefined, 20)}; color: ${tintInk(this, row.color, undefined, 20, 3)};`}>
+        <div class="icon-squircle" style=${`background: ${iconWell(tintOn(this, row.color, undefined, 20))}; color: ${tintInk(this, row.color, undefined, 20, 3)};`}>
           <ha-icon icon=${row.icon}></ha-icon>
         </div>
         <div class="row-text">
@@ -525,7 +526,7 @@ export class M3TopConsumersCard extends TemplatedCard(LitElement) implements Lov
         @keydown=${activateOnKey(this._moreInfo(row.entity))}
         title=${row.name}
       >
-        <div class="icon-squircle small" style=${`background: ${tintOn(this, row.color, undefined, 20)}; color: ${tintInk(this, row.color, undefined, 20, 3)};`}>
+        <div class="icon-squircle small" style=${`background: ${iconWell(tintOn(this, row.color, undefined, 20))}; color: ${tintInk(this, row.color, undefined, 20, 3)};`}>
           <ha-icon icon=${row.icon}></ha-icon>
         </div>
         <div class="row-name">${row.name}</div>

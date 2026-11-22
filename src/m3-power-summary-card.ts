@@ -44,6 +44,7 @@ import { TemplatedCard } from "./shared/templated-card";
 import { openEntityDetail } from "./shared/entity-detail";
 import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
 import { runHaAction, navigateTo, isActionable } from "./shared/actions";
+import { iconWell } from "./shared/icon-well";
 
 console.info(
   `%c M3-POWER-SUMMARY-CARD %c v${CARD_VERSION} `,
@@ -421,7 +422,7 @@ export class M3PowerSummaryCard extends TemplatedCard(LitElement) implements Lov
           >
             <div
               class="main-icon"
-              style=${`background: ${tintOn(this, mainColor, this._config.flow_tint_opacity, 18)}; color: ${foregroundColor(this, mainColor)};`}
+              style=${`background: ${iconWell(tintOn(this, mainColor, this._config.flow_tint_opacity, 18))}; color: ${foregroundColor(this, mainColor)};`}
             >
               <ha-icon icon=${mainIcon}></ha-icon>
             </div>
@@ -610,7 +611,7 @@ export class M3PowerSummaryCard extends TemplatedCard(LitElement) implements Lov
         @click=${this._moreInfo(metric.entity)}
         @keydown=${activateOnKey(this._moreInfo(metric.entity))}
       >
-        <div class="metric-icon" style=${`background: ${iconBg}; color: ${foregroundOn(iconColor, iconBg)};`}>
+        <div class="metric-icon" style=${`background: ${iconWell(iconBg)}; color: ${foregroundOn(iconColor, iconBg)};`}>
           <ha-icon icon=${icon}></ha-icon>
         </div>
         <div class="metric-value" style=${`color: ${unavailable ? "var(--m3p-secondary-text)" : foregroundColor(this, color)};`}>

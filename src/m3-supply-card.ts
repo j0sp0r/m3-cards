@@ -60,6 +60,7 @@ import { hassChangeMatters, listEntities } from "./shared/should-update";
 import { formatNumber } from "./shared/formatting";
 import { TemplatedCard } from "./shared/templated-card";
 import { openEntityDetail } from "./shared/entity-detail";
+import { iconWell } from "./shared/icon-well";
 
 console.info(
   `%c M3-SUPPLY-CARD %c v${CARD_VERSION} `,
@@ -540,7 +541,7 @@ export class M3SupplyCard extends TemplatedCard(LitElement) implements LovelaceC
     return html`
       <div class="hero ${dimmed}" style=${`--m3s-accent: ${entry.colorCss};`}>
         <div class="hero-head">
-          <div class="hero-icon" style=${`background: ${tintOn(this, entry.colorCss, undefined, 18)}; color: ${tintInk(this, entry.colorCss, undefined, 18, 3)};`}>
+          <div class="hero-icon" style=${`background: ${iconWell(tintOn(this, entry.colorCss, undefined, 18))}; color: ${tintInk(this, entry.colorCss, undefined, 18, 3)};`}>
             <ha-icon icon=${entry.icon}></ha-icon>
           </div>
           <div class="hero-text">

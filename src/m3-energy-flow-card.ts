@@ -52,6 +52,7 @@ import { hassChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
 import { handleAction, isActionable } from "./shared/actions";
 import { activateOnKey } from "./shared/a11y";
+import { iconWell } from "./shared/icon-well";
 
 console.info(
   `%c M3-ENERGY-FLOW-CARD %c v${CARD_VERSION} `,
@@ -796,7 +797,7 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
               class="ctile ${t.side === "home" ? "home" : ""} ${t.value > 0 ? "" : "idle"}"
               title=${`${t.name}${t.soc !== undefined ? ` ${Math.round(t.soc)} %` : ""}: ${this._formatNumber(t.value)} ${this._unitLabel}`}
             >
-              <div class="cicon" style=${`background: ${fill}; color: ${foregroundOn(t.color, fill)};`}>
+              <div class="cicon" style=${`background: ${iconWell(fill)}; color: ${foregroundOn(t.color, fill)};`}>
                 <ha-icon icon=${t.icon}></ha-icon>
               </div>
               <div class="cvalue">

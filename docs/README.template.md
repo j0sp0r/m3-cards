@@ -173,6 +173,22 @@ The nav card is the exception in the other direction: its entries had templates
 before this existed, with `hidden` / `disabled` read as booleans, and they work
 as documented under [M3 Nav Card](#m3-nav-card).
 
+## Icons without a background
+
+Every card draws its icons on a small tinted surface. A theme can take those
+away for the whole dashboard — icons straight on the card, as the current
+Google Home app draws them:
+
+```yaml
+# in your theme
+m3-icon-background: none
+```
+
+Unset, nothing changes. Where a surface was filled solid with dark ink on it
+(an active room tile, a button card with `icon_fill: solid`), the icon takes
+its colour instead, so it still reads on the card. Buttons that are controls
+rather than icons, such as a power button, keep their surface.
+
 ## Your own translations
 
 The cards ship in German and English; every other language gets English.

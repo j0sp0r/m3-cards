@@ -485,7 +485,7 @@ export class M3TariffCard extends TemplatedCard(LitElement) implements LovelaceC
         border-radius: 16px;
         display: grid;
         place-items: center;
-        background: var(--tf-icon-bg);
+        background: var(--m3-icon-background, var(--tf-icon-bg));
         color: var(--tf-icon-fg);
         --mdc-icon-size: 24px;
       }

@@ -196,7 +196,7 @@ export const listRowStyles = css`
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--lr-icon-bg);
+    background: var(--m3-icon-background, var(--lr-icon-bg));
     color: var(--lr-icon-color);
   }
 

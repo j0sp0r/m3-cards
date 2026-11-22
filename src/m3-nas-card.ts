@@ -668,7 +668,7 @@ export class M3NasCard extends TemplatedCard(LitElement) implements LovelaceCard
         height: 30px;
         padding: 0 10px;
         border-radius: 15px;
-        background: var(--m3p-icon-bg);
+        background: var(--m3-icon-background, var(--m3p-icon-bg));
         color: var(--m3p-icon-color-fg, var(--m3p-icon-color));
         font-size: 13px;
         font-weight: 700;

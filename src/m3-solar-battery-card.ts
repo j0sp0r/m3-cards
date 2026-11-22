@@ -70,6 +70,7 @@ import {
   type MpptReading,
   type SolarBatteryPhase,
 } from "./shared/solar-battery";
+import { iconWell } from "./shared/icon-well";
 
 const EASING = unsafeCSS(STANDARD_EASING);
 
@@ -512,7 +513,7 @@ export class M3SolarBatteryCard extends TemplatedCard(LitElement) implements Lov
         @click=${run}
         @keydown=${activateOnKey(run)}
       >
-        <div class="tile-icon" style=${`background: ${iconBg}; color: ${foregroundOn(tile.color, iconBg, 3, this)};`}>
+        <div class="tile-icon" style=${`background: ${iconWell(iconBg)}; color: ${foregroundOn(tile.color, iconBg, 3, this)};`}>
           <ha-icon icon=${tile.icon}></ha-icon>
         </div>
         <div class="tile-value" style=${`color: ${foregroundOn(tile.color, tileBg, 4.5, this)};`}>
