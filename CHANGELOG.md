@@ -57,6 +57,14 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Energy flow card: compact layout in a half-width slot (#54).** Four tiles
+  in a phone's half-width slot put the numbers on top of each other. Below
+  300px (three tiles: 200px) they now go to two columns; the arrows give way
+  there, the grid and battery icons still say which way those run. The
+  battery tile shows its state of charge as "64 %" in place of a label that
+  was cut to "Batte…". And the card takes a `tap_action` now, in both
+  layouts — navigate to a popup's hash, say; unset, a tap does nothing, as
+  before.
 - **Room card: a header that fits a half-width slot (#43).** Below 260px the
   icon drops to 44px and the fold pill moves under the name, in place of the
   subtitle it repeats, so "Wohnzimmer" is no longer cut to its first letter.

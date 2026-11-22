@@ -2,6 +2,7 @@ import {
   LitElement,
   html,
   css,
+  unsafeCSS,
   nothing,
   svg,
   type PropertyValues,
@@ -30,6 +31,8 @@ import {
   FLOW_MIN_STROKE,
   FLOW_MAX_STROKE,
   FLOW_DOT_DURATION_MS,
+  FLOW_COMPACT_NARROW_3,
+  FLOW_COMPACT_NARROW_4,
   resolveCornerRadius,
 } from "./const";
 import {
@@ -47,6 +50,8 @@ import { localize, type TranslationKey } from "./localize";
 import { formatNumber } from "./shared/formatting";
 import { hassChangeMatters } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
+import { handleAction, isActionable } from "./shared/actions";
+import { activateOnKey } from "./shared/a11y";
 
 console.info(
   `%c M3-ENERGY-FLOW-CARD %c v${CARD_VERSION} `,
@@ -112,6 +117,29 @@ function batteryHomePath(): string {
 
 function straightPath(x1: number, y1: number, x2: number, y2: number): string {
   return `M ${x1} ${y1} L ${x2} ${y2}`;
+}
+
+/**
+ * The compact row in two columns once a card of `n` tiles is narrower than
+ * `width` (#54). Four tiles in a half-width slot on a phone put the numbers
+ * on top of each other, and a tile with its icon beside the value left the
+ * value 30px. So the tiles keep their column — icon, value, name — a little
+ * smaller, two to a row; with three, home spans the second. The arrows go:
+ * they point at a home tile beside them, and here it is below. The grid and
+ * battery icons still say which way those run.
+ */
+function narrowCompactCss(n: number, width: number): string {
+  const row = `.compact-row.n${n}`;
+  return `
+    @container flow-card (max-width: ${width}px) {
+      ${row} { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      ${n === 3 ? `${row} .ctile.home { grid-column: 1 / -1; }` : ""}
+      ${row} .ctile { padding: 6px 2px; border-radius: 14px; }
+      ${row} .cicon { width: 30px; height: 30px; border-radius: 11px; --mdc-icon-size: 17px; }
+      ${row} .cvalue { font-size: 14px; }
+      ${row} .carrow, ${row} .carrow-spacer { display: none; }
+    }
+  `;
 }
 
 @customElement("m3-energy-flow-card")
@@ -593,13 +621,19 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
     });
 
     const compact = this._config.layout === "compact";
+    const tappable = !!this._config.tap_action && isActionable(this._config.tap_action);
     const showHeader = this._config.show_header ?? !compact;
     if (compact) {
       return html`
         <ha-card style=${`${cssVars} border-radius: ${radius};`}>
           <div
-            class="card-inner compact ${glassCardClass(this._config.glass_background)} ${animate ? "" : "no-animations"}"
+            class="card-inner compact ${glassCardClass(this._config.glass_background)} ${animate ? "" : "no-animations"} ${tappable ? "tappable" : ""}"
             style=${`border-radius: ${radius};${cardBackgroundCss ? ` background: ${cardBackgroundCss};` : ""}`}
+            role=${tappable ? "button" : nothing}
+            tabindex=${tappable ? "0" : nothing}
+            aria-label=${tappable ? name : nothing}
+            @click=${tappable ? this._onTap : nothing}
+            @keydown=${tappable ? activateOnKey(this._onTap) : nothing}
           >
             ${showHeader ? renderCardHeader({ icon, name, subtitle }) : nothing}
             ${this._renderCompact(
@@ -617,8 +651,13 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
     return html`
       <ha-card style=${`${cssVars} border-radius: ${radius};`}>
         <div
-          class="card-inner ${glassCardClass(this._config.glass_background)} ${animate ? "" : "no-animations"}"
+          class="card-inner ${glassCardClass(this._config.glass_background)} ${animate ? "" : "no-animations"} ${tappable ? "tappable" : ""}"
           style=${`border-radius: ${radius};${cardBackgroundCss ? ` background: ${cardBackgroundCss};` : ""}`}
+          role=${tappable ? "button" : nothing}
+          tabindex=${tappable ? "0" : nothing}
+          aria-label=${tappable ? name : nothing}
+          @click=${tappable ? this._onTap : nothing}
+          @keydown=${tappable ? activateOnKey(this._onTap) : nothing}
         >
           ${showHeader ? renderCardHeader({ icon, name, subtitle }) : nothing}
 
@@ -658,6 +697,16 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
       </ha-card>
     `;
   }
+
+  /**
+   * Runs `tap_action` (#54). Only bound when one is configured. Without an
+   * entity of its own, as on the heading card: a more-info here has nothing
+   * to open, which is why the card stays out of `detail_mode`.
+   */
+  private _onTap = (): void => {
+    const action = this._config?.tap_action;
+    if (action) handleAction(this, this.hass, action);
+  };
 
   /**
    * `layout: compact` (#54): the nodes side by side, home third as the
@@ -736,8 +785,8 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
     };
     return html`
       <div
-        class="compact-row"
-        style=${`grid-template-columns: repeat(${tiles.length}, minmax(0, 1fr)); --flow-self: ${selfColor};`}
+        class="compact-row n${tiles.length}"
+        style=${`--flow-tiles: ${tiles.length}; --flow-self: ${selfColor};`}
       >
         ${tiles.map((t) => {
           const fill = tintOn(this, t.color, c.node_tint_opacity, t.value > 0 ? 18 : 8);
@@ -753,7 +802,7 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
               <div class="cvalue">
                 ${this._formatNumber(t.value)}<span class="cunit">${this._unitLabel}</span>
               </div>
-              <div class="cname">${t.name}</div>
+              <div class="cname">${t.soc !== undefined ? `${Math.round(t.soc)} %` : t.name}</div>
               ${arrow
                 ? html`<ha-icon class="carrow ${animate ? "moving" : ""} ${arrow.endsWith("left") ? "left" : "right"}" icon=${arrow} style=${`color: ${foregroundColor(this, t.color)};`}></ha-icon>`
                 : t.note
@@ -899,8 +948,19 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
       }
 
       /* layout: compact (#54) */
+      .card-inner.compact {
+        container: flow-card / inline-size;
+      }
+      .card-inner.tappable {
+        cursor: pointer;
+      }
+      .card-inner.tappable:focus-visible {
+        outline: 2px solid var(--m3p-accent, var(--primary-color));
+        outline-offset: -2px;
+      }
       .compact-row {
         display: grid;
+        grid-template-columns: repeat(var(--flow-tiles), minmax(0, 1fr));
         gap: 6px;
       }
       .ctile {
@@ -977,6 +1037,14 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
         0%, 100% { transform: translateX(2px); opacity: 0.6; }
         50% { transform: translateX(-2px); opacity: 1; }
       }
+      /* Too narrow for the row (#54): four tiles in a half-width slot on a
+         phone put the numbers on top of each other. Two columns instead, each
+         tile a row of its own — icon left, value and name right. The arrows
+         go: they point at a home tile beside them, and here it is below. The
+         grid and battery icons still say which way those run. Three tiles
+         put home across the second row. */
+      ${unsafeCSS(narrowCompactCss(4, FLOW_COMPACT_NARROW_4))}
+      ${unsafeCSS(narrowCompactCss(3, FLOW_COMPACT_NARROW_3))}
       @media (prefers-reduced-motion: reduce) {
         .carrow.moving.right,
         .carrow.moving.left {

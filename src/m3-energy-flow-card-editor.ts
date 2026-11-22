@@ -87,6 +87,7 @@ export class M3EnergyFlowCardEditor extends LitElement implements LovelaceCardEd
       },
       { name: "show_header", selector: { boolean: {} } },
       { name: "show_self_sufficiency", selector: { boolean: {} } },
+      { name: "tap_action", selector: { ui_action: {} } },
       { name: "subtitle", selector: { text: {} } },
       { name: "pv_name", selector: { text: {} } },
       { name: "grid_name", selector: { text: {} } },
@@ -144,6 +145,7 @@ export class M3EnergyFlowCardEditor extends LitElement implements LovelaceCardEd
       battery_soc_entity: "editor_flow_battery_soc_entity",
       home_entity: "editor_flow_home_entity",
       show_self_sufficiency: "editor_flow_show_self_sufficiency",
+      tap_action: "editor_tap_action",
       grid_entity: "editor_flow_grid_entity",
       grid_invert: "editor_flow_grid_invert",
       layout: "editor_flow_layout",
@@ -195,6 +197,8 @@ export class M3EnergyFlowCardEditor extends LitElement implements LovelaceCardEd
     const next: Record<string, unknown> = { ...this._config, ...ev.detail.value };
     // An emptied text field is an unset option, not an empty name.
     for (const k of ["subtitle", "pv_name", "grid_name", "home_name", "battery_name", "unit"]) if (next[k] === "") delete next[k];
+    // A cleared action is no action, and the card reads the key's presence.
+    if (next.tap_action === undefined) delete next.tap_action;
     this._config = next as unknown as M3EnergyFlowCardConfig;
     fireEvent(this, "config-changed", { config: this._config });
   }
@@ -263,6 +267,7 @@ export class M3EnergyFlowCardEditor extends LitElement implements LovelaceCardEd
       layout: this._config.layout ?? "full",
       show_header: this._config.show_header ?? this._config.layout !== "compact",
       show_self_sufficiency: this._config.show_self_sufficiency ?? true,
+      tap_action: this._config.tap_action,
       subtitle: this._config.subtitle,
       pv_name: this._config.pv_name,
       grid_name: this._config.grid_name,

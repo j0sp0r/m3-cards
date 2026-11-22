@@ -516,6 +516,10 @@ export const FLOW_NODE_SIZE = 72;
 export const FLOW_NODE_RX = 26;
 export const FLOW_MIN_STROKE = 4;
 export const FLOW_MAX_STROKE = 20;
+// layout: compact (#54): below these card widths the row of tiles goes to two
+// columns — about 70px a tile for four, 60px for three.
+export const FLOW_COMPACT_NARROW_4 = 300;
+export const FLOW_COMPACT_NARROW_3 = 200;
 
 type FlowSpeedKey = "slow" | "normal" | "fast";
 export const FLOW_DOT_DURATION_MS: Record<FlowSpeedKey, number> = {

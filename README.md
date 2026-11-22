@@ -1266,7 +1266,11 @@ goes negative on export works as `grid_entity`.
 in one row about as tall as a weather or status tile, for a half-width slot.
 A small arrow under each value says which way it runs relative to the home
 tile, the home tile carries the self-sufficiency, and the battery icon fills
-with its state of charge. The header is off unless `show_header: true`.
+with its state of charge, the percentage under it. The header is off unless
+`show_header: true`. On a card too narrow for the row — four tiles under
+300px, three under 200px, as in a half-width slot on a phone — the tiles go
+to two columns, each with its icon beside its value; the arrows give way
+there, and the grid and battery icons say which way those run.
 
 <img src="docs/images/energy-flow-compact.png" alt="Energy Flow Card, layout: compact — exporting and charging above, drawing from the grid below" width="400">
 
@@ -1332,6 +1336,7 @@ paused) when `animation: "off"` or `prefers-reduced-motion` is active.
 | `unit` | string | kWh, or W/kW for power sensors | Unit under the nodes; W, kW, Wh, kWh and MWh also convert the numbers |
 | `icon` | string | `mdi:transmission-tower` | Icon in the icon tile |
 | `show_self_sufficiency` | boolean | `true` | Show the self-sufficiency bar |
+| `tap_action` | action | – | What a tap on the card does, in both layouts — `navigate` to a popup's hash, say. Unset, a tap does nothing |
 | `show_battery` | `auto` \| `always` \| `never` | `auto` | Battery node visibility |
 | `flow_speed` | `slow` \| `normal` \| `fast` | `normal` | Flow dot speed |
 | `pv_color` / `grid_color` / `home_color` / `battery_color` | string | theme default | Node colors |

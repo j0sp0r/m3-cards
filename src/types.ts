@@ -517,6 +517,11 @@ export interface M3EnergyFlowCardConfig {
    * other text is only a label. Default: kWh, or W/kW for power sensors.
    */
   unit?: string;
+  /**
+   * A tap on the card (#54). Unset, the card does nothing on a tap, as
+   * before; set, it runs this — navigate to a popup's hash, say.
+   */
+  tap_action?: HaActionConfig;
   show_self_sufficiency?: boolean;
   show_battery?: FlowBatteryVisibility;
   pv_color?: string;
