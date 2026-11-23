@@ -42,9 +42,10 @@ const VIEWS = [
   { key: "household", title: "Household", icon: "mdi:washing-machine" },
   { key: "security", title: "Security", icon: "mdi:shield-home" },
   { key: "more", title: "More", icon: "mdi:dots-grid" },
+  { key: "shapes", title: "Shapes", icon: "mdi:shape-outline" },
 ];
 
-const TITLES_DE = { home: "Start", rooms: "Räume", climate: "Klima", energy: "Energie", household: "Haushalt", security: "Sicherheit", more: "Mehr" };
+const TITLES_DE = { home: "Start", rooms: "Räume", climate: "Klima", energy: "Energie", household: "Haushalt", security: "Sicherheit", more: "Mehr", shapes: "Formen" };
 
 const PHONE_BAR = 4;
 
@@ -202,6 +203,66 @@ function views() {
         { type: "custom:m3-updates-card" },
       ]],
     ],
+    // The same cards in their other looks, each titled with the setting that
+    // gives it that look.
+    shapes: (() => {
+      const flow = { type: "custom:m3-energy-flow-card", source: "entities", solar_entity: "sensor.solar_power", grid_entity: "sensor.grid_power", battery_entity: "sensor.battery_power", battery_soc_entity: "sensor.battery_soc", home_entity: "sensor.house_power" };
+      const climate = { type: "custom:m3-climate-card", entity: "climate.living_room", temperature_sensor: "sensor.living_room_temperature", humidity_sensor: "sensor.living_room_humidity", show_presets: true };
+      const gauge = { type: "custom:m3-gauge-card", entity: "sensor.house_power", name: t("House", "Haus"), min: 0, max: 6000, segments: [{ from: 0, color: "#b3d88a" }, { from: 2500, color: "#f0c987" }, { from: 4500, color: "#e8a08a" }] };
+      const checkin = { type: "custom:m3-checkin-card", entity: "input_boolean.home_office", name: t("Home office", "Homeoffice"), icon: "mdi:laptop", icon_off: "mdi:laptop-off" };
+      const status = { type: "custom:m3-status-card", items: [
+        { entity: "input_boolean.plants_watered", name: t("Plants", "Pflanzen"), preset: "yes_no", tap_action: { action: "toggle" } },
+        { entity: "input_boolean.fish_fed", name: t("Fish", "Fische"), preset: "yes_no", tap_action: { action: "toggle" } },
+        { entity: "binary_sensor.front_door", name: t("Front door", "Haustür"), preset: "open_closed" },
+      ] };
+      const supply = { type: "custom:m3-supply-card", items: [
+        { entity: "counter.dishwasher_tabs", name: t("Dishwasher tabs", "Spülmaschinentabs"), icon: "mdi:dishwasher" },
+        { entity: "counter.coffee_capsules", name: t("Coffee capsules", "Kaffeekapseln"), icon: "mdi:coffee" },
+        { entity: "counter.detergent_pods", name: t("Detergent pods", "Waschmittel"), icon: "mdi:washing-machine" },
+      ] };
+      return [
+        [t("Clocks", "Uhren"), ["tiles", "shapes", "lockscreen", "scallop", "ring"].map((style) => ({ type: "custom:m3-clock-card", style, show_date: true, variant: `style: ${style}` }))],
+        [t("Thermostat", "Thermostat"), [
+          { ...climate, style: "tiles", variant: "style: tiles" },
+          { ...climate, style: "expressive", variant: "style: expressive" },
+          { type: "custom:m3-climate-card-mini", entity: "climate.bedroom", variant: t("the small one", "die kleine") },
+        ]],
+        [t("Dials and energy", "Tacho und Energie"), [
+          { ...gauge, variant: t("default: two values, net", "Standard: Bilanz zweier Werte") },
+          { ...gauge, style: "needle", variant: "style: needle" },
+          { ...flow, layout: "compact", variant: "layout: compact" },
+          { type: "custom:m3-power-summary-card", grid_entity: "sensor.grid_power", consumption_entity: "sensor.house_power", solar_entity: "sensor.solar_power", layout: "compact", variant: "layout: compact" },
+        ]],
+        [t("Switches", "Schalter"), ["segmented", "status", "swipe"].map((style) => ({ ...checkin, style, variant: `style: ${style}` }))],
+        [t("People and status", "Personen und Status"), [
+          { type: "custom:m3-presence-card", auto_discover: true, layout: "compact", variant: "layout: compact" },
+          ...["hero", "grid", "row"].map((layout) => ({ ...status, layout, variant: `layout: ${layout}` })),
+        ]],
+        [t("Lists", "Listen"), [
+          { ...supply, layout: "hero_only", variant: "layout: hero_only" },
+          { ...supply, layout: "list_only", variant: "layout: list_only" },
+          { type: "custom:m3-calendar-card", entities: ["calendar.family", "calendar.school"], view: "month", variant: "view: month" },
+          { type: "custom:m3-lights-overview-card", auto_discover: true, view: "entities", variant: "view: entities" },
+        ]],
+        // Rooms folded to one row each, opening onto their buttons — the way the
+        // author's own socket overview is built.
+        [t("Rooms, folded", "Räume, eingeklappt"), [
+          ["living_room", [["light.living_ceiling", "mdi:ceiling-light"], ["light.floor_lamp", "mdi:floor-lamp"], ["light.tv_strip", "mdi:led-strip-variant"], ["switch.tv_plug", "mdi:power-socket-eu"]]],
+          ["kitchen", [["light.kitchen", "mdi:ceiling-light"], ["light.kitchen_counter", "mdi:light-recessed"]]],
+          ["office", [["light.desk", "mdi:desk-lamp"], ["switch.desk_plug", "mdi:power-socket-eu"]]],
+          ["bedroom", [["light.bedroom", "mdi:ceiling-light"], ["light.bedside", "mdi:lamp"]]],
+        ].map(([area, buttons], i) => ({
+          type: "custom:m3-room-card", area, mode: "manual", collapsible: true, default_collapsed: true,
+          ...(i === 0 ? { variant: "mode: manual · collapsible" } : { untitled: true }),
+          cards: buttons.map(([entity, icon]) => ({ type: "custom:m3-button-card", entity, icon, shape_by_state: true, icon_fill: "solid", show_state: false })),
+        }))],
+        [t("Headings", "Überschriften"), ["simple", "status", "divider", "collapsible"].map((style) => ({
+          type: "custom:m3-heading-card", style, title: t("Living room", "Wohnzimmer"), icon: "mdi:sofa", variant: `style: ${style}`,
+          ...(style === "divider" ? { label: t("Living room", "Wohnzimmer") } : {}),
+          ...(style === "status" ? { count_entities: ["light.living_ceiling", "light.floor_lamp", "light.tv_strip"], action: { name: t("All off", "Alle aus"), icon: "mdi:lightbulb-off-outline", tap_action: { action: "none" } } } : {}),
+        }))],
+      ];
+    })(),
     security: [
       [t("Alarm", "Alarm"), [
         { type: "custom:m3-alarm-card", entity: "alarm_control_panel.home" },
@@ -283,7 +344,9 @@ function keyFromPath() {
 
 function makeCard(config) {
   const tag = config.type.replace("custom:", "");
-  if (tag !== "m3-nav-card") config = { ...config, glass_background: glass };
+  // `variant` only names the look in the demo's title over the card.
+  const { variant: _variant, untitled: _untitled, ...own } = config;
+  config = tag !== "m3-nav-card" ? { ...own, glass_background: glass } : own;
   const el = document.createElement(tag);
   try {
     el.setConfig(config);
@@ -306,7 +369,7 @@ let shown;
  */
 function withTitle(config, el) {
   const tag = config.type.replace("custom:", "");
-  if (tag === "m3-popup-card") return el;
+  if (tag === "m3-popup-card" || config.untitled) return el;
   const info = (window.customCards ?? []).find((c) => c.type === tag);
   const wrap = document.createElement("div");
   wrap.className = "card-wrap";
@@ -320,6 +383,11 @@ function withTitle(config, el) {
   const code = document.createElement("code");
   code.textContent = tag;
   title.append(name, code);
+  if (config.variant) {
+    const v = document.createElement("em");
+    v.textContent = config.variant;
+    title.append(v);
+  }
   wrap.append(title, el);
   return wrap;
 }
