@@ -251,7 +251,10 @@ export function setupNotifications(sim, header) {
   const play = (key) => {
     const view = SCENARIO_VIEW[key];
     const moved = view && window.m3DemoView?.() !== view;
-    if (moved) window.m3DemoGo?.(view);
+    if (moved) {
+      window.m3DemoNoReel?.();
+      window.m3DemoGo?.(view);
+    }
     setTimeout(() => SCENARIOS[key]?.(), moved ? 900 : 0);
   };
   const SCENARIOS = {

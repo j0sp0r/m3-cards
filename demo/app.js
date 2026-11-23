@@ -422,6 +422,10 @@ function makeCard(config) {
 let shown;
 let reelShown = false;
 window.m3DemoView = () => shown?.key;
+// A scenario that opens the household plays its own story there.
+window.m3DemoNoReel = () => {
+  reelShown = true;
+};
 window.m3DemoGo = (key) => {
   history.pushState(null, "", nav(key));
   window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
@@ -643,8 +647,21 @@ let layoutState;
 
 function masonry(grid, groups) {
   layoutState = { grid, groups, assignment: "" };
+  // The first pass can only guess the heights; the cards draw a frame or two
+  // later. The grid stays invisible until it is laid out by the real ones,
+  // so a change of page shows no reshuffle.
+  grid.classList.add("settling");
   arrange();
-  for (const wait of [250, 900, 2000, 4000]) setTimeout(() => layoutState?.grid === grid && arrange(), wait);
+  const settle = () => {
+    if (layoutState?.grid !== grid) return;
+    arrange();
+    grid.classList.remove("settling");
+  };
+  requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(settle, 60)));
+  // A safety net: never hidden for long, whatever the cards do.
+  setTimeout(() => grid.classList.remove("settling"), 600);
+  // Cards that load data later (graphs, calendars) can still change height.
+  for (const wait of [900, 2000]) setTimeout(() => layoutState?.grid === grid && arrange(), wait);
 }
 
 const CARD_GAP = 12;

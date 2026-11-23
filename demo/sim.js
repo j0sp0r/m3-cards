@@ -107,6 +107,9 @@ export class Sim {
   set(id, state, attrs = {}) {
     const old = this.states[id];
     if (!old) return;
+    // The house moving on its own does not bring back a device that has
+    // dropped out — only a scenario or a service call does.
+    if (this._ticking && old.state === "unavailable") return;
     const nextState = state === undefined ? old.state : String(state);
     const attributes = { ...old.attributes, ...attrs };
     const changed = nextState !== old.state;
@@ -156,6 +159,15 @@ export class Sim {
   // ---- the house moving on its own ------------------------------------------
 
   tick(first = false) {
+    this._ticking = true;
+    try {
+      this._tick(first);
+    } finally {
+      this._ticking = false;
+    }
+  }
+
+  _tick(first) {
     const now = new Date();
     const h = now.getHours() + now.getMinutes() / 60;
     const n = (id) => Number(this.states[id]?.state) || 0;
