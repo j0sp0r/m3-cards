@@ -560,6 +560,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     this._path = location.pathname;
     this._settling = true;
     this._arrivedAt = performance.now();
+    this._handedOver = false;
     noteNavArrival(this);
     window.addEventListener("location-changed", this._onLocationChanged);
     window.addEventListener("popstate", this._onLocationChanged);
@@ -745,6 +746,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
 
   private _placeMarker(again = false): void {
     if (!this._sliding) return;
+    // Handed over: the next page's bar makes the move. Starting it here too
+    // drew a frame or two of it on a phone, and the new bar then began again
+    // from the start — the pill jumped back.
+    if (this._handedOver) return;
     // Mid-swipe the marker is the finger's.
     if (this._swipe) return;
     const bar = this.renderRoot.querySelector<HTMLElement>(".bar");
@@ -796,6 +801,9 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     }
   }
 
+  /** Set once this bar has handed its pill to the next page's; see `_placeMarker`. */
+  private _handedOver = false;
+
   /** Notes where the pill is drawn now, for the next page's bar. */
   private _handOverMarker(): void {
     const marker = this._sliding ? this.renderRoot?.querySelector<HTMLElement>(".bar .marker") : null;
@@ -805,6 +813,15 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     }
     const r = marker.getBoundingClientRect();
     markerHandoff = { left: r.left, top: r.top, width: r.width, height: r.height, at: performance.now() };
+    if (this._markerMotion === "spring" || this._markerMotion === "stretch") {
+      this._handedOver = true;
+      // A view the router hides rather than removes would otherwise keep a
+      // frozen bar; past the handover window it follows the page again.
+      window.setTimeout(() => {
+        this._handedOver = false;
+        this.requestUpdate();
+      }, NAV_HANDOFF_MAX_MS);
+    }
   }
 
   /**
@@ -999,7 +1016,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     // — a box flashing on a neighbour of the page you actually opened. Read
     // here it never reaches the screen, and a string comparison per update
     // costs nothing.
-    if (this._path !== location.pathname) this._path = location.pathname;
+    // A bar that has handed its pill over keeps showing the page it is on
+    // until the next page's bar is up: lit on the new entry while its pill
+    // still sat on the old one, both labels were drawn in the wrong ink.
+    if (!this._handedOver && this._path !== location.pathname) this._path = location.pathname;
     if (changed.has("_config")) {
       this._syncSubscriptions();
       void this._syncSheetCards();
@@ -1443,6 +1463,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
   // ---- routing -------------------------------------------------------------
 
   private _onLocationChanged = (): void => {
+    if (this._handedOver) return;
     if (this._path === location.pathname) return;
     this._path = location.pathname;
     // A swipe that sent us here drew the bar as it would be on arrival; from
