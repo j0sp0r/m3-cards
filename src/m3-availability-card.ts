@@ -84,6 +84,14 @@ const FLIP_MS = 260;
  * frontend already holds, so it works for every user. See
  * shared/availability.ts for what counts as offline and why.
  */
+/**
+ * "Evaluate again" — a value no real signature takes. An empty string will
+ * not do: it is the signature of "every device online", so a reset to it
+ * while a device was coming back read as "nothing changed", and the card
+ * kept the device listed as offline.
+ */
+const STALE_SIGNATURE = "\u0000stale";
+
 @customElement("m3-availability-card")
 export class M3AvailabilityCard extends TemplatedCard(LitElement) implements LovelaceCard {
   @property({ attribute: false }) public hass?: HomeAssistant;
@@ -102,7 +110,7 @@ export class M3AvailabilityCard extends TemplatedCard(LitElement) implements Lov
   private _index: WatchedUnit[] = [];
   private _indexKey?: unknown[];
   private _flagged: FlaggedUnit[] = [];
-  private _signature = "";
+  private _signature = STALE_SIGNATURE;
   private _historyAsked = new Set<string>();
   private _rects?: Map<string, DOMRect>;
   private _holdTimer?: number;
@@ -173,7 +181,7 @@ export class M3AvailabilityCard extends TemplatedCard(LitElement) implements Lov
         entityName: (id) => (hass.states[id]?.attributes?.friendly_name as string | undefined) ?? id,
       },
     );
-    this._signature = "";
+    this._signature = STALE_SIGNATURE;
   }
 
   private _evaluate(): void {
@@ -237,7 +245,7 @@ export class M3AvailabilityCard extends TemplatedCard(LitElement) implements Lov
         if (found.at !== undefined) next.set(f.unit.key, found.at);
       }
       this._realSince = next;
-      this._signature = "";
+      this._signature = STALE_SIGNATURE;
     } catch {
       // No recorder, or no access: last_changed stands.
     }

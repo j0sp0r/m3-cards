@@ -32,6 +32,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Availability card: a device that comes back leaves the list.** When the
+  card rebuilt its device index or a history lookup returned just as a device
+  recovered, it compared "all online" with "all online" and kept the device
+  listed as offline until the next change.
+
 - **Nav card: a popup no longer counts as a change of page.** A button that
   opens a popup by `#hash` left the path as it was, but the bar took the page
   before as where it came from and could slide the page in again.
