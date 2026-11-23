@@ -181,8 +181,9 @@
   }
   /* Inside the phone frame: the page alone, no header of its own. */
   body.embed header { display: none; }
-  body.embed #view-root { padding: 12px 12px 130px; }
-  body.embed .m3n-toasts { top: 12px; }
+  /* The top 44px is the status bar's, where the camera sits. */
+  body.embed #view-root { padding: 44px 12px 130px; }
+  body.embed .m3n-toasts { top: 44px; }
   body.embed { background-attachment: scroll; }
   /* The phone frame around it. */
   #phone-host { display: none; }
@@ -196,8 +197,9 @@
   .phone-frame { position: relative; }
   /* The front camera: a small punch-hole at the top centre of the screen. */
   .phone-frame::after {
-    content: ""; position: absolute; top: 14px; left: 50%; width: 11px; height: 11px; margin-left: -5.5px;
-    border-radius: 50%; background: #050506; box-shadow: inset 0 0 0 1.5px #1b1b20, inset 2px -2px 3px rgba(80, 110, 160, 0.35);
+    content: ""; position: absolute; top: 15px; left: 50%; width: 20px; height: 20px; margin-left: -10px;
+    border-radius: 50%; background: radial-gradient(circle at 62% 38%, #26324a 0 2px, #0b0d12 3px 5px, #030304 6px);
+    box-shadow: inset 0 0 0 1.5px #16161b;
     pointer-events: none;
   }
   .phone-frame iframe { width: 100%; height: 100%; border: 0; border-radius: 46px; background: #0c120d; display: block; }
