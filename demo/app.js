@@ -42,12 +42,12 @@ const VIEWS = [
   { key: "energy", title: "Energy", icon: "mdi:lightning-bolt" },
   { key: "household", title: "Household", icon: "mdi:washing-machine" },
   { key: "security", title: "Security", icon: "mdi:shield-home" },
-  { key: "more", title: "More", icon: "mdi:dots-grid" },
+  { key: "tech", title: "Tech", icon: "mdi:chip" },
   { key: "shapes", title: "Shapes", icon: "mdi:shape-outline" },
   { key: "new", title: "New", icon: "mdi:new-box" },
 ];
 
-const TITLES_DE = { home: "Start", new: "Neu", rooms: "Räume", climate: "Klima", energy: "Energie", household: "Haushalt", security: "Sicherheit", more: "Mehr", shapes: "Formen" };
+const TITLES_DE = { home: "Start", new: "Neu", rooms: "Räume", climate: "Klima", energy: "Energie", household: "Haushalt", security: "Sicherheit", tech: "Technik", shapes: "Formen" };
 
 const PHONE_BAR = 4;
 
@@ -290,7 +290,7 @@ function views() {
         { type: "custom:m3-occupancy-card", auto_discover: true },
       ]],
     ],
-    more: [
+    tech: [
       [t("On the road", "Unterwegs"), [
         { type: "custom:m3-vehicle-card", name: t("Family car", "Familienauto"),
           energy: { battery: "sensor.car_battery", range: "sensor.car_range", charging: "binary_sensor.car_charging", plugged: "binary_sensor.car_plugged",
@@ -560,35 +560,68 @@ const COLUMN_MIN = 340;
 const COLUMN_GAP = 20;
 let layoutState;
 
-function masonry(grid, sections) {
-  layoutState = { grid, sections, assignment: "" };
+function masonry(grid, groups) {
+  layoutState = { grid, groups, assignment: "" };
   arrange();
-  for (const wait of [250, 900, 2000]) setTimeout(() => layoutState?.grid === grid && arrange(), wait);
+  for (const wait of [250, 900, 2000, 4000]) setTimeout(() => layoutState?.grid === grid && arrange(), wait);
 }
 
+const CARD_GAP = 12;
+const HEADING = 40;
+
+/**
+ * Columns that end near the same height. Sections go to the shortest column
+ * in order; one that would run far past the even share — three cards
+ * against a column of one — is split, and the rest carries on at the top of
+ * the next shortest column under the same heading.
+ */
 function arrange() {
-  const { grid, sections } = layoutState;
+  const { grid, groups } = layoutState;
   // Hidden behind the phone frame the page has no width: measured then, it
   // would all go into one column. It is laid out again on coming back.
   const width = grid.clientWidth;
   if (!width) return;
-  const count = Math.max(1, Math.min(sections.length, Math.floor((width + COLUMN_GAP) / (COLUMN_MIN + COLUMN_GAP))));
-  // Heights as the sections stand now; before the first layout they all sit
-  // in one column of the same width, so they compare fairly.
-  const heights = sections.map((s) => s.offsetHeight || 300);
-  const cols = Array.from({ length: count }, () => ({ height: 0, items: [] }));
-  sections.forEach((s, i) => {
-    const target = cols.reduce((a, b) => (b.height < a.height - 1 ? b : a));
-    target.items.push(i);
-    target.height += heights[i] + COLUMN_GAP;
-  });
-  const assignment = cols.map((c) => c.items.join(",")).join("|");
+  const cardCount = groups.reduce((n, g) => n + g.cards.length, 0);
+  const count = Math.max(1, Math.min(cardCount, Math.floor((width + COLUMN_GAP) / (COLUMN_MIN + COLUMN_GAP))));
+  // Before the first layout the cards are not on the page yet: a guess.
+  const h = (el) => (el.isConnected && el.offsetHeight) || 300;
+  const chunkHeight = (g, cards) => (g.title ? HEADING : 0) + cards.reduce((t, el) => t + h(el), 0) + CARD_GAP * Math.max(0, cards.length - 1);
+  const total = groups.reduce((t, g) => t + chunkHeight(g, g.cards) + COLUMN_GAP, 0);
+  const share = total / count;
+  const cols = Array.from({ length: count }, () => ({ height: 0, chunks: [] }));
+  const queue = groups.map((g, i) => ({ g, i, cards: [...g.cards], cont: false }));
+  while (queue.length) {
+    const item = queue.shift();
+    const col = cols.reduce((a, b) => (b.height < a.height - 1 ? b : a));
+    let take = item.cards.length;
+    if (take > 1 && count > 1 && col.height + chunkHeight(item.g, item.cards) > share * 1.12) {
+      // As many cards as fit the even share, at least one.
+      take = 1;
+      while (take < item.cards.length && col.height + chunkHeight(item.g, item.cards.slice(0, take + 1)) <= share * 1.05) take++;
+    }
+    const cards = item.cards.slice(0, take);
+    col.chunks.push({ g: item.g, i: item.i, cards, cont: item.cont });
+    col.height += chunkHeight(item.g, cards) + COLUMN_GAP;
+    if (take < item.cards.length) queue.unshift({ ...item, cards: item.cards.slice(take), cont: true });
+  }
+  const all = groups.flatMap((g) => g.cards);
+  const assignment = cols.map((c) => c.chunks.map((k) => `${k.i}:${k.cards.map((el) => all.indexOf(el)).join(".")}`).join(",")).join("|");
   if (assignment === layoutState.assignment) return;
   layoutState.assignment = assignment;
   const columns = cols.map((c) => {
     const col = document.createElement("div");
     col.className = "column";
-    for (const i of c.items) col.appendChild(sections[i]);
+    for (const k of c.chunks) {
+      const section = document.createElement("div");
+      section.className = "section";
+      if (k.g.title) {
+        const head = document.createElement("h2");
+        head.textContent = k.g.title;
+        section.appendChild(head);
+      }
+      section.append(...k.cards);
+      col.appendChild(section);
+    }
     return col;
   });
   grid.replaceChildren(...columns);
@@ -616,23 +649,14 @@ function render(force = false) {
   view.dataset.view = key;
   const grid = document.createElement("div");
   grid.className = "sections";
-  const sections = [];
-  for (const [title, cards] of views()[key]) {
-    const section = document.createElement("div");
-    section.className = "section";
-    if (title) {
-      const h = document.createElement("h2");
-      h.textContent = title;
-      section.appendChild(h);
-    }
-    for (const c of cards) section.appendChild(withTitle(c, makeCard(c)));
-    sections.push(section);
-  }
+  // Sections as data: the layout builds their containers, so a tall one can
+  // be split across two columns.
+  const groups = views()[key].map(([title, cards]) => ({ title, cards: cards.map((c) => withTitle(c, makeCard(c))) }));
   if (key === "new") view.appendChild(whatsNewHead());
   view.appendChild(grid);
   view.appendChild(makeCard(navCard()));
   root.replaceChildren(view);
-  masonry(grid, sections);
+  masonry(grid, groups);
   document.title = `${(sim.language === "de" ? TITLES_DE[key] : VIEWS.find((v) => v.key === key).title)} · M3 Cards demo`;
 }
 
