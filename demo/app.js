@@ -49,6 +49,18 @@ const TITLES_DE = { home: "Start", rooms: "Räume", climate: "Klima", energy: "E
 
 const PHONE_BAR = 4;
 
+/**
+ * A room folded to one row that opens onto its buttons — the author's own
+ * design for their socket overview: a room card in manual mode, collapsible,
+ * closed to begin with, holding a button card per device.
+ */
+function foldedRoom(area, buttons, extra = {}) {
+  return {
+    type: "custom:m3-room-card", area, mode: "manual", collapsible: true, default_collapsed: true, ...extra,
+    cards: buttons.map(([entity, icon]) => ({ type: "custom:m3-button-card", entity, icon, shape_by_state: true, icon_fill: "solid", show_state: false })),
+  };
+}
+
 function navCard() {
   const de = sim.language === "de";
   const entry = (v) => ({ name: de ? TITLES_DE[v.key] : v.title, icon: v.icon, path: nav(v.key) });
@@ -108,7 +120,7 @@ function views() {
       ]],
       ["", [
         { type: "custom:m3-room-card", area: "kids_room", collapsible: true },
-        { type: "custom:m3-room-card", area: "office", collapsible: true },
+        foldedRoom("office", [["light.desk", "mdi:desk-lamp"], ["switch.desk_plug", "mdi:power-socket-eu"]], { variant: t("folded, with buttons", "eingeklappt, mit Buttons") }),
         { type: "custom:m3-room-card", area: "bathroom", collapsible: true },
       ]],
       [t("Living room", "Wohnzimmer"), [
@@ -251,11 +263,7 @@ function views() {
           ["kitchen", [["light.kitchen", "mdi:ceiling-light"], ["light.kitchen_counter", "mdi:light-recessed"]]],
           ["office", [["light.desk", "mdi:desk-lamp"], ["switch.desk_plug", "mdi:power-socket-eu"]]],
           ["bedroom", [["light.bedroom", "mdi:ceiling-light"], ["light.bedside", "mdi:lamp"]]],
-        ].map(([area, buttons], i) => ({
-          type: "custom:m3-room-card", area, mode: "manual", collapsible: true, default_collapsed: true,
-          ...(i === 0 ? { variant: "mode: manual · collapsible" } : { untitled: true }),
-          cards: buttons.map(([entity, icon]) => ({ type: "custom:m3-button-card", entity, icon, shape_by_state: true, icon_fill: "solid", show_state: false })),
-        }))],
+        ].map(([area, buttons], i) => foldedRoom(area, buttons, i === 0 ? { variant: "mode: manual · collapsible" } : { untitled: true }))],
         [t("Headings", "Überschriften"), ["simple", "status", "divider", "collapsible"].map((style) => ({
           type: "custom:m3-heading-card", style, title: t("Living room", "Wohnzimmer"), icon: "mdi:sofa", variant: `style: ${style}`,
           ...(style === "divider" ? { label: t("Living room", "Wohnzimmer") } : {}),
@@ -373,24 +381,133 @@ function withTitle(config, el) {
   const info = (window.customCards ?? []).find((c) => c.type === tag);
   const wrap = document.createElement("div");
   wrap.className = "card-wrap";
-  const title = document.createElement("a");
+  const title = document.createElement("div");
   title.className = "card-title";
-  title.href = info?.documentationURL ?? "https://github.com/j0sp0r/m3-cards#readme";
-  title.target = "_blank";
-  title.rel = "noopener";
+  const link = document.createElement("a");
+  link.href = info?.documentationURL ?? "https://github.com/j0sp0r/m3-cards#readme";
+  link.target = "_blank";
+  link.rel = "noopener";
+  link.title = sim.language === "de" ? "Zur Dokumentation" : "Open the documentation";
   const name = document.createElement("span");
   name.textContent = info?.name ?? tag;
   const code = document.createElement("code");
   code.textContent = tag;
-  title.append(name, code);
+  link.append(name, code);
+  title.append(link);
   if (config.variant) {
     const v = document.createElement("em");
     v.textContent = config.variant;
     title.append(v);
   }
+  title.append(copyButton(config));
   wrap.append(title, el);
   return wrap;
 }
+
+/** The card's configuration as YAML, the way it goes into a dashboard. */
+function cardYaml(config) {
+  const { variant: _v, untitled: _u, ...own } = config;
+  return toYaml(own);
+}
+
+function copyButton(config) {
+  const de = sim.language === "de";
+  const btn = document.createElement("button");
+  btn.className = "copy-yaml";
+  btn.type = "button";
+  btn.title = de ? "YAML dieser Kachel kopieren" : "Copy this card's YAML";
+  const icon = document.createElement("ha-icon");
+  icon.icon = "mdi:content-copy";
+  const label = document.createElement("span");
+  label.textContent = "YAML";
+  btn.append(icon, label);
+  btn.addEventListener("click", async () => {
+    const ok = await copyText(cardYaml(config));
+    icon.icon = ok ? "mdi:check" : "mdi:alert-circle-outline";
+    label.textContent = ok ? (de ? "Kopiert" : "Copied") : de ? "Fehler" : "Failed";
+    btn.classList.toggle("done", ok);
+    setTimeout(() => {
+      icon.icon = "mdi:content-copy";
+      label.textContent = "YAML";
+      btn.classList.remove("done");
+    }, 1600);
+  });
+  return btn;
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    // An older browser, or a page without clipboard access: the old way.
+    const area = document.createElement("textarea");
+    area.value = text;
+    area.style.cssText = "position:fixed;opacity:0";
+    document.body.appendChild(area);
+    area.select();
+    let ok = false;
+    try {
+      ok = document.execCommand("copy");
+    } catch {
+      ok = false;
+    }
+    area.remove();
+    return ok;
+  }
+}
+
+// ---- yaml -------------------------------------------------------------------------
+
+/** A string as YAML wants it: bare where that reads back the same, quoted otherwise. */
+function yamlString(v) {
+  const plain =
+    v !== "" &&
+    !/^[\s\-?:,[\]{}#&*!|>'"%@`]/.test(v) &&
+    !/:\s|\s#|:$|\s$/.test(v) &&
+    !/^(true|false|yes|no|on|off|null|~)$/i.test(v) &&
+    !/^[-+]?(\d[\d_]*)?(\.\d+)?([eE][-+]?\d+)?$/.test(v) &&
+    !/[\n\t]/.test(v);
+  return plain ? v : JSON.stringify(v);
+}
+
+function yamlScalar(v) {
+  if (v === null || v === undefined) return "null";
+  if (typeof v === "string") return yamlString(v);
+  return String(v);
+}
+
+/** Plain objects, lists and scalars to block-style YAML, two spaces a level. */
+function toYaml(value, indent = "") {
+  if (Array.isArray(value)) {
+    if (!value.length) return "[]";
+    return value
+      .map((item) => {
+        if (item && typeof item === "object" && !Array.isArray(item) && Object.keys(item).length) {
+          const body = toYaml(item, indent + "  ");
+          return `${indent}- ${body.slice(indent.length + 2)}`;
+        }
+        if (Array.isArray(item) && item.length) return `${indent}-\n${toYaml(item, indent + "  ")}`;
+        return `${indent}- ${item && typeof item === "object" ? (Array.isArray(item) ? "[]" : "{}") : yamlScalar(item)}`;
+      })
+      .join("\n");
+  }
+  if (value && typeof value === "object") {
+    const keys = Object.keys(value).filter((k) => value[k] !== undefined);
+    if (!keys.length) return "{}";
+    return keys
+      .map((k) => {
+        const v = value[k];
+        const key = `${indent}${yamlString(k)}:`;
+        if (Array.isArray(v)) return v.length ? `${key}\n${toYaml(v, indent + "  ")}` : `${key} []`;
+        if (v && typeof v === "object") return Object.keys(v).length ? `${key}\n${toYaml(v, indent + "  ")}` : `${key} {}`;
+        return `${key} ${yamlScalar(v)}`;
+      })
+      .join("\n");
+  }
+  return yamlScalar(value);
+}
+window.m3DemoYaml = toYaml;
 
 // ---- layout -------------------------------------------------------------------
 

@@ -105,16 +105,26 @@
   .section h2 { margin: 8px 4px 0; font-size: 17px; font-weight: 600; color: var(--primary-text-color); }
   .card-wrap { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
   .card-title {
-    display: flex; align-items: baseline; gap: 8px; margin: 2px 8px 0; min-width: 0;
-    color: var(--secondary-text-color); text-decoration: none;
+    display: flex; align-items: center; gap: 8px; margin: 2px 4px 0 8px; min-width: 0;
+    color: var(--secondary-text-color);
     font: 600 12px "Roboto Flex", Roboto, sans-serif; letter-spacing: 0.01em;
   }
+  .card-title > a { display: flex; align-items: baseline; gap: 8px; min-width: 0; color: inherit; text-decoration: none; }
+  .card-title > a:hover { color: var(--primary-color); }
+  .copy-yaml {
+    margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: 4px;
+    height: 22px; padding: 0 8px; border: 0; border-radius: 11px; cursor: pointer;
+    background: color-mix(in srgb, var(--primary-text-color) 9%, transparent); color: var(--secondary-text-color);
+    font: 600 11px "Roboto Flex", Roboto, sans-serif;
+    --mdc-icon-size: 13px;
+  }
+  .copy-yaml:hover { background: color-mix(in srgb, var(--primary-text-color) 15%, transparent); color: var(--primary-text-color); }
+  .copy-yaml.done { background: color-mix(in srgb, var(--primary-color) 22%, transparent); color: var(--primary-color); }
   .card-title span { white-space: nowrap; }
   .card-title code { font: 500 11px ui-monospace, "SF Mono", Menlo, monospace; opacity: 0.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .card-title em { font: 600 11px ui-monospace, "SF Mono", Menlo, monospace; font-style: normal; padding: 1px 7px; border-radius: 8px; white-space: nowrap;
     color: var(--primary-color); background: color-mix(in srgb, var(--primary-color) 16%, transparent); }
-  .card-title:hover { color: var(--primary-color); }
-  .card-title:hover code { opacity: 0.9; }
+  .card-title > a:hover code { opacity: 0.9; }
   body.no-titles .card-title { display: none; }
   .card-error { padding: 16px; border-radius: 16px; background: #5a1f1f; color: #ffd9d4; font: 13px monospace; }
   @media (max-width: 1500px) {
