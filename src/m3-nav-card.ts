@@ -896,6 +896,12 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     if (!pillInk) return;
     const parts = Array.from(bar.querySelectorAll<HTMLElement>(".item:not(.disabled) > .glyph, .item:not(.disabled) > .label"));
     let running = true;
+    // The dimming moves from the entries to their parts for the move, as it
+    // does mid-swipe: an entry's own opacity would hold the new one at full
+    // strength beside the pill and the old one dim on it.
+    // An attribute, not a class: the bar's class list is the template's, and a
+    // render mid-move would drop one added here.
+    bar.setAttribute("data-ink-moving", "");
     const paint = () => {
       if (!running) return;
       const pill = marker.getBoundingClientRect();
@@ -905,13 +911,22 @@ export class M3NavCard extends LitElement implements LovelaceCard {
         const under = middle >= pill.left && middle <= pill.right;
         const colour = under ? pillInk : "var(--nav-ink, var(--primary-text-color))";
         if (part.style.color !== colour) part.style.color = colour;
+        part.style.setProperty("--move-opacity", under ? "1" : String(NAV_ITEM_INACTIVE_OPACITY));
       }
       requestAnimationFrame(paint);
     };
     paint();
     const done = () => {
       running = false;
-      for (const part of parts) part.style.color = "";
+      // The dimming goes back to the entries at once: faded back over the
+      // parts' own, an inactive label flashed bright for a moment.
+      bar.setAttribute("data-ink-ending", "");
+      requestAnimationFrame(() => requestAnimationFrame(() => bar.removeAttribute("data-ink-ending")));
+      bar.removeAttribute("data-ink-moving");
+      for (const part of parts) {
+        part.style.color = "";
+        part.style.removeProperty("--move-opacity");
+      }
     };
     anim.finished.then(done, done);
   }
@@ -4685,6 +4700,20 @@ export class M3NavCard extends LitElement implements LovelaceCard {
        its contents, or the copy would be faded with it. */
     .bar.swipe-inked .item:not(.disabled) {
       opacity: 1;
+    }
+
+    /* A spring or stretch on its way: the same move of the dimming onto the
+       parts, each part's strength set from where the pill is (_inkWhileMoving). */
+    .bar[data-ink-moving] .item:not(.disabled) {
+      opacity: 1;
+      transition: none;
+    }
+    .bar[data-ink-ending] .item {
+      transition: none;
+    }
+    .bar[data-ink-moving] .item:not(.disabled) > .glyph,
+    .bar[data-ink-moving] .item:not(.disabled) > .label {
+      opacity: var(--move-opacity, ${NAV_ITEM_INACTIVE_OPACITY});
     }
 
     /* The dimming moves between an entry and its parts at once, both ways:
