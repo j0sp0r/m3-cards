@@ -423,6 +423,7 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
               ["battery", u.battery],
               ["grid", u.grid],
             ];
+            // Flex grow factors below a combined 1 leave part of the bar empty.
             return html`<div class="col">
               <button
                 class="bar"
@@ -431,7 +432,7 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
                 aria-expanded=${open ? "true" : "false"}
                 @click=${() => (this._tip = open ? undefined : i)}
               >
-                ${parts.map(([k, v]) => (v > 0 ? html`<span class="seg" style=${`flex: ${v} 1 0; background: ${colors[k]};`}></span>` : nothing))}
+                ${parts.map(([k, v]) => (v > 0 ? html`<span class="seg" style=${`flex: ${v / u.total} 1 0; background: ${colors[k]};`}></span>` : nothing))}
               </button>
               ${open
                 ? html`<div class="tip ${i > usages.length / 2 ? "left" : ""}" role="status">
