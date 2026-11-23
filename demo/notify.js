@@ -303,7 +303,10 @@ export function setupNotifications(sim, header) {
       b.querySelector("span").textContent = text;
       b.onclick = () => {
         menu.hidden = true;
-        run();
+        // Shown in the phone frame, the scenario happens in the phone.
+        const target = window.m3DemoScenarioTarget?.();
+        if (target?.m3DemoRun) target.m3DemoRun(key);
+        else run();
       };
       menu.appendChild(b);
     }
@@ -336,5 +339,6 @@ export function setupNotifications(sim, header) {
     bell.title = sim.language === "de" ? "Benachrichtigungen" : "Notifications";
   };
   label();
+  window.m3DemoRun = (key) => SCENARIOS[key]?.();
   return { relabel: label };
 }

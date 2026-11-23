@@ -89,13 +89,13 @@
   header button:hover, header a:hover { background: color-mix(in srgb, var(--primary-text-color) 16%, transparent); }
   #view-root { padding: 8px 16px 140px; }
   .sections {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    display: flex;
     gap: 20px;
     max-width: 1500px;
     margin: 0 auto;
-    align-items: start;
+    align-items: flex-start;
   }
+  .column { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 20px; }
   .section { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
   .section h2 { margin: 8px 4px 0; font-size: 17px; font-weight: 600; color: var(--primary-text-color); }
   .card-wrap { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
@@ -110,10 +110,29 @@
   .card-title:hover code { opacity: 0.9; }
   body.no-titles .card-title { display: none; }
   .card-error { padding: 16px; border-radius: 16px; background: #5a1f1f; color: #ffd9d4; font: 13px monospace; }
-  @media (max-width: 600px) {
+  @media (max-width: 900px) {
     header .note { display: none; }
-    .sections { grid-template-columns: 1fr; }
   }
+  @media (max-width: 600px) {
+    header { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+    header button, header a { min-width: 40px; height: 40px; padding: 0 10px; }
+    #view-root { padding: 8px 12px 140px; }
+  }
+  /* Inside the phone frame: the page alone, no header of its own. */
+  body.embed header { display: none; }
+  body.embed #view-root { padding: 12px 12px 130px; }
+  body.embed .m3n-toasts { top: 12px; }
+  body.embed { background-attachment: scroll; }
+  /* The phone frame around it. */
+  #phone-host { display: none; }
+  body.phone-mode #view-root { display: none; }
+  body.phone-mode #phone-host { display: flex; justify-content: center; padding: 20px 16px 40px; }
+  .phone-frame {
+    width: 393px; height: 852px; max-height: calc(100vh - 110px); aspect-ratio: 393 / 852;
+    padding: 12px; border-radius: 58px; box-sizing: content-box;
+    background: #0b0b0c; box-shadow: 0 0 0 2px #2a2a2e, 0 30px 80px rgba(0, 0, 0, 0.55);
+  }
+  .phone-frame iframe { width: 100%; height: 100%; border: 0; border-radius: 46px; background: #0c120d; display: block; }
 </style>
 </head>
 <body>
@@ -121,12 +140,14 @@
   <span class="brand"><b>M3</b> Cards</span>
   <span class="note">A pretend home with simulated values — tap around, nothing is connected.</span>
   <button id="lang" title="Language">DE</button>
+  <button id="phone" title="Phone"><ha-icon icon="mdi:cellphone"></ha-icon></button>
   <button id="titles" title="Card names"><ha-icon icon="mdi:label-outline"></ha-icon></button>
   <button id="glass" title="Glass"><ha-icon icon="mdi:blur"></ha-icon></button>
   <button id="theme" title="Light / dark"><ha-icon icon="mdi:weather-sunny"></ha-icon></button>
   <a href="https://github.com/j0sp0r/m3-cards" title="GitHub"><ha-icon icon="mdi:github"></ha-icon></a>
 </header>
 <main id="view-root"></main>
+<div id="phone-host"></div>
 <script type="module" src="./app.js"></script>
 </body>
 </html>

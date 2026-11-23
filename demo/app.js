@@ -13,7 +13,13 @@ const onPages = location.hostname.endsWith("github.io");
 await import(onPages ? "./m3-cards.js" : "../dist/m3-cards.js");
 
 const BASE = new URL("./", import.meta.url).pathname;
+// Embedded in the phone frame of the page around it: no header of its own,
+// the settings handed in by that page.
+const params = new URLSearchParams(location.search);
+const EMBED = params.get("embed") === "1";
+if (EMBED) document.body.classList.add("embed");
 const sim = new Sim(buildHome(), NAMES_DE);
+if (params.get("lang") === "de" || params.get("lang") === "en") sim.setLanguage(params.get("lang"));
 window.m3Demo = sim;
 const notes = setupNotifications(sim, document.querySelector("header"));
 
@@ -26,7 +32,7 @@ if (!customElements.get("hui-view")) customElements.define("hui-view", class ext
 const nav = (key) => BASE + key;
 
 /** Frosted cards, or solid ones to compare: one switch for every card. */
-let glass = true;
+let glass = params.get("glass") !== "0";
 
 const VIEWS = [
   { key: "home", title: "Home", icon: "mdi:home" },
@@ -40,23 +46,31 @@ const VIEWS = [
 
 const TITLES_DE = { home: "Start", rooms: "Räume", climate: "Klima", energy: "Energie", household: "Haushalt", security: "Sicherheit", more: "Mehr" };
 
+const PHONE_BAR = 4;
+
 function navCard() {
   const de = sim.language === "de";
+  const entry = (v) => ({ name: de ? TITLES_DE[v.key] : v.title, icon: v.icon, path: nav(v.key) });
   return {
     type: "custom:m3-nav-card",
     style: "floating",
     position: "bottom",
     max_width: "fit",
     label_position: "right",
-    icon_visibility: "active_only",
-    label_visibility: "always",
+    // On a phone every icon and only the active page's name, or four entries
+    // and the menu button do not fit side by side.
+    icon_visibility: EMBED ? "always" : "active_only",
+    label_visibility: EMBED ? "active_only" : "always",
     active_style: "solid",
     marker_motion: "stretch",
     page_transition: "slide",
     swipe_navigation: true,
     container_style: glass ? "glass" : "solid",
     blur: 20,
-    items: VIEWS.map((v) => ({ name: de ? TITLES_DE[v.key] : v.title, icon: v.icon, path: nav(v.key) })),
+    items: (EMBED ? VIEWS.slice(0, PHONE_BAR) : VIEWS).map(entry),
+    // Seven pages do not fit a phone's width: there, four in the bar and the
+    // rest in the round button's menu beside it, as on a phone dashboard.
+    ...(EMBED ? { action_button: { icon: "mdi:dots-horizontal", menu: VIEWS.slice(PHONE_BAR).map(entry) } } : {}),
   };
 }
 
@@ -309,6 +323,56 @@ function withTitle(config, el) {
   return wrap;
 }
 
+// ---- layout -------------------------------------------------------------------
+
+/**
+ * Sections into columns the way Home Assistant's masonry view does it: each
+ * goes to the column that is shortest so far, in order, so the columns end
+ * near the same height instead of leaving a gap under a short one. Cards
+ * draw a moment after they are connected and some load data later, so the
+ * layout is measured again once they have settled, and again on resize.
+ */
+const COLUMN_MIN = 340;
+const COLUMN_GAP = 20;
+let layoutState;
+
+function masonry(grid, sections) {
+  layoutState = { grid, sections, assignment: "" };
+  arrange();
+  for (const wait of [250, 900, 2000]) setTimeout(() => layoutState?.grid === grid && arrange(), wait);
+}
+
+function arrange() {
+  const { grid, sections } = layoutState;
+  const width = grid.clientWidth || root.clientWidth;
+  const count = Math.max(1, Math.min(sections.length, Math.floor((width + COLUMN_GAP) / (COLUMN_MIN + COLUMN_GAP))));
+  // Heights as the sections stand now; before the first layout they all sit
+  // in one column of the same width, so they compare fairly.
+  const heights = sections.map((s) => s.offsetHeight || 300);
+  const cols = Array.from({ length: count }, () => ({ height: 0, items: [] }));
+  sections.forEach((s, i) => {
+    const target = cols.reduce((a, b) => (b.height < a.height - 1 ? b : a));
+    target.items.push(i);
+    target.height += heights[i] + COLUMN_GAP;
+  });
+  const assignment = cols.map((c) => c.items.join(",")).join("|");
+  if (assignment === layoutState.assignment) return;
+  layoutState.assignment = assignment;
+  const columns = cols.map((c) => {
+    const col = document.createElement("div");
+    col.className = "column";
+    for (const i of c.items) col.appendChild(sections[i]);
+    return col;
+  });
+  grid.replaceChildren(...columns);
+}
+
+let resizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => layoutState && arrange(), 150);
+});
+
 function render(force = false) {
   const key = keyFromPath();
   // A change of hash only (a popup opening) is not a change of view.
@@ -319,6 +383,7 @@ function render(force = false) {
   view.dataset.view = key;
   const grid = document.createElement("div");
   grid.className = "sections";
+  const sections = [];
   for (const [title, cards] of views()[key]) {
     const section = document.createElement("div");
     section.className = "section";
@@ -328,11 +393,12 @@ function render(force = false) {
       section.appendChild(h);
     }
     for (const c of cards) section.appendChild(withTitle(c, makeCard(c)));
-    grid.appendChild(section);
+    sections.push(section);
   }
   view.appendChild(grid);
   view.appendChild(makeCard(navCard()));
   root.replaceChildren(view);
+  masonry(grid, sections);
   document.title = `${(sim.language === "de" ? TITLES_DE[key] : VIEWS.find((v) => v.key === key).title)} · M3 Cards demo`;
 }
 
@@ -348,45 +414,89 @@ window.addEventListener("popstate", render);
 const themeBtn = document.getElementById("theme");
 const glassBtn = document.getElementById("glass");
 const titlesBtn = document.getElementById("titles");
-let titles = true;
-function labelTitles() {
-  document.body.classList.toggle("no-titles", !titles);
-  titlesBtn.classList.toggle("off", !titles);
-  titlesBtn.title = sim.language === "de" ? (titles ? "Kartennamen ausblenden" : "Kartennamen einblenden") : titles ? "Hide card names" : "Show card names";
-}
-titlesBtn.addEventListener("click", () => {
-  titles = !titles;
-  labelTitles();
-});
-labelTitles();
-function labelGlass() {
-  glassBtn.querySelector("ha-icon").icon = glass ? "mdi:blur" : "mdi:square-rounded";
-  glassBtn.title = sim.language === "de" ? (glass ? "Glas an — für undurchsichtige Kacheln tippen" : "Glas aus — für Glas tippen") : glass ? "Glass on — tap for solid cards" : "Glass off — tap for glass";
-  glassBtn.classList.toggle("off", !glass);
-}
-glassBtn.addEventListener("click", () => {
-  glass = !glass;
-  labelGlass();
-  render(true);
-});
-labelGlass();
 const langBtn = document.getElementById("lang");
-function applyTheme(dark) {
+const phoneBtn = document.getElementById("phone");
+let titles = params.get("titles") !== "0";
+let dark = params.has("theme") ? params.get("theme") === "dark" : !matchMedia("(prefers-color-scheme: light)").matches;
+let phone = false;
+const de = () => sim.language === "de";
+
+/** The settings as they stand, for the phone frame's page. */
+const settings = () => ({ theme: dark ? "dark" : "light", lang: sim.language, glass, titles });
+
+function paintSwitches() {
   document.documentElement.dataset.theme = dark ? "dark" : "light";
+  document.body.classList.toggle("no-titles", !titles);
   themeBtn.querySelector("ha-icon").icon = dark ? "mdi:weather-sunny" : "mdi:weather-night";
-  sim.setDark(dark);
-}
-themeBtn.addEventListener("click", () => applyTheme(document.documentElement.dataset.theme !== "dark"));
-langBtn.addEventListener("click", () => {
-  sim.setLanguage(sim.language === "de" ? "en" : "de");
-  langBtn.textContent = sim.language === "de" ? "EN" : "DE";
+  glassBtn.querySelector("ha-icon").icon = glass ? "mdi:blur" : "mdi:square-rounded";
+  glassBtn.classList.toggle("off", !glass);
+  titlesBtn.classList.toggle("off", !titles);
+  phoneBtn.classList.toggle("off", phone);
+  langBtn.textContent = de() ? "EN" : "DE";
+  glassBtn.title = de() ? (glass ? "Glas an — für deckende Kacheln tippen" : "Glas aus — für Glas tippen") : glass ? "Glass on — tap for solid cards" : "Glass off — tap for glass";
+  titlesBtn.title = de() ? (titles ? "Kartennamen ausblenden" : "Kartennamen einblenden") : titles ? "Hide card names" : "Show card names";
+  phoneBtn.title = de() ? (phone ? "Zurück zur Desktop-Ansicht" : "Als Smartphone ansehen") : phone ? "Back to the desktop view" : "View as a phone";
+  themeBtn.title = de() ? "Hell / dunkel" : "Light / dark";
   notes.relabel();
-  labelGlass();
-  labelTitles();
-  render(true);
-});
-langBtn.textContent = sim.language === "de" ? "EN" : "DE";
-applyTheme(!matchMedia("(prefers-color-scheme: light)").matches);
+}
+
+/** Applies settings here — and, from the page around it, in the phone frame. */
+function apply(next = {}, { rerender = false } = {}) {
+  if (next.theme) dark = next.theme === "dark";
+  if (next.lang && next.lang !== sim.language) {
+    sim.setLanguage(next.lang);
+    rerender = true;
+  }
+  if (next.glass !== undefined && next.glass !== glass) {
+    glass = next.glass;
+    rerender = true;
+  }
+  if (next.titles !== undefined) titles = next.titles;
+  sim.setDark(dark);
+  paintSwitches();
+  if (rerender) render(true);
+  if (phone) frame?.contentWindow?.m3DemoApply?.(settings());
+}
+window.m3DemoApply = (s) => apply(s);
+
+themeBtn.addEventListener("click", () => apply({ theme: dark ? "light" : "dark" }));
+glassBtn.addEventListener("click", () => apply({ glass: !glass }));
+titlesBtn.addEventListener("click", () => apply({ titles: !titles }));
+langBtn.addEventListener("click", () => apply({ lang: de() ? "en" : "de" }));
+
+// ---- phone ----------------------------------------------------------------------
+
+/**
+ * The page at a phone's width, in a phone: an embedded copy of this page in a
+ * 393 × 852 frame, so the nav bar docks to the phone's bottom edge, swipes
+ * and notifications happen inside it, and nothing is squeezed by hand. The
+ * settings and the scenarios here are handed to it.
+ */
+let frame;
+const phoneHost = document.getElementById("phone-host");
+function setPhone(on) {
+  phone = on;
+  document.body.classList.toggle("phone-mode", on);
+  if (on) {
+    const q = new URLSearchParams({ embed: "1", view: shown?.key ?? "home", ...Object.fromEntries(Object.entries(settings()).map(([k, v]) => [k, typeof v === "boolean" ? (v ? "1" : "0") : v])) });
+    frame = document.createElement("iframe");
+    frame.title = "M3 Cards demo on a phone";
+    frame.src = `${BASE}index.html?${q}`;
+    const bezel = document.createElement("div");
+    bezel.className = "phone-frame";
+    bezel.appendChild(frame);
+    phoneHost.replaceChildren(bezel);
+  } else {
+    phoneHost.replaceChildren();
+    frame = undefined;
+  }
+  paintSwitches();
+}
+phoneBtn.addEventListener("click", () => setPhone(!phone));
+window.m3DemoScenarioTarget = () => (phone ? frame?.contentWindow : null);
+
+paintSwitches();
+sim.setDark(dark);
 // The nav bar measures its entries to place its pill: wait for the type.
 await document.fonts.ready;
 render();
