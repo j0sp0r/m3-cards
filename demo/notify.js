@@ -27,6 +27,7 @@ const TEXT = {
     door: (n) => `${n} is open while nobody is home.`,
     s: {
       leak: ["mdi:water-alert", "Water under the sink", "The leak sensor reports water; the valve closes."],
+      reel: ["mdi:fast-forward", "A busy household", "Washer, dishwasher and dryer finish in fast forward, the vacuum makes its round."],
       washer: ["mdi:washing-machine", "The washer finishes", "The countdown runs out; the card offers “Emptied”."],
       offline: ["mdi:wifi-off", "A sensor drops out", "Leo's room sensor goes unreachable for a while."],
       alarm: ["mdi:shield-alert", "Someone at the terrace door", "The alarm is armed and the door opens."],
@@ -54,6 +55,7 @@ const TEXT = {
     door: (n) => `${n} ist offen, obwohl niemand zuhause ist.`,
     s: {
       leak: ["mdi:water-alert", "Wasser unter der Spüle", "Der Wassersensor schlägt an, das Ventil schließt."],
+      reel: ["mdi:fast-forward", "Ein Tag im Haushalt", "Waschmaschine, Spülmaschine und Trockner laufen im Zeitraffer fertig, der Sauger dreht seine Runde."],
       washer: ["mdi:washing-machine", "Die Waschmaschine wird fertig", "Die Restzeit läuft ab, die Kachel bietet „Ausgeräumt“."],
       offline: ["mdi:wifi-off", "Ein Sensor fällt aus", "Der Sensor in Leos Zimmer ist eine Weile nicht erreichbar."],
       alarm: ["mdi:shield-alert", "Jemand an der Terrassentür", "Die Alarmanlage ist scharf, die Tür geht auf."],
@@ -65,7 +67,7 @@ const TEXT = {
 
 const STYLE = `
 .m3n-btn{position:relative}
-.m3n-badge{position:absolute;top:6px;right:6px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--error-color);color:#1c1c1c;font:700 10px/16px "Roboto Flex",Roboto,sans-serif;text-align:center;box-sizing:border-box}
+.m3n-badge{position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--error-color);color:#1c1c1c;font:700 10px/16px "Roboto Flex",Roboto,sans-serif;text-align:center;box-sizing:border-box}
 .m3n-badge[hidden]{display:none}
 .m3n-toasts{position:fixed;top:76px;right:16px;z-index:20;display:flex;flex-direction:column;gap:10px;width:min(380px,calc(100vw - 32px));pointer-events:none}
 .m3n-note{pointer-events:auto;display:grid;grid-template-columns:40px 1fr auto;gap:4px 12px;align-items:start;padding:14px 16px;border-radius:24px;
@@ -103,13 +105,13 @@ export function setupNotifications(sim, header) {
   document.head.appendChild(style);
 
   // Header buttons: scenarios and the bell.
-  const before = header.querySelector("#lang");
+  const before = header.querySelector(".sep");
   const scnBtn = document.createElement("button");
   scnBtn.className = "m3n-btn";
-  scnBtn.innerHTML = `<ha-icon icon="mdi:play-circle-outline"></ha-icon><span class="m3n-scn-label"></span>`;
+  scnBtn.innerHTML = `<ha-icon icon="mdi:play-circle-outline"></ha-icon><span class="lbl m3n-scn-label"></span>`;
   const bell = document.createElement("button");
   bell.className = "m3n-btn";
-  bell.innerHTML = `<ha-icon icon="mdi:bell-outline"></ha-icon><span class="m3n-badge" hidden></span>`;
+  bell.innerHTML = `<ha-icon icon="mdi:bell-outline"></ha-icon><span class="lbl m3n-bell-label"></span><span class="m3n-badge" hidden></span>`;
   header.insertBefore(scnBtn, before);
   header.insertBefore(bell, before);
 
@@ -235,6 +237,7 @@ export function setupNotifications(sim, header) {
     for (const id of ids) if (!(id in saved)) saved[id] = { state: sim.get(id).state, attributes: { ...sim.get(id).attributes } };
   };
   const SCENARIOS = {
+    reel: () => sim.showReel(),
     leak: () => {
       remember("binary_sensor.kitchen_leak", "valve.main_water");
       sim.set("binary_sensor.kitchen_leak", "on");
@@ -337,6 +340,7 @@ export function setupNotifications(sim, header) {
     scnBtn.querySelector(".m3n-scn-label").textContent = sim.language === "de" ? "Szenarien" : "Scenarios";
     scnBtn.title = t().scenarios;
     bell.title = sim.language === "de" ? "Benachrichtigungen" : "Notifications";
+    bell.querySelector(".m3n-bell-label").textContent = sim.language === "de" ? "Mitteilungen" : "Notifications";
   };
   label();
   window.m3DemoRun = (key) => SCENARIOS[key]?.();

@@ -162,8 +162,9 @@ export class Sim {
     const on = (id) => this.states[id]?.state === "on";
     const jitter = (v, amount) => v * (1 + (Math.random() - 0.5) * amount);
 
-    // Appliances count down a minute every tick.
-    if (this.get("sensor.washer_state").state === "run") {
+    // Appliances count down a minute every tick — unless the show reel is
+    // running them on its own clock.
+    if (!this._reel && this.get("sensor.washer_state").state === "run") {
       const left = n("sensor.washer_remaining") - 1;
       if (left <= 0) {
         this.set("sensor.washer_state", "finished");
@@ -174,7 +175,7 @@ export class Sim {
         this.set("sensor.washer_progress", clamp(round(100 - (left / 100) * 100), 0, 100));
       }
     }
-    if (this.get("sensor.dishwasher_state").state === "run") {
+    if (!this._reel && this.get("sensor.dishwasher_state").state === "run") {
       const left = n("sensor.dishwasher_remaining") - 1;
       if (left <= 0) {
         this.set("sensor.dishwasher_state", "finished");
@@ -184,9 +185,11 @@ export class Sim {
     const washer = this.get("sensor.washer_state").state === "run" ? jitter(left60(n("sensor.washer_remaining")), 0.2) : 1.5;
     const dish = this.get("sensor.dishwasher_state").state === "run" ? (n("sensor.dishwasher_remaining") % 20 < 8 ? 1900 : 90) : 0.8;
     const dryer = this.get("sensor.dryer_state").state === "run" ? jitter(750, 0.1) : 1.8;
-    this.set("sensor.washer_power", round(washer));
-    this.set("sensor.dishwasher_power", round(dish));
-    this.set("sensor.dryer_power", round(dryer));
+    if (!this._reel) {
+      this.set("sensor.washer_power", round(washer));
+      this.set("sensor.dishwasher_power", round(dish));
+      this.set("sensor.dryer_power", round(dryer));
+    }
     this.set("sensor.fridge_power", now.getMinutes() % 20 < 7 ? round(jitter(72, 0.1)) : 1);
     this.set("sensor.desk_plug_power", on("switch.desk_plug") ? round(jitter(86, 0.15)) : 0);
     this.set("sensor.tv_plug_power", this.get("media_player.living_room_tv").state === "on" ? round(jitter(96, 0.05)) : on("switch.tv_plug") ? 4 : 0);
@@ -269,7 +272,9 @@ export class Sim {
 
     // The vacuum makes its round and comes home.
     const vac = this.get("vacuum.robo");
-    if (vac.state === "cleaning") {
+    if (this._reel) {
+      // The show reel drives the vacuum.
+    } else if (vac.state === "cleaning") {
       const battery = Math.max(20, (Number(vac.attributes.battery_level) || 100) - 1);
       this.set("vacuum.robo", battery <= 25 ? "returning" : undefined, { battery_level: battery, status: battery <= 25 ? "Returning" : "Cleaning" });
     } else if (vac.state === "returning") {
@@ -720,6 +725,61 @@ export class Sim {
         sendMessagePromise: (msg) => sim.callWS(msg),
       },
     };
+  }
+
+  /**
+   * The household in fast forward: washer, dishwasher and dryer run their
+   * last stretch and finish one after another, the vacuum makes a round and
+   * docks — a few seconds for what takes an hour, so the running cards move
+   * and the "done" notifications come. Runs on opening and from the scenarios.
+   */
+  showReel() {
+    clearInterval(this._reel);
+    const plan = [
+      // entity prefix, minutes left at the start, seconds until done, draw while running
+      ["washer", 38, 4.5, (f) => (f > 0.75 ? 480 + Math.random() * 120 : 180 + Math.random() * 40)],
+      ["dishwasher", 47, 6.5, (f) => (Math.floor(f * 6) % 2 ? 90 : 1900)],
+      ["dryer", 52, 8, () => 720 + Math.random() * 80],
+    ];
+    for (const [p, left] of plan) {
+      this.set(`sensor.${p}_state`, "run");
+      this.set(`sensor.${p}_remaining`, left);
+      if (this.states[`sensor.${p}_progress`]) this.set(`sensor.${p}_progress`, 100 - left);
+    }
+    this.set("vacuum.robo", "cleaning", { battery_level: 82, status: "Cleaning" });
+    this.flush();
+    const started = performance.now();
+    const STEP = 200;
+    this._reel = setInterval(() => {
+      const s = (performance.now() - started) / 1000;
+      let running = false;
+      for (const [p, left, secs, draw] of plan) {
+        if (this.get(`sensor.${p}_state`).state !== "run") continue;
+        const f = Math.min(1, s / secs);
+        if (f >= 1) {
+          this.set(`sensor.${p}_state`, "finished");
+          this.set(`sensor.${p}_remaining`, 0);
+          if (this.states[`sensor.${p}_progress`]) this.set(`sensor.${p}_progress`, 100);
+          this.set(`sensor.${p}_power`, 1);
+          continue;
+        }
+        running = true;
+        const now = Math.max(1, Math.round(left * (1 - f)));
+        this.set(`sensor.${p}_remaining`, now);
+        if (this.states[`sensor.${p}_progress`]) this.set(`sensor.${p}_progress`, Math.round(100 - now));
+        this.set(`sensor.${p}_power`, Math.round(draw(f)));
+      }
+      const vac = this.get("vacuum.robo");
+      if (s < 5) this.set("vacuum.robo", undefined, { battery_level: Math.round(82 - s * 2), status: "Cleaning" });
+      else if (s < 7 && vac.state === "cleaning") this.set("vacuum.robo", "returning", { status: "Returning" });
+      else if (s >= 7 && vac.state === "returning") this.set("vacuum.robo", "docked", { status: "Charging" });
+      running ||= this.get("vacuum.robo").state !== "docked";
+      this.flush();
+      if (!running) {
+        clearInterval(this._reel);
+        this._reel = undefined;
+      }
+    }, STEP);
   }
 
   destroy() {

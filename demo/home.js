@@ -169,6 +169,8 @@ function devices() {
     ]],
     dryer: ["Dryer", "utility", "Heat-pump dryer", [
       ["sensor.dryer_state", "ready", { friendly_name: "Dryer", device_class: "enum", options: ["off", "ready", "run", "finished"] }],
+      ["sensor.dryer_remaining", "0", { friendly_name: "Dryer remaining", unit_of_measurement: "min", device_class: "duration" }],
+      ["sensor.dryer_progress", "0", { friendly_name: "Dryer progress", unit_of_measurement: "%" }],
       sensor("sensor.dryer_power", W(2), "Dryer Power"),
     ]],
     utility_leak: ["Utility Leak Sensor", "utility", "Water leak sensor", [

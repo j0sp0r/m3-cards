@@ -176,6 +176,7 @@ function views() {
           progress: { remaining_entity: "sensor.dishwasher_remaining" },
           chips: [{ entity: "sensor.dishwasher_power", name: t("Power", "Leistung"), icon: "mdi:flash", show_state: true }] },
         { type: "custom:m3-appliance-card", entity: "sensor.dryer_state", name: t("Dryer", "Trockner"), icon: "mdi:tumble-dryer",
+          progress: { percentage_entity: "sensor.dryer_progress", remaining_entity: "sensor.dryer_remaining" },
           chips: [{ entity: "sensor.dryer_power", name: t("Power", "Leistung"), icon: "mdi:flash", show_state: true }] },
         { type: "custom:m3-vacuum-card", entity: "vacuum.robo" },
       ]],
@@ -428,15 +429,23 @@ function paintSwitches() {
   document.documentElement.dataset.theme = dark ? "dark" : "light";
   document.body.classList.toggle("no-titles", !titles);
   themeBtn.querySelector("ha-icon").icon = dark ? "mdi:weather-sunny" : "mdi:weather-night";
-  glassBtn.querySelector("ha-icon").icon = glass ? "mdi:blur" : "mdi:square-rounded";
-  glassBtn.classList.toggle("off", !glass);
-  titlesBtn.classList.toggle("off", !titles);
-  phoneBtn.classList.toggle("off", phone);
-  langBtn.textContent = de() ? "EN" : "DE";
+  glassBtn.querySelector("ha-icon").icon = "mdi:blur";
+  glassBtn.classList.toggle("on", glass);
+  titlesBtn.classList.toggle("on", titles);
+  phoneBtn.classList.toggle("on", phone);
+  const label = (btn, text) => {
+    btn.querySelector(".lbl").textContent = text;
+  };
+  label(phoneBtn, de() ? "Handy" : "Phone");
+  label(titlesBtn, de() ? "Kartennamen" : "Card names");
+  label(glassBtn, de() ? "Glas" : "Glass");
+  label(themeBtn, dark ? (de() ? "Hell" : "Light") : de() ? "Dunkel" : "Dark");
+  label(langBtn, de() ? "English" : "Deutsch");
+  langBtn.title = de() ? "Switch to English" : "Auf Deutsch umschalten";
   glassBtn.title = de() ? (glass ? "Glas an — für deckende Kacheln tippen" : "Glas aus — für Glas tippen") : glass ? "Glass on — tap for solid cards" : "Glass off — tap for glass";
   titlesBtn.title = de() ? (titles ? "Kartennamen ausblenden" : "Kartennamen einblenden") : titles ? "Hide card names" : "Show card names";
   phoneBtn.title = de() ? (phone ? "Zurück zur Desktop-Ansicht" : "Als Smartphone ansehen") : phone ? "Back to the desktop view" : "View as a phone";
-  themeBtn.title = de() ? "Hell / dunkel" : "Light / dark";
+  themeBtn.title = dark ? (de() ? "Zum hellen Design" : "Switch to light") : de() ? "Zum dunklen Design" : "Switch to dark";
   notes.relabel();
 }
 
@@ -500,3 +509,5 @@ sim.setDark(dark);
 // The nav bar measures its entries to place its pill: wait for the type.
 await document.fonts.ready;
 render();
+// A moment to look, then the household runs once in fast forward.
+setTimeout(() => sim.showReel(), 1500);

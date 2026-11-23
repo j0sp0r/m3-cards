@@ -85,7 +85,12 @@
     background: color-mix(in srgb, var(--primary-text-color) 10%, transparent);
     color: var(--primary-text-color); font: 600 15px "Roboto Flex", Roboto, sans-serif; text-decoration: none; cursor: pointer;
   }
-  header button.off { background: color-mix(in srgb, var(--primary-color) 22%, transparent); color: var(--primary-color); }
+  /* A switch that is on: tinted, with a check in front of its name. */
+  header button.toggle.on { background: color-mix(in srgb, var(--primary-color) 22%, transparent); color: var(--primary-color); }
+  header button.toggle .lbl::before { content: ""; }
+  header button.toggle.on .lbl::before { content: "✓ "; }
+  header .sep { width: 1px; height: 24px; background: var(--divider-color); margin: 0 2px; }
+  header .lbl { white-space: nowrap; font-size: 14px; }
   header button:hover, header a:hover { background: color-mix(in srgb, var(--primary-text-color) 16%, transparent); }
   #view-root { padding: 8px 16px 140px; }
   .sections {
@@ -110,8 +115,14 @@
   .card-title:hover code { opacity: 0.9; }
   body.no-titles .card-title { display: none; }
   .card-error { padding: 16px; border-radius: 16px; background: #5a1f1f; color: #ffd9d4; font: 13px monospace; }
-  @media (max-width: 900px) {
+  @media (max-width: 1500px) {
     header .note { display: none; }
+    header .brand { flex: 1; }
+  }
+  /* Too narrow for the names: the icons alone, the names as tooltips. */
+  @media (max-width: 1080px) {
+    header .lbl { display: none; }
+    header .sep { display: none; }
   }
   @media (max-width: 600px) {
     header { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
@@ -139,12 +150,13 @@
 <header>
   <span class="brand"><b>M3</b> Cards</span>
   <span class="note">A pretend home with simulated values — tap around, nothing is connected.</span>
-  <button id="lang" title="Language">DE</button>
-  <button id="phone" title="Phone"><ha-icon icon="mdi:cellphone"></ha-icon></button>
-  <button id="titles" title="Card names"><ha-icon icon="mdi:label-outline"></ha-icon></button>
-  <button id="glass" title="Glass"><ha-icon icon="mdi:blur"></ha-icon></button>
-  <button id="theme" title="Light / dark"><ha-icon icon="mdi:weather-sunny"></ha-icon></button>
-  <a href="https://github.com/j0sp0r/m3-cards" title="GitHub"><ha-icon icon="mdi:github"></ha-icon></a>
+  <span class="sep"></span>
+  <button id="phone" class="toggle"><ha-icon icon="mdi:cellphone"></ha-icon><span class="lbl"></span></button>
+  <button id="titles" class="toggle"><ha-icon icon="mdi:label-outline"></ha-icon><span class="lbl"></span></button>
+  <button id="glass" class="toggle"><ha-icon icon="mdi:blur"></ha-icon><span class="lbl"></span></button>
+  <button id="theme"><ha-icon icon="mdi:weather-sunny"></ha-icon><span class="lbl"></span></button>
+  <button id="lang"><ha-icon icon="mdi:translate"></ha-icon><span class="lbl"></span></button>
+  <a href="https://github.com/j0sp0r/m3-cards" title="GitHub"><ha-icon icon="mdi:github"></ha-icon><span class="lbl">GitHub</span></a>
 </header>
 <main id="view-root"></main>
 <div id="phone-host"></div>
