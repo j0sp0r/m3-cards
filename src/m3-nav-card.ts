@@ -243,7 +243,24 @@ const connectedSheets = new Set<M3NavCard>();
  * the change of page, and only a menu page (which keeps the bar up longer)
  * showed it. The new bar continues from here instead, if it is fresh.
  */
-let markerHandoff: { left: number; top: number; width: number; height: number; at: number } | undefined;
+let markerHandoff:
+  | {
+      left: number;
+      top: number;
+      width: number;
+      height: number;
+      at: number;
+      /** Where each entry's icon and label stood, by `index:glyph|label`. */
+      parts: Map<string, number>;
+    }
+  | undefined;
+
+/** An entry's icon or label, keyed the same on both bars. */
+function partKey(part: HTMLElement): string | undefined {
+  const index = (part.parentElement as HTMLElement | null)?.dataset.index;
+  if (index === undefined) return undefined;
+  return `${index}:${part.classList.contains("glyph") ? "glyph" : "label"}`;
+}
 
 /** The editor frame names the variant, using the editor's own wording for it. */
 const VARIANT_LABEL_KEYS: Record<NavVariant, TranslationKey> = {
@@ -812,7 +829,12 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       return;
     }
     const r = marker.getBoundingClientRect();
-    markerHandoff = { left: r.left, top: r.top, width: r.width, height: r.height, at: performance.now() };
+    const parts = new Map<string, number>();
+    for (const part of this.renderRoot.querySelectorAll<HTMLElement>(".bar .item > .glyph, .bar .item > .label")) {
+      const key = partKey(part);
+      if (key) parts.set(key, part.getBoundingClientRect().left);
+    }
+    markerHandoff = { left: r.left, top: r.top, width: r.width, height: r.height, at: performance.now(), parts };
     if (this._markerMotion === "spring" || this._markerMotion === "stretch") {
       this._handedOver = true;
       // A view the router hides rather than removes would otherwise keep a
@@ -841,6 +863,18 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     const barRect = bar.getBoundingClientRect();
     const local = (x: number) => x - barRect.left - bar.clientLeft + bar.scrollLeft;
     const y = new DOMMatrix(getComputedStyle(marker).transform).m42;
+    // The entries reflow on arriving — the new one gains its icon, the old one
+    // loses it — so every icon and label glides from where it stood on the
+    // last bar to its place here, in step with the pill, as mid-swipe.
+    const duration = motion === "stretch" ? NAV_MARKER_STRETCH_MS : NAV_MARKER_SPRING_MS;
+    for (const part of bar.querySelectorAll<HTMLElement>(".item > .glyph, .item > .label")) {
+      const key = partKey(part);
+      const was = key ? h.parts.get(key) : undefined;
+      if (was === undefined) continue;
+      const dx = was - part.getBoundingClientRect().left;
+      if (Math.abs(dx) < 0.5) continue;
+      part.animate([{ translate: `${dx}px 0` }, { translate: "0 0" }], { duration, easing: "ease-in-out" });
+    }
     if (motion === "stretch") {
       this._stretchMarker(marker, { left: local(h.left), width: h.width }, local(to.left), to.width);
       return;
