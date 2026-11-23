@@ -36,7 +36,11 @@ export function formatNumber(
   options?: Intl.NumberFormatOptions,
 ): string {
   const fmt = getNumberFormat(language, options);
-  return fmt ? fmt.format(value) : value.toFixed(options?.maximumFractionDigits ?? 0);
+  const format = (v: number) => (fmt ? fmt.format(v) : v.toFixed(options?.maximumFractionDigits ?? 0));
+  // A small negative that rounds to zero (-0.3 at no decimals) keeps its sign
+  // in Intl and toFixed alike — "-0°" next to "0°". Zero has no sign.
+  if ((value < 0 || Object.is(value, -0)) && format(-value) === format(0)) return format(0);
+  return format(value);
 }
 
 // Locale's decimal separator (e.g. "," for de, "." for en) — used by the

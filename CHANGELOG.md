@@ -26,6 +26,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **No more "-0°".** A small negative that rounds to zero — -0.3 °C at no
+  decimals — kept its minus sign, so the weather card showed "-0°" next to
+  "0°". Every card's number formatting now drops it.
+
 - **Leak card: "Water shut off" when the valve is closed.** The button only
   said so after its own tap; a valve closed by an automation or by hand
   still offered to shut the water off.

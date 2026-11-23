@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatClock, formatDayMonth, formatDuration, formatSpan } from "./formatting";
+import { formatClock, formatDayMonth, formatDuration, formatNumber, formatSpan } from "./formatting";
 
 describe("formatClock", () => {
   const now = Date.parse("2026-09-13T15:00:00Z");
@@ -75,5 +75,17 @@ describe("formatDayMonth", () => {
   it("puts the month first for MDY and YMD", () => {
     expect(formatDayMonth(nov9, "en-GB", "MDY")).toBe("11/09");
     expect(formatDayMonth(nov9, "en", "YMD")).toBe("11/9");
+  });
+});
+
+describe("formatNumber and negative zero", () => {
+  it("drops the sign of a value that rounds to zero", () => {
+    expect(formatNumber("de", -0.3, { maximumFractionDigits: 0 })).toBe("0");
+    expect(formatNumber("en", -0.04, { minimumFractionDigits: 1, maximumFractionDigits: 1 })).toBe("0.0");
+    expect(formatNumber("de", -0)).toBe("0");
+  });
+  it("keeps the sign of a value that does not", () => {
+    expect(formatNumber("de", -0.6, { maximumFractionDigits: 0 })).toBe("-1");
+    expect(formatNumber("en", -0.3, { maximumFractionDigits: 1 })).toBe("-0.3");
   });
 });
