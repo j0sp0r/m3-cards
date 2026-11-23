@@ -373,6 +373,12 @@ function makeCard(config) {
 }
 
 let shown;
+let reelShown = false;
+window.m3DemoView = () => shown?.key;
+window.m3DemoGo = (key) => {
+  history.pushState(null, "", nav(key));
+  window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+};
 /**
  * A card with its own name over it — "M3 Climate Card · m3-climate-card" —
  * linking to its documentation, so a visitor always knows which card is which.
@@ -597,6 +603,12 @@ function render(force = false) {
   // A change of hash only (a popup opening) is not a change of view.
   if (!force && key === shown?.key && location.pathname === shown?.path) return;
   shown = { key, path: location.pathname };
+  // The household runs once in fast forward the first time its page opens,
+  // so the appliances move and their notifications come beside them.
+  if (key === "household" && !reelShown) {
+    reelShown = true;
+    setTimeout(() => shown?.key === "household" && sim.showReel(), 1200);
+  }
   live = [];
   const view = document.createElement("hui-view");
   view.dataset.view = key;
@@ -774,5 +786,4 @@ sim.setDark(dark);
 // The nav bar measures its entries to place its pill: wait for the type.
 await document.fonts.ready;
 render();
-// A moment to look, then the household runs once in fast forward.
-setTimeout(() => sim.showReel(), 1500);
+

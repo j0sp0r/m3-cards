@@ -168,15 +168,22 @@ export function setupNotifications(sim, header) {
     for (const n of [...log].reverse()) shade.appendChild(noteEl(n));
   };
 
-  const push = (title, text, icon, color) => {
+  /**
+   * A notification from the card on `view`. It slides in only while that page
+   * is open, so a new visitor sees it beside the card that caused it; from
+   * another page it goes quietly into the shade behind the bell.
+   */
+  const push = (title, text, icon, color, view) => {
     // With the phone frame up, the phone shows its own notifications.
     if (window.m3DemoScenarioTarget?.()) return;
+    const here = !view || window.m3DemoView?.() === view;
     const n = { title, text, icon, color, time: time() };
     log.push(n);
     if (log.length > 20) log.shift();
     if (shade.hidden) unread++;
     updateBadge();
     if (!shade.hidden) renderShade();
+    if (!here) return;
     const el = noteEl(n);
     const dismiss = () => {
       el.classList.add("out");
@@ -193,21 +200,21 @@ export function setupNotifications(sim, header) {
   sim.changeListeners.add((id, before, after) => {
     const tx = t();
     if (id === "sensor.washer_state" || id === "sensor.dishwasher_state" || id === "sensor.dryer_state") {
-      if (after === "finished") push(name(id), tx.done(name(id)), "mdi:check-circle-outline", "#9dd67d");
+      if (after === "finished") push(name(id), tx.done(name(id)), "mdi:check-circle-outline", "#9dd67d", "household");
       if (after === "run" && before !== "run") {
         const left = Number(sim.get(id.replace("_state", "_remaining"))?.state) || 60;
         const end = new Date(Date.now() + left * 60e3).toLocaleTimeString(sim.language === "de" ? "de-DE" : "en-GB", { hour: "2-digit", minute: "2-digit" });
-        push(name(id), tx.started(name(id), end), "mdi:play-circle-outline", "#8db4e6");
+        push(name(id), tx.started(name(id), end), "mdi:play-circle-outline", "#8db4e6", "household");
       }
     }
     if (id.startsWith("binary_sensor.") && id.endsWith("_leak") && after === "on") {
-      push(tx.leakTitle, tx.leak(name(id)), "mdi:water-alert", "#6ba7dc");
+      push(tx.leakTitle, tx.leak(name(id)), "mdi:water-alert", "#6ba7dc", "security");
     }
     if (id === "valve.main_water" && after === "closed" && before === "open") {
-      push(name(id), tx.valve, "mdi:valve-closed", "#6ba7dc");
+      push(name(id), tx.valve, "mdi:valve-closed", "#6ba7dc", "security");
     }
     if (id === "alarm_control_panel.home" && after === "triggered") {
-      push(tx.alarmTitle, tx.alarm(sim.get(id).attributes.changed_by ?? "—"), "mdi:shield-alert", "#ee7d68");
+      push(tx.alarmTitle, tx.alarm(sim.get(id).attributes.changed_by ?? "—"), "mdi:shield-alert", "#ee7d68", "security");
     }
     // Availability: the card's automation waits its delay first; here a few seconds.
     if (after === "unavailable" && before !== "unavailable") {
@@ -216,7 +223,7 @@ export function setupNotifications(sim, header) {
         timers[dev] = setTimeout(() => {
           delete timers[dev];
           const still = Object.values(sim.entities).filter((e) => e.device_id === dev).every((e) => sim.get(e.entity_id)?.state === "unavailable");
-          if (still) push(sim.language === "de" ? "Gerät nicht erreichbar" : "Device unreachable", tx.offline(sim.devices[dev].name, 30), "mdi:wifi-off", "#f0c46e");
+          if (still) push(sim.language === "de" ? "Gerät nicht erreichbar" : "Device unreachable", tx.offline(sim.devices[dev].name, 30), "mdi:wifi-off", "#f0c46e", "security");
         }, 3500);
       }
     }
@@ -224,11 +231,11 @@ export function setupNotifications(sim, header) {
       const dev = sim.entities[id]?.device_id;
       if (dev && !timers["back" + dev]) {
         timers["back" + dev] = setTimeout(() => delete timers["back" + dev], 2000);
-        push(sim.language === "de" ? "Wieder erreichbar" : "Back online", tx.back(sim.devices[dev].name), "mdi:wifi-check", "#9dd67d");
+        push(sim.language === "de" ? "Wieder erreichbar" : "Back online", tx.back(sim.devices[dev].name), "mdi:wifi-check", "#9dd67d", "security");
       }
     }
     if (sim.get(id)?.attributes?.device_class === "battery" && Number(after) < 10 && !(Number(before) < 10) && id !== "sensor.battery_soc") {
-      push(tx.batteryTitle, tx.battery(name(id), after), "mdi:battery-alert-variant-outline", "#f0c46e");
+      push(tx.batteryTitle, tx.battery(name(id), after), "mdi:battery-alert-variant-outline", "#f0c46e", "security");
     }
   });
 
@@ -237,6 +244,15 @@ export function setupNotifications(sim, header) {
   const saved = {};
   const remember = (...ids) => {
     for (const id of ids) if (!(id in saved)) saved[id] = { state: sim.get(id).state, attributes: { ...sim.get(id).attributes } };
+  };
+  /** The page each scenario plays on: the one with the cards it moves. */
+  const SCENARIO_VIEW = { reel: "household", washer: "household", leak: "security", offline: "security", alarm: "security", battery: "security" };
+  /** Opens the scenario's page first, then lets it happen there. */
+  const play = (key) => {
+    const view = SCENARIO_VIEW[key];
+    const moved = view && window.m3DemoView?.() !== view;
+    if (moved) window.m3DemoGo?.(view);
+    setTimeout(() => SCENARIOS[key]?.(), moved ? 900 : 0);
   };
   const SCENARIOS = {
     reel: () => sim.showReel(),
@@ -311,7 +327,7 @@ export function setupNotifications(sim, header) {
         // Shown in the phone frame, the scenario happens in the phone.
         const target = window.m3DemoScenarioTarget?.();
         if (target?.m3DemoRun) target.m3DemoRun(key);
-        else run();
+        else play(key);
       };
       menu.appendChild(b);
     }
@@ -345,6 +361,6 @@ export function setupNotifications(sim, header) {
     bell.querySelector(".m3n-bell-label").textContent = sim.language === "de" ? "Mitteilungen" : "Notifications";
   };
   label();
-  window.m3DemoRun = (key) => SCENARIOS[key]?.();
+  window.m3DemoRun = (key) => play(key);
   return { relabel: label };
 }
