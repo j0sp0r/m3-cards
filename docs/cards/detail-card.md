@@ -14,7 +14,7 @@ door gets a timeline of when it was open. A lamp gets its own M3 card
 with the timeline under it. Below all of these sit the other entities of
 the same device, and a tap on one steps the view to it.
 
-<img src="docs/images/detail-card.png" alt="M3 Detail Card in its sheet — an outdoor temperature over 24 hours" width="440">
+<img src="docs/images/detail-card.png" alt="M3 Detail Card — an outdoor temperature over 24 hours, a band behind the curve keeps the short peaks" width="440">
 
 The same view can replace Home Assistant's more-info dialog for the suite's
 own cards: set `detail_mode: sheet` on a card, and a tap that would have

@@ -6,6 +6,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.10.0] – 2026-11-23
+
 ### Added
 
 - **Icons without a background (#64).** `m3-icon-background: none` in a
@@ -113,6 +115,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   was cut to "Batte…". And the card takes a `tap_action` now, in both
   layouts — navigate to a popup's hash, say; unset, a tap does nothing, as
   before.
+- **Detail card: the period selector's end pills.** The selected pill at
+  either end of the row now keeps its outer corners round, concentric with
+  the track.
 - **Room card: a header that fits a half-width slot (#43).** Below 260px the
   icon drops to 44px and the fold pill moves under the name, in place of the
   subtitle it repeats, so "Wohnzimmer" is no longer cut to its first letter.
