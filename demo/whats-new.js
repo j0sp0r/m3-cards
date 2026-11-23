@@ -6,9 +6,17 @@
 
 export const WHATS_NEW = {
   version: "2.10.0",
+  date: "2026-11-23",
+  /** The release in a sentence or two, for the head of the page. */
+  summary: {
+    en: "A new card for the home network — the router and every device on it, with the ones that need a look lit up. The detail card draws a second sensor and shows the peaks its curve smooths away; chips go frameless, the weather card takes decimals and a room card can keep to the devices you name.",
+    de: "Eine neue Karte fürs Heimnetz — der Router und jedes Gerät darin, auffällige hervorgehoben. Die Detailkarte zeichnet einen zweiten Sensor und zeigt die Spitzen, die ihre Kurve glättet; Chips gehen ohne Rahmen, die Wetterkarte kann Nachkommastellen und eine Raumkarte sich auf genannte Geräte beschränken.",
+  },
+  /** Counts for the chips beside the summary. */
+  counts: { cards: 1, features: 4 },
   /** @param t (en, de) => the text in the demo's language */
   sections: (t) => [
-    [t("New card in 2.10.0", "Neue Karte in 2.10.0"), [
+    [t("New card", "Neue Karte"), [
       {
         type: "custom:m3-network-card",
         router: {

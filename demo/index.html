@@ -142,6 +142,28 @@
     color: var(--primary-color); background: color-mix(in srgb, var(--primary-color) 16%, transparent); }
   .card-title > a:hover code { opacity: 0.9; }
   body.no-titles .card-title { display: none; }
+  .whats-new {
+    max-width: 1500px; margin: 8px auto 24px; box-sizing: border-box; padding: 24px 28px;
+    display: flex; gap: 20px; align-items: flex-start; border-radius: 28px;
+    background: color-mix(in srgb, var(--primary-color) 13%, color-mix(in srgb, var(--card-background-color) 70%, transparent));
+    backdrop-filter: blur(16px);
+  }
+  .wn-icon { flex: none; width: 56px; height: 56px; border-radius: 18px; display: flex; align-items: center; justify-content: center;
+    background: var(--primary-color); color: #1c1c1c; --mdc-icon-size: 30px; }
+  .wn-body { min-width: 0; }
+  .wn-kicker { font: 600 13px "Roboto Flex", Roboto, sans-serif; color: var(--primary-color); letter-spacing: 0.02em; }
+  .whats-new h1 { margin: 2px 0 10px; font: 800 30px/1.1 "Roboto Flex", Roboto, sans-serif; letter-spacing: -0.01em; }
+  .wn-meta { display: flex; flex-wrap: wrap; gap: 8px; }
+  .wn-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border-radius: 14px;
+    background: color-mix(in srgb, var(--primary-text-color) 9%, transparent); font: 600 13px "Roboto Flex", Roboto, sans-serif; --mdc-icon-size: 16px; }
+  .whats-new p { margin: 14px 0 12px; max-width: 900px; font: 400 15px/1.5 "Roboto Flex", Roboto, sans-serif; color: var(--secondary-text-color); }
+  .wn-link { display: inline-flex; align-items: center; gap: 4px; color: var(--primary-color); font: 600 14px "Roboto Flex", Roboto, sans-serif; text-decoration: none; --mdc-icon-size: 16px; }
+  .wn-link:hover { text-decoration: underline; }
+  @media (max-width: 600px) {
+    .whats-new { padding: 18px; gap: 12px; flex-direction: column; }
+    .wn-icon { width: 44px; height: 44px; border-radius: 14px; --mdc-icon-size: 24px; }
+    .whats-new h1 { font-size: 24px; }
+  }
   .card-error { padding: 16px; border-radius: 16px; background: #5a1f1f; color: #ffd9d4; font: 13px monospace; }
   @media (max-width: 1500px) {
     header .note { display: none; }

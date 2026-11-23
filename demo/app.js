@@ -37,7 +37,6 @@ let glass = params.get("glass") !== "0";
 
 const VIEWS = [
   { key: "home", title: "Home", icon: "mdi:home" },
-  { key: "new", title: "New", icon: "mdi:new-box" },
   { key: "rooms", title: "Rooms", icon: "mdi:floor-plan" },
   { key: "climate", title: "Climate", icon: "mdi:thermostat" },
   { key: "energy", title: "Energy", icon: "mdi:lightning-bolt" },
@@ -45,6 +44,7 @@ const VIEWS = [
   { key: "security", title: "Security", icon: "mdi:shield-home" },
   { key: "more", title: "More", icon: "mdi:dots-grid" },
   { key: "shapes", title: "Shapes", icon: "mdi:shape-outline" },
+  { key: "new", title: "New", icon: "mdi:new-box" },
 ];
 
 const TITLES_DE = { home: "Start", new: "Neu", rooms: "Räume", climate: "Klima", energy: "Energie", household: "Haushalt", security: "Sicherheit", more: "Mehr", shapes: "Formen" };
@@ -512,6 +512,33 @@ function toYaml(value, indent = "") {
 }
 window.m3DemoYaml = toYaml;
 
+/** The head of the "New" view: which release, when, and what it brought. */
+function whatsNewHead() {
+  const de = sim.language === "de";
+  const head = document.createElement("div");
+  head.className = "whats-new";
+  const date = new Date(`${WHATS_NEW.date}T12:00:00`).toLocaleDateString(de ? "de-DE" : "en-GB", { day: "numeric", month: "long", year: "numeric" });
+  const { cards, features } = WHATS_NEW.counts;
+  const chip = (icon, text) => `<span class="wn-chip"><ha-icon icon="${icon}"></ha-icon>${text}</span>`;
+  head.innerHTML = `
+    <div class="wn-icon"><ha-icon icon="mdi:new-box"></ha-icon></div>
+    <div class="wn-body">
+      <div class="wn-kicker">${de ? "Neu im letzten Release" : "New in the latest release"}</div>
+      <h1>M3 Cards ${WHATS_NEW.version}</h1>
+      <div class="wn-meta">
+        ${chip("mdi:calendar", date)}
+        ${chip("mdi:card-plus-outline", de ? `${cards} neue ${cards === 1 ? "Karte" : "Karten"}` : `${cards} new card${cards === 1 ? "" : "s"}`)}
+        ${chip("mdi:creation-outline", de ? `${features} neue Funktionen` : `${features} new features`)}
+      </div>
+      <p></p>
+      <a class="wn-link" target="_blank" rel="noopener" href="https://github.com/j0sp0r/m3-cards/releases/tag/v${WHATS_NEW.version}">
+        ${de ? "Alle Änderungen in den Release-Notes" : "Everything in the release notes"}<ha-icon icon="mdi:arrow-top-right"></ha-icon>
+      </a>
+    </div>`;
+  head.querySelector("p").textContent = de ? WHATS_NEW.summary.de : WHATS_NEW.summary.en;
+  return head;
+}
+
 // ---- layout -------------------------------------------------------------------
 
 /**
@@ -587,6 +614,7 @@ function render(force = false) {
     for (const c of cards) section.appendChild(withTitle(c, makeCard(c)));
     sections.push(section);
   }
+  if (key === "new") view.appendChild(whatsNewHead());
   view.appendChild(grid);
   view.appendChild(makeCard(navCard()));
   root.replaceChildren(view);
