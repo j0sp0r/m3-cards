@@ -2387,11 +2387,9 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     const target = outcome === "next" ? s.next! : s.prev!;
     s.committed = true;
     s.going = target;
-    // A spring or a stretch is the next page's bar's to draw, from where the
-    // finger let go (see `markerHandoff`): moved here first, it would arrive
-    // with little of the move left to make.
-    const carried = this._markerMotion === "spring" || this._markerMotion === "stretch";
-    if (!carried) this._placeSwipePill(s, target, 1);
+    // The finger has drawn the move already: the pill just settles, here, and
+    // the next page's bar takes over without a spring or stretch of its own.
+    this._placeSwipePill(s, target, 1);
     if (this._swipeInk) this._followSwipeInk(s);
     const settle = () => {
       this._endSwipeInk(s);
@@ -2405,7 +2403,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     // Straight to the router: the slide below is the transition, and
     // `_dispatch` would start a second one around it.
     const navigate = () => {
-      this._handOverMarker();
+      markerHandoff = undefined;
       handleAction(this, this.hass, { action: "navigate", navigation_path: target.path });
     };
     if (!shouldAnimate(this._config?.animation) || matchMedia("(prefers-reduced-motion: reduce)").matches) {

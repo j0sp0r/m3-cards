@@ -13,7 +13,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   needle gauge does; `stretch` reaches out to the new entry first and then
   lets go of the old one, like a drop pulled across. Each view has a bar of
   its own; the new page's bar takes the move over from where the old one
-  left the pill, so a swipe or a tap shows the whole of it.
+  left the pill, so a tap shows the whole of it. A swipe along the bar keeps
+  the plain glide: the finger has drawn the move already.
 - **Nav card: `page_transition: slide`.** A tap moves the page sideways the
   way a swipe along the bar does, toward the tapped entry's side, so tapping
   and swiping between views look the same. A page that is not in the bar —
