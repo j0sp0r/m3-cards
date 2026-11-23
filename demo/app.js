@@ -709,9 +709,17 @@ function render(force = false) {
   grid.className = "sections";
   // Sections as data: the layout builds their containers, so a tall one can
   // be split across two columns.
-  const groups = views()[key].map(([title, cards]) => ({ title, cards: cards.map((c) => withTitle(c, makeCard(c))) }));
+  // A popup has no place on the page and opens as a modal dialog; moved by
+  // the layout while open, a dialog drops out of the top layer and stays
+  // behind the cards. So popups sit on the view itself, outside the columns.
+  const isPopup = (c) => c.type === "custom:m3-popup-card";
+  const popups = views()[key].flatMap(([, cards]) => cards.filter(isPopup)).map((c) => makeCard(c));
+  const groups = views()[key]
+    .map(([title, cards]) => ({ title, cards: cards.filter((c) => !isPopup(c)).map((c) => withTitle(c, makeCard(c))) }))
+    .filter((g) => g.cards.length);
   if (key === "new") view.appendChild(whatsNewHead());
   view.appendChild(grid);
+  view.append(...popups);
   placeNav(view, makeCard(navCard()));
   root.replaceChildren(view);
   masonry(grid, groups);
