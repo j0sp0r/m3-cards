@@ -2049,12 +2049,6 @@ export const NAV_SIDE_PADDING = 16;
 export const NAV_ICON_SIDE_PADDING = 12;
 export const NAV_ITEM_INACTIVE_OPACITY = 0.6;
 export const NAV_PRESS_MS = 200;
-/**
- * How long the nav card keeps an entry lit for a route it has handed over
- * but that has not arrived (#63). The route change itself is immediate; this
- * only catches one that was refused.
- */
-export const NAV_PENDING_MAX_MS = 1500;
 
 /** How long the marker takes to travel from one entry to the next. */
 export const NAV_MARKER_SLIDE_MS = 280;
