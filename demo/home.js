@@ -208,6 +208,78 @@ function devices() {
 
     // People's phones (batteries) and remotes
     remote: ["Living Room Remote", "living_room", "Remote", [sensor("sensor.living_remote_battery", B(27), "Remote Battery")]],
+
+    // The car, charging in the garage
+    car: ["Family Car", "garage", "Compact EV 58 kWh", [
+      ["sensor.car_battery", "64", { friendly_name: "Car Battery", device_class: "battery", unit_of_measurement: "%", state_class: "measurement" }],
+      ["sensor.car_range", "268", { friendly_name: "Car Range", device_class: "distance", unit_of_measurement: "km", state_class: "measurement" }],
+      ["binary_sensor.car_charging", "off", { friendly_name: "Car Charging", device_class: "battery_charging" }],
+      ["binary_sensor.car_plugged", "on", { friendly_name: "Car Plugged In", device_class: "plug" }],
+      ["sensor.car_charge_power", "0", { friendly_name: "Car Charge Power", device_class: "power", unit_of_measurement: "kW", state_class: "measurement" }],
+      ["sensor.car_charge_limit", "80", { friendly_name: "Car Charge Limit", unit_of_measurement: "%" }],
+      ["lock.car", "locked", { friendly_name: "Car Doors", supported_features: 0 }],
+      ["device_tracker.car", "home", { friendly_name: "Car Location", source_type: "gps" }],
+      sensor("sensor.car_tyre_front_left", ["pressure", "bar", 2.4], "Tyre front left"),
+      ["sensor.car_odometer", "18342", { friendly_name: "Odometer", device_class: "distance", unit_of_measurement: "km", state_class: "total_increasing" }],
+    ]],
+
+    // A 3D printer in the office
+    printer: ["3D Printer", "office", "Desktop 3D printer", [
+      ["sensor.printer_status", "printing", { friendly_name: "3D Printer", device_class: "enum", options: ["idle", "printing", "paused", "finished", "error"] }],
+      ["sensor.printer_progress", "42", { friendly_name: "Print Progress", unit_of_measurement: "%" }],
+      ["sensor.printer_remaining", "64", { friendly_name: "Print Remaining", unit_of_measurement: "min", device_class: "duration" }],
+      ["sensor.printer_job", "Plant pot.3mf", { friendly_name: "Print Job" }],
+      ["sensor.printer_layer", "118", { friendly_name: "Current Layer" }],
+      ["sensor.printer_total_layers", "280", { friendly_name: "Total Layers" }],
+      sensor("sensor.printer_nozzle_temperature", T(219), "Nozzle"),
+      sensor("sensor.printer_bed_temperature", T(60), "Bed"),
+    ]],
+
+    // The aquarium in Leo's room
+    aquarium: ["Aquarium", "kids_room", "Aquarium 120 l", [
+      sensor("sensor.aquarium_temperature", T(25.3), "Aquarium Water"),
+      ["switch.aquarium_light", "on", { friendly_name: "Aquarium Light" }],
+      ["switch.aquarium_moonlight", "off", { friendly_name: "Moonlight" }],
+      ["switch.aquarium_pump", "on", { friendly_name: "Aquarium Pump" }],
+      ["switch.aquarium_heater", "off", { friendly_name: "Aquarium Heater" }],
+      sensor("sensor.aquarium_heater_power", W(0), "Heater Power"),
+      ["sensor.aquarium_ph", "7.1", { friendly_name: "pH", state_class: "measurement" }],
+    ]],
+
+    // The TV remote
+    tv_remote: ["TV Remote", "living_room", "Streaming remote", [["remote.living_room_tv", "on", {
+      friendly_name: "TV", current_activity: "Streaming", activity_list: ["Streaming", "Live TV", "Game console", "Music"], supported_features: 4,
+    }]]],
+
+    // Router, the network and what is on it (all addresses made up)
+    router: ["Router", "hallway", "Fibre router", [
+      ["binary_sensor.router_online", "on", { friendly_name: "Internet", device_class: "connectivity" }],
+      ["sensor.router_online_since", new Date(Date.now() - 9 * 86400e3).toISOString(), { friendly_name: "Online since", device_class: "timestamp" }],
+      ["sensor.router_connection", "Fibre", { friendly_name: "Connection" }],
+      ["sensor.router_download", "412000000", { friendly_name: "Download", unit_of_measurement: "bit/s", state_class: "measurement" }],
+      ["sensor.router_upload", "98000000", { friendly_name: "Upload", unit_of_measurement: "bit/s", state_class: "measurement" }],
+    ]],
+
+    // Motion sensors for the occupancy card
+    kitchen_motion: ["Kitchen Motion", "kitchen", "Motion sensor", [["binary_sensor.kitchen_motion", "off", { friendly_name: "Kitchen Motion", device_class: "motion" }]]],
+    hallway_motion: ["Hallway Motion", "hallway", "Motion sensor", [["binary_sensor.hallway_motion", "on", { friendly_name: "Hallway Motion", device_class: "motion" }]]],
+    office_presence: ["Office Presence", "office", "mmWave sensor", [["binary_sensor.office_presence", "on", { friendly_name: "Office Presence", device_class: "occupancy" }]]],
+
+    // Energy counters per appliance, and a day/night tariff
+    meter: ["Energy Meter", "utility", "Smart meter", [
+      ["sensor.energy_day", "4310.2", { friendly_name: "Day tariff", device_class: "energy", unit_of_measurement: "kWh", state_class: "total_increasing" }],
+      ["sensor.energy_night", "1904.1", { friendly_name: "Night tariff", device_class: "energy", unit_of_measurement: "kWh", state_class: "total_increasing" }],
+      ["sensor.price_day", "0.34", { friendly_name: "Day price", unit_of_measurement: "EUR/kWh" }],
+      ["sensor.price_night", "0.24", { friendly_name: "Night price", unit_of_measurement: "EUR/kWh" }],
+      ["select.tariff", "HT", { friendly_name: "Tariff", options: ["HT", "NT"] }],
+      ["sensor.wallbox_energy", "2210.4", { friendly_name: "Wallbox", device_class: "energy", unit_of_measurement: "kWh", state_class: "total_increasing" }],
+      ["sensor.washer_energy", "312.8", { friendly_name: "Washing Machine", device_class: "energy", unit_of_measurement: "kWh", state_class: "total_increasing" }],
+      ["sensor.dishwasher_energy", "401.5", { friendly_name: "Dishwasher", device_class: "energy", unit_of_measurement: "kWh", state_class: "total_increasing" }],
+      ["sensor.dryer_energy", "188.0", { friendly_name: "Dryer", device_class: "energy", unit_of_measurement: "kWh", state_class: "total_increasing" }],
+      ["sensor.fridge_energy", "512.3", { friendly_name: "Fridge", device_class: "energy", unit_of_measurement: "kWh", state_class: "total_increasing" }],
+      ["sensor.office_energy", "276.9", { friendly_name: "Office", device_class: "energy", unit_of_measurement: "kWh", state_class: "total_increasing" }],
+      ["sensor.tv_energy", "144.2", { friendly_name: "TV", device_class: "energy", unit_of_measurement: "kWh", state_class: "total_increasing" }],
+    ]],
   };
 }
 
@@ -239,6 +311,19 @@ function loose() {
     ["counter.coffee_capsules", "14", { friendly_name: "Coffee capsules", minimum: 0, maximum: 50, step: 1, icon: "mdi:coffee" }],
     ["input_datetime.alarm_clock", "06:45:00", { friendly_name: "Alarm clock", has_date: false, has_time: true, hour: 6, minute: 45, second: 0 }],
     ["binary_sensor.front_door_ring", "off", { friendly_name: "Doorbell", device_class: "occupancy", last_ring: ago(95) }],
+    ["calendar.family", "off", { friendly_name: "Family", message: "Dentist — Leo" }],
+    ["calendar.school", "off", { friendly_name: "School", message: "Parents' evening" }],
+    ["counter.dishwasher_tabs", "6", { friendly_name: "Dishwasher tabs", minimum: 0, maximum: 60, step: 1, icon: "mdi:dishwasher" }],
+    ["counter.detergent_pods", "22", { friendly_name: "Detergent pods", minimum: 0, maximum: 40, step: 1, icon: "mdi:washing-machine" }],
+    ["input_boolean.plants_watered", "off", { friendly_name: "Plants watered", icon: "mdi:flower" }],
+    ["input_boolean.fish_fed", "on", { friendly_name: "Fish fed", icon: "mdi:fish" }],
+    ["input_boolean.home_office", "on", { friendly_name: "Home office", icon: "mdi:laptop" }],
+    ["device_tracker.alex_phone", "home", { friendly_name: "Alex's Phone", mac: "00:1A:2B:3C:10:01", ip: "10.0.0.21", host_name: "alex-phone", essid: "Lindqvist", rssi: -54, band: "5GHz" }],
+    ["device_tracker.mia_phone", "home", { friendly_name: "Mia's Phone", mac: "00:1A:2B:3C:10:02", ip: "10.0.0.22", host_name: "mia-phone", essid: "Lindqvist", rssi: -61, band: "5GHz" }],
+    ["device_tracker.leo_tablet", "not_home", { friendly_name: "Leo's Tablet", mac: "00:1A:2B:3C:10:03", ip: "10.0.0.23", host_name: "leo-tablet", essid: "Lindqvist", rssi: -70, band: "2.4GHz" }],
+    ["device_tracker.living_tv", "home", { friendly_name: "TV", mac: "00:1A:2B:3C:10:04", ip: "10.0.0.30", host_name: "living-tv", essid: "Lindqvist", rssi: -58, band: "5GHz" }],
+    ["device_tracker.printer_wifi", "home", { friendly_name: "3D Printer", mac: "00:1A:2B:3C:10:05", ip: "10.0.0.41", host_name: "printer", essid: "Lindqvist", rssi: -79, band: "2.4GHz" }],
+    ["device_tracker.robo_wifi", "home", { friendly_name: "Robo", mac: "00:1A:2B:3C:10:06", ip: "10.0.0.42", host_name: "robo", essid: "Lindqvist", rssi: -66, band: "2.4GHz" }],
   ];
 }
 
@@ -278,6 +363,16 @@ export const NAMES_DE = {
     "sensor.waste_organic": "Bio", "sensor.waste_residual": "Restmüll", "sensor.waste_recycling": "Gelber Sack",
     "input_boolean.guest_mode": "Gäste", "input_boolean.vacation": "Urlaub", "scene.movie_night": "Filmabend", "scene.good_night": "Gute Nacht",
     "counter.coffee_capsules": "Kaffeekapseln", "input_datetime.alarm_clock": "Wecker", "weather.home": "Zuhause",
+    "sensor.car_battery": "Akku Auto", "sensor.car_range": "Reichweite", "lock.car": "Autotüren", "device_tracker.car": "Standort Auto",
+    "sensor.printer_status": "3D-Drucker", "sensor.aquarium_temperature": "Wasser Aquarium", "switch.aquarium_light": "Aquarienlicht",
+    "switch.aquarium_moonlight": "Mondlicht", "switch.aquarium_pump": "Pumpe", "switch.aquarium_heater": "Heizstab", "remote.living_room_tv": "Fernseher",
+    "binary_sensor.router_online": "Internet", "binary_sensor.kitchen_motion": "Bewegung Küche", "binary_sensor.hallway_motion": "Bewegung Flur",
+    "binary_sensor.office_presence": "Anwesenheit Büro", "sensor.energy_day": "Tagstrom", "sensor.energy_night": "Nachtstrom",
+    "calendar.family": "Familie", "calendar.school": "Schule", "counter.dishwasher_tabs": "Spülmaschinentabs", "counter.detergent_pods": "Waschmittel",
+    "input_boolean.plants_watered": "Pflanzen gegossen", "input_boolean.fish_fed": "Fische gefüttert", "input_boolean.home_office": "Homeoffice",
+    "sensor.wallbox_energy": "Wallbox", "sensor.washer_energy": "Waschmaschine", "sensor.dishwasher_energy": "Spülmaschine",
+    "sensor.dryer_energy": "Trockner", "sensor.fridge_energy": "Kühlschrank", "sensor.office_energy": "Büro", "sensor.tv_energy": "Fernseher",
+    "device_tracker.alex_phone": "Alex' Handy", "device_tracker.mia_phone": "Mias Handy", "device_tracker.leo_tablet": "Leos Tablet",
   },
 };
 
@@ -301,6 +396,25 @@ export function buildHome() {
     states[id] = [state, attributes];
     entityReg[id] = { entity_id: id, device_id: null, area_id: null, platform: id.split(".")[0], entity_category: null, hidden: false, disabled_by: null, labels: [], name: null, icon: null };
   }
+  // A home server watched by System Monitor: the system card finds its
+  // sensors by translation_key and unique_id, as on a real install.
+  deviceReg.server = { id: "server", name: "Home Server", name_by_user: null, area_id: "office", model: "Mini PC", manufacturer: "Demo", entry_type: null, disabled_by: null, config_entries: ["sysmon"] };
+  const sys = [
+    ["sensor.system_processor_use", "processor_use", "processor_use", "18", "%", null],
+    ["sensor.system_memory_use_percent", "memory_use_percent", "memory_use_percent", "47", "%", null],
+    ["sensor.system_disk_use_percent", "disk_use_percent", "disk_use_percent_/", "62", "%", null],
+    ["sensor.system_disk_use", "disk_use", "disk_use_/", "148.3", "GiB", "data_size"],
+    ["sensor.system_disk_free", "disk_free", "disk_free_/", "90.6", "GiB", "data_size"],
+    ["sensor.system_processor_temperature", "processor_temperature", "processor_temperature", "46", "°C", "temperature"],
+    ["sensor.system_network_in", "throughput_network_in", "throughput_network_in_eth0", "1.8", "MiB/s", "data_rate"],
+    ["sensor.system_network_out", "throughput_network_out", "throughput_network_out_eth0", "0.4", "MiB/s", "data_rate"],
+    ["sensor.system_last_boot", "last_boot", "last_boot", new Date(Date.now() - 12 * 86400e3).toISOString(), null, "timestamp"],
+  ];
+  for (const [id, key, uid, state, unit, dc] of sys) {
+    states[id] = [state, { friendly_name: key.replace(/_/g, " "), ...(unit ? { unit_of_measurement: unit, state_class: "measurement" } : {}), ...(dc ? { device_class: dc } : {}) }];
+    entityReg[id] = { entity_id: id, device_id: "server", area_id: null, platform: "systemmonitor", translation_key: key, unique_id: uid, config_entry_id: "sysmon", entity_category: null, hidden: false, disabled_by: null, labels: [], name: null, icon: null };
+  }
+
   // Each room's own climate sensor, for the cards that read it off the area.
   const sensorOf = (area, kind) => (states[`sensor.${area}_${kind}`] ? `sensor.${area}_${kind}` : null);
   for (const area of Object.values(areas)) {

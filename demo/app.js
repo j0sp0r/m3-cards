@@ -35,9 +35,10 @@ const VIEWS = [
   { key: "energy", title: "Energy", icon: "mdi:lightning-bolt" },
   { key: "household", title: "Household", icon: "mdi:washing-machine" },
   { key: "security", title: "Security", icon: "mdi:shield-home" },
+  { key: "more", title: "More", icon: "mdi:dots-grid" },
 ];
 
-const TITLES_DE = { home: "Start", rooms: "Räume", climate: "Klima", energy: "Energie", household: "Haushalt", security: "Sicherheit" };
+const TITLES_DE = { home: "Start", rooms: "Räume", climate: "Klima", energy: "Energie", household: "Haushalt", security: "Sicherheit", more: "Mehr" };
 
 function navCard() {
   const de = sim.language === "de";
@@ -131,6 +132,25 @@ function views() {
       ]],
       [t("Usage", "Verbrauch"), [
         { type: "custom:m3-energy-usage-card", period: "day" },
+        { type: "custom:m3-top-consumers-card", source: "energy", period: "today", top_count: 6 },
+      ]],
+      [t("Costs and tariffs", "Kosten und Tarife"), [
+        { type: "custom:m3-tariff-card", show_history: false, active_tariff: "select.tariff",
+          tariffs: [
+            { name: t("High rate", "Hochtarif"), short: "HT", energy: "sensor.energy_day", price: "sensor.price_day" },
+            { name: t("Low rate", "Niedertarif"), short: "NT", energy: "sensor.energy_night", price: "sensor.price_night" },
+          ],
+          schedule: [{ tariff: "NT", from: "22:00", to: "06:00" }] },
+        { type: "custom:m3-cost-card", price_source: "energy_dashboard", period: "month" },
+      ]],
+      [t("Production", "Erzeugung"), [
+        { type: "custom:m3-power-summary-card", grid_entity: "sensor.grid_power", consumption_entity: "sensor.house_power", solar_entity: "sensor.solar_power",
+          metrics: [
+            { entity: "sensor.house_power", name: t("House", "Haus"), icon: "mdi:home-lightning-bolt" },
+            { entity: "sensor.solar_power", name: t("Solar", "PV"), icon: "mdi:solar-power-variant", type: "producer" },
+            { entity: "sensor.wallbox_power", name: "Wallbox", icon: "mdi:ev-station" },
+          ] },
+        { type: "custom:m3-energy-card", entity: "sensor.solar_energy", name: t("Solar production", "PV-Erzeugung"), icon: "mdi:solar-power", accent_color: "#f0c46e", period: "day", days: 7 },
       ]],
     ],
     household: [
@@ -149,7 +169,21 @@ function views() {
         { type: "custom:m3-todo-card", entity: "todo.shopping", name: t("Shopping list", "Einkaufsliste") },
         { type: "custom:m3-counter-card", entity: "counter.coffee_capsules" },
       ]],
-      [t("Updates", "Updates"), [
+      [t("Plans", "Planung"), [
+        { type: "custom:m3-calendar-card", entities: ["calendar.family", "calendar.school"] },
+        { type: "custom:m3-time-card", entity: "input_datetime.alarm_clock", name: t("Alarm clock", "Wecker") },
+        { type: "custom:m3-status-card", items: [
+          { entity: "input_boolean.plants_watered", name: t("Plants", "Pflanzen"), preset: "yes_no", tap_action: { action: "toggle" } },
+          { entity: "input_boolean.fish_fed", name: t("Fish", "Fische"), preset: "yes_no", tap_action: { action: "toggle" } },
+        ] },
+      ]],
+      [t("Supplies", "Vorräte"), [
+        { type: "custom:m3-supply-card", items: [
+          { entity: "counter.coffee_capsules", name: t("Coffee capsules", "Kaffeekapseln"), icon: "mdi:coffee" },
+          { entity: "counter.dishwasher_tabs", name: t("Dishwasher tabs", "Spülmaschinentabs"), icon: "mdi:dishwasher" },
+          { entity: "counter.detergent_pods", name: t("Detergent pods", "Waschmittel"), icon: "mdi:washing-machine" },
+        ] },
+        { type: "custom:m3-vacuum-maintenance-card", entity: "vacuum.robo", reminders: [{ name: t("Empty the bin", "Behälter leeren"), icon: "mdi:delete-empty", every_runs: 3 }] },
         { type: "custom:m3-updates-card" },
       ]],
     ],
@@ -164,6 +198,50 @@ function views() {
       [t("Devices", "Geräte"), [
         { type: "custom:m3-battery-card", auto_discover: true },
         { type: "custom:m3-availability-card" },
+        { type: "custom:m3-occupancy-card", auto_discover: true },
+      ]],
+    ],
+    more: [
+      [t("On the road", "Unterwegs"), [
+        { type: "custom:m3-vehicle-card", name: t("Family car", "Familienauto"),
+          energy: { battery: "sensor.car_battery", range: "sensor.car_range", charging: "binary_sensor.car_charging", plugged: "binary_sensor.car_plugged",
+            charge_power: "sensor.car_charge_power", charge_limit: "sensor.car_charge_limit", capacity_kwh: 58 },
+          lock: "lock.car", location: "device_tracker.car",
+          chips: [{ entity: "sensor.car_tyre_front_left", icon: "mdi:car-tire-alert", warn_below: 2.2 }, { entity: "sensor.car_odometer", icon: "mdi:counter" }] },
+        { type: "custom:m3-checkin-card", entity: "input_boolean.home_office", name: t("Home office", "Homeoffice"), icon: "mdi:laptop", icon_off: "mdi:laptop-off" },
+      ]],
+      [t("Gadgets", "Technik"), [
+        { type: "custom:m3-printer-card", entity: "sensor.printer_status", progress_entity: "sensor.printer_progress", remaining_entity: "sensor.printer_remaining",
+          layer_entity: "sensor.printer_layer", total_layers_entity: "sensor.printer_total_layers", job_name_entity: "sensor.printer_job",
+          show_camera: false, show_ams: false },
+        { type: "custom:m3-aquarium-card", name: "Aquarium", water_temperature_entity: "sensor.aquarium_temperature", target_range: [24.5, 26],
+          light_day: { entity: "switch.aquarium_light" }, light_night: { entity: "switch.aquarium_moonlight" },
+          pump: { entity: "switch.aquarium_pump" }, heater: { entity: "switch.aquarium_heater" },
+          heater_power_entity: "sensor.aquarium_heater_power", ph_entity: "sensor.aquarium_ph" },
+        { type: "custom:m3-remote-card", entity: "remote.living_room_tv" },
+      ]],
+      [t("Network", "Netzwerk"), [
+        { type: "custom:m3-network-card", router: { name: "Router", status: "binary_sensor.router_online", uptime: "sensor.router_online_since",
+            connection_type: "sensor.router_connection", download: "sensor.router_download", upload: "sensor.router_upload" },
+          device_trackers: ["device_tracker.alex_phone", "device_tracker.mia_phone", "device_tracker.leo_tablet", "device_tracker.living_tv", "device_tracker.printer_wifi", "device_tracker.robo_wifi"] },
+      ]],
+      [t("Server", "Server"), [
+        { type: "custom:m3-system-card", name: t("Home server", "Heimserver") },
+        { type: "custom:m3-progress-card", entity: "sensor.washer_state", percentage_entity: "sensor.washer_progress", remaining_entity: "sensor.washer_remaining", name: t("Laundry", "Wäsche"), icon: "mdi:washing-machine" },
+      ]],
+      ["", [
+        { type: "custom:m3-heading-card", style: "status", title: t("Toolbox", "Werkzeugkasten"), icon: "mdi:toolbox-outline" },
+        { type: "custom:m3-search-card" },
+        { type: "custom:m3-button-card", name: t("All lights", "Alle Lichter"), icon: "mdi:lightbulb-group", tap_action: { action: "navigate", navigation_path: "#lights" } },
+        { type: "custom:m3-popup-card", hash: "#lights", width: "560px", cards: [{ type: "custom:m3-lights-overview-card", auto_discover: true }] },
+        { type: "custom:m3-button-card", entity: "lock.front_door", name: t("Front door", "Haustür"), icon: "mdi:door-closed-lock", state_colors: { locked: "green", unlocked: "red" }, tap_action: { action: "toggle" } },
+        { type: "custom:m3-group-card", gap: 4, cards: [
+          { type: "custom:m3-chip-buttons-card", buttons: [
+            { entity: "cover.garage_door", name: t("Garage", "Garage"), icon: "mdi:garage", tap_action: { action: "toggle" } },
+            { entity: "light.garden", name: t("Garden", "Garten"), icon: "mdi:outdoor-lamp", tap_action: { action: "toggle" } },
+            { entity: "input_boolean.vacation", name: t("Vacation", "Urlaub"), icon: "mdi:airplane", tap_action: { action: "toggle" } },
+          ] },
+        ] },
       ]],
     ],
   };
@@ -205,8 +283,12 @@ function makeCard(config) {
   return el;
 }
 
-function render() {
+let shown;
+function render(force = false) {
   const key = keyFromPath();
+  // A change of hash only (a popup opening) is not a change of view.
+  if (!force && key === shown?.key && location.pathname === shown?.path) return;
+  shown = { key, path: location.pathname };
   live = [];
   const view = document.createElement("hui-view");
   view.dataset.view = key;
@@ -248,7 +330,7 @@ function labelGlass() {
 glassBtn.addEventListener("click", () => {
   glass = !glass;
   labelGlass();
-  render();
+  render(true);
 });
 labelGlass();
 const langBtn = document.getElementById("lang");
@@ -263,7 +345,7 @@ langBtn.addEventListener("click", () => {
   langBtn.textContent = sim.language === "de" ? "EN" : "DE";
   notes.relabel();
   labelGlass();
-  render();
+  render(true);
 });
 langBtn.textContent = sim.language === "de" ? "EN" : "DE";
 applyTheme(!matchMedia("(prefers-color-scheme: light)").matches);

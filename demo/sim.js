@@ -24,7 +24,19 @@ const ENERGY = {
   "sensor.solar_energy": { perDay: 14.8, shape: solarShape },
   "sensor.battery_energy_out": { perDay: 3.4, shape: (h) => (h > 18 || h < 7 ? 1 : 0.02) },
   "sensor.battery_energy_in": { perDay: 3.7, shape: (h) => (h > 9 && h < 15 ? 1 : 0.02) },
+  // What the grid import cost, at 0.32 €/kWh: the statistic Home Assistant keeps once a price is set.
+  "sensor.grid_cost": { perDay: 6.2 * 0.32, shape: (h) => houseShape(h) * (1 - solarShape(h)) + 0.05 },
+  "sensor.energy_day": { perDay: 4.6, shape: (h) => (h >= 6 && h < 22 ? houseShape(h) : 0) },
+  "sensor.energy_night": { perDay: 1.6, shape: (h) => (h < 6 || h >= 22 ? 1 : 0) },
+  "sensor.wallbox_energy": { perDay: 9.5, shape: (h) => (h > 9 && h < 16 ? 1 : 0.01) },
+  "sensor.washer_energy": { perDay: 0.9, shape: (h) => (h > 9 && h < 12 ? 1 : 0.01) },
+  "sensor.dishwasher_energy": { perDay: 1.2, shape: (h) => (h > 19 && h < 22 ? 1 : 0.01) },
+  "sensor.dryer_energy": { perDay: 0.7, shape: (h) => (h > 12 && h < 15 ? 1 : 0.01) },
+  "sensor.fridge_energy": { perDay: 0.9, shape: () => 1 },
+  "sensor.office_energy": { perDay: 1.6, shape: (h) => (h > 8 && h < 18 ? 1 : 0.08) },
+  "sensor.tv_energy": { perDay: 0.5, shape: (h) => (h > 18 && h < 23 ? 1 : 0.03) },
 };
+const DEVICE_ENERGY = ["sensor.wallbox_energy", "sensor.washer_energy", "sensor.dishwasher_energy", "sensor.dryer_energy", "sensor.fridge_energy", "sensor.office_energy", "sensor.tv_energy"];
 
 const STATE_LABELS = {
   en: {
@@ -223,6 +235,32 @@ export class Sim {
     this.set("sensor.grid_power", grid);
     this.set("sensor.battery_soc", round(soc, 1));
 
+    // The car takes what the wallbox gives.
+    const charging = wallbox > 0 && n("sensor.car_battery") < n("sensor.car_charge_limit");
+    this.set("binary_sensor.car_charging", charging ? "on" : "off");
+    this.set("sensor.car_charge_power", charging ? round(wallbox / 1000, 1) : 0);
+    if (charging) {
+      const soc2 = Math.min(n("sensor.car_charge_limit"), n("sensor.car_battery") + 0.2);
+      this.set("sensor.car_battery", round(soc2, 1));
+      this.set("sensor.car_range", Math.round(soc2 * 4.2));
+    }
+    // The printer works through its layers.
+    if (this.get("sensor.printer_status").state === "printing") {
+      const p = Math.min(100, n("sensor.printer_progress") + 1);
+      this.set("sensor.printer_progress", p);
+      this.set("sensor.printer_remaining", Math.max(0, Math.round((100 - p) * 1.1)));
+      this.set("sensor.printer_layer", Math.round((p / 100) * n("sensor.printer_total_layers")));
+      if (p >= 100) this.set("sensor.printer_status", "finished");
+    }
+    // The aquarium heater keeps the water at 25 °C.
+    const water = n("sensor.aquarium_temperature");
+    const heat = water < 24.9 || (on("switch.aquarium_heater") && water < 25.4);
+    this.set("switch.aquarium_heater", heat ? "on" : "off");
+    this.set("sensor.aquarium_heater_power", heat ? 75 : 0);
+    this.set("sensor.aquarium_temperature", round(water + (heat ? 0.03 : -0.02), 2));
+    // Night tariff from 22 to 6.
+    this.set("select.tariff", h >= 22 || h < 6 ? "NT" : "HT");
+
     // Weather: it is a little cooler at night.
     const outdoor = round(9 + 5 * Math.sin(((h - 9) / 24) * 2 * Math.PI) + (Math.random() - 0.5) * 0.1, 1);
     this.set("sensor.outdoor_temperature", outdoor);
@@ -366,6 +404,19 @@ export class Sim {
       case "update":
         if (service === "install") return this.set(id, "off", { installed_version: s.attributes.latest_version });
         return;
+      case "input_datetime":
+        if (service === "set_datetime" && data.time) {
+          const [hh, mm] = String(data.time).split(":").map(Number);
+          return this.set(id, `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:00`, { hour: hh, minute: mm });
+        }
+        return;
+      case "select":
+      case "input_select":
+        if (service === "select_option") return this.set(id, data.option);
+        return;
+      case "remote":
+        if (service === "turn_on" && data.activity) return this.set(id, "on", { current_activity: data.activity });
+        return this.set(id, service === "turn_off" ? "off" : service === "turn_on" ? "on" : s.state === "on" ? "off" : "on");
       case "button":
       case "input_button":
         return this.set(id, new Date().toISOString());
@@ -449,19 +500,20 @@ export class Sim {
           energy_sources: [
             {
               type: "grid",
-              flow_from: [{ stat_energy_from: "sensor.grid_import", entity_energy_price: null, number_energy_price: 0.32 }],
+              flow_from: [{ stat_energy_from: "sensor.grid_import", stat_cost: "sensor.grid_cost", entity_energy_price: null, number_energy_price: 0.32 }],
               flow_to: [{ stat_energy_to: "sensor.grid_export", number_energy_price: 0.08 }],
               stat_energy_from: "sensor.grid_import",
               stat_energy_to: "sensor.grid_export",
+              stat_cost: "sensor.grid_cost",
               cost_adjustment_day: 0,
             },
             { type: "solar", stat_energy_from: "sensor.solar_energy", config_entry_solar_forecast: null },
             { type: "battery", stat_energy_from: "sensor.battery_energy_out", stat_energy_to: "sensor.battery_energy_in" },
           ],
-          device_consumption: [],
+          device_consumption: DEVICE_ENERGY.map((stat_consumption) => ({ stat_consumption })),
         };
       case "energy/info":
-        return { cost_sensors: {}, solar_forecast_domains: [] };
+        return { cost_sensors: { "sensor.grid_import": "sensor.grid_cost" }, solar_forecast_domains: [] };
       case "energy/solar_forecast":
         return {};
       case "lovelace/config":
@@ -483,6 +535,9 @@ export class Sim {
     const id = [].concat(msg.target?.entity_id ?? [])[0];
     if (msg.domain === "weather" && msg.service === "get_forecasts") {
       return { response: { [id]: { forecast: forecast(msg.service_data?.type ?? "daily", this) } } };
+    }
+    if (msg.domain === "calendar" && msg.service === "get_events") {
+      return { response: { [id]: { events: calendarEvents(id) } } };
     }
     if (msg.domain === "todo" && msg.service === "get_items") {
       const want = msg.service_data?.status;
@@ -690,6 +745,35 @@ function energyBetween(spec, from, to) {
     total += ((spec.perDay * spec.shape(h)) / sumShape) * part * (0.75 + 0.5 * rand(day + spec.perDay));
   }
   return total;
+}
+
+/** A week of family life, from today. */
+function calendarEvents(id) {
+  const day = (d, hh, mm = 0) => {
+    const t = new Date();
+    t.setDate(t.getDate() + d);
+    t.setHours(hh, mm, 0, 0);
+    return t.toISOString();
+  };
+  const date = (d) => {
+    const t = new Date();
+    t.setDate(t.getDate() + d);
+    return t.toISOString().slice(0, 10);
+  };
+  if (id === "calendar.school") {
+    return [
+      { summary: "Swimming", start: day(1, 15), end: day(1, 16, 30), location: "Pool" },
+      { summary: "Parents' evening", start: day(3, 19), end: day(3, 20, 30) },
+      { summary: "School trip", start: date(5), end: date(6) },
+    ];
+  }
+  return [
+    { summary: "Dentist — Leo", start: day(0, 16, 30), end: day(0, 17, 15), location: "Dr. Berg" },
+    { summary: "Football training", start: day(1, 17), end: day(1, 18, 30) },
+    { summary: "Grandma's birthday", start: date(2), end: date(3) },
+    { summary: "Car service", start: day(4, 8), end: day(4, 9) },
+    { summary: "Dinner with the Okafors", start: day(6, 19), end: day(6, 22) },
+  ];
 }
 
 function pastState(id, now) {
