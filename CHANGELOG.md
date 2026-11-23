@@ -11,7 +11,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 - **Nav card: `marker_motion: spring` and `stretch`.** Two more ways for the
   pill to travel: `spring` overshoots the new entry and settles back, as the
   needle gauge does; `stretch` reaches out to the new entry first and then
-  lets go of the old one, like a drop pulled across.
+  lets go of the old one, like a drop pulled across. Each view has a bar of
+  its own; the new page's bar takes the move over from where the old one
+  left the pill, so a swipe or a tap shows the whole of it.
 - **Nav card: `page_transition: slide`.** A tap moves the page sideways the
   way a swipe along the bar does, toward the tapped entry's side, so tapping
   and swiping between views look the same. A page that is not in the bar —

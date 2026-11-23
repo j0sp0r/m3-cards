@@ -66,6 +66,7 @@ import {
   NAV_MARKER_SPRING_EASING,
   NAV_MARKER_STRETCH_MS,
   NAV_MARKER_STRETCH_REACH,
+  NAV_HANDOFF_MAX_MS,
   NAV_ARRIVAL_QUIET_MS,
   SWIPE_GOING_PX,
   SWIPE_SETTLE_MS,
@@ -234,6 +235,15 @@ function setPageFadeDuration(ms: number, mode: NavPageTransition): void {
 const barScrollMemory = new Map<string, number>();
 
 const connectedSheets = new Set<M3NavCard>();
+
+/**
+ * Where the pill was drawn, on screen, when the bar last handed the page
+ * over. Each view has a bar of its own, and the new one places its pill
+ * without moving — so a spring or stretch begun on the old bar was cut off at
+ * the change of page, and only a menu page (which keeps the bar up longer)
+ * showed it. The new bar continues from here instead, if it is fresh.
+ */
+let markerHandoff: { left: number; top: number; width: number; height: number; at: number } | undefined;
 
 /** The editor frame names the variant, using the editor's own wording for it. */
 const VARIANT_LABEL_KEYS: Record<NavVariant, TranslationKey> = {
@@ -777,12 +787,54 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       void marker.offsetWidth;
       marker.style.transition = "";
     }
+    if (quiet && !again) this._continueMarker(marker, bar);
     if (before) this._stretchMarker(marker, before, rect.left - barRect.left - bar.clientLeft + bar.scrollLeft, rect.width);
 
     if (!again && !this._markerSettled) {
       this._markerSettled = true;
       requestAnimationFrame(() => this._placeMarker(true));
     }
+  }
+
+  /** Notes where the pill is drawn now, for the next page's bar. */
+  private _handOverMarker(): void {
+    const marker = this._sliding ? this.renderRoot?.querySelector<HTMLElement>(".bar .marker") : null;
+    if (!marker || marker.style.opacity !== "1") {
+      markerHandoff = undefined;
+      return;
+    }
+    const r = marker.getBoundingClientRect();
+    markerHandoff = { left: r.left, top: r.top, width: r.width, height: r.height, at: performance.now() };
+  }
+
+  /**
+   * On arriving with `spring` or `stretch`: the pill starts where the last
+   * bar left it and makes the rest of the move here. Its place is already set
+   * inline; this only draws the way there. Only for a fresh handover between
+   * bars in the same place on screen — anything else arrives still, as before.
+   */
+  private _continueMarker(marker: HTMLElement, bar: HTMLElement): void {
+    const h = markerHandoff;
+    markerHandoff = undefined;
+    const motion = this._markerMotion;
+    if (!h || (motion !== "spring" && motion !== "stretch")) return;
+    if (performance.now() - h.at > NAV_HANDOFF_MAX_MS) return;
+    const to = marker.getBoundingClientRect();
+    if (Math.abs(to.top - h.top) > to.height || (Math.abs(to.left - h.left) < 1 && Math.abs(to.width - h.width) < 1)) return;
+    const barRect = bar.getBoundingClientRect();
+    const local = (x: number) => x - barRect.left - bar.clientLeft + bar.scrollLeft;
+    const y = new DOMMatrix(getComputedStyle(marker).transform).m42;
+    if (motion === "stretch") {
+      this._stretchMarker(marker, { left: local(h.left), width: h.width }, local(to.left), to.width);
+      return;
+    }
+    marker.animate(
+      [
+        { transform: `translate(${local(h.left)}px, ${y}px)`, width: `${h.width}px` },
+        { transform: `translate(${local(to.left)}px, ${y}px)`, width: `${to.width}px` },
+      ],
+      { duration: NAV_MARKER_SPRING_MS, easing: NAV_MARKER_SPRING_EASING },
+    );
   }
 
   /**
@@ -1139,6 +1191,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     }
     setPageFadeDuration(this._config?.page_transition_ms ?? NAV_PAGE_FADE_MS, mode);
     start.call(document, async () => {
+      this._handOverMarker();
       run();
       // The router puts the new view in place a frame or two later, and the
       // transition photographs the DOM when this resolves. The timeout is the
@@ -1172,7 +1225,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       run();
       return true;
     }
-    void slideToPage(to > from ? "next" : "prev", this, run, () => this._arrivedBar());
+    void slideToPage(to > from ? "next" : "prev", this, () => {
+      this._handOverMarker();
+      run();
+    }, () => this._arrivedBar());
     return true;
   }
 
@@ -2257,7 +2313,11 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     const target = outcome === "next" ? s.next! : s.prev!;
     s.committed = true;
     s.going = target;
-    this._placeSwipePill(s, target, 1);
+    // A spring or a stretch is the next page's bar's to draw, from where the
+    // finger let go (see `markerHandoff`): moved here first, it would arrive
+    // with little of the move left to make.
+    const carried = this._markerMotion === "spring" || this._markerMotion === "stretch";
+    if (!carried) this._placeSwipePill(s, target, 1);
     if (this._swipeInk) this._followSwipeInk(s);
     const settle = () => {
       this._endSwipeInk(s);
@@ -2270,7 +2330,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     if (this._config?.haptics !== false) fireHaptic(this, "light");
     // Straight to the router: the slide below is the transition, and
     // `_dispatch` would start a second one around it.
-    const navigate = () => handleAction(this, this.hass, { action: "navigate", navigation_path: target.path });
+    const navigate = () => {
+      this._handOverMarker();
+      handleAction(this, this.hass, { action: "navigate", navigation_path: target.path });
+    };
     if (!shouldAnimate(this._config?.animation) || matchMedia("(prefers-reduced-motion: reduce)").matches) {
       settle();
       navigate();

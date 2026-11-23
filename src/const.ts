@@ -2066,6 +2066,12 @@ export const NAV_MARKER_SPRING_EASING = "cubic-bezier(0.34, 1.45, 0.64, 1)";
  */
 export const NAV_MARKER_STRETCH_MS = 380;
 export const NAV_MARKER_STRETCH_REACH = 0.45;
+/**
+ * How old a pill handed over by the last page's bar may be for the new bar to
+ * continue its spring or stretch (the slide out of the old page takes about a
+ * quarter of this); older, it arrives still.
+ */
+export const NAV_HANDOFF_MAX_MS = 1200;
 /** How long after a nav card comes on screen its marker settles without animating. */
 export const NAV_ARRIVAL_QUIET_MS = 600;
 /** How far the swipe pill must leave home before the bar takes its next layout. */
