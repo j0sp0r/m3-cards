@@ -68,7 +68,8 @@
   header {
     position: sticky;
     top: 0;
-    z-index: 5;
+    /* Above a header-style nav bar, which fills its gap to the edge (z 500). */
+    z-index: 600;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -94,12 +95,35 @@
   header #lang { gap: 4px; padding-right: 8px; }
   header #lang .caret { --mdc-icon-size: 18px; opacity: 0.7; }
   .lang-menu {
-    position: fixed; z-index: 21; min-width: 170px; padding: 6px; border-radius: 20px;
+    position: fixed; z-index: 710; min-width: 170px; padding: 6px; border-radius: 20px;
     display: flex; flex-direction: column; gap: 2px;
     background: color-mix(in srgb, var(--card-background-color) 96%, transparent); backdrop-filter: blur(20px);
     box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
   }
   .lang-menu[hidden] { display: none; }
+  .nav-panel {
+    position: fixed; z-index: 710; width: min(460px, calc(100vw - 24px)); max-height: calc(100vh - 100px); overflow: auto;
+    padding: 16px; border-radius: 28px; box-sizing: border-box; display: flex; flex-direction: column; gap: 14px;
+    background: color-mix(in srgb, var(--card-background-color) 96%, transparent); backdrop-filter: blur(20px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  }
+  .nav-panel[hidden] { display: none; }
+  .nav-panel h3 { margin: 2px 4px 0; font: 700 16px "Roboto Flex", Roboto, sans-serif; }
+  .np-label { margin: 0 4px 6px; font: 600 13px "Roboto Flex", Roboto, sans-serif; color: var(--secondary-text-color); }
+  .np-label code { font: 500 11px ui-monospace, "SF Mono", Menlo, monospace; opacity: 0.6; margin-left: 4px; }
+  .np-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .np-chips button, .np-reset {
+    all: unset; cursor: pointer; padding: 7px 12px; border-radius: 12px; font: 600 13px "Roboto Flex", Roboto, sans-serif;
+    background: color-mix(in srgb, var(--primary-text-color) 8%, transparent); color: var(--primary-text-color);
+  }
+  .np-chips button:hover, .np-reset:hover { background: color-mix(in srgb, var(--primary-text-color) 14%, transparent); }
+  .np-chips button.on { background: var(--primary-color); color: #1c1c1c; }
+  .np-foot { display: flex; align-items: center; gap: 8px; padding-top: 4px; }
+  .np-foot .copy-yaml { height: 32px; padding: 0 14px; border-radius: 16px; font-size: 13px; --mdc-icon-size: 16px; }
+  /* Under a header-style bar the first headings keep clear of it. */
+  body.nav-header:not(.embed) .sections { margin-top: 28px; }
+  header button.open { background: color-mix(in srgb, var(--primary-color) 22%, transparent); color: var(--primary-color); }
+
   .lang-menu button {
     all: unset; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 14px;
     color: var(--primary-text-color); font: 500 14px "Roboto Flex", Roboto, sans-serif; --mdc-icon-size: 18px;
@@ -224,6 +248,7 @@
   <span class="brand"><b>M3</b> Cards</span>
   <span class="note">A pretend home with simulated values — tap around, nothing is connected.</span>
   <span class="sep"></span>
+  <button id="navbar"><ha-icon icon="mdi:dock-bottom"></ha-icon><span class="lbl"></span></button>
   <button id="phone" class="toggle"><ha-icon icon="mdi:cellphone"></ha-icon><span class="lbl"></span></button>
   <button id="titles" class="toggle"><ha-icon icon="mdi:label-outline"></ha-icon><span class="lbl"></span></button>
   <button id="glass" class="toggle"><ha-icon icon="mdi:blur"></ha-icon><span class="lbl"></span></button>

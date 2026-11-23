@@ -63,26 +63,61 @@ function foldedRoom(area, buttons, extra = {}) {
   };
 }
 
+/**
+ * The nav bar as the visitor has set it in the header's Navbar panel. Each
+ * choice is a real option of the card; the panel's YAML button copies them.
+ */
+const NAV_DEFAULTS = { style: "floating", marker_motion: "stretch", page_transition: "slide", labels: "active", active_style: "solid" };
+let navOpts = { ...NAV_DEFAULTS };
+try {
+  const fromUrl = params.get("nav");
+  if (fromUrl) navOpts = { ...navOpts, ...JSON.parse(fromUrl) };
+} catch {
+  // A broken parameter keeps the defaults.
+}
+
+/** Label and icon settings per preset of the panel. */
+const NAV_LABELS = {
+  active: { label_position: "right", icon_visibility: "active_only", label_visibility: "always" },
+  beside: { label_position: "right", icon_visibility: "always", label_visibility: "always" },
+  below: { label_position: "below", icon_visibility: "always", label_visibility: "always" },
+  current: { label_position: "right", icon_visibility: "always", label_visibility: "active_only" },
+  icons: { icon_visibility: "always", label_visibility: "never" },
+};
+
 function navCard() {
   const de = sim.language === "de";
   const entry = (v) => ({ name: de ? TITLES_DE[v.key] : v.title, icon: v.icon, path: nav(v.key) });
+  const { style, marker_motion, page_transition, labels, active_style } = navOpts;
+  let labelling = NAV_LABELS[labels] ?? NAV_LABELS.active;
+  // On a phone four entries with every name and the menu button do not fit
+  // side by side: every icon, and only the active page's name.
+  if (EMBED && labelling.label_visibility === "always") labelling = NAV_LABELS.current;
   return {
     type: "custom:m3-nav-card",
-    style: "floating",
-    position: "bottom",
-    max_width: "fit",
-    label_position: "right",
-    // On a phone every icon and only the active page's name, or four entries
-    // and the menu button do not fit side by side.
-    icon_visibility: EMBED ? "always" : "active_only",
-    label_visibility: EMBED ? "active_only" : "always",
-    active_style: "solid",
-    marker_motion: "stretch",
-    page_transition: "slide",
+    style,
+    ...(style === "floating" || style === "sheet" ? { position: "bottom", max_width: "fit" } : {}),
+    ...labelling,
+    active_style,
+    marker_motion,
+    page_transition,
+    ...(style === "sheet"
+      ? {
+          sheet_title: de ? "Schnellzugriff" : "Shortcuts",
+          sheet_items: [
+            { name: de ? "Filmabend" : "Movie night", icon: "mdi:movie-open", tap_action: { action: "toggle", entity: "scene.movie_night" } },
+            { name: de ? "Gute Nacht" : "Good night", icon: "mdi:weather-night", tap_action: { action: "toggle", entity: "scene.good_night" } },
+            { name: de ? "Licht" : "Lights", icon: "mdi:lightbulb-group", path: "#lights" },
+            { name: de ? "Haushalt" : "Household", icon: "mdi:washing-machine", path: nav("household") },
+          ],
+        }
+      : {}),
     swipe_navigation: true,
     container_style: glass ? "glass" : "solid",
-    // On the phone the bar clears the gesture pill under it.
-    ...(EMBED ? { edge_distance: 22 } : {}),
+    // On the phone the bar clears the gesture pill under it (and the status
+    // bar when it docks at the top); on the desktop a header bar sits under
+    // the demo's own header.
+    ...(EMBED ? { edge_distance: style === "header" ? 40 : 22 } : style === "header" ? { edge_distance: document.querySelector("header")?.offsetHeight ?? 68 } : {}),
     blur: 20,
     items: (EMBED ? VIEWS.slice(0, PHONE_BAR) : VIEWS).map(entry),
     // Seven pages do not fit a phone's width: there, four in the bar and the
@@ -547,6 +582,29 @@ function whatsNewHead() {
   return head;
 }
 
+/**
+ * The bar where its style puts it: a header or an inline segmented bar
+ * first in the view, the others last (they position themselves on screen).
+ */
+function placeNav(view, el) {
+  const top = navOpts.style === "header" || navOpts.style === "segmented";
+  document.body.classList.toggle("nav-header", navOpts.style === "header");
+  if (top) view.prepend(el);
+  else view.appendChild(el);
+}
+
+/** A new bar after a change in the Navbar panel, the page left as it is. */
+function refreshNav() {
+  const view = root.querySelector("hui-view");
+  if (!view) return;
+  const old = view.querySelector(":scope > m3-nav-card");
+  if (old) {
+    live = live.filter((el) => el !== old);
+    old.remove();
+  }
+  placeNav(view, makeCard(navCard()));
+}
+
 // ---- layout -------------------------------------------------------------------
 
 /**
@@ -654,7 +712,7 @@ function render(force = false) {
   const groups = views()[key].map(([title, cards]) => ({ title, cards: cards.map((c) => withTitle(c, makeCard(c))) }));
   if (key === "new") view.appendChild(whatsNewHead());
   view.appendChild(grid);
-  view.appendChild(makeCard(navCard()));
+  placeNav(view, makeCard(navCard()));
   root.replaceChildren(view);
   masonry(grid, groups);
   document.title = `${(sim.language === "de" ? TITLES_DE[key] : VIEWS.find((v) => v.key === key).title)} · M3 Cards demo`;
@@ -680,7 +738,7 @@ let phone = false;
 const de = () => sim.language === "de";
 
 /** The settings as they stand, for the phone frame's page. */
-const settings = () => ({ theme: dark ? "dark" : "light", lang: sim.language, glass, titles });
+const settings = () => ({ theme: dark ? "dark" : "light", lang: sim.language, glass, titles, nav: navOpts });
 
 function paintSwitches() {
   document.documentElement.dataset.theme = dark ? "dark" : "light";
@@ -694,6 +752,8 @@ function paintSwitches() {
     btn.querySelector(".lbl").textContent = text;
   };
   label(phoneBtn, de() ? "Handy" : "Phone");
+  label(navBtn, "Navbar");
+  navBtn.title = de() ? "Navbar-Varianten ausprobieren" : "Try the navbar's variants";
   label(titlesBtn, de() ? "Kartennamen" : "Card names");
   label(glassBtn, de() ? "Glas" : "Glass");
   label(themeBtn, dark ? (de() ? "Hell" : "Light") : de() ? "Dunkel" : "Dark");
@@ -718,6 +778,10 @@ function apply(next = {}, { rerender = false } = {}) {
     rerender = true;
   }
   if (next.titles !== undefined) titles = next.titles;
+  if (next.nav && JSON.stringify(next.nav) !== JSON.stringify(navOpts)) {
+    navOpts = { ...next.nav };
+    refreshNav();
+  }
   sim.setDark(dark);
   paintSwitches();
   if (rerender) render(true);
@@ -774,6 +838,100 @@ document.addEventListener("click", (e) => {
   if (!langMenu.hidden && !langMenu.contains(e.target)) langMenu.hidden = true;
 });
 
+// ---- navbar panel ---------------------------------------------------------------
+
+/** The choices of the Navbar panel: an option of the card and its values. */
+const NAV_CHOICES = [
+  ["style", ["Style", "Stil"], [
+    ["floating", ["Floating", "Schwebend"]], ["footer", ["Footer", "Fußleiste"]], ["header", ["Header", "Kopfleiste"]],
+    ["segmented", ["Segmented", "Segmentiert"]], ["sheet", ["With a drawer", "Mit Schublade"]],
+  ]],
+  ["marker_motion", ["Marker", "Markierung"], [
+    ["stretch", ["Stretch", "Dehnen"]], ["spring", ["Spring", "Federn"]], ["slide", ["Slide", "Gleiten"]], ["none", ["None", "Keine"]],
+  ]],
+  ["page_transition", ["Page change", "Seitenwechsel"], [
+    ["slide", ["Slide", "Seitlich"]], ["up", ["Rise", "Aufsteigen"]], ["fade", ["Fade", "Überblenden"]], ["none", ["None", "Keiner"]],
+  ]],
+  ["labels", ["Labels", "Beschriftung"], [
+    ["active", ["Icon on the active one", "Icon nur aktiv"]], ["beside", ["Icon and name", "Icon und Name"]], ["below", ["Name below", "Name darunter"]],
+    ["current", ["Active name only", "Nur aktiver Name"]], ["icons", ["Icons only", "Nur Icons"]],
+  ]],
+  ["active_style", ["Active entry", "Aktiver Eintrag"], [["solid", ["Filled", "Gefüllt"]], ["tint", ["Tinted", "Getönt"]]]],
+];
+
+const navBtn = document.getElementById("navbar");
+const navPanel = document.createElement("div");
+navPanel.className = "nav-panel";
+navPanel.hidden = true;
+document.body.appendChild(navPanel);
+// A choice repaints the panel, so its button is gone by the time the click
+// reaches the document — which would read as a click outside.
+navPanel.addEventListener("click", (e) => e.stopPropagation());
+
+function setNav(change) {
+  navOpts = { ...navOpts, ...change };
+  refreshNav();
+  paintNavPanel();
+  if (phone) frame?.contentWindow?.m3DemoApply?.(settings());
+}
+
+function paintNavPanel() {
+  const de = sim.language === "de";
+  const pick = ([en, deText]) => (de ? deText : en);
+  navPanel.replaceChildren();
+  const head = document.createElement("h3");
+  head.textContent = de ? "Navbar ausprobieren" : "Try the navbar";
+  navPanel.appendChild(head);
+  for (const [key, label, values] of NAV_CHOICES) {
+    const row = document.createElement("div");
+    row.className = "np-row";
+    const name = document.createElement("div");
+    name.className = "np-label";
+    name.innerHTML = `${pick(label)} <code></code>`;
+    name.querySelector("code").textContent = key === "labels" ? "label_* / icon_visibility" : key;
+    const chips = document.createElement("div");
+    chips.className = "np-chips";
+    for (const [value, text] of values) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = pick(text);
+      b.title = key === "labels" ? Object.entries(NAV_LABELS[value]).map(([k, v]) => `${k}: ${v}`).join("\n") : `${key}: ${value}`;
+      b.classList.toggle("on", navOpts[key] === value);
+      b.addEventListener("click", () => setNav({ [key]: value }));
+      chips.appendChild(b);
+    }
+    row.append(name, chips);
+    navPanel.appendChild(row);
+  }
+  const foot = document.createElement("div");
+  foot.className = "np-foot";
+  const reset = document.createElement("button");
+  reset.type = "button";
+  reset.className = "np-reset";
+  reset.textContent = de ? "Zurücksetzen" : "Reset";
+  reset.addEventListener("click", () => setNav({ ...NAV_DEFAULTS }));
+  // The bar's YAML as it stands, the demo's own glass switch left out.
+  const { container_style: _c, blur: _b, ...yamlConfig } = navCard();
+  foot.append(reset, copyButton(yamlConfig));
+  navPanel.appendChild(foot);
+}
+
+navBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  paintNavPanel();
+  const r = navBtn.getBoundingClientRect();
+  navPanel.style.top = `${r.bottom + 8}px`;
+  navPanel.style.right = `${Math.max(8, window.innerWidth - r.right)}px`;
+  navPanel.hidden = !navPanel.hidden;
+  navBtn.classList.toggle("open", !navPanel.hidden);
+});
+document.addEventListener("click", (e) => {
+  if (!navPanel.hidden && !navPanel.contains(e.target) && e.target !== navBtn) {
+    navPanel.hidden = true;
+    navBtn.classList.remove("open");
+  }
+});
+
 // ---- phone ----------------------------------------------------------------------
 
 /**
@@ -806,7 +964,7 @@ function setPhone(on) {
   phone = on;
   document.body.classList.toggle("phone-mode", on);
   if (on) {
-    const q = new URLSearchParams({ embed: "1", view: shown?.key ?? "home", ...Object.fromEntries(Object.entries(settings()).map(([k, v]) => [k, typeof v === "boolean" ? (v ? "1" : "0") : v])) });
+    const q = new URLSearchParams({ embed: "1", view: shown?.key ?? "home", ...Object.fromEntries(Object.entries(settings()).map(([k, v]) => [k, typeof v === "boolean" ? (v ? "1" : "0") : typeof v === "object" ? JSON.stringify(v) : v])) });
     frame = document.createElement("iframe");
     frame.title = "M3 Cards demo on a phone";
     frame.src = `${BASE}index.html?${q}`;
