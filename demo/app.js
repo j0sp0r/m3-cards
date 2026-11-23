@@ -404,7 +404,7 @@ function makeCard(config) {
   const tag = config.type.replace("custom:", "");
   // `variant` only names the look in the demo's title over the card.
   const { variant: _variant, untitled: _untitled, ...own } = config;
-  config = tag !== "m3-nav-card" ? { ...own, glass_background: glass } : own;
+  config = tag !== "m3-nav-card" ? { ...withDetails(own), glass_background: glass } : own;
   const el = document.createElement(tag);
   try {
     el.setConfig(config);
@@ -460,10 +460,23 @@ function withTitle(config, el) {
   return wrap;
 }
 
+/**
+ * Every tap that would open Home Assistant's more-info opens the suite's own
+ * detail sheet instead — the demo has no more-info dialog, and the sheet is
+ * the part worth showing. Cards inside a card get it too.
+ */
+function withDetails(config) {
+  if (!config || typeof config !== "object" || !String(config.type ?? "").startsWith("custom:m3-")) return config;
+  if (config.type === "custom:m3-nav-card" || config.type === "custom:m3-popup-card") {
+    return config.cards ? { ...config, cards: config.cards.map(withDetails) } : config;
+  }
+  return { detail_mode: "sheet", ...config, ...(Array.isArray(config.cards) ? { cards: config.cards.map(withDetails) } : {}) };
+}
+
 /** The card's configuration as YAML, the way it goes into a dashboard. */
 function cardYaml(config) {
   const { variant: _v, untitled: _u, ...own } = config;
-  return toYaml(own);
+  return toYaml(withDetails(own));
 }
 
 function copyButton(config) {
@@ -639,9 +652,9 @@ const HEADING = 40;
 
 /**
  * Columns that end near the same height. Sections go to the shortest column
- * in order; one that would run far past the even share — three cards
- * against a column of one — is split, and the rest carries on at the top of
- * the next shortest column under the same heading.
+ * in order; one taller than a column's even share on its own is split once,
+ * and the rest carries on at the top of the next shortest column under the
+ * same heading.
  */
 function arrange() {
   const { grid, groups } = layoutState;
@@ -650,28 +663,50 @@ function arrange() {
   const width = grid.clientWidth;
   if (!width) return;
   const cardCount = groups.reduce((n, g) => n + g.cards.length, 0);
-  const count = Math.max(1, Math.min(cardCount, Math.floor((width + COLUMN_GAP) / (COLUMN_MIN + COLUMN_GAP))));
+  const most = Math.max(1, Math.min(cardCount, Math.floor((width + COLUMN_GAP) / (COLUMN_MIN + COLUMN_GAP))));
   // Before the first layout the cards are not on the page yet: a guess.
   const h = (el) => (el.isConnected && el.offsetHeight) || 300;
   const chunkHeight = (g, cards) => (g.title ? HEADING : 0) + cards.reduce((t, el) => t + h(el), 0) + CARD_GAP * Math.max(0, cards.length - 1);
   const total = groups.reduce((t, g) => t + chunkHeight(g, g.cards) + COLUMN_GAP, 0);
-  const share = total / count;
-  const cols = Array.from({ length: count }, () => ({ height: 0, chunks: [] }));
-  const queue = groups.map((g, i) => ({ g, i, cards: [...g.cards], cont: false }));
-  while (queue.length) {
-    const item = queue.shift();
-    const col = cols.reduce((a, b) => (b.height < a.height - 1 ? b : a));
-    let take = item.cards.length;
-    if (take > 1 && count > 1 && col.height + chunkHeight(item.g, item.cards) > share * 1.12) {
-      // As many cards as fit the even share, at least one.
-      take = 1;
-      while (take < item.cards.length && col.height + chunkHeight(item.g, item.cards.slice(0, take + 1)) <= share * 1.05) take++;
+
+  const layout = (count) => {
+    const share = total / count;
+    const cols = Array.from({ length: count }, () => ({ height: 0, chunks: [] }));
+    const queue = groups.map((g, i) => ({ g, i, cards: [...g.cards], cont: false }));
+    let splits = 0;
+    while (queue.length) {
+      const item = queue.shift();
+      const col = cols.reduce((a, b) => (b.height < a.height - 1 ? b : a));
+      let take = item.cards.length;
+      // Split only a section that is taller than a column's share on its own,
+      // and only once, so headings do not repeat down the page.
+      if (take > 1 && count > 1 && !item.cont && chunkHeight(item.g, item.cards) > share * 1.12) {
+        take = 1;
+        while (take < item.cards.length && chunkHeight(item.g, item.cards.slice(0, take + 1)) <= share * 1.05) take++;
+      }
+      const cards = item.cards.slice(0, take);
+      col.chunks.push({ g: item.g, i: item.i, cards, cont: item.cont });
+      col.height += chunkHeight(item.g, cards) + COLUMN_GAP;
+      if (take < item.cards.length) {
+        splits++;
+        queue.unshift({ ...item, cards: item.cards.slice(take), cont: true });
+      }
     }
-    const cards = item.cards.slice(0, take);
-    col.chunks.push({ g: item.g, i: item.i, cards, cont: item.cont });
-    col.height += chunkHeight(item.g, cards) + COLUMN_GAP;
-    if (take < item.cards.length) queue.unshift({ ...item, cards: item.cards.slice(take), cont: true });
+    const heights = cols.map((c) => c.height);
+    const tallest = Math.max(...heights);
+    // How unevenly the columns end, plus a little for every heading that repeats.
+    const score = (tallest - Math.min(...heights)) / tallest + splits * 0.08;
+    return { cols, score };
+  };
+  // Every column the width allows, or one fewer when that ends more evenly:
+  // a page with little on it reads better in three full columns than four
+  // ragged ones.
+  let best = layout(most);
+  if (most > 2) {
+    const fewer = layout(most - 1);
+    if (fewer.score < best.score - 0.1) best = fewer;
   }
+  const cols = best.cols;
   const all = groups.flatMap((g) => g.cards);
   const assignment = cols.map((c) => c.chunks.map((k) => `${k.i}:${k.cards.map((el) => all.indexOf(el)).join(".")}`).join(",")).join("|");
   if (assignment === layoutState.assignment) return;
