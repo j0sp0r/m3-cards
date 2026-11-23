@@ -749,6 +749,8 @@ export class M3NavCardEditor extends LitElement implements LovelaceCardEditor {
             options: [
               { value: "none", label: this._t("editor_nav_marker_motion_none") },
               { value: "slide", label: this._t("editor_nav_marker_motion_slide") },
+              { value: "spring", label: this._t("editor_nav_marker_motion_spring") },
+              { value: "stretch", label: this._t("editor_nav_marker_motion_stretch") },
             ],
           },
         },

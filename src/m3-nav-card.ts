@@ -62,6 +62,10 @@ import {
   NAV_ITEM_TINT,
   NAV_PRESS_MS,
   NAV_MARKER_SLIDE_MS,
+  NAV_MARKER_SPRING_MS,
+  NAV_MARKER_SPRING_EASING,
+  NAV_MARKER_STRETCH_MS,
+  NAV_MARKER_STRETCH_REACH,
   NAV_ARRIVAL_QUIET_MS,
   SWIPE_GOING_PX,
   SWIPE_SETTLE_MS,
@@ -748,10 +752,17 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     const barRect = bar.getBoundingClientRect();
     const rect = box.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
+    const wasShown = marker.style.opacity === "1";
     marker.style.opacity = "1";
     // A correction of where it first went, not a move: it happens unseen.
     const quiet = again || performance.now() - this._arrivedAt < NAV_ARRIVAL_QUIET_MS;
-    if (quiet) marker.style.transition = "none";
+    // Where the pill is drawn right now — mid-move if one is running — for a
+    // stretch to start from.
+    const before =
+      this._markerMotion === "stretch" && wasShown && !quiet && !this._settling
+        ? { left: new DOMMatrix(getComputedStyle(marker).transform).m41, width: marker.getBoundingClientRect().width }
+        : undefined;
+    if (quiet || before) marker.style.transition = "none";
     // Offsets are taken against the scrolled content, not the viewport, so the
     // marker stays put when the bar is scrolled sideways.
     marker.style.width = `${rect.width}px`;
@@ -762,15 +773,40 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       rect.left - barRect.left - bar.clientLeft + bar.scrollLeft
     }px, ${rect.top - barRect.top - bar.clientTop + bar.scrollTop}px)`;
     marker.style.borderRadius = getComputedStyle(box).borderRadius;
-    if (quiet) {
+    if (quiet || before) {
       void marker.offsetWidth;
       marker.style.transition = "";
     }
+    if (before) this._stretchMarker(marker, before, rect.left - barRect.left - bar.clientLeft + bar.scrollLeft, rect.width);
 
     if (!again && !this._markerSettled) {
       this._markerSettled = true;
       requestAnimationFrame(() => this._placeMarker(true));
     }
+  }
+
+  /**
+   * `marker_motion: stretch`: from where the pill is to where it belongs, by
+   * way of covering both — its leading edge reaches the new entry first, then
+   * the trailing edge follows. The final place is already set inline; this
+   * only draws the way there, and a newer move cancels it.
+   */
+  private _stretchMarker(marker: HTMLElement, from: { left: number; width: number }, left: number, width: number): void {
+    for (const a of marker.getAnimations()) if (a.id === "m3-stretch") a.cancel();
+    if (Math.abs(from.left - left) < 1 && Math.abs(from.width - width) < 1) return;
+    const y = new DOMMatrix(getComputedStyle(marker).transform).m42;
+    const at = (l: number) => `translate(${l}px, ${y}px)`;
+    const spanLeft = Math.min(from.left, left);
+    const spanWidth = Math.max(from.left + from.width, left + width) - spanLeft;
+    const anim = marker.animate(
+      [
+        { transform: at(from.left), width: `${from.width}px` },
+        { transform: at(spanLeft), width: `${spanWidth}px`, offset: NAV_MARKER_STRETCH_REACH },
+        { transform: at(left), width: `${width}px` },
+      ],
+      { duration: NAV_MARKER_STRETCH_MS, easing: "ease-in-out" },
+    );
+    anim.id = "m3-stretch";
   }
 
   private _keepActiveInView(): void {
@@ -1079,9 +1115,12 @@ export class M3NavCard extends LitElement implements LovelaceCard {
    */
   private _dispatch(action: HaActionConfig | undefined, entityId?: string): void {
     const run = (): void => handleAction(this, this.hass, action, entityId);
-    if (action?.action === "navigate" && this._pageTransition === "slide") {
-      this._slideTo(action.navigation_path, run);
-      return;
+    let mode = this._pageTransition;
+    if (action?.action === "navigate" && mode === "slide") {
+      if (this._slideTo(action.navigation_path, run)) return;
+      // A page the bar has no place for — the action menu's, the drawer's —
+      // has no side to come from: it rises into place instead of jumping.
+      mode = "up";
     }
     const start = (
       document as Document & {
@@ -1089,18 +1128,16 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       }
     ).startViewTransition;
     if (
-      this._pageTransition === "none" ||
+      mode === "none" ||
       action?.action !== "navigate" ||
       !start ||
-      !shouldAnimate(this._config?.animation)
+      !shouldAnimate(this._config?.animation) ||
+      matchMedia("(prefers-reduced-motion: reduce)").matches
     ) {
       run();
       return;
     }
-    setPageFadeDuration(
-      this._config?.page_transition_ms ?? NAV_PAGE_FADE_MS,
-      this._pageTransition,
-    );
+    setPageFadeDuration(this._config?.page_transition_ms ?? NAV_PAGE_FADE_MS, mode);
     start.call(document, async () => {
       run();
       // The router puts the new view in place a frame or two later, and the
@@ -1123,24 +1160,20 @@ export class M3NavCard extends LitElement implements LovelaceCard {
   /**
    * `page_transition: slide`: a tap moves the page sideways, as a swipe along
    * the bar does — toward the entry's side of the bar, so the two read as one
-   * gesture. A target the bar does not hold (a path from a menu) or reduced
-   * motion just navigates.
+   * gesture. Whether it did: a target the bar does not hold (a path from a
+   * menu) is left to the caller, and reduced motion just navigates.
    */
-  private _slideTo(path: string | undefined, run: () => void): void {
+  private _slideTo(path: string | undefined, run: () => void): boolean {
     const targets = this._swipeTargets();
     const from = targets.findIndex((t) => t.active);
     const to = targets.findIndex((t) => t.path === path);
-    if (
-      from < 0 ||
-      to < 0 ||
-      from === to ||
-      !shouldAnimate(this._config?.animation) ||
-      matchMedia("(prefers-reduced-motion: reduce)").matches
-    ) {
+    if (from < 0 || to < 0 || from === to) return false;
+    if (!shouldAnimate(this._config?.animation) || matchMedia("(prefers-reduced-motion: reduce)").matches) {
       run();
-      return;
+      return true;
     }
     void slideToPage(to > from ? "next" : "prev", this, run, () => this._arrivedBar());
+    return true;
   }
 
   /**
@@ -1162,7 +1195,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
 
   /** Whether one shape travels between entries rather than two fading. */
   private get _sliding(): boolean {
-    return this._markerMotion === "slide" && shouldAnimate(this._config?.animation);
+    return this._markerMotion !== "none" && shouldAnimate(this._config?.animation);
   }
 
   private get _labelPosition(): NavLabelPosition {
@@ -3225,7 +3258,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     const widthClass = `${width.css ? "capped" : ""} ${width.fit ? "fit" : ""}`;
     const marker = this._sliding
       ? html`<div
-          class="marker ${this._settling ? "settling" : ""}"
+          class="marker ${this._settling ? "settling" : ""} ${this._markerMotion === "spring" ? "spring" : ""}"
           style=${`background: ${this._markerFill()};`}
         ></div>`
       : nothing;
@@ -4594,6 +4627,15 @@ export class M3NavCard extends LitElement implements LovelaceCard {
         transform ${unsafeCSS(NAV_MARKER_SLIDE_MS)}ms ${EASING},
         width ${unsafeCSS(NAV_MARKER_SLIDE_MS)}ms ${EASING},
         height ${unsafeCSS(NAV_MARKER_SLIDE_MS)}ms ${EASING},
+        opacity 120ms linear;
+    }
+
+    /* marker_motion: spring — past the entry and back. */
+    .marker.spring {
+      transition:
+        transform ${unsafeCSS(NAV_MARKER_SPRING_MS)}ms ${unsafeCSS(NAV_MARKER_SPRING_EASING)},
+        width ${unsafeCSS(NAV_MARKER_SPRING_MS)}ms ${unsafeCSS(NAV_MARKER_SPRING_EASING)},
+        height ${unsafeCSS(NAV_MARKER_SPRING_MS)}ms ${unsafeCSS(NAV_MARKER_SPRING_EASING)},
         opacity 120ms linear;
     }
 

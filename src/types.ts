@@ -3218,7 +3218,7 @@ export interface NavLayoutConfig {
  */
 export type NavActiveStyle = "tint" | "solid";
 
-export type NavMarkerMotion = "none" | "slide";
+export type NavMarkerMotion = "none" | "slide" | "spring" | "stretch";
 
 /**
  * `fade` cross-fades the two pages. `up` is Material's fade-through: the old

@@ -2052,6 +2052,20 @@ export const NAV_PRESS_MS = 200;
 
 /** How long the marker takes to travel from one entry to the next. */
 export const NAV_MARKER_SLIDE_MS = 280;
+/**
+ * `marker_motion: spring`: the pill overshoots its entry and settles back, as
+ * the needle gauge's needle does. Longer than the plain slide, since the
+ * settling is part of the move.
+ */
+export const NAV_MARKER_SPRING_MS = 460;
+export const NAV_MARKER_SPRING_EASING = "cubic-bezier(0.34, 1.45, 0.64, 1)";
+/**
+ * `marker_motion: stretch`: the pill reaches out to the new entry first, its
+ * far edge leading, then lets go of the old one — a drop pulled across. The
+ * share of the move spent reaching.
+ */
+export const NAV_MARKER_STRETCH_MS = 380;
+export const NAV_MARKER_STRETCH_REACH = 0.45;
 /** How long after a nav card comes on screen its marker settles without animating. */
 export const NAV_ARRIVAL_QUIET_MS = 600;
 /** How far the swipe pill must leave home before the bar takes its next layout. */

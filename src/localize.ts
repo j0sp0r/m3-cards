@@ -2536,6 +2536,8 @@ const translations = {
     editor_nav_marker_motion: "Bewegung der Markierung",
     editor_nav_marker_motion_none: "Ohne — erscheint direkt am neuen Eintrag",
     editor_nav_marker_motion_slide: "Gleiten — wandert zum neuen Eintrag",
+    editor_nav_marker_motion_spring: "Federn — schwingt am neuen Eintrag kurz nach",
+    editor_nav_marker_motion_stretch: "Dehnen — streckt sich zum neuen Eintrag und zieht dann nach",
     editor_nav_marker_motion_helper:
       "Beim Gleiten wandert eine einzelne Fläche sichtbar von einem Eintrag zum nächsten, statt am alten zu verschwinden und am neuen aufzutauchen. Beim Ankommen auf einer Seite gleitet nichts — die Markierung steht dann sofort richtig.",
     editor_nav_pill_size: "Größe der Markierung",
@@ -6084,6 +6086,8 @@ const translations = {
     editor_nav_marker_motion: "Marker movement",
     editor_nav_marker_motion_none: "None — appears on the new entry",
     editor_nav_marker_motion_slide: "Slide — travels to the new entry",
+    editor_nav_marker_motion_spring: "Spring — overshoots the new entry and settles",
+    editor_nav_marker_motion_stretch: "Stretch — reaches to the new entry, then lets go of the old",
     editor_nav_marker_motion_helper:
       "Sliding moves a single shape visibly from one entry to the next instead of fading out on one and in on the other. Arriving on a page never slides: the marker is simply already in the right place.",
     editor_nav_pill_size: "Marker size",

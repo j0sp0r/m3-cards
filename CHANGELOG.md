@@ -8,10 +8,15 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **Nav card: `marker_motion: spring` and `stretch`.** Two more ways for the
+  pill to travel: `spring` overshoots the new entry and settles back, as the
+  needle gauge does; `stretch` reaches out to the new entry first and then
+  lets go of the old one, like a drop pulled across.
 - **Nav card: `page_transition: slide`.** A tap moves the page sideways the
   way a swipe along the bar does, toward the tapped entry's side, so tapping
-  and swiping between views look the same. A target that is not in the bar,
-  or reduced motion, just navigates.
+  and swiping between views look the same. A page that is not in the bar —
+  from the action menu or the drawer — rises into place as with `up`; with
+  reduced motion it just navigates.
 
 ### Fixed
 
