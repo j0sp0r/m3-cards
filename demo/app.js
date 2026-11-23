@@ -6,6 +6,7 @@ import "./ha-shim.js";
 import { buildHome, NAMES_DE } from "./home.js";
 import { Sim } from "./sim.js";
 import { setupNotifications } from "./notify.js";
+import { WHATS_NEW } from "./whats-new.js";
 
 // The released bundle sits next to the page on GitHub Pages; working in the
 // repository, the page takes the local build.
@@ -36,6 +37,7 @@ let glass = params.get("glass") !== "0";
 
 const VIEWS = [
   { key: "home", title: "Home", icon: "mdi:home" },
+  { key: "new", title: "New", icon: "mdi:new-box" },
   { key: "rooms", title: "Rooms", icon: "mdi:floor-plan" },
   { key: "climate", title: "Climate", icon: "mdi:thermostat" },
   { key: "energy", title: "Energy", icon: "mdi:lightning-bolt" },
@@ -45,7 +47,7 @@ const VIEWS = [
   { key: "shapes", title: "Shapes", icon: "mdi:shape-outline" },
 ];
 
-const TITLES_DE = { home: "Start", rooms: "Räume", climate: "Klima", energy: "Energie", household: "Haushalt", security: "Sicherheit", more: "Mehr", shapes: "Formen" };
+const TITLES_DE = { home: "Start", new: "Neu", rooms: "Räume", climate: "Klima", energy: "Energie", household: "Haushalt", security: "Sicherheit", more: "Mehr", shapes: "Formen" };
 
 const PHONE_BAR = 4;
 
@@ -217,6 +219,7 @@ function views() {
     ],
     // The same cards in their other looks, each titled with the setting that
     // gives it that look.
+    new: WHATS_NEW.sections(t),
     shapes: (() => {
       const flow = { type: "custom:m3-energy-flow-card", source: "entities", solar_entity: "sensor.solar_power", grid_entity: "sensor.grid_power", battery_entity: "sensor.battery_power", battery_soc_entity: "sensor.battery_soc", home_entity: "sensor.house_power" };
       const climate = { type: "custom:m3-climate-card", entity: "climate.living_room", temperature_sensor: "sensor.living_room_temperature", humidity_sensor: "sensor.living_room_humidity", show_presets: true };
@@ -530,7 +533,10 @@ function masonry(grid, sections) {
 
 function arrange() {
   const { grid, sections } = layoutState;
-  const width = grid.clientWidth || root.clientWidth;
+  // Hidden behind the phone frame the page has no width: measured then, it
+  // would all go into one column. It is laid out again on coming back.
+  const width = grid.clientWidth;
+  if (!width) return;
   const count = Math.max(1, Math.min(sections.length, Math.floor((width + COLUMN_GAP) / (COLUMN_MIN + COLUMN_GAP))));
   // Heights as the sections stand now; before the first layout they all sit
   // in one column of the same width, so they compare fairly.
@@ -728,6 +734,8 @@ function setPhone(on) {
     phoneHost.replaceChildren();
     frame = undefined;
   }
+  // Back on the desktop, after the page is shown again.
+  if (!on) requestAnimationFrame(() => layoutState && arrange());
   paintSwitches();
 }
 phoneBtn.addEventListener("click", () => setPhone(!phone));
