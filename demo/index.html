@@ -91,6 +91,22 @@
   header button.toggle.on .lbl::before { content: "✓ "; }
   header .sep { width: 1px; height: 24px; background: var(--divider-color); margin: 0 2px; }
   header .lbl { white-space: nowrap; font-size: 14px; }
+  header #lang { gap: 4px; padding-right: 8px; }
+  header #lang .caret { --mdc-icon-size: 18px; opacity: 0.7; }
+  .lang-menu {
+    position: fixed; z-index: 21; min-width: 170px; padding: 6px; border-radius: 20px;
+    display: flex; flex-direction: column; gap: 2px;
+    background: color-mix(in srgb, var(--card-background-color) 96%, transparent); backdrop-filter: blur(20px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  }
+  .lang-menu[hidden] { display: none; }
+  .lang-menu button {
+    all: unset; cursor: pointer; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 14px;
+    color: var(--primary-text-color); font: 500 14px "Roboto Flex", Roboto, sans-serif; --mdc-icon-size: 18px;
+  }
+  .lang-menu button ha-icon { width: 18px; color: var(--primary-color); }
+  .lang-menu button:hover { background: color-mix(in srgb, var(--primary-text-color) 8%, transparent); }
+  .lang-menu button.current { background: color-mix(in srgb, var(--primary-color) 16%, transparent); font-weight: 700; }
   header button:hover, header a:hover { background: color-mix(in srgb, var(--primary-text-color) 16%, transparent); }
   #view-root { padding: 8px 16px 140px; }
   .sections {
@@ -152,7 +168,7 @@
   body.phone-mode #phone-host { display: flex; justify-content: center; padding: 20px 16px 40px; }
   .phone-frame {
     width: 393px; height: 852px; max-height: calc(100vh - 110px); aspect-ratio: 393 / 852;
-    padding: 12px; border-radius: 58px; box-sizing: content-box;
+    padding: 4px; border-radius: 50px; box-sizing: content-box;
     background: #0b0b0c; box-shadow: 0 0 0 2px #2a2a2e, 0 30px 80px rgba(0, 0, 0, 0.55);
   }
   .phone-frame iframe { width: 100%; height: 100%; border: 0; border-radius: 46px; background: #0c120d; display: block; }
@@ -167,7 +183,7 @@
   <button id="titles" class="toggle"><ha-icon icon="mdi:label-outline"></ha-icon><span class="lbl"></span></button>
   <button id="glass" class="toggle"><ha-icon icon="mdi:blur"></ha-icon><span class="lbl"></span></button>
   <button id="theme"><ha-icon icon="mdi:weather-sunny"></ha-icon><span class="lbl"></span></button>
-  <button id="lang"><ha-icon icon="mdi:translate"></ha-icon><span class="lbl"></span></button>
+  <button id="lang"><ha-icon icon="mdi:translate"></ha-icon><span class="lbl"></span><ha-icon class="caret" icon="mdi:menu-down"></ha-icon></button>
   <a href="https://github.com/j0sp0r/m3-cards" title="GitHub"><ha-icon icon="mdi:github"></ha-icon><span class="lbl">GitHub</span></a>
 </header>
 <main id="view-root"></main>

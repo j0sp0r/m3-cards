@@ -625,8 +625,8 @@ function paintSwitches() {
   label(titlesBtn, de() ? "Kartennamen" : "Card names");
   label(glassBtn, de() ? "Glas" : "Glass");
   label(themeBtn, dark ? (de() ? "Hell" : "Light") : de() ? "Dunkel" : "Dark");
-  label(langBtn, de() ? "English" : "Deutsch");
-  langBtn.title = de() ? "Switch to English" : "Auf Deutsch umschalten";
+  label(langBtn, LANGUAGES.find((l) => l.code === sim.language)?.name ?? sim.language);
+  langBtn.title = de() ? "Sprache" : "Language";
   glassBtn.title = de() ? (glass ? "Glas an — für deckende Kacheln tippen" : "Glas aus — für Glas tippen") : glass ? "Glass on — tap for solid cards" : "Glass off — tap for glass";
   titlesBtn.title = de() ? (titles ? "Kartennamen ausblenden" : "Kartennamen einblenden") : titles ? "Hide card names" : "Show card names";
   phoneBtn.title = de() ? (phone ? "Zurück zur Desktop-Ansicht" : "Als Smartphone ansehen") : phone ? "Back to the desktop view" : "View as a phone";
@@ -656,7 +656,51 @@ window.m3DemoApply = (s) => apply(s);
 themeBtn.addEventListener("click", () => apply({ theme: dark ? "light" : "dark" }));
 glassBtn.addEventListener("click", () => apply({ glass: !glass }));
 titlesBtn.addEventListener("click", () => apply({ titles: !titles }));
-langBtn.addEventListener("click", () => apply({ lang: de() ? "en" : "de" }));
+// ---- language menu ----------------------------------------------------------------
+
+/**
+ * The languages the cards speak. Another one is a line here once a translation
+ * for it exists (the cards take extra languages from window.m3CardsTranslations).
+ */
+const LANGUAGES = [
+  { code: "en", name: "English" },
+  { code: "de", name: "Deutsch" },
+];
+const langMenu = document.createElement("div");
+langMenu.className = "lang-menu";
+langMenu.hidden = true;
+document.body.appendChild(langMenu);
+function paintLangMenu() {
+  langMenu.replaceChildren(
+    ...LANGUAGES.map(({ code, name }) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = code === sim.language ? "current" : "";
+      const check = document.createElement("ha-icon");
+      check.icon = "mdi:check";
+      check.style.visibility = code === sim.language ? "visible" : "hidden";
+      const label = document.createElement("span");
+      label.textContent = name;
+      b.append(check, label);
+      b.addEventListener("click", () => {
+        langMenu.hidden = true;
+        apply({ lang: code });
+      });
+      return b;
+    }),
+  );
+}
+langBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  paintLangMenu();
+  const r = langBtn.getBoundingClientRect();
+  langMenu.style.top = `${r.bottom + 8}px`;
+  langMenu.style.right = `${Math.max(8, window.innerWidth - r.right)}px`;
+  langMenu.hidden = !langMenu.hidden;
+});
+document.addEventListener("click", (e) => {
+  if (!langMenu.hidden && !langMenu.contains(e.target)) langMenu.hidden = true;
+});
 
 // ---- phone ----------------------------------------------------------------------
 

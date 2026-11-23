@@ -169,6 +169,8 @@ export function setupNotifications(sim, header) {
   };
 
   const push = (title, text, icon, color) => {
+    // With the phone frame up, the phone shows its own notifications.
+    if (window.m3DemoScenarioTarget?.()) return;
     const n = { title, text, icon, color, time: time() };
     log.push(n);
     if (log.length > 20) log.shift();
