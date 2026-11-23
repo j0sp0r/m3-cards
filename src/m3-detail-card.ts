@@ -1155,7 +1155,7 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const stale = series.range !== this._range;
     return html`
       <div
-        class="chart ${available ? "" : "dim"} ${stale ? "stale" : ""}"
+        class="swiper chart ${available ? "" : "dim"} ${stale ? "stale" : ""}"
         data-source=${series.source}
         @pointerdown=${this._onChartPointer}
         @pointermove=${this._onChartPointer}

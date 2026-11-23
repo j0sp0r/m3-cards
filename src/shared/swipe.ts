@@ -18,6 +18,19 @@
 // whatever it last recorded somewhere else on the page — which is worse than not
 // shielding it at all, because the gesture it acts on is one the user never made
 // here.
+//
+// hass-swipe-navigation 1.16.3 (installed through HACS on 2026-11-16 on the
+// author's instance) moved its listeners to the capture phase, so they run
+// before any card sees the event and stopping it here comes too late: a swipe
+// along the nav bar changed the view twice, once each way. What it still
+// honours is its own list of elements to leave alone, matched against every
+// element on the event's path below the view — and one entry there is the
+// plain class `swiper`. Every drag zone that binds `stopSwipe` therefore also
+// carries `SWIPE_PLUGIN_SKIP` in its class list; `stopSwipe` stays for the
+// plugin's older versions and for the other plugins that listen in the bubble
+// phase. Our own handlers are untouched either way.
+export const SWIPE_PLUGIN_SKIP = "swiper";
+
 export function stopSwipe(e: Event): void {
   e.stopPropagation();
 }

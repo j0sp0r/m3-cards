@@ -928,7 +928,7 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
         }}
       >
         <div
-          class="map-stage ${view.scale > 1.001 ? "zoomed" : ""}"
+          class="swiper map-stage ${view.scale > 1.001 ? "zoomed" : ""}"
           @dblclick=${() => this._mapPanZoom.toggle()}
           @pointerdown=${this._mapPanZoom.onPointerDown}
           @pointermove=${this._mapPanZoom.onPointerMove}

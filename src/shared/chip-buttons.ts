@@ -126,7 +126,7 @@ export function renderChipButtons(
   const layoutClass = chipRowLayoutClass(config);
   return html`
     <div
-      class="m3-chip-buttons ${layoutClass} ${config.shape_by_state === true ? "shaped" : ""}"
+      class="swiper m3-chip-buttons ${layoutClass} ${config.shape_by_state === true ? "shaped" : ""}"
       style=${`justify-content: ${config.justify ?? "start"};`}
       @touchstart=${stopSwipe}
       @touchmove=${stopSwipe}

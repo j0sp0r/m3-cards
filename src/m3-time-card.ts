@@ -833,7 +833,7 @@ export class M3TimeCard extends TemplatedCard(LitElement) implements LovelaceCar
     const high = Math.max(...values);
     return html`
       <div
-        class="wheel"
+        class="swiper wheel"
         data-field=${field}
         role="spinbutton"
         tabindex="0"

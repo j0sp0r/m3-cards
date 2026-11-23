@@ -725,7 +725,7 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
 
     return html`
       <div
-        class="wave-slider ${unavailable ? "disabled" : ""} ${this._dragging ? "dragging" : ""}"
+        class="swiper wave-slider ${unavailable ? "disabled" : ""} ${this._dragging ? "dragging" : ""}"
         role="slider"
         aria-label=${this._t("light_brightness_label")}
         aria-valuemin="0"
@@ -810,7 +810,7 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
     const pct = maxK > minK ? ((currentK - minK) / (maxK - minK)) * 100 : 0;
     return html`
       <div
-        class="temp-slider ${unavailable ? "disabled" : ""}"
+        class="swiper temp-slider ${unavailable ? "disabled" : ""}"
         role="slider"
         aria-label=${this._t("light_color_temp_label")}
         aria-valuemin=${minK}
@@ -862,7 +862,7 @@ export class M3LightCard extends TemplatedCard(LitElement) implements LovelaceCa
     return html`
       <div class="wheel-row">
         <div
-          class="wheel"
+          class="swiper wheel"
           role="slider"
           aria-label=${this._t("light_color_wheel_label")}
           tabindex=${unavailable ? -1 : 0}

@@ -1277,7 +1277,7 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
           >
         </div>
         <div
-          class="slider"
+          class="swiper slider"
           role="slider"
           aria-label=${this._t("appliance_slider_label").replace("{name}", label)}
           aria-valuemin=${range.min}

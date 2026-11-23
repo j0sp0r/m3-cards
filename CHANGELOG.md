@@ -6,6 +6,22 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Fixed
+
+- **Swiping on the nav bar, sliders and graphs changed the view, and the
+  wrong way.** hass-swipe-navigation 1.16.3 listens before any card sees a
+  touch, so the cards' shield no longer reached it: a swipe along the nav bar
+  navigated twice, once each way, and a sideways drag on a slider could
+  change the view. Every drag zone now also carries the class the plugin
+  leaves alone; older versions stay shielded as before.
+- **Nav card: a tap navigates at once again.** 2.10.0 drew the tapped entry
+  before handing the route over (#63). With a page transition the browser
+  photographed that half-drawn bar — the entry lit, its pill still at the
+  old one — so the icon flashed grey and the change came a frame late. Back
+  to the behaviour of 2.9.
+- **Energy usage card: bars below 1 kWh are filled (#60).** A bucket with
+  less than 1 kWh drew a partly empty bar. Thanks to @rodion981.
+
 ## [2.10.0] – 2026-11-23
 
 ### Added

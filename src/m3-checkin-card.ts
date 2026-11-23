@@ -668,7 +668,7 @@ export class M3CheckinCard extends TemplatedCard(LitElement) implements Lovelace
       >
         <span class="swipe-label">${label}</span>
         <div
-          class="swipe-handle"
+          class="swiper swipe-handle"
           style=${handleStyle}
           @pointerdown=${(e: PointerEvent) => this._dragStart(e, canSwitch && !plainTap)}
           @pointermove=${(e: PointerEvent) => this._dragMove(e, checkedIn)}

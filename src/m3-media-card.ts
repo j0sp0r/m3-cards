@@ -1772,7 +1772,7 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
     const pos = this._seeking && this._seekPosition !== undefined ? this._seekPosition : this._displayPosition;
     return html`
       <div
-        class="progress-slider"
+        class="swiper progress-slider"
         role="slider"
         aria-label=${this._t("media_seek_label")}
         aria-valuemin="0"
@@ -1889,7 +1889,7 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
       <div class="volume-row">
         ${this._renderMuteButton(muted, features)}
         <div
-          class="volume-slider"
+          class="swiper volume-slider"
           role="slider"
           aria-label=${this._t("media_volume_label")}
           aria-valuemin="0"

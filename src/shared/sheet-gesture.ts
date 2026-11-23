@@ -6,7 +6,7 @@ import {
   NAV_VELOCITY_WINDOW_MS,
 } from "../const";
 import { DragThrottle } from "./drag-throttle";
-import { stopSwipe } from "./swipe";
+import { SWIPE_PLUGIN_SKIP, stopSwipe } from "./swipe";
 
 // Dragging a bottom sheet: the finger moves it, the release decides where it
 // lands.
@@ -147,6 +147,7 @@ export class SheetGesture {
     // drag on a sheet is never a request to change the view.
     el.addEventListener("touchstart", stopSwipe);
     el.addEventListener("touchmove", stopSwipe);
+    el.classList.add(SWIPE_PLUGIN_SKIP);
 
     // On a touch screen the browser decides on the first move whether the
     // finger scrolls, and once it does the pointer events stop with a

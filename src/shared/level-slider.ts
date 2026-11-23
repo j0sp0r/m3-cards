@@ -144,7 +144,7 @@ export function renderLevelSlider(
         <span class="level-value ${offScale ? "off-scale" : ""}">${valueLabel}</span>
       </div>
       <div
-        class="level-track-wrap ${pressed ? "pressed" : ""}"
+        class="swiper level-track-wrap ${pressed ? "pressed" : ""}"
         role="slider"
         tabindex=${disabled ? -1 : 0}
         aria-label=${label}

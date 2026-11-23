@@ -784,7 +784,7 @@ export class M3MultiGraphCard extends TemplatedCard(LitElement) implements Lovel
     const showExtremes = extremesShown;
     return html`
       <div
-        class="chart ${stale ? "stale" : ""}"
+        class="swiper chart ${stale ? "stale" : ""}"
         style=${`height: ${height}px; touch-action: ${SLIDER_TOUCH_ACTION};`}
         tabindex="0"
         role="slider"
