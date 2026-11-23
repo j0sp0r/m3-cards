@@ -55,8 +55,21 @@ export function swipeShown(p: { dx: number; distance: number; hasPrev: boolean; 
 }
 
 /** Out: short and accelerating; in: longer and decelerating, as M3 pairs them. */
-const OUT_MS = 180;
-const IN_MS = 340;
+export const SLIDE_IN_MS = 340;
+const OUT_SHARE = 180 / SLIDE_IN_MS;
+let IN_MS = SLIDE_IN_MS;
+let OUT_MS = Math.round(SLIDE_IN_MS * OUT_SHARE);
+
+/**
+ * How long the new page takes to come in (`page_transition_ms` under `slide`);
+ * the old page leaves in the same proportion as by default, a little over half
+ * of it. Set by the card before each slide, so two bars with different
+ * lengths each get their own.
+ */
+export function setSlideDuration(inMs: number): void {
+  IN_MS = Math.max(0, inMs);
+  OUT_MS = Math.round(IN_MS * OUT_SHARE);
+}
 const OUT_EASING = "cubic-bezier(0.3, 0, 0.8, 0.15)";
 const IN_EASING = "cubic-bezier(0.05, 0.7, 0.1, 1)";
 /** How long the new page's nav card may take to appear. */

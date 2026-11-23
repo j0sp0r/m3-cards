@@ -3425,7 +3425,10 @@ export interface M3NavCardConfig extends DetailModeConfig {
    * browser's view-transition support and falls back to a plain navigation.
    */
   page_transition?: NavPageTransition;
-  /** How long the page cross-fade runs, in ms. */
+  /**
+   * How long the page transition runs, in ms. Under `slide`, how long the new
+   * page takes to come in (default 340); the old one leaves in about half that.
+   */
   page_transition_ms?: number;
   /**
    * Distance in px between the bar and the edge of the screen it docks to.

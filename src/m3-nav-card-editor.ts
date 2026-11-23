@@ -19,6 +19,7 @@ import {
 import { dashboardViews, viewPath, type LovelaceViewLike } from "./shared/dashboard-views";
 import { renderDetailModeField } from "./shared/appearance-editor";
 import { localize, type TranslationKey } from "./localize";
+import { SLIDE_IN_MS } from "./shared/nav-swipe";
 import {
   colorRow,
   editorStyles,
@@ -816,8 +817,7 @@ export class M3NavCardEditor extends LitElement implements LovelaceCardEditor {
         },
       },
     ];
-    // The slide keeps the swipe's own timing, so there is no length to set.
-    if (!["none", "slide"].includes(this._config?.page_transition ?? "none")) {
+    if ((this._config?.page_transition ?? "none") !== "none") {
       schema.push({
         name: "page_transition_ms",
         selector: { number: { min: 80, max: 600, step: 10, mode: "slider" } },
@@ -1708,7 +1708,7 @@ export class M3NavCardEditor extends LitElement implements LovelaceCardEditor {
                 bar_scroll: cfg.bar_scroll ?? true,
                 auto_hide_on_scroll: cfg.auto_hide_on_scroll ?? false,
                 page_transition: cfg.page_transition ?? "none",
-                page_transition_ms: cfg.page_transition_ms ?? 180,
+                page_transition_ms: cfg.page_transition_ms ?? (cfg.page_transition === "slide" ? SLIDE_IN_MS : 180),
                 submenu_trigger: cfg.submenu_trigger ?? "tap",
               }}
               .schema=${this._behaviorSchema()}

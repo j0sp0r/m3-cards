@@ -8,6 +8,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **Nav card: `page_transition_ms` sets the slide's pace.** Under
+  `page_transition: slide` it is how long the new page takes to come in
+  (default 340 ms, the old page leaves in about half that), for taps, swipes
+  along the bar and the dashboard's own swipes alike. The editor shows the
+  slider for the slide too.
+
 - **Nav card: `marker_motion: spring` and `stretch`.** Two more ways for the
   pill to travel: `spring` overshoots the new entry and settles back, as the
   needle gauge does; `stretch` reaches out to the new entry first and then

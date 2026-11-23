@@ -149,6 +149,8 @@ import {
   swipeShown,
   slideToPage,
   slideIn,
+  setSlideDuration,
+  SLIDE_IN_MS,
   holdViewTransitions,
   noteNavArrival,
   type SwipeDirection,
@@ -1384,6 +1386,16 @@ export class M3NavCard extends LitElement implements LovelaceCard {
    * gesture. Whether it did: a target the bar does not hold (a path from a
    * menu) is left to the caller, and reduced motion just navigates.
    */
+  /**
+   * How long a page slides in: `page_transition_ms` once the transition is
+   * `slide`, so taps, swipes along the bar and the dashboard's own swipes
+   * keep one pace; otherwise a swipe's slide keeps its default length.
+   */
+  private _slideMs(): number {
+    const ms = this._config?.page_transition_ms;
+    return this._config?.page_transition === "slide" && typeof ms === "number" && ms > 0 ? ms : SLIDE_IN_MS;
+  }
+
   private _slideTo(path: string | undefined, run: () => void): boolean {
     const targets = this._swipeTargets();
     const from = targets.findIndex((t) => t.active);
@@ -1393,6 +1405,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       run();
       return true;
     }
+    setSlideDuration(this._slideMs());
     void slideToPage(to > from ? "next" : "prev", this, () => {
       this._handOverMarker();
       run();
@@ -1642,6 +1655,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     const slide = foreignSlide;
     if (!slide || performance.now() - slide.at > NAV_HANDOFF_MAX_MS) return;
     foreignSlide = undefined;
+    setSlideDuration(this._slideMs());
     slideIn(slide.direction, this);
   }
 
@@ -2542,6 +2556,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       navigate();
       return;
     }
+    setSlideDuration(this._slideMs());
     void slideToPage(outcome, this, navigate, () => this._arrivedBar()).finally(settle);
   }
 
