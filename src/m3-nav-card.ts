@@ -1079,6 +1079,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
    */
   private _dispatch(action: HaActionConfig | undefined, entityId?: string): void {
     const run = (): void => handleAction(this, this.hass, action, entityId);
+    if (action?.action === "navigate" && this._pageTransition === "slide") {
+      this._slideTo(action.navigation_path, run);
+      return;
+    }
     const start = (
       document as Document & {
         startViewTransition?: (cb: () => unknown) => unknown;
@@ -1114,6 +1118,42 @@ export class M3NavCard extends LitElement implements LovelaceCard {
         window.setTimeout(finish, NAV_PRESS_MS);
       });
     });
+  }
+
+  /**
+   * `page_transition: slide`: a tap moves the page sideways, as a swipe along
+   * the bar does — toward the entry's side of the bar, so the two read as one
+   * gesture. A target the bar does not hold (a path from a menu) or reduced
+   * motion just navigates.
+   */
+  private _slideTo(path: string | undefined, run: () => void): void {
+    const targets = this._swipeTargets();
+    const from = targets.findIndex((t) => t.active);
+    const to = targets.findIndex((t) => t.path === path);
+    if (
+      from < 0 ||
+      to < 0 ||
+      from === to ||
+      !shouldAnimate(this._config?.animation) ||
+      matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      run();
+      return;
+    }
+    void slideToPage(to > from ? "next" : "prev", this, run, () => this._arrivedBar());
+  }
+
+  /**
+   * The bar on the page just navigated to — another instance of this card, as
+   * a rule — taken as soon as it is in the page, before it has drawn: the page
+   * around it is drawn a frame earlier, and must not be seen at rest. Or this
+   * one, when the bar outlives the navigation.
+   */
+  private _arrivedBar(): Element | undefined {
+    for (const card of connectedSheets) {
+      if (card !== this && card.isConnected) return card;
+    }
+    return this.isConnected && this.getClientRects().length > 0 ? this : undefined;
   }
 
   private get _markerMotion(): NavMarkerMotion {
@@ -2195,22 +2235,15 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       else s.moved.style.transform = s.baseTransform;
     };
     if (this._config?.haptics !== false) fireHaptic(this, "light");
-    const navigate = () => this._dispatch({ action: "navigate", navigation_path: target.path });
+    // Straight to the router: the slide below is the transition, and
+    // `_dispatch` would start a second one around it.
+    const navigate = () => handleAction(this, this.hass, { action: "navigate", navigation_path: target.path });
     if (!shouldAnimate(this._config?.animation) || matchMedia("(prefers-reduced-motion: reduce)").matches) {
       settle();
       navigate();
       return;
     }
-    void slideToPage(outcome, this, navigate, () => {
-      // The bar on the new page — another instance of this card, as a rule —
-      // taken as soon as it is in the page, before it has drawn: the page
-      // around it is drawn a frame earlier, and must not be seen at rest.
-      for (const card of connectedSheets) {
-        if (card !== this && card.isConnected) return card;
-      }
-      // Or this one, when the bar outlives the navigation.
-      return this.isConnected && this.getClientRects().length > 0 ? this : undefined;
-    }).finally(settle);
+    void slideToPage(outcome, this, navigate, () => this._arrivedBar()).finally(settle);
   }
 
   // ---- sheet ---------------------------------------------------------------

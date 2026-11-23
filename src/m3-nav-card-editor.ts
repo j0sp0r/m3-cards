@@ -808,12 +808,14 @@ export class M3NavCardEditor extends LitElement implements LovelaceCardEditor {
               { value: "none", label: this._t("editor_nav_page_transition_none") },
               { value: "fade", label: this._t("editor_nav_page_transition_fade") },
               { value: "up", label: this._t("editor_nav_page_transition_up") },
+              { value: "slide", label: this._t("editor_nav_page_transition_slide") },
             ],
           },
         },
       },
     ];
-    if ((this._config?.page_transition ?? "none") !== "none") {
+    // The slide keeps the swipe's own timing, so there is no length to set.
+    if (!["none", "slide"].includes(this._config?.page_transition ?? "none")) {
       schema.push({
         name: "page_transition_ms",
         selector: { number: { min: 80, max: 600, step: 10, mode: "slider" } },

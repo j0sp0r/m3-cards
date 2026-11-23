@@ -402,7 +402,7 @@ without a breaking config change.
 | `size` | `1` | Scales every measurement, 0.7–1.5 |
 | `page_transition_ms` | `180` | Length of that cross-fade. The browser's own default of 250ms reads as slow for a change the reader just asked for |
 | `marker_motion` | `none` | `none` or `slide` — whether one shape travels between entries instead of two fading |
-| `page_transition` | `none` | `none`, `fade`, or `up` — `up` is Material's fade-through: the old page leaves, then the new one rises slightly into place |
+| `page_transition` | `none` | `none`, `fade`, `up` or `slide` — `up` is Material's fade-through: the old page leaves, then the new one rises slightly into place; `slide` moves the page sideways as a swipe along the bar does, toward the tapped entry's side, so tap and swipe look the same |
 | `pill_size` | `1` | Scales the marker around the active entry on its own, without touching the icon or the text |
 | `label_size` | `11`, or `14` beside the icon | Label size in px. The default depends on `label_position`: a label under an icon is a caption, one next to it is the entry's name |
 | `label_position` | `below` | Where an entry's text sits relative to its icon: `below`, `above`, `right`, `left`. The horizontal ones also make the active pill wrap icon and text together |

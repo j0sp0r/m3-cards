@@ -2530,6 +2530,7 @@ const translations = {
     editor_nav_page_transition_none: "Ohne — die neue Seite ist sofort da",
     editor_nav_page_transition_fade: "Überblenden — die Seiten gehen ineinander über",
     editor_nav_page_transition_up: "Einschweben — die neue Seite gleitet leicht von unten herein",
+    editor_nav_page_transition_slide: "Seitlich — wie beim Wischen über die Leiste, zur Seite des Eintrags hin",
     editor_nav_page_transition_helper:
       "Blendet beim Antippen eines Eintrags die ganze Seite weich in die neue über, statt hart umzuschalten. Gilt nur für Wechsel, die über diese Leiste ausgelöst werden. Browser, die das nicht können, wechseln wie bisher.",
     editor_nav_marker_motion: "Bewegung der Markierung",
@@ -6077,6 +6078,7 @@ const translations = {
     editor_nav_page_transition_none: "None — the new page is simply there",
     editor_nav_page_transition_fade: "Cross-fade — the pages blend into each other",
     editor_nav_page_transition_up: "Glide in — the new page rises slightly into place",
+    editor_nav_page_transition_slide: "Sideways — as a swipe along the bar does, toward the entry's side",
     editor_nav_page_transition_helper:
       "Softly fades the whole page into the new one when an entry is tapped, instead of switching hard. Applies only to navigation started from this bar. Browsers without support change page as before.",
     editor_nav_marker_motion: "Marker movement",

@@ -3225,7 +3225,7 @@ export type NavMarkerMotion = "none" | "slide";
  * page only fades out, the new one fades in while gliding up a little, which
  * is what makes a change between two similar-looking pages legible at all.
  */
-export type NavPageTransition = "none" | "fade" | "up";
+export type NavPageTransition = "none" | "fade" | "up" | "slide";
 
 /** A detached round button beside the bar — a search or an add, typically. */
 /**

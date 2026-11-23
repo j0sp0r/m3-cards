@@ -6,6 +6,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Added
+
+- **Nav card: `page_transition: slide`.** A tap moves the page sideways the
+  way a swipe along the bar does, toward the tapped entry's side, so tapping
+  and swiping between views look the same. A target that is not in the bar,
+  or reduced motion, just navigates.
+
 ### Fixed
 
 - **Swiping on the nav bar, sliders and graphs changed the view, and the
