@@ -15,7 +15,7 @@
     --secondary-text-color: #b4bcae;
     --disabled-text-color: #7b8476;
     --card-background-color: #1a211b;
-    --ha-card-background: rgba(26, 33, 27, 0.72);
+    --ha-card-background: #1a211b;
     --primary-background-color: #101510;
     --secondary-background-color: #151b16;
     --primary-color: #9dd67d;
@@ -41,7 +41,7 @@
     --secondary-text-color: #43493f;
     --disabled-text-color: #8a9185;
     --card-background-color: #f8faf2;
-    --ha-card-background: rgba(248, 250, 242, 0.78);
+    --ha-card-background: #f8faf2;
     --primary-background-color: #eef2e8;
     --secondary-background-color: #e6ebdf;
     --primary-color: #3b6939;
@@ -85,6 +85,7 @@
     background: color-mix(in srgb, var(--primary-text-color) 10%, transparent);
     color: var(--primary-text-color); font: 600 15px "Roboto Flex", Roboto, sans-serif; text-decoration: none; cursor: pointer;
   }
+  header button.off { background: color-mix(in srgb, var(--primary-color) 22%, transparent); color: var(--primary-color); }
   header button:hover, header a:hover { background: color-mix(in srgb, var(--primary-text-color) 16%, transparent); }
   #view-root { padding: 8px 16px 140px; }
   .sections {
@@ -109,6 +110,7 @@
   <span class="brand"><b>M3</b> Cards</span>
   <span class="note">A pretend home with simulated values — tap around, nothing is connected.</span>
   <button id="lang" title="Language">DE</button>
+  <button id="glass" title="Glass"><ha-icon icon="mdi:blur"></ha-icon></button>
   <button id="theme" title="Light / dark"><ha-icon icon="mdi:weather-sunny"></ha-icon></button>
   <a href="https://github.com/j0sp0r/m3-cards" title="GitHub"><ha-icon icon="mdi:github"></ha-icon></a>
 </header>

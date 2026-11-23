@@ -25,6 +25,9 @@ if (!customElements.get("hui-view")) customElements.define("hui-view", class ext
 // the bare base would count as a prefix of every other view and stay lit.
 const nav = (key) => BASE + key;
 
+/** Frosted cards, or solid ones to compare: one switch for every card. */
+let glass = true;
+
 const VIEWS = [
   { key: "home", title: "Home", icon: "mdi:home" },
   { key: "rooms", title: "Rooms", icon: "mdi:floor-plan" },
@@ -50,7 +53,7 @@ function navCard() {
     marker_motion: "stretch",
     page_transition: "slide",
     swipe_navigation: true,
-    container_style: "glass",
+    container_style: glass ? "glass" : "solid",
     blur: 20,
     items: VIEWS.map((v) => ({ name: de ? TITLES_DE[v.key] : v.title, icon: v.icon, path: nav(v.key) })),
   };
@@ -187,6 +190,7 @@ function keyFromPath() {
 
 function makeCard(config) {
   const tag = config.type.replace("custom:", "");
+  if (tag !== "m3-nav-card") config = { ...config, glass_background: glass };
   const el = document.createElement(tag);
   try {
     el.setConfig(config);
@@ -235,6 +239,18 @@ window.addEventListener("popstate", render);
 // ---- switches -----------------------------------------------------------------
 
 const themeBtn = document.getElementById("theme");
+const glassBtn = document.getElementById("glass");
+function labelGlass() {
+  glassBtn.querySelector("ha-icon").icon = glass ? "mdi:blur" : "mdi:square-rounded";
+  glassBtn.title = sim.language === "de" ? (glass ? "Glas an — für undurchsichtige Kacheln tippen" : "Glas aus — für Glas tippen") : glass ? "Glass on — tap for solid cards" : "Glass off — tap for glass";
+  glassBtn.classList.toggle("off", !glass);
+}
+glassBtn.addEventListener("click", () => {
+  glass = !glass;
+  labelGlass();
+  render();
+});
+labelGlass();
 const langBtn = document.getElementById("lang");
 function applyTheme(dark) {
   document.documentElement.dataset.theme = dark ? "dark" : "light";
@@ -246,6 +262,7 @@ langBtn.addEventListener("click", () => {
   sim.setLanguage(sim.language === "de" ? "en" : "de");
   langBtn.textContent = sim.language === "de" ? "EN" : "DE";
   notes.relabel();
+  labelGlass();
   render();
 });
 langBtn.textContent = sim.language === "de" ? "EN" : "DE";
