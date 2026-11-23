@@ -8,6 +8,9 @@ import {
   seriesStats,
   bucketExtremes,
   statisticsToPoints,
+  statisticsToSpans,
+  stepSpans,
+  bandBuckets,
   type SeriesPoint,
 } from "./entity-history";
 import type { HomeAssistant } from "../types";
@@ -269,5 +272,46 @@ describe("spanRange", () => {
     expect(spanRange(17, 19, 6)).toEqual({ lo: 15, hi: 21 });
     expect(spanRange(10, 30, 6)).toEqual({ lo: 10, hi: 30 });
     expect(spanRange(17, 19)).toEqual({ lo: 17, hi: 19 });
+  });
+});
+
+describe("band", () => {
+  const MIN5 = 300_000;
+  it("keeps each statistics row's min and max as a span", () => {
+    const rows = [
+      { start: 0, mean: 220, min: 30, max: 1100 },
+      { start: MIN5, mean: 31, min: 30, max: 32 },
+      { start: 2 * MIN5, state: 5 },
+    ];
+    expect(statisticsToSpans(rows, MIN5)).toEqual([
+      { t0: 0, t1: MIN5, lo: 30, hi: 1100 },
+      { t0: MIN5, t1: 2 * MIN5, lo: 30, hi: 32 },
+    ]);
+  });
+
+  it("turns steps into spans and skips holes", () => {
+    const steps: SeriesPoint[] = [
+      { t: 0, v: 1 },
+      { t: 10, v: null },
+      { t: 20, v: 3 },
+    ];
+    expect(stepSpans(steps, 30)).toEqual([
+      { t0: 0, t1: 10, lo: 1, hi: 1 },
+      { t0: 20, t1: 30, lo: 3, hi: 3 },
+    ]);
+  });
+
+  it("finds each bucket's lowest and highest value, a spike included", () => {
+    const spans = [
+      { t0: 0, t1: 10, lo: 30, hi: 32 },
+      { t0: 10, t1: 11, lo: 1100, hi: 1100 },
+      { t0: 11, t1: 20, lo: 31, hi: 31 },
+    ];
+    expect(bandBuckets(spans, 0, 40, 4)).toEqual([
+      { lo: 30, hi: 32 },
+      { lo: 31, hi: 1100 },
+      null,
+      null,
+    ]);
   });
 });

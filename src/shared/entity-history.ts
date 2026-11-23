@@ -70,6 +70,20 @@ export interface EntitySeries {
    * own per-bucket `min` and `max`. See `bucketExtremes`.
    */
   extremes?: { min: number; max: number };
+  /**
+   * Each statistics bucket's own lowest and highest reading, for the band
+   * behind the curve. History has no such field: its readings are the band.
+   * See `statisticsToSpans`.
+   */
+  band?: BandSpan[];
+}
+
+/** The lowest and highest reading over [t0, t1). */
+export interface BandSpan {
+  t0: number;
+  t1: number;
+  lo: number;
+  hi: number;
 }
 
 interface StatRow {
@@ -112,6 +126,7 @@ export async function fetchEntitySeries(
           range,
           sum: meterSum(rows, start, hass.states[entityId]?.attributes?.state_class),
           extremes: bucketExtremes(rows, start),
+          band: statisticsToSpans(rows, PERIOD_MS[period]),
         };
       }
     } catch {
@@ -237,6 +252,68 @@ export function statisticsToPoints(rows: readonly StatRow[], periodMs: number): 
     if (last !== undefined && mid - last > periodMs * 2.5) out.push({ t: last + periodMs, v: null });
     out.push({ t: mid, v });
     last = mid;
+  }
+  return out;
+}
+
+/**
+ * Statistics rows as spans of their own min and max.
+ *
+ * The curve goes through the bucket means, which a short spike hardly moves:
+ * a heater running at 1,100 W for one minute in five makes a 5-minute mean of
+ * 220 W. Every row also carries the min and max inside it, and the band drawn
+ * from them is where that spike shows. A row without both (a meter) is left
+ * out.
+ */
+export function statisticsToSpans(rows: readonly StatRow[], periodMs: number): BandSpan[] {
+  const out: BandSpan[] = [];
+  for (const row of rows) {
+    const t = typeof row.start === "number" ? row.start : Date.parse(row.start);
+    if (!Number.isFinite(t) || typeof row.min !== "number" || typeof row.max !== "number") continue;
+    out.push({ t0: t, t1: t + periodMs, lo: Math.min(row.min, row.max), hi: Math.max(row.min, row.max) });
+  }
+  return out;
+}
+
+/**
+ * A step series as spans: each reading holds until the next one, the last one
+ * until `end`. A hole (`null`) is no span.
+ */
+export function stepSpans(steps: readonly SeriesPoint[], end: number): BandSpan[] {
+  const out: BandSpan[] = [];
+  for (let k = 0; k < steps.length; k++) {
+    const v = steps[k].v;
+    if (v === null) continue;
+    const t1 = k + 1 < steps.length ? steps[k + 1].t : end;
+    if (t1 > steps[k].t) out.push({ t0: steps[k].t, t1, lo: v, hi: v });
+  }
+  return out;
+}
+
+/**
+ * The lowest and highest value of the spans touching each of `n` equal
+ * buckets of [t0, t1). A bucket no span reaches is null.
+ */
+export function bandBuckets(
+  spans: readonly BandSpan[],
+  t0: number,
+  t1: number,
+  n: number,
+): ({ lo: number; hi: number } | null)[] {
+  const out: ({ lo: number; hi: number } | null)[] = new Array(Math.max(0, n)).fill(null);
+  if (n <= 0 || !(t1 > t0)) return out;
+  const width = (t1 - t0) / n;
+  for (const s of spans) {
+    const a = Math.max(t0, s.t0);
+    const b = Math.min(t1, s.t1);
+    if (!(b > a)) continue;
+    const first = Math.min(n - 1, Math.floor((a - t0) / width));
+    // A span ending exactly on a boundary does not reach the next bucket.
+    const last = Math.min(n - 1, Math.ceil((b - t0) / width) - 1);
+    for (let i = first; i <= last; i++) {
+      const cur = out[i];
+      out[i] = cur ? { lo: Math.min(cur.lo, s.lo), hi: Math.max(cur.hi, s.hi) } : { lo: s.lo, hi: s.hi };
+    }
   }
   return out;
 }

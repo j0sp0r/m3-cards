@@ -43,6 +43,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   swing at full height. `smoothing: none` brings back every reading,
   `strong` leaves the trend. `y_min_span` / `secondary_y_min_span` keep a
   scale from zooming into a swing of a degree. The tiles keep the readings.
+  Behind the curve a faint band runs from each bucket's lowest to highest
+  reading, taken from the statistics' own min and max, so a short spike the
+  means flatten still shows: a heater running a minute in five reads as a
+  250 W curve under a band up to 1.1 kW. The rings and the scale follow the
+  band, so the maximum ring sits on the value the tile below names, and the
+  tooltip adds the bucket's range.
 
 - **Network card** (`m3-network-card`, card 59): the router — online since,
   connection type, download, upload, signal, data used — and the devices on

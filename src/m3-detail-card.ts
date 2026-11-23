@@ -9,6 +9,7 @@ import {
   DETAIL_CHART_HALO,
   DETAIL_CHART_HEIGHT,
   DETAIL_CHART_PADDING,
+  DETAIL_BAND_MIN_PX,
   DETAIL_STRONG_SMOOTHING_SHARE,
   MULTI_GRAPH_PX_PER_POINT,
   MULTI_GRAPH_MIN_POINTS,
@@ -81,7 +82,9 @@ import { TemplatedCard } from "./shared/templated-card";
 import { openEntityDetail, openEntitySettings } from "./shared/entity-detail";
 import {
   DETAIL_RANGE_MS,
+  bandBuckets,
   fetchEntitySeries,
+  stepSpans,
   seriesExtremes,
   windowPoints,
   seriesStats,
@@ -952,8 +955,10 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const span = DETAIL_RANGE_MS[series.range];
     const t1 = this._now;
     const t0 = t1 - span;
-    const points = this._drawnPoints(windowPoints(this._pointsWithLive(series.points, st, t1), t0), t0, t1, width);
+    const raw = windowPoints(this._pointsWithLive(series.points, st, t1), t0);
+    const points = this._drawnPoints(raw, t0, t1, width);
     const { min, max } = seriesExtremes(points);
+    const band = this._band(series, raw, t0, t1, width);
 
     let body: unknown = nothing;
     let tooltip: unknown = nothing;
@@ -963,8 +968,18 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       // With a second scale its figures need the right edge to themselves:
       // the curves stop short of them, as they stop short of the halo.
       const plotW = this._plotWidth(width);
-      const lo = min.v as number;
-      const hi = max.v as number;
+      // The band reaches past the curve wherever a bucket held a spike; the
+      // scale and the two rings follow it, so the rings mark the readings the
+      // tiles below name, not the highest mean.
+      let lowAt: SeriesPoint = min;
+      let highAt: SeriesPoint = max;
+      for (const b of band) {
+        if (!b.r) continue;
+        if (b.r.lo < (lowAt.v as number)) lowAt = { t: b.t, v: b.r.lo };
+        if (b.r.hi > (highAt.v as number)) highAt = { t: b.t, v: b.r.hi };
+      }
+      const lo = lowAt.v as number;
+      const hi = highAt.v as number;
       const scale = spanRange(lo, hi, this._config?.y_min_span);
       // A difference at float noise is a flat line, not a scale to zoom into.
       const spread =
@@ -987,6 +1002,23 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
         }
       }
       if (run.length) runs.push(run);
+
+      // Only where it is wider than the line itself: a band hugging the curve
+      // is a blur, not information.
+      const bandRuns: { top: XY[]; bottom: XY[] }[] = [];
+      let bandRun: { top: XY[]; bottom: XY[] } | undefined;
+      for (const b of band) {
+        if (!b.r) {
+          bandRun = undefined;
+          continue;
+        }
+        if (!bandRun) bandRuns.push((bandRun = { top: [], bottom: [] }));
+        bandRun.top.push({ x: x(b.t), y: y(b.r.hi) });
+        bandRun.bottom.push({ x: x(b.t), y: y(b.r.lo) });
+      }
+      const bandPaths = bandRuns
+        .filter((r) => r.top.length > 1 && r.top.some((p, i) => r.bottom[i].y - p.y > DETAIL_BAND_MIN_PX))
+        .map((r) => `${monotonePath(r.top)}${monotonePath([...r.bottom].reverse()).replace(/^M/, "L")}Z`);
 
       const last = available ? [...points].reverse().find((p) => p.v !== null) : undefined;
       // Under a pointer the dot leaves "now" and follows it to the nearest
@@ -1078,14 +1110,15 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
           </linearGradient>
         </defs>
         ${grid}
+        ${bandPaths.map((d) => svg`<path class="band" d=${d} fill=${lineColor}></path>`)}
         ${runs.map((r) => svg`<path class="area" d=${monotoneArea(r, height)} fill="url(#fill)"></path>`)}
         ${runs.map((r) => svg`<path class="line" d=${monotonePath(r)} stroke=${lineColor}></path>`)}
         ${second}
         ${tickLabels(tickFill)}
         ${lo !== hi
           ? svg`
-              <circle class="ring" cx=${x(min.t)} cy=${y(lo)} r="4" stroke=${minColor}></circle>
-              <circle class="ring" cx=${x(max.t)} cy=${y(hi)} r="4" stroke=${lineColor}></circle>
+              <circle class="ring" cx=${x(lowAt.t)} cy=${y(lo)} r="4" stroke=${minColor}></circle>
+              <circle class="ring" cx=${x(highAt.t)} cy=${y(hi)} r="4" stroke=${lineColor}></circle>
             `
           : nothing}
         ${guide}
@@ -1098,13 +1131,20 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       `;
       if (tooltipAt) {
         const { hx, hy, hover } = tooltipAt;
+        const places = this._decimals(st);
+        const r = this._bandAt(band, hover.t);
+        const range =
+          r && this._format(r.lo, places) !== this._format(r.hi, places)
+            ? html`<span class="tip-range">${this._format(r.lo, places)} – ${this._format(r.hi, places)}</span>`
+            : nothing;
         tooltip = html`<div
           class="tooltip ${hy < 52 ? "below" : ""}"
           style="left:${Math.min(Math.max(hx, 48), width - 48)}px; top:${hy}px"
         >
-          <b>${this._format(hover.v as number, this._decimals(st))}${st.attributes.unit_of_measurement
+          <b>${this._format(hover.v as number, places)}${st.attributes.unit_of_measurement
             ? html`<span class="tip-unit">${st.attributes.unit_of_measurement}</span>`
             : nothing}</b>
+          ${range}
           ${tip2}
           <span>${this._tooltipTime(hover.t, series.range)}</span>
         </div>`;
@@ -1159,6 +1199,41 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
     const live = points[points.length - 1];
     if (live && live.v !== null && live.t >= t1 - step && out[out.length - 1]?.v !== null) out.push(live);
     return out;
+  }
+
+  /**
+   * The lowest and highest reading in each of the curve's buckets, for the
+   * band behind it. From the statistics' own per-bucket min and max where the
+   * series came from there — the means hide a short spike, those do not —
+   * and from the readings themselves otherwise. The stretch after the last
+   * statistics row is filled from the live readings.
+   */
+  private _band(
+    series: EntitySeries,
+    raw: SeriesPoint[],
+    t0: number,
+    t1: number,
+    width: number,
+  ): { t: number; r: { lo: number; hi: number } | null }[] {
+    if (!(width > 0) || !(t1 > t0)) return [];
+    const n = bucketCount(this._plotWidth(width), MULTI_GRAPH_PX_PER_POINT, MULTI_GRAPH_MIN_POINTS, MULTI_GRAPH_MAX_POINTS);
+    const step = (t1 - t0) / n;
+    let spans = stepSpans(raw, t1);
+    if (series.band?.length) {
+      const end = series.band[series.band.length - 1].t1;
+      const tail = raw.filter((p) => p.t >= end);
+      if (tail.length && tail[0].v !== null) tail.unshift({ t: end, v: tail[0].v });
+      spans = [...series.band, ...stepSpans(tail, t1)];
+    }
+    return bandBuckets(spans, t0, t1, n).map((r, i) => ({ t: t0 + (i + 0.5) * step, r }));
+  }
+
+  /** The band's bucket at time `t`. */
+  private _bandAt(band: { t: number; r: { lo: number; hi: number } | null }[], t: number) {
+    if (band.length < 2) return band[0]?.r ?? null;
+    const step = band[1].t - band[0].t;
+    const i = Math.round((t - band[0].t) / step);
+    return band[Math.min(band.length - 1, Math.max(0, i))]?.r ?? null;
   }
 
   /**
@@ -1812,6 +1887,15 @@ export class M3DetailCard extends TemplatedCard(LitElement) implements LovelaceC
       }
       .tooltip span:not(.tip-unit) {
         opacity: 0.6;
+      }
+      .tooltip .tip-range {
+        display: block;
+        font-size: 11px;
+        font-variant-numeric: tabular-nums;
+      }
+      .band {
+        fill-opacity: 0.14;
+        stroke: none;
       }
 
       .big-toggle-wrap {

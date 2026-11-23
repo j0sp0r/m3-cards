@@ -2938,6 +2938,12 @@ export const DETAIL_CHART_PADDING = 0.18;
 // `smoothing: strong`: a moving mean over this share of the period on screen,
 // a day on a month, which leaves the trend.
 export const DETAIL_STRONG_SMOOTHING_SHARE = 1 / 30;
+/**
+ * The band behind the detail curve (each bucket's lowest to highest reading)
+ * is drawn only where it is wider than this somewhere, in px: thinner, it
+ * hides behind the 2.6px line and only blurs it.
+ */
+export const DETAIL_BAND_MIN_PX = 4;
 // The current-value halo's radius: the plot keeps this much clear on the right
 // so the halo is not cut in half.
 export const DETAIL_CHART_HALO = 10;
