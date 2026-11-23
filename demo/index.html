@@ -98,6 +98,17 @@
   }
   .section { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
   .section h2 { margin: 8px 4px 0; font-size: 17px; font-weight: 600; color: var(--primary-text-color); }
+  .card-wrap { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .card-title {
+    display: flex; align-items: baseline; gap: 8px; margin: 2px 8px 0; min-width: 0;
+    color: var(--secondary-text-color); text-decoration: none;
+    font: 600 12px "Roboto Flex", Roboto, sans-serif; letter-spacing: 0.01em;
+  }
+  .card-title span { white-space: nowrap; }
+  .card-title code { font: 500 11px ui-monospace, "SF Mono", Menlo, monospace; opacity: 0.6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .card-title:hover { color: var(--primary-color); }
+  .card-title:hover code { opacity: 0.9; }
+  body.no-titles .card-title { display: none; }
   .card-error { padding: 16px; border-radius: 16px; background: #5a1f1f; color: #ffd9d4; font: 13px monospace; }
   @media (max-width: 600px) {
     header .note { display: none; }
@@ -110,6 +121,7 @@
   <span class="brand"><b>M3</b> Cards</span>
   <span class="note">A pretend home with simulated values — tap around, nothing is connected.</span>
   <button id="lang" title="Language">DE</button>
+  <button id="titles" title="Card names"><ha-icon icon="mdi:label-outline"></ha-icon></button>
   <button id="glass" title="Glass"><ha-icon icon="mdi:blur"></ha-icon></button>
   <button id="theme" title="Light / dark"><ha-icon icon="mdi:weather-sunny"></ha-icon></button>
   <a href="https://github.com/j0sp0r/m3-cards" title="GitHub"><ha-icon icon="mdi:github"></ha-icon></a>

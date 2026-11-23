@@ -284,6 +284,31 @@ function makeCard(config) {
 }
 
 let shown;
+/**
+ * A card with its own name over it — "M3 Climate Card · m3-climate-card" —
+ * linking to its documentation, so a visitor always knows which card is which.
+ * The popup has no place on the page until it opens, so it goes untitled.
+ */
+function withTitle(config, el) {
+  const tag = config.type.replace("custom:", "");
+  if (tag === "m3-popup-card") return el;
+  const info = (window.customCards ?? []).find((c) => c.type === tag);
+  const wrap = document.createElement("div");
+  wrap.className = "card-wrap";
+  const title = document.createElement("a");
+  title.className = "card-title";
+  title.href = info?.documentationURL ?? "https://github.com/j0sp0r/m3-cards#readme";
+  title.target = "_blank";
+  title.rel = "noopener";
+  const name = document.createElement("span");
+  name.textContent = info?.name ?? tag;
+  const code = document.createElement("code");
+  code.textContent = tag;
+  title.append(name, code);
+  wrap.append(title, el);
+  return wrap;
+}
+
 function render(force = false) {
   const key = keyFromPath();
   // A change of hash only (a popup opening) is not a change of view.
@@ -302,7 +327,7 @@ function render(force = false) {
       h.textContent = title;
       section.appendChild(h);
     }
-    for (const c of cards) section.appendChild(makeCard(c));
+    for (const c of cards) section.appendChild(withTitle(c, makeCard(c)));
     grid.appendChild(section);
   }
   view.appendChild(grid);
@@ -322,6 +347,18 @@ window.addEventListener("popstate", render);
 
 const themeBtn = document.getElementById("theme");
 const glassBtn = document.getElementById("glass");
+const titlesBtn = document.getElementById("titles");
+let titles = true;
+function labelTitles() {
+  document.body.classList.toggle("no-titles", !titles);
+  titlesBtn.classList.toggle("off", !titles);
+  titlesBtn.title = sim.language === "de" ? (titles ? "Kartennamen ausblenden" : "Kartennamen einblenden") : titles ? "Hide card names" : "Show card names";
+}
+titlesBtn.addEventListener("click", () => {
+  titles = !titles;
+  labelTitles();
+});
+labelTitles();
 function labelGlass() {
   glassBtn.querySelector("ha-icon").icon = glass ? "mdi:blur" : "mdi:square-rounded";
   glassBtn.title = sim.language === "de" ? (glass ? "Glas an — für undurchsichtige Kacheln tippen" : "Glas aus — für Glas tippen") : glass ? "Glass on — tap for solid cards" : "Glass off — tap for glass";
@@ -345,6 +382,7 @@ langBtn.addEventListener("click", () => {
   langBtn.textContent = sim.language === "de" ? "EN" : "DE";
   notes.relabel();
   labelGlass();
+  labelTitles();
   render(true);
 });
 langBtn.textContent = sim.language === "de" ? "EN" : "DE";
