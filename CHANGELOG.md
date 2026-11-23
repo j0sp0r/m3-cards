@@ -32,6 +32,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Nav card: a popup no longer counts as a change of page.** A button that
+  opens a popup by `#hash` left the path as it was, but the bar took the page
+  before as where it came from and could slide the page in again.
+
 - **No more "-0°".** A small negative that rounds to zero — -0.3 °C at no
   decimals — kept its minus sign, so the weather card showed "-0°" next to
   "0°". Every card's number formatting now drops it.

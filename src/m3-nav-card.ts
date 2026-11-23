@@ -282,14 +282,25 @@ let foreignSlide: { direction: SwipeDirection; at: number } | undefined;
  */
 let pathNow = location.pathname;
 let pathBefore = location.pathname;
-const notePath = (): void => {
+/** The event that last changed the path, to tell it from a change of hash. */
+let pathChangedBy: Event | undefined;
+const notePath = (e?: Event): void => {
   if (location.pathname === pathNow) return;
   pathBefore = pathNow;
   pathNow = location.pathname;
+  pathChangedBy = e;
 };
 /** The page the current change of page left. */
 function pageCameFrom(): string {
   return pathNow === location.pathname ? pathBefore : pathNow;
+}
+/**
+ * Whether `e` moved to another page, rather than only changing the hash (a
+ * button opening a popup at `#lights`). Before `notePath` has heard of it the
+ * path still differs; after, this event is the one that changed it.
+ */
+function changedPage(e: Event): boolean {
+  return pathNow !== location.pathname || pathChangedBy === e;
 }
 window.addEventListener("location-changed", notePath);
 window.addEventListener("popstate", notePath);
@@ -1629,7 +1640,8 @@ export class M3NavCard extends LitElement implements LovelaceCard {
    * by the time anything could slide it out, so the new one slides in, from
    * the side its entry sits on in the bar; the pill is handed over as on a tap.
    */
-  private _onForeignNav = (): void => {
+  private _onForeignNav = (e: Event): void => {
+    if (!changedPage(e)) return;
     if (performance.now() - selfNavAt < NAV_SELF_NAV_MS) return;
     if (this._pageTransition !== "slide" || !this.isConnected || !this.getClientRects().length) return;
     if (!shouldAnimate(this._config?.animation) || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
