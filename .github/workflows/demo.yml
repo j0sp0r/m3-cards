@@ -1,0 +1,47 @@
+name: Demo
+
+# Publishes the live demo (demo/) to GitHub Pages with the bundle of the
+# release — or of main, when run by hand. Pages must be set to "GitHub
+# Actions" as its source in the repository settings.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Assemble the site
+        run: |
+          mkdir -p _site
+          cp demo/*.html demo/*.js _site/
+          cp dist/m3-cards.js _site/m3-cards.js
+          # Every view has a path of its own; a reload on one lands on 404.html,
+          # which is the same page and shows the view the path names.
+          cp _site/index.html _site/404.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

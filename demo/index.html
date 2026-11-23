@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>M3 Cards demo</title>
+<meta name="description" content="Try M3 Cards for Home Assistant in your browser — a pretend home with simulated values, nothing connected.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Flex:opsz,wdth,wght@8..144,25..151,100..1000&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  /* Home Assistant's theme variables, in a green Material You palette. */
+  :root {
+    color-scheme: dark;
+    --primary-text-color: #e0e4dc;
+    --secondary-text-color: #b4bcae;
+    --disabled-text-color: #7b8476;
+    --card-background-color: #1a211b;
+    --ha-card-background: rgba(26, 33, 27, 0.72);
+    --primary-background-color: #101510;
+    --secondary-background-color: #151b16;
+    --primary-color: #9dd67d;
+    --accent-color: #aad291;
+    --state-icon-color: #b4bcae;
+    --divider-color: rgba(255, 255, 255, 0.1);
+    --error-color: #ffb4ab;
+    --warning-color: #f0c46e;
+    --success-color: #9dd67d;
+    --info-color: #8db4e6;
+    --ha-card-border-radius: 28px;
+    --ha-card-border-width: 0px;
+    --mdc-theme-primary: var(--primary-color);
+    --page-bg:
+      radial-gradient(900px 600px at 15% 10%, rgba(80, 140, 70, 0.35), transparent 60%),
+      radial-gradient(800px 700px at 90% 30%, rgba(40, 110, 90, 0.35), transparent 60%),
+      radial-gradient(700px 500px at 50% 100%, rgba(120, 150, 60, 0.25), transparent 60%),
+      #0c120d;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --primary-text-color: #191d17;
+    --secondary-text-color: #43493f;
+    --disabled-text-color: #8a9185;
+    --card-background-color: #f8faf2;
+    --ha-card-background: rgba(248, 250, 242, 0.78);
+    --primary-background-color: #eef2e8;
+    --secondary-background-color: #e6ebdf;
+    --primary-color: #3b6939;
+    --accent-color: #3b6939;
+    --state-icon-color: #43493f;
+    --divider-color: rgba(0, 0, 0, 0.1);
+    --error-color: #ba1a1a;
+    --warning-color: #8a5a00;
+    --success-color: #3b6939;
+    --page-bg:
+      radial-gradient(900px 600px at 15% 10%, rgba(160, 210, 140, 0.55), transparent 60%),
+      radial-gradient(800px 700px at 90% 30%, rgba(150, 210, 190, 0.5), transparent 60%),
+      radial-gradient(700px 500px at 50% 100%, rgba(220, 230, 160, 0.45), transparent 60%),
+      #eef2e8;
+  }
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--page-bg);
+    background-attachment: fixed;
+    color: var(--primary-text-color);
+    font-family: "Roboto Flex", Roboto, system-ui, sans-serif;
+  }
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+    backdrop-filter: blur(16px);
+    background: color-mix(in srgb, var(--primary-background-color) 55%, transparent);
+  }
+  header .brand { font-weight: 800; font-size: 20px; letter-spacing: -0.01em; }
+  header .brand b { color: var(--primary-color); }
+  header .note { color: var(--secondary-text-color); font-size: 14px; flex: 1; }
+  header button, header a {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    min-width: 44px; height: 44px; padding: 0 14px; border: 0; border-radius: 22px;
+    background: color-mix(in srgb, var(--primary-text-color) 10%, transparent);
+    color: var(--primary-text-color); font: 600 15px "Roboto Flex", Roboto, sans-serif; text-decoration: none; cursor: pointer;
+  }
+  header button:hover, header a:hover { background: color-mix(in srgb, var(--primary-text-color) 16%, transparent); }
+  #view-root { padding: 8px 16px 140px; }
+  .sections {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    gap: 20px;
+    max-width: 1500px;
+    margin: 0 auto;
+    align-items: start;
+  }
+  .section { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .section h2 { margin: 8px 4px 0; font-size: 17px; font-weight: 600; color: var(--primary-text-color); }
+  .card-error { padding: 16px; border-radius: 16px; background: #5a1f1f; color: #ffd9d4; font: 13px monospace; }
+  @media (max-width: 600px) {
+    header .note { display: none; }
+    .sections { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand"><b>M3</b> Cards</span>
+  <span class="note">A pretend home with simulated values — tap around, nothing is connected.</span>
+  <button id="lang" title="Language">DE</button>
+  <button id="theme" title="Light / dark"><ha-icon icon="mdi:weather-sunny"></ha-icon></button>
+  <a href="https://github.com/j0sp0r/m3-cards" title="GitHub"><ha-icon icon="mdi:github"></ha-icon></a>
+</header>
+<main id="view-root"></main>
+<script type="module" src="./app.js"></script>
+</body>
+</html>
