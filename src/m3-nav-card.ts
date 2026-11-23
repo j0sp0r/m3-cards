@@ -845,13 +845,14 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       this._stretchMarker(marker, { left: local(h.left), width: h.width }, local(to.left), to.width);
       return;
     }
-    marker.animate(
+    const anim = marker.animate(
       [
         { transform: `translate(${local(h.left)}px, ${y}px)`, width: `${h.width}px` },
         { transform: `translate(${local(to.left)}px, ${y}px)`, width: `${to.width}px` },
       ],
       { duration: NAV_MARKER_SPRING_MS, easing: NAV_MARKER_SPRING_EASING },
     );
+    this._inkWhileMoving(marker, anim);
   }
 
   /**
@@ -876,6 +877,43 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       { duration: NAV_MARKER_STRETCH_MS, easing: "ease-in-out" },
     );
     anim.id = "m3-stretch";
+    this._inkWhileMoving(marker, anim);
+  }
+
+  /**
+   * While a spring or stretch draws the pill on its way, the entries are
+   * already laid out for where it ends: the new one in the pill's ink with no
+   * pill behind it yet, the old one in the bar's ink with the pill still on
+   * it — unreadable both. Each frame, an entry's icon and label take the
+   * pill's ink while the pill covers their middle and the bar's otherwise;
+   * the inline colours go when the move ends.
+   */
+  private _inkWhileMoving(marker: HTMLElement, anim: Animation): void {
+    const bar = marker.parentElement;
+    if (!bar) return;
+    const active = bar.querySelector<HTMLElement>(".item.active");
+    const pillInk = active ? getComputedStyle(active).color : "";
+    if (!pillInk) return;
+    const parts = Array.from(bar.querySelectorAll<HTMLElement>(".item:not(.disabled) > .glyph, .item:not(.disabled) > .label"));
+    let running = true;
+    const paint = () => {
+      if (!running) return;
+      const pill = marker.getBoundingClientRect();
+      for (const part of parts) {
+        const box = part.getBoundingClientRect();
+        const middle = box.left + box.width / 2;
+        const under = middle >= pill.left && middle <= pill.right;
+        const colour = under ? pillInk : "var(--nav-ink, var(--primary-text-color))";
+        if (part.style.color !== colour) part.style.color = colour;
+      }
+      requestAnimationFrame(paint);
+    };
+    paint();
+    const done = () => {
+      running = false;
+      for (const part of parts) part.style.color = "";
+    };
+    anim.finished.then(done, done);
   }
 
   private _keepActiveInView(): void {
