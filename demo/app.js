@@ -81,6 +81,8 @@ function navCard() {
     page_transition: "slide",
     swipe_navigation: true,
     container_style: glass ? "glass" : "solid",
+    // On the phone the bar clears the gesture pill under it.
+    ...(EMBED ? { edge_distance: 22 } : {}),
     blur: 20,
     items: (EMBED ? VIEWS.slice(0, PHONE_BAR) : VIEWS).map(entry),
     // Seven pages do not fit a phone's width: there, four in the bar and the
@@ -758,6 +760,24 @@ document.addEventListener("click", (e) => {
  */
 let frame;
 const phoneHost = document.getElementById("phone-host");
+
+/** The phone's status bar: the time on the left, signal, Wi-Fi and battery on the right. */
+let statusTimer;
+function statusBar() {
+  const bar = document.createElement("div");
+  bar.className = "phone-status";
+  bar.innerHTML = `<span class="time"></span>
+    <span class="icons"><ha-icon icon="mdi:signal-cellular-3"></ha-icon><ha-icon icon="mdi:wifi"></ha-icon>
+      <span class="battery"><span>84</span><ha-icon icon="mdi:battery-80"></ha-icon></span></span>`;
+  const time = bar.querySelector(".time");
+  const tick = () => {
+    time.textContent = new Date().toLocaleTimeString(sim.language === "de" ? "de-DE" : "en-GB", { hour: "2-digit", minute: "2-digit" });
+  };
+  tick();
+  clearInterval(statusTimer);
+  statusTimer = setInterval(tick, 10_000);
+  return bar;
+}
 function setPhone(on) {
   phone = on;
   document.body.classList.toggle("phone-mode", on);
@@ -768,7 +788,7 @@ function setPhone(on) {
     frame.src = `${BASE}index.html?${q}`;
     const bezel = document.createElement("div");
     bezel.className = "phone-frame";
-    bezel.appendChild(frame);
+    bezel.append(frame, statusBar(), Object.assign(document.createElement("div"), { className: "phone-pill" }));
     phoneHost.replaceChildren(bezel);
   } else {
     phoneHost.replaceChildren();

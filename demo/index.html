@@ -198,9 +198,23 @@
   /* The front camera: a small punch-hole at the top centre of the screen. */
   .phone-frame::after {
     content: ""; position: absolute; top: 15px; left: 50%; width: 20px; height: 20px; margin-left: -10px;
-    border-radius: 50%; background: radial-gradient(circle at 62% 38%, #26324a 0 2px, #0b0d12 3px 5px, #030304 6px);
-    box-shadow: inset 0 0 0 1.5px #16161b;
+    border-radius: 50%; background: #030304; box-shadow: inset 0 0 0 1.5px #16161b; z-index: 3;
     pointer-events: none;
+  }
+  /* Android's status bar over the top of the screen, and its gesture pill. */
+  .phone-status {
+    position: absolute; top: 4px; left: 4px; right: 4px; height: 44px; z-index: 2; pointer-events: none;
+    display: flex; align-items: center; justify-content: space-between; padding: 0 26px 0 30px; box-sizing: border-box;
+    border-radius: 46px 46px 0 0; color: var(--primary-text-color);
+    background: color-mix(in srgb, var(--primary-background-color) 45%, transparent); backdrop-filter: blur(14px);
+    font: 500 14px "Google Sans", "Roboto Flex", Roboto, sans-serif; letter-spacing: 0.01em;
+  }
+  .phone-status .icons { display: flex; align-items: center; gap: 5px; --mdc-icon-size: 16px; }
+  .phone-status .battery { display: inline-flex; align-items: center; gap: 2px; font-size: 13px; }
+  .phone-status .battery ha-icon { --mdc-icon-size: 17px; transform: rotate(90deg); }
+  .phone-pill {
+    position: absolute; bottom: 10px; left: 50%; width: 108px; height: 4px; margin-left: -54px; z-index: 2;
+    border-radius: 2px; background: color-mix(in srgb, var(--primary-text-color) 75%, transparent); pointer-events: none;
   }
   .phone-frame iframe { width: 100%; height: 100%; border: 0; border-radius: 46px; background: #0c120d; display: block; }
 </style>
