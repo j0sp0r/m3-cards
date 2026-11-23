@@ -26,6 +26,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Leak card: "Water shut off" when the valve is closed.** The button only
+  said so after its own tap; a valve closed by an automation or by hand
+  still offered to shut the water off.
 - **Swiping on the nav bar, sliders and graphs changed the view, and the
   wrong way.** hass-swipe-navigation 1.16.3 listens before any card sees a
   touch, so the cards' shield no longer reached it: a swipe along the nav bar

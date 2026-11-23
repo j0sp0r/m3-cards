@@ -484,6 +484,10 @@ export class M3LeakCard extends TemplatedCard(LitElement) implements LovelaceCar
       maxVisible > 0 && !this._showAll ? rows.slice(0, maxVisible) : rows;
     const hiddenCount = maxVisible > 0 ? Math.max(0, rows.length - maxVisible) : 0;
     const showShutoff = state === "alarm" && !!this._config.valve_entity;
+    // Shut off is shut off, by this button or by anything else — an
+    // automation, the valve's own switch — so the button says so either way.
+    const valveState = this._config.valve_entity ? this.hass?.states[this._config.valve_entity]?.state : undefined;
+    const shutoffDone = this._shutoffDone || valveState === "closed" || valveState === "off";
 
     return html`
       <ha-card style=${`${cssVars} border-radius: ${radius};`}>
@@ -509,12 +513,12 @@ export class M3LeakCard extends TemplatedCard(LitElement) implements LovelaceCar
                 <div class="action-bar">
                   ${showShutoff
                     ? html`<button
-                        class="shutoff ${this._shutoffDone ? "done" : ""} ${this._armShutoff ? "armed" : ""}"
+                        class="shutoff ${shutoffDone ? "done" : ""} ${this._armShutoff ? "armed" : ""}"
                         @click=${() => this._shutoff()}
                       >
-                        <ha-icon icon=${this._shutoffDone ? "mdi:check" : "mdi:water-off"}></ha-icon>
+                        <ha-icon icon=${shutoffDone ? "mdi:check" : "mdi:water-off"}></ha-icon>
                         <span
-                          >${this._shutoffDone
+                          >${shutoffDone
                             ? this._t("leak_shutoff_done")
                             : this._armShutoff
                               ? this._t("leak_shutoff_confirm")
