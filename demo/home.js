@@ -249,8 +249,10 @@ function devices() {
     ]],
 
     // The TV remote
-    tv_remote: ["TV Remote", "living_room", "Streaming remote", [["remote.living_room_tv", "on", {
-      friendly_name: "TV", current_activity: "Streaming", activity_list: ["Streaming", "Live TV", "Game console", "Music"], supported_features: 4,
+    // A Google TV, as the Android TV Remote integration reports it: no
+    // activity list, the running app's package as the current activity.
+    tv_remote: ["Google TV", "living_room", "Google TV Streamer", [["remote.living_room_tv", "on", {
+      friendly_name: "Google TV", current_activity: "com.netflix.ninja", activity_list: [], supported_features: 4,
     }]]],
 
     // Router, the network and what is on it (all addresses made up)
@@ -367,7 +369,7 @@ export const NAMES_DE = {
     "counter.coffee_capsules": "Kaffeekapseln", "input_datetime.alarm_clock": "Wecker", "weather.home": "Zuhause",
     "sensor.car_battery": "Akku Auto", "sensor.car_range": "Reichweite", "lock.car": "Autotüren", "device_tracker.car": "Standort Auto",
     "sensor.printer_status": "3D-Drucker", "sensor.aquarium_temperature": "Wasser Aquarium", "switch.aquarium_light": "Aquarienlicht",
-    "switch.aquarium_moonlight": "Mondlicht", "switch.aquarium_pump": "Pumpe", "switch.aquarium_heater": "Heizstab", "remote.living_room_tv": "Fernseher",
+    "switch.aquarium_moonlight": "Mondlicht", "switch.aquarium_pump": "Pumpe", "switch.aquarium_heater": "Heizstab", "remote.living_room_tv": "Google TV",
     "binary_sensor.router_online": "Internet", "binary_sensor.kitchen_motion": "Bewegung Küche", "binary_sensor.hallway_motion": "Bewegung Flur",
     "binary_sensor.office_presence": "Anwesenheit Büro", "sensor.energy_day": "Tagstrom", "sensor.energy_night": "Nachtstrom",
     "calendar.family": "Familie", "calendar.school": "Schule", "counter.dishwasher_tabs": "Spülmaschinentabs", "counter.detergent_pods": "Waschmittel",
@@ -391,7 +393,7 @@ export function buildHome() {
     for (const [id, state, attrs] of ents) {
       const { entity_category, ...attributes } = attrs;
       states[id] = [state, attributes];
-      entityReg[id] = { entity_id: id, device_id: devId, area_id: null, platform: "demo", entity_category: entity_category ?? null, hidden: false, disabled_by: null, labels: [], name: null, icon: null };
+      entityReg[id] = { entity_id: id, device_id: devId, area_id: null, platform: devId === "tv_remote" ? "androidtv_remote" : "demo", entity_category: entity_category ?? null, hidden: false, disabled_by: null, labels: [], name: null, icon: null };
     }
   }
   for (const [id, state, attributes] of loose()) {

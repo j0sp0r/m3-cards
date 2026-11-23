@@ -420,7 +420,9 @@ export class Sim {
         if (service === "select_option") return this.set(id, data.option);
         return;
       case "remote":
-        if (service === "turn_on" && data.activity) return this.set(id, "on", { current_activity: data.activity });
+        // Android TV Remote starts an app from a link and then reports the
+        // app's package as the current activity.
+        if (service === "turn_on" && data.activity) return this.set(id, "on", { current_activity: APP_PACKAGES.find(([link]) => data.activity.startsWith(link))?.[1] ?? data.activity });
         return this.set(id, service === "turn_off" ? "off" : service === "turn_on" ? "on" : s.state === "on" ? "off" : "on");
       case "button":
       case "input_button":
@@ -786,6 +788,13 @@ export class Sim {
     for (const t of this._timers) clearInterval(t);
   }
 }
+
+/** App links as the Google TV remote card sends them, and the package each opens. */
+const APP_PACKAGES = [
+  ["vnd.youtube://", "org.smarttube.stable"],
+  ["https://www.netflix.com", "com.netflix.ninja"],
+  ["https://app.primevideo.com", "com.amazon.amazonvideo.livingroom"],
+];
 
 /** The washer's draw: heating at the start, spinning at the end, little between. */
 function left60(minutesLeft) {

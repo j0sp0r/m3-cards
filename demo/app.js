@@ -342,7 +342,17 @@ function views() {
           light_day: { entity: "switch.aquarium_light" }, light_night: { entity: "switch.aquarium_moonlight" },
           pump: { entity: "switch.aquarium_pump" }, heater: { entity: "switch.aquarium_heater" },
           heater_power_entity: "sensor.aquarium_heater_power", ph_entity: "sensor.aquarium_ph" },
-        { type: "custom:m3-remote-card", entity: "remote.living_room_tv" },
+        // The author's own Google TV card: SmartTube, Netflix and Prime as
+        // app buttons, started through the remote, lit while running.
+        { type: "custom:m3-remote-card", entity: "remote.living_room_tv", name: "Google TV", detail_mode: "sheet",
+          apps: [
+            ["SmartTube", "mdi:youtube", "#ff0033", "org.smarttube.stable", "vnd.youtube://"],
+            ["Netflix", "mdi:netflix", undefined, "com.netflix.ninja", "https://www.netflix.com/title"],
+            ["Prime", "mdi:filmstrip", undefined, "com.amazon.amazonvideo.livingroom", "https://app.primevideo.com"],
+          ].map(([name, icon, color, app_id, activity]) => ({
+            name, icon, ...(color ? { color } : {}), app_id,
+            action: { action: "perform-action", perform_action: "remote.turn_on", target: { entity_id: "remote.living_room_tv" }, data: { activity } },
+          })) },
       ]],
       [t("Network", "Netzwerk"), [
         { type: "custom:m3-network-card", router: { name: "Router", status: "binary_sensor.router_online", uptime: "sensor.router_online_since",
@@ -730,8 +740,8 @@ sim.subscribe((hass) => {
   for (const el of live) el.hass = hass;
 });
 
-window.addEventListener("location-changed", render);
-window.addEventListener("popstate", render);
+window.addEventListener("location-changed", () => render());
+window.addEventListener("popstate", () => render());
 
 // ---- switches -----------------------------------------------------------------
 
