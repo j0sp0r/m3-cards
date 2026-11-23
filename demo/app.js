@@ -5,6 +5,7 @@
 import "./ha-shim.js";
 import { buildHome, NAMES_DE } from "./home.js";
 import { Sim } from "./sim.js";
+import { setupNotifications } from "./notify.js";
 
 // The released bundle sits next to the page on GitHub Pages; working in the
 // repository, the page takes the local build.
@@ -14,6 +15,7 @@ await import(onPages ? "./m3-cards.js" : "../dist/m3-cards.js");
 const BASE = new URL("./", import.meta.url).pathname;
 const sim = new Sim(buildHome(), NAMES_DE);
 window.m3Demo = sim;
+const notes = setupNotifications(sim, document.querySelector("header"));
 
 // A view element by Home Assistant's name, so the nav card's page slide stops
 // at it and leaves the background and the toolbar where they are.
@@ -243,6 +245,7 @@ themeBtn.addEventListener("click", () => applyTheme(document.documentElement.dat
 langBtn.addEventListener("click", () => {
   sim.setLanguage(sim.language === "de" ? "en" : "de");
   langBtn.textContent = sim.language === "de" ? "EN" : "DE";
+  notes.relabel();
   render();
 });
 langBtn.textContent = sim.language === "de" ? "EN" : "DE";

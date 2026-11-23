@@ -66,6 +66,8 @@ export class Sim {
     this.changes = {};
     this.userData = {};
     this.listeners = new Set();
+    /** Told of every change of state: (entity_id, before, after). */
+    this.changeListeners = new Set();
     this.language = navigator.language?.toLowerCase().startsWith("de") ? "de" : "en";
     this.dark = true;
     this.track = 0;
@@ -104,7 +106,10 @@ export class Sim {
       last_changed: changed ? now : old.last_changed,
       last_updated: now,
     };
-    if (changed) (this.changes[id] ??= []).push({ s: nextState, lu: Date.now() / 1000 });
+    if (changed) {
+      (this.changes[id] ??= []).push({ s: nextState, lu: Date.now() / 1000 });
+      for (const fn of this.changeListeners) fn(id, old.state, nextState);
+    }
     this._dirty = true;
   }
 
