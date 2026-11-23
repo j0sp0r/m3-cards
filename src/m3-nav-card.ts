@@ -895,6 +895,14 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     const pillInk = active ? getComputedStyle(active).color : "";
     if (!pillInk) return;
     const parts = Array.from(bar.querySelectorAll<HTMLElement>(".item:not(.disabled) > .glyph, .item:not(.disabled) > .label"));
+    // What only the active entry shows — its icon with `icon_visibility:
+    // active_only`, its heavier type — waits for the pill, as it does
+    // mid-swipe: drawn at once it stood beside the pill as an inactive
+    // entry's would not.
+    const rule = this._iconVisibility;
+    const iconOnlyActive = rule === "active_only";
+    const rest = bar.querySelector<HTMLElement>(".item:not(.active):not(.disabled) > .label");
+    const restWeight = rest ? getComputedStyle(rest).fontWeight : "";
     let running = true;
     // The dimming moves from the entries to their parts for the move, as it
     // does mid-swipe: an entry's own opacity would hold the new one at full
@@ -912,6 +920,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
         const colour = under ? pillInk : "var(--nav-ink, var(--primary-text-color))";
         if (part.style.color !== colour) part.style.color = colour;
         part.style.setProperty("--move-opacity", under ? "1" : String(NAV_ITEM_INACTIVE_OPACITY));
+        if (part.parentElement?.classList.contains("active")) {
+          if (part.classList.contains("glyph") && iconOnlyActive) part.style.visibility = under ? "" : "hidden";
+          if (part.classList.contains("label") && restWeight) part.style.fontWeight = under ? "" : restWeight;
+        }
       }
       requestAnimationFrame(paint);
     };
@@ -925,6 +937,8 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       bar.removeAttribute("data-ink-moving");
       for (const part of parts) {
         part.style.color = "";
+        part.style.visibility = "";
+        part.style.fontWeight = "";
         part.style.removeProperty("--move-opacity");
       }
     };
