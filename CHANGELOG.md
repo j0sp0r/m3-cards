@@ -87,6 +87,15 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Nav card: the bar answers a tap at once on a view's first visit (#63).**
+  Home Assistant builds every card of a view the first time it opens, in
+  the same task as the route change; on a phone that held the main thread
+  for most of a second, and the bar sat through it with the old entry gone
+  and the new one not drawn. A tap now draws the arrival first — entry lit,
+  label shown, marker on its way — and hands the route over a frame later.
+  Measured on a desktop: the first change on screen 8 ms after the tap
+  instead of 225 ms. The view itself still takes as long as Home Assistant
+  needs to build it.
 - **Nav card: templates in the action menu, a badge that stays put (#38).**
   A Jinja name on a menu entry showed as an empty label, since nothing
   subscribed to it. With `icon_visibility: active_only` a badge jumped from

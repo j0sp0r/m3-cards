@@ -61,6 +61,7 @@ import {
   NAV_ITEM_RADIUS_ACTIVE,
   NAV_ITEM_TINT,
   NAV_PRESS_MS,
+  NAV_PENDING_MAX_MS,
   NAV_MARKER_SLIDE_MS,
   NAV_ARRIVAL_QUIET_MS,
   SWIPE_GOING_PX,
@@ -331,6 +332,12 @@ export class M3NavCard extends LitElement implements LovelaceCard {
   @state() private _narrow = false;
   /** Current URL path, kept as state so a navigation repaints the active entry. */
   @state() private _path = location.pathname;
+  /**
+   * Where a tap is taking the page, drawn as the open page before the router
+   * gets it (#63). See `_navigateAfterPaint`.
+   */
+  private _pendingPath?: string;
+  private _pendingTimer?: number;
   /** Path the bar last scrolled its active entry into view for. */
   private _scrolledFor?: string;
   @state() private _pressed?: number;
@@ -588,6 +595,8 @@ export class M3NavCard extends LitElement implements LovelaceCard {
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
+    window.clearTimeout(this._pendingTimer);
+    this._pendingPath = undefined;
     window.removeEventListener("location-changed", this._onLocationChanged);
     window.removeEventListener("popstate", this._onLocationChanged);
     window.removeEventListener(TRANSLATIONS_LOADED_EVENT, this._onTranslations);
@@ -909,7 +918,8 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     // — a box flashing on a neighbour of the page you actually opened. Read
     // here it never reaches the screen, and a string comparison per update
     // costs nothing.
-    if (this._path !== location.pathname) this._path = location.pathname;
+    const path = this._pendingPath ?? location.pathname;
+    if (this._path !== path) this._path = path;
     if (changed.has("_config")) {
       this._syncSubscriptions();
       void this._syncSheetCards();
@@ -1312,6 +1322,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
   // ---- routing -------------------------------------------------------------
 
   private _onLocationChanged = (): void => {
+    this._clearPendingPath();
     if (this._path === location.pathname) return;
     this._path = location.pathname;
     // A swipe that sent us here drew the bar as it would be on arrival; from
@@ -1609,7 +1620,53 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       fireHaptic(this, kind === "hold" ? "medium" : "light");
     }
     this._flashPress(index);
+    if (kind === "tap" && this._navigateAfterPaint(action)) return;
     this._dispatch(action);
+  }
+
+  /**
+   * A tap to another view: the bar draws the arrival first — entry lit, label
+   * shown, marker on its way — and hands the route over a frame later.
+   *
+   * On a view's first visit Home Assistant builds every card of it in the same
+   * task as the route change, and on a phone that holds the main thread for
+   * most of a second (#63, measured from a recording: 0.6–0.8 s). Dispatched
+   * straight away, the bar sat through that with the old entry gone and the
+   * new one not yet drawn, its marker frozen where it started. Drawn first,
+   * only the marker's glide is left for the busy stretch, and a transform
+   * transition runs off the main thread. A frame (~16 ms) is all it costs.
+   *
+   * Only for a plain path: a hash or query opens something on the same view.
+   */
+  private _navigateAfterPaint(action: HaActionConfig): boolean {
+    if (action.action !== "navigate") return false;
+    const path = action.navigation_path;
+    if (!path || !path.startsWith("/") || /[?#]/.test(path) || path === location.pathname) return false;
+    this._pendingPath = path;
+    window.clearTimeout(this._pendingTimer);
+    // A route that never arrives — refused, or rewritten by the router — must
+    // not leave the bar lit on a page that is not open.
+    this._pendingTimer = window.setTimeout(() => this._clearPendingPath(), NAV_PENDING_MAX_MS);
+    this.requestUpdate();
+    let sent = false;
+    const send = (): void => {
+      if (sent) return;
+      sent = true;
+      this._dispatch(action);
+    };
+    // A timeout queued from inside the frame's callback runs after that frame
+    // has been painted. The plain timeout is the floor for an app in the
+    // background, which never runs an animation frame.
+    requestAnimationFrame(() => window.setTimeout(send, 0));
+    window.setTimeout(send, NAV_PRESS_MS);
+    return true;
+  }
+
+  private _clearPendingPath(): void {
+    window.clearTimeout(this._pendingTimer);
+    if (this._pendingPath === undefined) return;
+    this._pendingPath = undefined;
+    this.requestUpdate();
   }
 
   /**
