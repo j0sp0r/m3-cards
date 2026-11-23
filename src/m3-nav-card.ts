@@ -67,6 +67,7 @@ import {
   NAV_MARKER_STRETCH_MS,
   NAV_MARKER_STRETCH_REACH,
   NAV_HANDOFF_MAX_MS,
+  NAV_SELF_NAV_MS,
   NAV_ARRIVAL_QUIET_MS,
   SWIPE_GOING_PX,
   SWIPE_SETTLE_MS,
@@ -143,7 +144,15 @@ import {
 import { TapHold, fireHaptic } from "./shared/tap-hold";
 import { SWIPE_PLUGIN_SKIP, stopSwipe } from "./shared/swipe";
 import { SliderIntent, capturePointer } from "./shared/slider-intent";
-import { swipeOutcome, swipeShown, slideToPage, noteNavArrival, type SwipeDirection } from "./shared/nav-swipe";
+import {
+  swipeOutcome,
+  swipeShown,
+  slideToPage,
+  slideIn,
+  holdViewTransitions,
+  noteNavArrival,
+  type SwipeDirection,
+} from "./shared/nav-swipe";
 import { iconWell } from "./shared/icon-well";
 
 const EASING = unsafeCSS(STANDARD_EASING);
@@ -254,6 +263,34 @@ let markerHandoff:
       parts: Map<string, number>;
     }
   | undefined;
+
+/**
+ * When this card last sent the page somewhere itself — so a change of page it
+ * hears of within a moment is its own, and any other came from elsewhere (a
+ * dashboard swipe plugin, a link).
+ */
+let selfNavAt = 0;
+/** A page change from elsewhere that the arriving bar should slide in. */
+let foreignSlide: { direction: SwipeDirection; at: number } | undefined;
+/**
+ * Where the page was and is, kept apart from any bar: a bar's own path can
+ * already be the new one when the change reaches it. Listeners on `window`
+ * itself run in the order they were added, capture or not, so this may hear
+ * of a change before or after the bar does — `pageCameFrom` sorts that out.
+ */
+let pathNow = location.pathname;
+let pathBefore = location.pathname;
+const notePath = (): void => {
+  if (location.pathname === pathNow) return;
+  pathBefore = pathNow;
+  pathNow = location.pathname;
+};
+/** The page the current change of page left. */
+function pageCameFrom(): string {
+  return pathNow === location.pathname ? pathBefore : pathNow;
+}
+window.addEventListener("location-changed", notePath);
+window.addEventListener("popstate", notePath);
 
 /** An entry's icon or label, keyed the same on both bars. */
 function partKey(part: HTMLElement): string | undefined {
@@ -581,6 +618,9 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     noteNavArrival(this);
     window.addEventListener("location-changed", this._onLocationChanged);
     window.addEventListener("popstate", this._onLocationChanged);
+    // Capture, so it runs before the router swaps the view in on the same
+    // event: the old page's bar is still the one listening then.
+    window.addEventListener("location-changed", this._onForeignNav, true);
     // Not a TemplatedCard, so it listens for late user translations itself
     // (see TRANSLATIONS_LOADED_EVENT in localize.ts).
     window.addEventListener(TRANSLATIONS_LOADED_EVENT, this._onTranslations);
@@ -624,6 +664,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     super.disconnectedCallback();
     window.removeEventListener("location-changed", this._onLocationChanged);
     window.removeEventListener("popstate", this._onLocationChanged);
+    window.removeEventListener("location-changed", this._onForeignNav, true);
     window.removeEventListener(TRANSLATIONS_LOADED_EVENT, this._onTranslations);
     for (const type of SWIPE_EVENTS) {
       this.removeEventListener(type, stopSwipe);
@@ -809,7 +850,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
       void marker.offsetWidth;
       marker.style.transition = "";
     }
-    if (quiet && !again) this._continueMarker(marker, bar);
+    if (quiet && !again) {
+      this._continueMarker(marker, bar);
+      this._takeForeignSlide();
+    }
     if (before) this._stretchMarker(marker, before, rect.left - barRect.left - bar.clientLeft + bar.scrollLeft, rect.width);
 
     if (!again && !this._markerSettled) {
@@ -1287,7 +1331,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
    * toggled would be nonsense.
    */
   private _dispatch(action: HaActionConfig | undefined, entityId?: string): void {
-    const run = (): void => handleAction(this, this.hass, action, entityId);
+    const run = (): void => {
+      if (action?.action === "navigate") selfNavAt = performance.now();
+      handleAction(this, this.hass, action, entityId);
+    };
     let mode = this._pageTransition;
     if (action?.action === "navigate" && mode === "slide") {
       if (this._slideTo(action.navigation_path, run)) return;
@@ -1562,6 +1609,41 @@ export class M3NavCard extends LitElement implements LovelaceCard {
   }
 
   // ---- routing -------------------------------------------------------------
+
+  /**
+   * `page_transition: slide` for a change of page this card did not start —
+   * swiping on the dashboard with a swipe plugin, mostly. The old page is gone
+   * by the time anything could slide it out, so the new one slides in, from
+   * the side its entry sits on in the bar; the pill is handed over as on a tap.
+   */
+  private _onForeignNav = (): void => {
+    if (performance.now() - selfNavAt < NAV_SELF_NAV_MS) return;
+    if (this._pageTransition !== "slide" || !this.isConnected || !this.getClientRects().length) return;
+    if (!shouldAnimate(this._config?.animation) || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const targets = this._swipeTargets();
+    const came = pageCameFrom();
+    const from = targets.findIndex((t) => t.path === came);
+    const to = targets.findIndex((t) => t.path === location.pathname);
+    if (from < 0 || to < 0 || from === to) return;
+    foreignSlide = { direction: to > from ? "next" : "prev", at: performance.now() };
+    // Home Assistant's cross-fade would lay a still of the new page over it.
+    const restore = holdViewTransitions();
+    window.setTimeout(restore, NAV_HANDOFF_MAX_MS);
+    this._handOverMarker();
+  };
+
+  /**
+   * Arriving after a change of page from elsewhere (`_onForeignNav`): the page
+   * around this bar slides in. Taken on the first placing of the pill, the
+   * moment the pill's own handover is taken too — the router does not always
+   * connect this bar anew, but it always draws it.
+   */
+  private _takeForeignSlide(): void {
+    const slide = foreignSlide;
+    if (!slide || performance.now() - slide.at > NAV_HANDOFF_MAX_MS) return;
+    foreignSlide = undefined;
+    slideIn(slide.direction, this);
+  }
 
   private _onLocationChanged = (): void => {
     if (this._handedOver) return;
@@ -2452,6 +2534,7 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     // `_dispatch` would start a second one around it.
     const navigate = () => {
       markerHandoff = undefined;
+      selfNavAt = performance.now();
       handleAction(this, this.hass, { action: "navigate", navigation_path: target.path });
     };
     if (!shouldAnimate(this._config?.animation) || matchMedia("(prefers-reduced-motion: reduce)").matches) {

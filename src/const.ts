@@ -2072,6 +2072,12 @@ export const NAV_MARKER_STRETCH_REACH = 0.45;
  * quarter of this); older, it arrives still.
  */
 export const NAV_HANDOFF_MAX_MS = 1200;
+/**
+ * A change of page the nav card hears of within this long after sending one
+ * itself is its own; any other came from elsewhere (a swipe plugin) and gets
+ * the slide in on arrival.
+ */
+export const NAV_SELF_NAV_MS = 150;
 /** How long after a nav card comes on screen its marker settles without animating. */
 export const NAV_ARRIVAL_QUIET_MS = 600;
 /** How far the swipe pill must leave home before the bar takes its next layout. */

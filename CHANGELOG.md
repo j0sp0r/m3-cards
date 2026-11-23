@@ -19,7 +19,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   way a swipe along the bar does, toward the tapped entry's side, so tapping
   and swiping between views look the same. A page that is not in the bar —
   from the action menu or the drawer — rises into place as with `up`; with
-  reduced motion it just navigates.
+  reduced motion it just navigates. A change of page the card did not start
+  itself — swiping on the dashboard with hass-swipe-navigation, say — slides
+  the new page in from the side its entry sits on in the bar, with the pill
+  handed over as on a tap.
 
 ### Fixed
 

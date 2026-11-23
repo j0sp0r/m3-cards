@@ -141,6 +141,38 @@ function withoutViewTransitions(): () => void {
 }
 
 /**
+ * The in-half of a slide, for a page the card did not send away itself — a
+ * dashboard-wide swipe plugin navigated, and the old page is already gone.
+ * The page beside `arrived` comes in from the side the swipe points to, the
+ * same way the second half of `slideToPage` brings it. Called a microtask
+ * after the new bar connects, before the page has been drawn.
+ */
+export function slideIn(direction: SwipeDirection, arrived: Element): void {
+  const by = (direction === "next" ? -1 : 1) * Math.max(window.innerWidth, 1);
+  const root = document.documentElement;
+  const overflowX = root.style.overflowX;
+  root.style.overflowX = "clip";
+  const ins = contentBeside(arrived, true).map((el) =>
+    el.animate([{ transform: `translateX(${-by}px)` }, { transform: "none" }], {
+      duration: IN_MS,
+      easing: IN_EASING,
+      fill: "backwards",
+    }),
+  );
+  void Promise.all(ins.map((a) => a.finished.catch(() => undefined))).then(() => {
+    root.style.overflowX = overflowX;
+  });
+}
+
+/**
+ * Keeps Home Assistant's own cross-fade off a page change the card animates
+ * but did not start; the returned function puts it back.
+ */
+export function holdViewTransitions(): () => void {
+  return withoutViewTransitions();
+}
+
+/**
  * Slide the page beside `from` out, navigate, and slide the page beside the
  * nav card that arrives in. `findArrived` returns that card once it is on
  * screen (it may be `from` itself, when the bar survives the navigation).
