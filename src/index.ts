@@ -1,4 +1,5 @@
 import { installFocusAnchor } from "./shared/focus-anchor";
+import { localizeCardPickerDescriptions } from "./shared/card-picker";
 
 // Before any card registers: closing a more-info dialog should not throw the
 // dashboard back to whatever was focused last. See shared/focus-anchor.ts.
@@ -65,3 +66,5 @@ export * from "./m3-energy-usage-card";
 export * from "./m3-network-card";
 // Registers itself with shared/entity-detail.ts, which never imports it.
 import "./shared/detail-sheet";
+
+localizeCardPickerDescriptions();
