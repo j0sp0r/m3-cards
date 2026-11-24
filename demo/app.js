@@ -761,7 +761,9 @@ window.addEventListener("resize", () => {
 function render(force = false) {
   const key = keyFromPath();
   // A change of hash only (a popup opening) is not a change of view.
-  if (!force && key === shown?.key && location.pathname === shown?.path) return;
+  // A change of hash (a popup) or of a path below the view (the New view's
+  // demo bars, /new/x2) is not a change of view.
+  if (!force && key === shown?.key) return;
   shown = { key, path: location.pathname };
   // The household runs once in fast forward the first time its page opens,
   // so the appliances move and their notifications come beside them.
