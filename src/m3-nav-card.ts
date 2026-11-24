@@ -280,8 +280,11 @@ let foreignSlide: { direction: SwipeDirection; at: number } | undefined;
  * itself run in the order they were added, capture or not, so this may hear
  * of a change before or after the bar does — `pageCameFrom` sorts that out.
  */
-let pathNow = location.pathname;
-let pathBefore = location.pathname;
+// Read on load, and the bundle also loads outside a browser (the unit tests
+// import it whole), where there is no `location`.
+const pathOnLoad = typeof location === "undefined" ? "" : location.pathname;
+let pathNow = pathOnLoad;
+let pathBefore = pathOnLoad;
 /** The event that last changed the path, to tell it from a change of hash. */
 let pathChangedBy: Event | undefined;
 const notePath = (e?: Event): void => {
@@ -302,8 +305,10 @@ function pageCameFrom(): string {
 function changedPage(e: Event): boolean {
   return pathNow !== location.pathname || pathChangedBy === e;
 }
-window.addEventListener("location-changed", notePath);
-window.addEventListener("popstate", notePath);
+if (typeof window !== "undefined") {
+  window.addEventListener("location-changed", notePath);
+  window.addEventListener("popstate", notePath);
+}
 
 /** An entry's icon or label, keyed the same on both bars. */
 function partKey(part: HTMLElement): string | undefined {
