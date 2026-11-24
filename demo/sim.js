@@ -749,16 +749,24 @@ export class Sim {
    */
   showReel() {
     clearInterval(this._reel);
+    // One after another, a notification's length plus the pause apart (see
+    // TOAST_MS in notify.js): the dryer's "started" comes first, then each "done"
+    // in turn, so no two notifications ever meet.
+    const gap = 8;
     const plan = [
       // entity prefix, minutes left at the start, seconds until done, draw while running
-      ["washer", 38, 4.5, (f) => (f > 0.75 ? 480 + Math.random() * 120 : 180 + Math.random() * 40)],
-      ["dishwasher", 47, 6.5, (f) => (Math.floor(f * 6) % 2 ? 90 : 1900)],
-      ["dryer", 52, 8, () => 720 + Math.random() * 80],
+      ["washer", 38, gap, (f) => (f > 0.75 ? 480 + Math.random() * 120 : 180 + Math.random() * 40)],
+      ["dishwasher", 47, 2 * gap, (f) => (Math.floor(f * 6) % 2 ? 90 : 1900)],
+      ["dryer", 52, 3 * gap, () => 720 + Math.random() * 80],
     ];
     for (const [p, left] of plan) {
       // The time left first: the "started" notification reads it off the state change.
       this.set(`sensor.${p}_remaining`, left);
+      // Washer and dishwasher pick up a run already under way; only the dryer
+      // starts here, so only it announces itself.
+      this.quiet = p !== "dryer";
       this.set(`sensor.${p}_state`, "run");
+      this.quiet = false;
       if (this.states[`sensor.${p}_progress`]) this.set(`sensor.${p}_progress`, 100 - left);
     }
     this.set("vacuum.robo", "cleaning", { battery_level: 82, status: "Cleaning" });

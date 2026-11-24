@@ -65,6 +65,11 @@ const TEXT = {
   },
 };
 
+/** How long a notification stays, and the pause before the next. The show reel
+ * (sim.js) spaces its appliances by the sum, so none has to wait. */
+export const TOAST_MS = 6000;
+export const TOAST_GAP_MS = 2000;
+
 const STYLE = `
 .m3n-btn{position:relative}
 .m3n-badge{position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--error-color);color:#1c1c1c;font:700 10px/16px "Roboto Flex",Roboto,sans-serif;text-align:center;box-sizing:border-box}
@@ -196,16 +201,29 @@ export function setupNotifications(sim, header) {
     updateBadge();
     if (!shade.hidden) renderShade();
     if (!here) return;
-    const el = noteEl(n);
+    queue.push(n);
+    showNext();
+  };
+
+  // One at a time, never overlapping: each stays TOAST_MS (or until tapped),
+  // and the next follows TOAST_GAP_MS after it has gone.
+  const queue = [];
+  let showing = false;
+  const showNext = () => {
+    if (showing || !queue.length) return;
+    showing = true;
+    const el = noteEl(queue.shift());
+    let gone = false;
     const dismiss = () => {
+      if (gone) return;
+      gone = true;
       el.classList.add("out");
       setTimeout(() => el.remove(), 230);
+      setTimeout(() => { showing = false; showNext(); }, TOAST_GAP_MS);
     };
     el.onclick = dismiss;
-    // One at a time: the newest takes the place of the one before (the bell keeps them all).
-    for (const prev of toasts.children) if (!prev.classList.contains("out")) { prev.classList.add("out"); setTimeout(() => prev.remove(), 230); }
     toasts.append(el);
-    setTimeout(dismiss, 7000);
+    setTimeout(dismiss, TOAST_MS);
   };
 
   // ---- the rules: what the cards' automations would send ----------------------
@@ -215,7 +233,7 @@ export function setupNotifications(sim, header) {
     const tx = t();
     if (id === "sensor.washer_state" || id === "sensor.dishwasher_state" || id === "sensor.dryer_state") {
       if (after === "finished") push(name(id), tx.done(name(id)), "mdi:check-circle-outline", "#9dd67d", "household");
-      if (after === "run" && before !== "run") {
+      if (after === "run" && before !== "run" && !sim.quiet) {
         const left = Number(sim.get(id.replace("_state", "_remaining"))?.state) || 60;
         const end = new Date(Date.now() + left * 60e3).toLocaleTimeString(sim.language === "de" ? "de-DE" : "en-GB", { hour: "2-digit", minute: "2-digit" });
         push(name(id), tx.started(name(id), end), "mdi:play-circle-outline", "#8db4e6", "household");
