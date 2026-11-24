@@ -69,7 +69,17 @@ const STYLE = `
 .m3n-btn{position:relative}
 .m3n-badge{position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--error-color);color:#1c1c1c;font:700 10px/16px "Roboto Flex",Roboto,sans-serif;text-align:center;box-sizing:border-box}
 .m3n-badge[hidden]{display:none}
-.m3n-toasts{position:fixed;top:76px;right:16px;z-index:720;display:flex;flex-direction:column;gap:10px;width:min(380px,calc(100vw - 32px));pointer-events:none}
+/* A notification takes the header's place for a moment, so it never covers a card.
+   Inside the phone frame (no header) it drops in under the status bar, like a phone's. */
+.m3n-toasts{position:absolute;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;padding:6px 12px;pointer-events:none}
+body.embed .m3n-toasts{position:fixed;inset:44px 0 auto 0;z-index:720;padding:0 10px}
+/* While one shows, the header steps back behind it, so it doesn't sit half over the buttons. */
+header>.m3n-toasts{transition:background .2s}
+header>.m3n-toasts:has(.m3n-note:not(.out)){background:var(--primary-background-color)}
+.m3n-toasts .m3n-note{width:min(520px,100%);box-sizing:border-box;padding:8px 14px;gap:0 12px;border-radius:20px;background:var(--card-background-color);box-shadow:0 6px 20px rgba(0,0,0,.3)}
+.m3n-toasts .m3n-note .m3n-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.m3n-toasts .m3n-note .m3n-title{font-size:14px}
+.m3n-toasts .m3n-note .m3n-app,.m3n-toasts .m3n-note .m3n-time{font-size:11px}
 .m3n-note{pointer-events:auto;display:grid;grid-template-columns:40px 1fr auto;gap:4px 12px;align-items:start;padding:14px 16px;border-radius:24px;
   background:color-mix(in srgb,var(--card-background-color) 92%,transparent);backdrop-filter:blur(18px);color:var(--primary-text-color);
   box-shadow:0 12px 32px rgba(0,0,0,.35);cursor:pointer;animation:m3n-in .38s cubic-bezier(.05,.7,.1,1)}
@@ -123,7 +133,9 @@ export function setupNotifications(sim, header) {
   const menu = document.createElement("div");
   menu.className = "m3n-panel";
   menu.hidden = true;
-  document.body.append(toasts, shade, menu);
+  // In the header when there is one; inside the phone frame the page has none.
+  (document.body.classList.contains("embed") ? document.body : header).append(toasts);
+  document.body.append(shade, menu);
 
   const log = [];
   let unread = 0;
@@ -190,7 +202,9 @@ export function setupNotifications(sim, header) {
       setTimeout(() => el.remove(), 230);
     };
     el.onclick = dismiss;
-    toasts.prepend(el);
+    // One at a time: the newest takes the place of the one before (the bell keeps them all).
+    for (const prev of toasts.children) if (!prev.classList.contains("out")) { prev.classList.add("out"); setTimeout(() => prev.remove(), 230); }
+    toasts.append(el);
     setTimeout(dismiss, 7000);
   };
 

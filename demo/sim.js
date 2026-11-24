@@ -756,8 +756,9 @@ export class Sim {
       ["dryer", 52, 8, () => 720 + Math.random() * 80],
     ];
     for (const [p, left] of plan) {
-      this.set(`sensor.${p}_state`, "run");
+      // The time left first: the "started" notification reads it off the state change.
       this.set(`sensor.${p}_remaining`, left);
+      this.set(`sensor.${p}_state`, "run");
       if (this.states[`sensor.${p}_progress`]) this.set(`sensor.${p}_progress`, 100 - left);
     }
     this.set("vacuum.robo", "cleaning", { battery_level: 82, status: "Cleaning" });
