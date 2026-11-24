@@ -8,6 +8,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **Ukrainian (#59).** The cards speak Ukrainian as a third built-in
+  language, picked for `uk` and `uk-*`, including the card descriptions in
+  the "Add card" picker. Thanks to @rodion981. Strings it does not have yet
+  fall back to English; your own translations still win over it.
+
 - **Nav card: `page_transition_ms` sets the slide's pace.** Under
   `page_transition: slide` it is how long the new page takes to come in
   (default 340 ms, the old page leaves in about half that), for taps, swipes

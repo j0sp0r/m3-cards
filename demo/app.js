@@ -871,6 +871,8 @@ titlesBtn.addEventListener("click", () => apply({ titles: !titles }));
 const LANGUAGES = [
   { code: "en", name: "English" },
   { code: "de", name: "Deutsch" },
+  // The cards' own Ukrainian (#59); the demo's page texts stay English.
+  { code: "uk", name: "Українська" },
 ];
 const langMenu = document.createElement("div");
 langMenu.className = "lang-menu";
