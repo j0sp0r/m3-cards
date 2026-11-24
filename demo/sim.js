@@ -80,7 +80,8 @@ export class Sim {
     this.listeners = new Set();
     /** Told of every change of state: (entity_id, before, after). */
     this.changeListeners = new Set();
-    this.language = navigator.language?.toLowerCase().startsWith("de") ? "de" : "en";
+    // English unless the visitor picks another language (or ?lang= asks for one).
+    this.language = "en";
     this.dark = true;
     this.track = 0;
     this.todo = [

@@ -24,7 +24,7 @@ if (EMBED) document.body.classList.add("embed");
 const narrowQuery = matchMedia("(max-width: 600px)");
 const phoneLayout = () => EMBED || narrowQuery.matches;
 const sim = new Sim(buildHome(), NAMES_DE);
-if (params.get("lang") === "de" || params.get("lang") === "en") sim.setLanguage(params.get("lang"));
+if (["en", "de", "uk"].includes(params.get("lang"))) sim.setLanguage(params.get("lang"));
 window.m3Demo = sim;
 const notes = setupNotifications(sim, document.querySelector("header"));
 
