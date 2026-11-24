@@ -256,7 +256,7 @@ function views() {
     ],
     // The same cards in their other looks, each titled with the setting that
     // gives it that look.
-    new: WHATS_NEW.sections(t),
+    new: WHATS_NEW.sections(t, nav),
     shapes: (() => {
       const flow = { type: "custom:m3-energy-flow-card", source: "entities", solar_entity: "sensor.solar_power", grid_entity: "sensor.grid_power", battery_entity: "sensor.battery_power", battery_soc_entity: "sensor.battery_soc", home_entity: "sensor.house_power" };
       const climate = { type: "custom:m3-climate-card", entity: "climate.living_room", temperature_sensor: "sensor.living_room_temperature", humidity_sensor: "sensor.living_room_humidity", show_presets: true };
@@ -597,7 +597,7 @@ function whatsNewHead() {
       <h1>M3 Cards ${WHATS_NEW.version}</h1>
       <div class="wn-meta">
         ${chip("mdi:calendar", date)}
-        ${chip("mdi:card-plus-outline", de ? `${cards} neue ${cards === 1 ? "Karte" : "Karten"}` : `${cards} new card${cards === 1 ? "" : "s"}`)}
+        ${cards ? chip("mdi:card-plus-outline", de ? `${cards} neue ${cards === 1 ? "Karte" : "Karten"}` : `${cards} new card${cards === 1 ? "" : "s"}`) : ""}
         ${chip("mdi:creation-outline", de ? `${features} neue Funktionen` : `${features} new features`)}
       </div>
       <p></p>
@@ -697,7 +697,8 @@ function arrange() {
       let take = item.cards.length;
       // Split only a section that is taller than a column's share on its own,
       // and only once, so headings do not repeat down the page.
-      if (take > 1 && count > 1 && !item.cont && chunkHeight(item.g, item.cards) > share * 1.12) {
+      // Two cards under one heading stay together; a split would only repeat it.
+      if (take > 2 && count > 1 && !item.cont && chunkHeight(item.g, item.cards) > share * 1.12) {
         take = 1;
         while (take < item.cards.length && chunkHeight(item.g, item.cards.slice(0, take + 1)) <= share * 1.05) take++;
       }

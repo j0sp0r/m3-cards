@@ -6,26 +6,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+## [2.11.0] – 2026-11-24
+
 ### Added
 
-- **Ukrainian (#59).** The cards speak Ukrainian as a third built-in
-  language, picked for `uk` and `uk-*`, including the card descriptions in
-  the "Add card" picker. Thanks to @rodion981. Strings it does not have yet
-  fall back to English; your own translations still win over it.
-
-- **Nav card: `page_transition_ms` sets the slide's pace.** Under
-  `page_transition: slide` it is how long the new page takes to come in
-  (default 340 ms, the old page leaves in about half that), for taps, swipes
-  along the bar and the dashboard's own swipes alike. The editor shows the
-  slider for the slide too.
-
-- **Nav card: `marker_motion: spring` and `stretch`.** Two more ways for the
-  pill to travel: `spring` overshoots the new entry and settles back, as the
-  needle gauge does; `stretch` reaches out to the new entry first and then
-  lets go of the old one, like a drop pulled across. Each view has a bar of
-  its own; the new page's bar takes the move over from where the old one
-  left the pill, so a tap shows the whole of it. A swipe along the bar keeps
-  the plain glide: the finger has drawn the move already.
 - **Nav card: `page_transition: slide`.** A tap moves the page sideways the
   way a swipe along the bar does, toward the tapped entry's side, so tapping
   and swiping between views look the same. A page that is not in the bar —
@@ -35,42 +19,69 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   the new page in from the side its entry sits on in the bar, with the pill
   handed over as on a tap.
 
+- **Nav card: `marker_motion: spring` and `stretch`.** Two more ways for the
+  pill to travel: `spring` overshoots the new entry and settles back, as the
+  needle gauge does; `stretch` reaches out to the new entry first and then
+  lets go of the old one, like a drop pulled across. Each view has a bar of
+  its own; the new page's bar takes the move over from where the old one
+  left the pill, so a tap shows the whole of it. A swipe along the bar keeps
+  the plain glide: the finger has drawn the move already.
+
+- **Nav card: `page_transition_ms` sets the slide's pace.** Under
+  `page_transition: slide` it is how long the new page takes to come in
+  (default 340 ms, the old page leaves in about half that), for taps, swipes
+  along the bar and the dashboard's own swipes alike. The editor shows the
+  slider for the slide too.
+
+- **Ukrainian (#59).** The cards speak Ukrainian as a third built-in
+  language, picked for `uk` and `uk-*`, including the card descriptions in
+  the "Add card" picker. Thanks to @rodion981. Strings it does not have yet
+  fall back to English; your own translations still win over it.
+
+- **A live demo.** Every card on a made-up home with simulated values, in
+  the browser, nothing to install: scenarios that set off the cards'
+  notifications, a phone view, a panel to try the nav bar's variants, every
+  card's YAML a click away. Published to GitHub Pages with each release.
+
 ### Fixed
 
-- **Weather card: the condition in a half-width slot (#46).** Beside the
-  large icon the condition was cut ("Partly clo…"). Below 340px the icon and
-  the temperature share the first line and the condition takes the line under
-  them, across the card, wrapping to a second line if it must.
+- **Nav card: a tap navigates at once again.** 2.10.0 drew the tapped entry
+  before handing the route over (#63). With a page transition the browser
+  photographed that half-drawn bar — the entry lit, its pill still at the
+  old one — so the icon flashed grey and the change came a frame late. Back
+  to the behaviour of 2.9.
 
-- **Availability card: a device that comes back leaves the list.** When the
-  card rebuilt its device index or a history lookup returned just as a device
-  recovered, it compared "all online" with "all online" and kept the device
-  listed as offline until the next change.
-
-- **Nav card: a popup no longer counts as a change of page.** A button that
-  opens a popup by `#hash` left the path as it was, but the bar took the page
-  before as where it came from and could slide the page in again.
-
-- **No more "-0°".** A small negative that rounds to zero — -0.3 °C at no
-  decimals — kept its minus sign, so the weather card showed "-0°" next to
-  "0°". Every card's number formatting now drops it.
-
-- **Leak card: "Water shut off" when the valve is closed.** The button only
-  said so after its own tap; a valve closed by an automation or by hand
-  still offered to shut the water off.
 - **Swiping on the nav bar, sliders and graphs changed the view, and the
   wrong way.** hass-swipe-navigation 1.16.3 listens before any card sees a
   touch, so the cards' shield no longer reached it: a swipe along the nav bar
   navigated twice, once each way, and a sideways drag on a slider could
   change the view. Every drag zone now also carries the class the plugin
   leaves alone; older versions stay shielded as before.
-- **Nav card: a tap navigates at once again.** 2.10.0 drew the tapped entry
-  before handing the route over (#63). With a page transition the browser
-  photographed that half-drawn bar — the entry lit, its pill still at the
-  old one — so the icon flashed grey and the change came a frame late. Back
-  to the behaviour of 2.9.
+
+- **Nav card: a popup no longer counts as a change of page.** A button that
+  opens a popup by `#hash` left the path as it was, but the bar took the page
+  before as where it came from and could slide the page in again.
+
+- **Availability card: a device that comes back leaves the list.** When the
+  card rebuilt its device index or a history lookup returned just as a device
+  recovered, it compared "all online" with "all online" and kept the device
+  listed as offline until the next change.
+
+- **Weather card: the condition in a half-width slot (#46).** Beside the
+  large icon the condition was cut ("Partly clo…"). Below 340px the icon and
+  the temperature share the first line and the condition takes the line under
+  them, across the card, wrapping to a second line if it must.
+
+- **Leak card: "Water shut off" when the valve is closed.** The button only
+  said so after its own tap; a valve closed by an automation or by hand
+  still offered to shut the water off.
+
 - **Energy usage card: bars below 1 kWh are filled (#60).** A bucket with
   less than 1 kWh drew a partly empty bar. Thanks to @rodion981.
+
+- **No more "-0°".** A small negative that rounds to zero — -0.3 °C at no
+  decimals — kept its minus sign, so the weather card showed "-0°" next to
+  "0°". Every card's number formatting now drops it.
 
 ## [2.10.0] – 2026-11-23
 

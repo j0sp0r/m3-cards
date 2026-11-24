@@ -11,12 +11,17 @@ TypeScript + [Lit](https://lit.dev), **without** any dependency on
 `button-card`, `card-mod`, `mod-card`, or `stack-in-card`. A single bundle
 (`m3-cards.js`) registers **59 cards**, all sharing one design language.
 
+**Try it live:** [every card on a made-up home](https://j0sp0r.github.io/m3-cards/), with
+simulated values, scenarios and a phone view, in the browser. Nothing to install,
+nothing connected, and every card's YAML a click away.
+
 <p align="center">
-  <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.10.0"><img src="docs/images/release-2.10.jpg" alt="What's new in 2.10: the network card, calmer detail graphs with a min-max band, half-width layouts and icons without a background" width="880"></a>
+  <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.11.0"><img src="docs/images/release-2.11.jpg" alt="What's new in 2.11: pages that slide on a tap, a nav bar pill that springs or stretches, Ukrainian and a live demo" width="880"></a>
 </p>
 
 <p align="center"><sub>
-  Earlier: <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.9.0">2.9</a> ·
+  Earlier: <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.10.0">2.10</a> ·
+  <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.9.0">2.9</a> ·
   <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.8.0">2.8</a> ·
   <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.7.0">2.7</a> ·
   2.6 as a video: <a href="https://github.com/j0sp0r/m3-cards/releases/download/v2.6.0/m3-cards-2.6.mp4">landscape</a> ·

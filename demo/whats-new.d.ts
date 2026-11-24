@@ -4,5 +4,5 @@ export declare const WHATS_NEW: {
   date: string;
   summary: { en: string; de: string };
   counts: { cards: number; features: number };
-  sections: (t: (en: string, de: string) => string) => [string, Record<string, unknown>[]][];
+  sections: (t: (en: string, de: string) => string, nav: (key: string) => string) => [string, Record<string, unknown>[]][];
 };

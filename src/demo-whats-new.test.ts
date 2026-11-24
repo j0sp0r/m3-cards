@@ -9,7 +9,7 @@ describe("live demo: What's new", () => {
     expect(WHATS_NEW.version).toBe(pkg.version);
   });
   it("has cards to show", () => {
-    const sections = WHATS_NEW.sections((en) => en);
+    const sections = WHATS_NEW.sections((en) => en, (key) => `/demo/${key}`);
     expect(sections.flatMap(([, cards]) => cards).length).toBeGreaterThan(0);
   });
 });
