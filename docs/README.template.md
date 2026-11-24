@@ -34,36 +34,44 @@ Rules — these come first:
 - Only read my setup. Do not switch, turn on or call any service on my devices.
 - Use only entity ids that exist in my setup. Never invent one; leave a card out
   if nothing fits it.
-- Use only card types and options documented in the README and in docs/cards/*.md
-  of the repository above.
-- Show me the plan (views and the cards on each) and wait for my OK before you
-  write anything. If you cannot create the dashboard yourself, give me the
+- Use only card types and options from the card docs. Every card has one file,
+  for example custom:m3-room-card is
+  https://raw.githubusercontent.com/j0sp0r/m3-cards/main/docs/cards/room-card.md
+  (the type without "m3-"). Read only the files of the cards you use; the README
+  holds all of them and is too long to read whole.
+- Show me the plan (views, the cards on each, and any question you have) and
+  wait for my OK before you write anything. If you cannot create the dashboard yourself, give me the
   complete YAML for "Raw configuration editor" instead.
 
 What I have:
 - If you can reach my Home Assistant (for example through its MCP server or the
   API), read my areas, devices and entities from there.
-- Otherwise I will paste a list of my areas and entities below.
+- Otherwise I paste a list below: one section per area, one line per kind of
+  entity, each entity as "id (name)". "area:" is the id m3-room-card needs.
 
 How to build it:
-1. Check that M3 Cards is installed as a dashboard resource. If not, tell me how
-   to install it through HACS and stop.
+1. Check that M3 Cards is installed as a dashboard resource. If you can't check,
+   say how to install it through HACS in one line.
 2. Use the sections layout. Views, each only if I have something for it:
-   - Home: clock, weather, presence, lights overview, a few chip buttons for
-     scenes or my most used switches.
-   - One room card per area (custom:m3-room-card with `area:`); it finds the
+   - Home: m3-clock-card, m3-weather-card, m3-presence-card,
+     m3-lights-overview-card, and an m3-chip-buttons-card with a few lights,
+     plugs or scenes you pick (name them in the plan so I can swap them).
+   - Rooms: one m3-room-card per area (`area:` with the area id); it finds the
      area's devices by itself.
-   - Climate: climate cards for thermostats, multi graph for room temperatures.
-   - Energy: energy flow, energy usage and tariff/cost cards, if the energy
-     dashboard is set up.
-   - Household: appliance cards for washer, dryer, dishwasher; vacuum; supplies.
-   - Security: alarm, openings, leak, battery and availability cards.
+   - Climate: m3-climate-card per thermostat (if one shows up twice, for
+     example as a Better Thermostat and as the device, take the one I'd set),
+     m3-multi-graph-card for room temperatures.
+   - Energy: m3-energy-flow-card and m3-energy-usage-card. They read the energy
+     dashboard, so only if it is set up; ask me in the plan if you can't tell.
+   - Household: m3-appliance-card for washer, dryer, dishwasher; m3-vacuum-card.
+   - Security: m3-alarm-card, m3-openings-card, m3-leak-card, m3-battery-card,
+     m3-availability-card, m3-updates-card.
 3. Prefer the cards that find things on their own (room, lights overview,
-   battery, leak, availability, updates with auto-discovery) over long hand-made
-   entity lists.
-4. End every view with the same custom:m3-nav-card (style: floating) that links
-   all views.
-5. Labels in the language of my Home Assistant.
+   battery, leak, availability, updates) over long hand-made entity lists.
+4. Give each section an m3-heading-card as its title. End every view with the
+   same custom:m3-nav-card (style: floating) that links all views; its paths
+   are /m3-cards/<view path>.
+5. Labels in the language of my Home Assistant (the names in my list show it).
 
 When you are done, tell me how to remove the dashboard again if I don't like it.
 
@@ -72,29 +80,47 @@ My areas and entities (if pasted):
 
 No assistant with access to your Home Assistant? Paste this into **Developer
 tools → Template** and copy the result under the prompt. It lists your areas
-and the entities in them; it does not change anything. The list holds your room
-and device names, so only share it with an assistant you trust with them.
+and the entities that suit a card, and only counts what the cards find on their
+own (batteries, leak sensors, updates). It reads and changes nothing else. The
+list holds your room and device names, so only share it with an assistant you
+trust with them.
 
 ```jinja
-{%- set domains = ['light','switch','fan','climate','humidifier','water_heater','cover','valve','lock','media_player','remote','vacuum','alarm_control_panel','camera','weather','person','todo','calendar','update','input_boolean','counter','select'] -%}
-{%- set sensors = ['temperature','humidity','power','energy','battery','illuminance','carbon_dioxide','pm25','water','gas','monetary','duration','enum'] -%}
-{%- set binaries = ['door','window','opening','garage_door','motion','occupancy','presence','moisture','smoke','connectivity','problem','running'] -%}
-{%- macro wanted(e) -%}
-{%- set d = e.split('.')[0] -%}
-{{- states(e) not in ['unavailable','unknown'] and (d in domains or (d == 'sensor' and state_attr(e, 'device_class') in sensors) or (d == 'binary_sensor' and state_attr(e, 'device_class') in binaries)) -}}
+{%- set groups = [
+  ['light','light',none], ['switch','switch',none], ['fan','fan',none],
+  ['climate','climate',none], ['humidifier','humidifier',none], ['cover','cover',none],
+  ['valve','valve',none], ['lock','lock',none], ['media','media_player',none],
+  ['remote','remote',none], ['vacuum','vacuum',none], ['camera','camera',none],
+  ['alarm','alarm_control_panel',none], ['weather','weather',none], ['person','person',none],
+  ['todo','todo',none], ['calendar','calendar',none],
+  ['temperature','sensor',['temperature']], ['humidity','sensor',['humidity']],
+  ['air','sensor',['carbon_dioxide','pm25']], ['power','sensor',['power']],
+  ['appliance','sensor',['enum','duration']], ['running','binary_sensor',['running']],
+  ['opening','binary_sensor',['door','window','opening','garage_door']],
+  ['presence','binary_sensor',['motion','occupancy','presence']]
+] -%}
+{%- macro list(ids, inside) -%}
+{%- for g in groups -%}
+{%- set found = states[g[1]] | rejectattr('state', 'in', ['unavailable', 'unknown']) -%}
+{%- set found = found | selectattr('entity_id', 'in', ids) if inside else found | rejectattr('entity_id', 'in', ids) -%}
+{%- set found = (found | selectattr('attributes.device_class', 'in', g[2]) if g[2] else found) | list -%}
+{%- if found %}
+{{ g[0] }}: {% for s in found %}{{ s.entity_id }} ({{ s.name }}){{ ', ' if not loop.last }}{% endfor %}
+{%- endif -%}
+{%- endfor -%}
 {%- endmacro -%}
-{%- set ns = namespace(seen=[]) -%}
+{%- set ns = namespace(inside=[]) -%}
 {%- for area in areas() %}
-## {{ area_name(area) }}
-{%- for e in area_entities(area) if wanted(e) == 'True' %}
-{%- set ns.seen = ns.seen + [e] %}
-- {{ e }} · {{ state_attr(e, 'friendly_name') }} · {{ states(e) }} {{ state_attr(e, 'unit_of_measurement') or '' }}
-{%- endfor %}
+{%- set ids = area_entities(area) %}
+{%- set ns.inside = ns.inside + ids %}
+## {{ area_name(area) }} · area: {{ area }}
+{{- list(ids, true) }}
 {% endfor %}
 ## Without an area
-{%- for s in states if s.entity_id not in ns.seen and wanted(s.entity_id) == 'True' %}
-- {{ s.entity_id }} · {{ s.name }} · {{ s.state }} {{ state_attr(s.entity_id, 'unit_of_measurement') or '' }}
-{%- endfor %}
+{{- list(ns.inside, false) }}
+
+## Found by the cards themselves
+battery: {{ states.sensor | selectattr('attributes.device_class', 'eq', 'battery') | list | count }} · water/smoke: {{ states.binary_sensor | selectattr('attributes.device_class', 'in', ['moisture', 'smoke']) | list | count }} · connectivity: {{ states.binary_sensor | selectattr('attributes.device_class', 'eq', 'connectivity') | list | count }} · updates: {{ states.update | list | count }}
 ```
 
 </details>
