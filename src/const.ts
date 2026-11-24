@@ -747,6 +747,8 @@ export const WEATHER_HEADER_ICON_SIZE = 56;
 export const WEATHER_HEADER_ICON_RADIUS = RADIUS.squircle56;
 /** Below this card width the header chips go under the temperature (#46). */
 export const WEATHER_NARROW_WIDTH = 260;
+/** Below this card width the condition goes under the icon, across the card (#46). */
+export const WEATHER_CONDITION_UNDER_WIDTH = 340;
 export const WEATHER_CHIP_RADIUS = RADIUS.chip;
 export const WEATHER_DAY_ROW_HEIGHT = 44;
 export const WEATHER_DAY_ROW_RADIUS = RADIUS.row;

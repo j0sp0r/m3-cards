@@ -19,6 +19,7 @@ import {
   DEFAULT_WEATHER_CHIPS,
   WEATHER_HEADER_ICON_RADIUS,
   WEATHER_NARROW_WIDTH,
+  WEATHER_CONDITION_UNDER_WIDTH,
   WEATHER_CHIP_RADIUS,
   WEATHER_DAY_ROW_HEIGHT,
   WEATHER_DAY_ROW_RADIUS,
@@ -914,14 +915,58 @@ export class M3WeatherCard extends TemplatedCard(LitElement) implements Lovelace
         opacity: 0.75;
       }
 
-      /* A half-width slot on a phone (#46): the chips' column beside the
-         temperature cut the condition to "R…". Below this width the chips go
-         under the header as a row, and the condition has the line to itself. */
+      /* A half-width slot (#46): beside the large icon the condition was cut
+         to "Teilweise bewö…". In a narrow card the icon and the temperature
+         share the first line, and the condition takes the line under them,
+         from the card's left edge, wrapping to a second line if it must. */
+      @container weather-card (max-width: ${unsafeCSS(WEATHER_CONDITION_UNDER_WIDTH)}px) {
+        .header {
+          display: grid;
+          grid-template-columns: auto minmax(0, 1fr) auto;
+          column-gap: 12px;
+          row-gap: 8px;
+        }
+        .header-text {
+          display: contents;
+        }
+        .header-icon-swatch {
+          grid-column: 1;
+          grid-row: 1;
+        }
+        .header-temp {
+          grid-column: 2;
+          grid-row: 1;
+          align-self: center;
+        }
+        .header-chips {
+          grid-column: 3;
+          grid-row: 1;
+          align-self: center;
+        }
+        .header-condition {
+          grid-column: 1 / -1;
+          grid-row: 2;
+          white-space: normal;
+          display: -webkit-box;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+          line-height: 1.3;
+        }
+        .header-stale {
+          grid-column: 1 / -1;
+          grid-row: 3;
+        }
+      }
+
+      /* Narrower still: the chips' column would squeeze the temperature, so
+         the chips go under everything as a row. */
       @container weather-card (max-width: ${unsafeCSS(WEATHER_NARROW_WIDTH)}px) {
         .header {
           flex-wrap: wrap;
         }
         .header-chips {
+          grid-column: 1 / -1;
+          grid-row: 4;
           flex-direction: row;
           flex-wrap: wrap;
           width: 100%;

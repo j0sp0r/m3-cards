@@ -37,6 +37,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Weather card: the condition in a half-width slot (#46).** Beside the
+  large icon the condition was cut ("Partly clo…"). Below 340px the icon and
+  the temperature share the first line and the condition takes the line under
+  them, across the card, wrapping to a second line if it must.
+
 - **Availability card: a device that comes back leaves the list.** When the
   card rebuilt its device index or a history lookup returned just as a device
   recovered, it compared "all online" with "all online" and kept the device
