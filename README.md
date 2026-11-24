@@ -15,6 +15,90 @@ TypeScript + [Lit](https://lit.dev), **without** any dependency on
 simulated values, scenarios and a phone view, in the browser. Nothing to install,
 nothing connected, and every card's YAML a click away.
 
+**Build your own with an AI assistant:** let Claude, Codex or another assistant
+put together a first M3 dashboard from what your Home Assistant already has.
+It is created as an *extra* dashboard: your existing ones stay untouched, and
+if you don't like it, you delete it again.
+
+<details>
+<summary><b>The prompt</b> — copy it into your assistant</summary>
+
+```text
+Build me a new Home Assistant dashboard with the M3 Cards
+(https://github.com/j0sp0r/m3-cards), from the devices and entities I already have.
+
+Rules — these come first:
+- Create ONE new dashboard (title "M3 Cards", URL path "m3-cards"). Never edit,
+  overwrite or delete an existing dashboard, automation, script, entity, device,
+  area or any other setting.
+- Only read my setup. Do not switch, turn on or call any service on my devices.
+- Use only entity ids that exist in my setup. Never invent one; leave a card out
+  if nothing fits it.
+- Use only card types and options documented in the README and in docs/cards/*.md
+  of the repository above.
+- Show me the plan (views and the cards on each) and wait for my OK before you
+  write anything. If you cannot create the dashboard yourself, give me the
+  complete YAML for "Raw configuration editor" instead.
+
+What I have:
+- If you can reach my Home Assistant (for example through its MCP server or the
+  API), read my areas, devices and entities from there.
+- Otherwise I will paste a list of my areas and entities below.
+
+How to build it:
+1. Check that M3 Cards is installed as a dashboard resource. If not, tell me how
+   to install it through HACS and stop.
+2. Use the sections layout. Views, each only if I have something for it:
+   - Home: clock, weather, presence, lights overview, a few chip buttons for
+     scenes or my most used switches.
+   - One room card per area (custom:m3-room-card with `area:`); it finds the
+     area's devices by itself.
+   - Climate: climate cards for thermostats, multi graph for room temperatures.
+   - Energy: energy flow, energy usage and tariff/cost cards, if the energy
+     dashboard is set up.
+   - Household: appliance cards for washer, dryer, dishwasher; vacuum; supplies.
+   - Security: alarm, openings, leak, battery and availability cards.
+3. Prefer the cards that find things on their own (room, lights overview,
+   battery, leak, availability, updates with auto-discovery) over long hand-made
+   entity lists.
+4. End every view with the same custom:m3-nav-card (style: floating) that links
+   all views.
+5. Labels in the language of my Home Assistant.
+
+When you are done, tell me how to remove the dashboard again if I don't like it.
+
+My areas and entities (if pasted):
+```
+
+No assistant with access to your Home Assistant? Paste this into **Developer
+tools → Template** and copy the result under the prompt. It lists your areas
+and the entities in them; it does not change anything. The list holds your room
+and device names, so only share it with an assistant you trust with them.
+
+```jinja
+{%- set domains = ['light','switch','fan','climate','humidifier','water_heater','cover','valve','lock','media_player','remote','vacuum','alarm_control_panel','camera','weather','person','todo','calendar','update','input_boolean','counter','select'] -%}
+{%- set sensors = ['temperature','humidity','power','energy','battery','illuminance','carbon_dioxide','pm25','water','gas','monetary','duration','enum'] -%}
+{%- set binaries = ['door','window','opening','garage_door','motion','occupancy','presence','moisture','smoke','connectivity','problem','running'] -%}
+{%- macro wanted(e) -%}
+{%- set d = e.split('.')[0] -%}
+{{- states(e) not in ['unavailable','unknown'] and (d in domains or (d == 'sensor' and state_attr(e, 'device_class') in sensors) or (d == 'binary_sensor' and state_attr(e, 'device_class') in binaries)) -}}
+{%- endmacro -%}
+{%- set ns = namespace(seen=[]) -%}
+{%- for area in areas() %}
+## {{ area_name(area) }}
+{%- for e in area_entities(area) if wanted(e) == 'True' %}
+{%- set ns.seen = ns.seen + [e] %}
+- {{ e }} · {{ state_attr(e, 'friendly_name') }} · {{ states(e) }} {{ state_attr(e, 'unit_of_measurement') or '' }}
+{%- endfor %}
+{% endfor %}
+## Without an area
+{%- for s in states if s.entity_id not in ns.seen and wanted(s.entity_id) == 'True' %}
+- {{ s.entity_id }} · {{ s.name }} · {{ s.state }} {{ state_attr(s.entity_id, 'unit_of_measurement') or '' }}
+{%- endfor %}
+```
+
+</details>
+
 <p align="center">
   <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.11.0"><img src="docs/images/release-2.11.jpg" alt="What's new in 2.11: pages that slide on a tap, a nav bar pill that springs or stretches, Ukrainian and a live demo" width="880"></a>
 </p>
