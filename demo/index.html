@@ -60,6 +60,11 @@
   /* The scrollbar's room stays when a popup locks the page's scrolling, so
      the cards behind it do not shift sideways. */
   html { scrollbar-gutter: stable; }
+  /* Nothing may widen the page sideways — a page sliding in from the right
+     sits a screen's width beside it for a moment. On a phone that widened the
+     layout viewport and zoomed out, and the nav bar, measured against it,
+     shrank to nothing for a second. */
+  html, body { overflow-x: clip; }
   html, body {
     margin: 0;
     min-height: 100%;
@@ -203,8 +208,26 @@
     header .lbl { display: none; }
     header .sep { display: none; }
   }
+  .tools { display: contents; }
+  #tools-btn { display: none; }
   @media (max-width: 600px) {
-    header { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+    /* Already a phone: the phone frame would only show the same page smaller. */
+    header #phone { display: none; }
+    /* Seven bare icons say nothing: behind one button, as a list with names. */
+    #tools-btn { display: inline-flex; }
+    header .sep { display: none; }
+    .tools {
+      display: none; position: fixed; top: 64px; right: 12px; z-index: 710; min-width: 220px; padding: 8px;
+      flex-direction: column; align-items: stretch; gap: 4px; border-radius: 24px;
+      background: var(--card-background-color);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    }
+    .tools.open { display: flex; }
+    .tools > button, .tools > a { justify-content: flex-start; height: 44px; padding: 0 14px; gap: 12px; }
+    .tools .lbl { display: inline !important; }
+    #tools-btn.open { background: color-mix(in srgb, var(--primary-color) 22%, transparent); color: var(--primary-color); }
+    header { gap: 8px; padding: 10px 12px; }
+    header .brand { flex: 1; font-size: 18px; }
     header button, header a { min-width: 40px; height: 40px; padding: 0 10px; }
     #view-root { padding: 8px 12px 140px; }
   }
@@ -253,6 +276,8 @@
   <span class="brand"><b>M3</b> Cards</span>
   <span class="note">A pretend home with simulated values — tap around, nothing is connected.</span>
   <span class="sep"></span>
+  <button id="tools-btn" title="Settings"><ha-icon icon="mdi:tune-variant"></ha-icon></button>
+  <div class="tools" id="tools">
   <button id="navbar"><ha-icon icon="mdi:dock-bottom"></ha-icon><span class="lbl"></span></button>
   <button id="phone" class="toggle"><ha-icon icon="mdi:cellphone"></ha-icon><span class="lbl"></span></button>
   <button id="titles" class="toggle"><ha-icon icon="mdi:label-outline"></ha-icon><span class="lbl"></span></button>
@@ -260,6 +285,7 @@
   <button id="theme"><ha-icon icon="mdi:weather-sunny"></ha-icon><span class="lbl"></span></button>
   <button id="lang"><ha-icon icon="mdi:translate"></ha-icon><span class="lbl"></span><ha-icon class="caret" icon="mdi:menu-down"></ha-icon></button>
   <a href="https://github.com/j0sp0r/m3-cards" title="GitHub"><ha-icon icon="mdi:github"></ha-icon><span class="lbl">GitHub</span></a>
+  </div>
 </header>
 <main id="view-root"></main>
 <div id="phone-host"></div>

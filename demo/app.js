@@ -19,6 +19,10 @@ const BASE = new URL("./", import.meta.url).pathname;
 const params = new URLSearchParams(location.search);
 const EMBED = params.get("embed") === "1";
 if (EMBED) document.body.classList.add("embed");
+// A phone opening the page itself gets the phone layout too: the bar as in
+// the phone frame (four pages and a menu), not nine entries to scroll.
+const narrowQuery = matchMedia("(max-width: 600px)");
+const phoneLayout = () => EMBED || narrowQuery.matches;
 const sim = new Sim(buildHome(), NAMES_DE);
 if (params.get("lang") === "de" || params.get("lang") === "en") sim.setLanguage(params.get("lang"));
 window.m3Demo = sim;
@@ -92,7 +96,7 @@ function navCard() {
   let labelling = NAV_LABELS[labels] ?? NAV_LABELS.active;
   // On a phone four entries with every name and the menu button do not fit
   // side by side: every icon, and only the active page's name.
-  if (EMBED && labelling.label_visibility === "always") labelling = NAV_LABELS.current;
+  if (phoneLayout() && labelling.label_visibility === "always") labelling = NAV_LABELS.current;
   return {
     type: "custom:m3-nav-card",
     style,
@@ -119,10 +123,10 @@ function navCard() {
     // the demo's own header.
     ...(EMBED ? { edge_distance: style === "header" ? 40 : 22 } : style === "header" ? { edge_distance: document.querySelector("header")?.offsetHeight ?? 68 } : {}),
     blur: 20,
-    items: (EMBED ? VIEWS.slice(0, PHONE_BAR) : VIEWS).map(entry),
+    items: (phoneLayout() ? VIEWS.slice(0, PHONE_BAR) : VIEWS).map(entry),
     // Seven pages do not fit a phone's width: there, four in the bar and the
     // rest in the round button's menu beside it, as on a phone dashboard.
-    ...(EMBED ? { action_button: { icon: "mdi:dots-horizontal", menu: VIEWS.slice(PHONE_BAR).map(entry) } } : {}),
+    ...(phoneLayout() ? { action_button: { icon: "mdi:dots-horizontal", menu: VIEWS.slice(PHONE_BAR).map(entry) } } : {}),
   };
 }
 
@@ -1055,6 +1059,31 @@ function setPhone(on) {
 }
 phoneBtn.addEventListener("click", () => setPhone(!phone));
 window.m3DemoScenarioTarget = () => (phone ? frame?.contentWindow : null);
+
+// On a phone the tools sit behind one button; a choice closes the list
+// unless it opens a panel of its own.
+const toolsBtn = document.getElementById("tools-btn");
+const tools = document.getElementById("tools");
+toolsBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  tools.classList.toggle("open");
+  toolsBtn.classList.toggle("open", tools.classList.contains("open"));
+});
+document.addEventListener("click", (e) => {
+  if (tools.classList.contains("open") && !tools.contains(e.target) && e.target !== toolsBtn) {
+    tools.classList.remove("open");
+    toolsBtn.classList.remove("open");
+  }
+});
+for (const b of tools.querySelectorAll("#titles, #glass, #theme, a")) {
+  b.addEventListener("click", () => {
+    tools.classList.remove("open");
+    toolsBtn.classList.remove("open");
+  });
+}
+
+// Turning a tablet or resizing the window across the line swaps the bar.
+narrowQuery.addEventListener("change", () => refreshNav());
 
 paintSwitches();
 sim.setDark(dark);
