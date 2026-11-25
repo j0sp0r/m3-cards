@@ -50,7 +50,7 @@ import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
 import { shouldAnimate } from "./shared/animation";
 import { getEnergyDashboardEntities, fetchTodayChangeSum } from "./shared/ha-energy";
 import { displayUnit, flowMeasure, toBase, type FlowMeasure } from "./shared/energy-flow-units";
-import { branchPath, deviceRowLayout, shortName, trunkPath } from "./shared/energy-flow-devices";
+import { deviceFlowLines, deviceRowLayout, shortName } from "./shared/energy-flow-devices";
 import { localize, type TranslationKey } from "./localize";
 import { formatNumber } from "./shared/formatting";
 import { hassChangeMatters } from "./shared/should-update";
@@ -552,9 +552,14 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
     const devices = this._devices();
     if (devices.length) {
       const row = deviceRowLayout(devices.length, HOME_POS.x, HOME_POS.y + HALF + 16, viewHeight, FLOW_DEVICE_NODE_SIZE);
-      const total = this._deviceValues.reduce((sum, v) => sum + (v ?? 0), 0);
-      if (total > 0) {
-        flows.push({ key: "home-devices", path: trunkPath(row, HOME_POS.x), color: colors.home, value: total });
+      const colorOf = (i: number) => (devices[i].color ? resolveThemeColor(devices[i].color!) : colors.home);
+      for (const line of deviceFlowLines(row, HOME_POS.x, FLOW_DEVICE_NODE_SIZE, this._deviceValues)) {
+        flows.push({
+          key: `devices-${line.key}`,
+          path: line.path,
+          color: line.device === undefined ? colors.home : colorOf(line.device),
+          value: line.value,
+        });
       }
       devices.forEach((d, i) => {
         const value = this._deviceValues[i] ?? 0;
@@ -570,14 +575,6 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
           label: shortName(d.name ?? (st?.attributes.friendly_name as string | undefined) ?? d.entity),
           device: true,
         });
-        if (value > 0) {
-          flows.push({
-            key: `devices-${i}`,
-            path: branchPath(row, HOME_POS.x, row.xs[i], FLOW_DEVICE_NODE_SIZE),
-            color,
-            value,
-          });
-        }
       });
       viewHeight = row.viewHeight;
     }
@@ -724,7 +721,8 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
               viewBox="0 0 ${VIEW_WIDTH} ${viewHeight}"
               preserveAspectRatio="xMidYMid meet"
             >
-              ${flows.map((f) => this._renderFlow(f, maxFlow, animate, dotDuration))}
+              ${flows.filter((f) => !f.key.startsWith("devices-")).map((f) => this._renderFlow(f, maxFlow, animate, dotDuration))}
+              ${this._renderDeviceNet(flows.filter((f) => f.key.startsWith("devices-")), maxFlow, animate, dotDuration)}
               ${flows.length > 1
                 ? svg`<circle class="junction-dot" cx=${PV_POS.x} cy=${SPLIT_BEND_Y} r="3"></circle>`
                 : nothing}
@@ -873,6 +871,31 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
     `;
   }
 
+  /**
+   * The consumers' lines as one network: drawn opaque inside a group that is
+   * faded as a whole, so where the trunk meets the bus and the drops the
+   * lines merge instead of stacking into a brighter blot. The moving dots go
+   * on top, at full strength like everywhere else.
+   */
+  private _renderDeviceNet(lines: FlowLineData[], maxFlow: number, animate: boolean, dotDuration: number): SVGTemplateResult | typeof nothing {
+    if (!lines.length) return nothing;
+    const parts = lines.map((f) => ({ f, width: this._strokeWidth(f.value, maxFlow) }));
+    return svg`
+      <g class="device-net">
+        ${parts.map(({ f, width }) => svg`<path class="flow-bg" d=${f.path} stroke=${f.color} stroke-width=${width}></path>`)}
+      </g>
+      ${animate
+        ? parts.map(
+            ({ f, width }) => svg`<path class="flow-dots" d=${f.path} stroke=${f.color} stroke-width=${Math.max(2, width * 0.4)} style=${`animation-duration: ${dotDuration}ms;`}></path>`,
+          )
+        : nothing}
+    `;
+  }
+
+  private _strokeWidth(value: number, maxFlow: number): number {
+    return Math.min(FLOW_MAX_STROKE, Math.max(FLOW_MIN_STROKE, FLOW_MIN_STROKE + 16 * (value / maxFlow)));
+  }
+
   private _renderFlow(
     flow: FlowLineData,
     maxFlow: number,
@@ -987,6 +1010,13 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
         fill: none;
         stroke-linecap: round;
         opacity: 0.35;
+      }
+
+      .device-net {
+        opacity: 0.35;
+      }
+      .device-net .flow-bg {
+        opacity: 1;
       }
 
       .flow-dots {

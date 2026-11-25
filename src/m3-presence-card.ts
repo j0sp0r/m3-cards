@@ -542,8 +542,10 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
             right:
               total > 0
                 ? html`
-                    <div class="presence-chip ${homeCount === 0 ? "empty" : "some"}">
-                      ${homeCount === 0 ? this._t("presence_nobody_home") : homeCount}
+                    <div class="presence-chip ${homeCount === 0 ? "empty" : "some"}" title=${homeCount === 0 ? this._t("presence_nobody_home") : nothing}>
+                      ${homeCount === 0
+                        ? html`<span class="chip-long">${this._t("presence_nobody_home")}</span><span class="chip-short">0</span>`
+                        : homeCount}
                     </div>
                   `
                 : undefined,
@@ -699,6 +701,23 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
         align-items: center;
         font-size: 12px;
         font-weight: 700;
+      }
+
+      /* "Nobody home" in words where there is room; in a narrow card (a
+         half-width slot) the count alone, so the title is not squeezed. */
+      .card-inner {
+        container-type: inline-size;
+      }
+      .chip-short {
+        display: none;
+      }
+      @container (max-width: 300px) {
+        .chip-long {
+          display: none;
+        }
+        .chip-short {
+          display: inline;
+        }
       }
 
       .presence-chip.some {
