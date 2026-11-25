@@ -1526,10 +1526,11 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
         >
           ${banner
             ? html`<div
-                class="banner"
+                class="banner ${headerTappable ? "tappable" : ""}"
                 role="img"
                 aria-label=${name}
                 style=${`background-image: ${picture}; border-top-left-radius: ${radius}; border-top-right-radius: ${radius};`}
+                @click=${headerTappable ? this._onHeaderTap : nothing}
               ></div>`
             : nothing}
           <div
@@ -1675,6 +1676,12 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
         background-position: center;
         -webkit-mask-image: linear-gradient(to bottom, #000 60%, transparent);
         mask-image: linear-gradient(to bottom, #000 60%, transparent);
+      }
+
+      /* The picture is the first thing a finger goes for, so it does what the
+         header does (the header keeps the keyboard focus for both). */
+      .banner.tappable {
+        cursor: pointer;
       }
 
       .dot {

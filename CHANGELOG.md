@@ -20,6 +20,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   `entity` as required once `entities` names the lists, and the picker speaks
   Ukrainian too.
 
+### Changed
+
+- **Room card: the banner picture is tappable** and does what the header does,
+  folding the card or running its `tap_action` (#43).
+
 ## [2.11.0] – 2026-11-24
 
 ### Added

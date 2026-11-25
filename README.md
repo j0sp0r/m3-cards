@@ -4107,8 +4107,9 @@ A picture set for the area in Home Assistant's own area settings can show on
 the card. `area_picture: icon` puts it in the icon well in place of the icon —
 the card stays the same height. `area_picture: banner` draws it as a band
 across the top of the card, edge to edge and fading into the card at its foot,
-with the header below it. Left out, or for an area without a picture, the card
-is as it always was.
+with the header below it. A tap on the banner does what a tap on the header
+does: it folds the card, or runs the `tap_action`. Left out, or for an area
+without a picture, the card is as it always was.
 
 ```yaml
 type: custom:m3-room-card
