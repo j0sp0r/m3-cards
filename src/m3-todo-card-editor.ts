@@ -45,7 +45,8 @@ export class M3TodoCardEditor extends LitElement implements LovelaceCardEditor {
 
   private _listSchema(): SchemaEntry[] {
     return [
-      { name: "entity", required: true, selector: { entity: { domain: "todo" } } },
+      // With `entities` the card has its lists, and `entity` only picks the first one shown.
+      { name: "entity", required: !this._config?.entities?.length, selector: { entity: { domain: "todo" } } },
       { name: "entities", selector: { entity: { domain: "todo", multiple: true } } },
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },

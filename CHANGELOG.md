@@ -16,7 +16,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   between devices. A list that no longer exists is skipped in favour of one that
   does, instead of leaving the card on an error with no way to switch. With one
   list, or none under `entities`, nothing changes. `entity` is now optional when
-  `entities` is set.
+  `entities` is set. Thanks to @Richard9e98 (#66). The editor no longer marks
+  `entity` as required once `entities` names the lists, and the picker speaks
+  Ukrainian too.
 
 ## [2.11.0] – 2026-11-24
 
