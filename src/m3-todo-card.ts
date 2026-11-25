@@ -53,6 +53,15 @@ import { fetchTodoItems, todoSupports, TODO_FEATURE, type TodoItem } from "./sha
 import { collectSupplyChips } from "./shared/supply-chips";
 import { localize, type TranslationKey } from "./localize";
 import { hassChangeMatters } from "./shared/should-update";
+import { openDropdownMenu, closeDropdownMenu } from "./shared/dropdown-menu";
+import { loadUserData, saveUserData } from "./shared/user-data";
+import {
+  TODO_LIST_CHOICE_KEY,
+  resolveActiveList,
+  todoListChoiceId,
+  todoListMenuItems,
+  todoLists,
+} from "./shared/todo-lists";
 import { TemplatedCard } from "./shared/templated-card";
 
 console.info(
@@ -91,11 +100,19 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
   /** uid of the row currently open for renaming. */
   @state() private _editing?: string;
   @state() private _dragging?: string;
+  /** The list the user picked, when the card offers several. */
+  @state() private _selected?: string;
+  /** Whether the list menu is open, for the button's aria-expanded. */
+  @state() private _listMenuOpen = false;
 
   @query(".todo-input") private _input?: HTMLInputElement;
 
   private _lastStateKey?: string;
   private _fetchInFlight = false;
+  /** Saved picks, by picker. Read once; the card waits for them before loading a list. */
+  private _choices: Record<string, string> = {};
+  private _choicesLoaded = false;
+  private _choiceLoading = false;
   private _morphTimer?: number;
   private _duplicateTimer?: number;
   private _clearTimer?: number;
@@ -116,7 +133,7 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
   }
 
   public setConfig(config: M3TodoCardConfig): void {
-    if (!config.entity) throw new Error("entity is required");
+    if (todoLists(config).length === 0) throw new Error("entity or entities is required");
     this._config = {
       glass_background: true,
       animation: "auto",
@@ -128,6 +145,9 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
     };
     this._lastStateKey = undefined;
     this._suppliesLoaded = false;
+    // The offered lists may have changed, and the saved pick belongs to them.
+    this._selected = undefined;
+    this._choicesLoaded = false;
   }
 
   public getCardSize(): number {
@@ -140,6 +160,9 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
 
   public disconnectedCallback(): void {
     super.disconnectedCallback();
+    // The menu lives on document.body, so it would outlive a card removed while
+    // it is open (view switch, editor preview).
+    if (this._listMenuOpen) closeDropdownMenu();
     if (this._morphTimer) clearTimeout(this._morphTimer);
     if (this._duplicateTimer) clearTimeout(this._duplicateTimer);
     if (this._clearTimer) clearTimeout(this._clearTimer);
@@ -149,6 +172,7 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
 
   protected updated(changed: PropertyValues): void {
     super.updated(changed);
+    this._loadChoice();
     this._maybeFetch();
     this._loadSupplyChips();
   }
@@ -165,12 +189,26 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
 
   // ---- data -------------------------------------------------------------
 
+  /** Every list the card offers. More than one means a picker. */
+  private get _lists(): string[] {
+    return todoLists(this._config);
+  }
+
+  /** The list on screen: the picked one, else the configured one. */
+  private get _entityId(): string | undefined {
+    return resolveActiveList(this._lists, this._selected, this._config?.entity, this.hass);
+  }
+
+
   // A todo entity's state is its open-item count, so it changes whenever the
   // list does — from this card, another dashboard, or the companion app. That
   // makes it a reliable trigger to re-read the list.
   private _maybeFetch(): void {
-    const entityId = this._config?.entity;
+    const entityId = this._entityId;
     if (!this.hass || !entityId) return;
+    // With a picker the saved choice decides which list to read, so wait for it
+    // rather than loading the default list and then swapping it.
+    if (this._lists.length > 1 && !this._choicesLoaded) return;
     const st = this.hass.states[entityId];
     if (!st) return;
     const key = `${entityId}|${st.state}|${st.last_updated ?? ""}|${this._config?.show_completed}`;
@@ -180,21 +218,27 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
   }
 
   private async _load(): Promise<void> {
-    const entityId = this._config?.entity;
+    const entityId = this._entityId;
     if (!this.hass || !entityId || this._fetchInFlight) return;
     this._fetchInFlight = true;
     try {
-      this._items = await fetchTodoItems(
+      const items = await fetchTodoItems(
         this.hass,
         entityId,
         // Asking only for open items keeps a long archive of completed
         // entries off the wire when the card would not show them anyway.
         this._config?.show_completed === false ? ["needs_action"] : undefined,
       );
+      // The user may have picked another list while this one was loading.
+      if (entityId === this._entityId) this._items = items;
     } catch (e) {
       console.warn("m3-todo-card: could not read the list", e);
     } finally {
       this._fetchInFlight = false;
+    }
+    if (entityId !== this._entityId) {
+      this._lastStateKey = undefined;
+      this._maybeFetch();
     }
   }
 
@@ -207,14 +251,69 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
   }
 
   private get _available(): boolean {
-    const st = this.hass?.states[this._config?.entity ?? ""];
+    const st = this.hass?.states[this._entityId ?? ""];
     return !!st && st.state !== "unavailable" && st.state !== "unknown";
+  }
+
+  // ---- list picker ------------------------------------------------------
+
+  /** Reads this user's saved pick for this picker, once the offered lists are known. */
+  private _loadChoice(): void {
+    if (this._choicesLoaded || this._choiceLoading || !this.hass || this._lists.length < 2) return;
+    this._choiceLoading = true;
+    const id = todoListChoiceId(this._lists);
+    void loadUserData<Record<string, string>>(this.hass, TODO_LIST_CHOICE_KEY).then((saved) => {
+      this._choiceLoading = false;
+      // The config changed while this was loading: read again for the new lists.
+      if (id !== todoListChoiceId(this._lists)) {
+        this.requestUpdate();
+        return;
+      }
+      this._choices = saved ?? {};
+      const picked = this._choices[id];
+      if (picked && this._lists.includes(picked) && !this._selected) this._selected = picked;
+      this._choicesLoaded = true;
+      this._lastStateKey = undefined;
+      this.requestUpdate();
+    });
+  }
+
+  private _openListMenu(event: Event): void {
+    this._listMenuOpen = true;
+    openDropdownMenu({
+      anchor: event.currentTarget as HTMLElement,
+      label: this._t("todo_lists_menu"),
+      items: todoListMenuItems(this.hass, this._lists, this._entityId),
+      onSelect: (entityId) => this._selectList(entityId),
+      onClose: () => {
+        this._listMenuOpen = false;
+      },
+    });
+  }
+
+  private _selectList(entityId: string): void {
+    if (!this._lists.includes(entityId) || entityId === this._entityId) return;
+    this._selected = entityId;
+    this._items = []; // do not flash the previous list's entries
+    this._editing = undefined;
+    this._lastStateKey = undefined;
+    void this._saveChoice(todoListChoiceId(this._lists), entityId);
+  }
+
+  /**
+   * Re-reads before writing, because every picker on every dashboard keeps its
+   * pick in the same user-data entry and a stale copy would drop the others.
+   */
+  private async _saveChoice(id: string, entityId: string): Promise<void> {
+    const latest = await loadUserData<Record<string, string>>(this.hass, TODO_LIST_CHOICE_KEY);
+    this._choices = { ...(latest ?? this._choices), [id]: entityId };
+    await saveUserData(this.hass, TODO_LIST_CHOICE_KEY, this._choices);
   }
 
   // ---- actions ----------------------------------------------------------
 
   private async _call(service: string, data: Record<string, unknown>): Promise<void> {
-    const entityId = this._config?.entity;
+    const entityId = this._entityId;
     if (!this.hass || !entityId) return;
     try {
       await this.hass.callService("todo", service, data, { entity_id: entityId });
@@ -233,7 +332,7 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
   // not exist (verified against a live instance, which answers "Service
   // todo.move_item not found"). Omitting previous_uid moves to the top.
   private async _move(uid: string, previousUid?: string): Promise<void> {
-    const entityId = this._config?.entity;
+    const entityId = this._entityId;
     if (!this.hass || !entityId) return;
     try {
       await this.hass.callWS({
@@ -275,7 +374,7 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
     // option is silently a no-op rather than an error.
     if (
       this._config?.add_position === "top" &&
-      todoSupports(this.hass, this._config.entity, TODO_FEATURE.move)
+      todoSupports(this.hass, this._entityId ?? "", TODO_FEATURE.move)
     ) {
       const added = this._items.find((i) => i.summary === text && i.status === "needs_action");
       if (added) await this._move(added.uid);
@@ -447,7 +546,7 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
       await this._call("add_item", { item: text });
       if (
         this._config?.add_position === "top" &&
-        todoSupports(this.hass, this._config.entity, TODO_FEATURE.move)
+        todoSupports(this.hass, this._entityId ?? "", TODO_FEATURE.move)
       ) {
         const added = this._items.find((i) => i.summary === text && i.status === "needs_action");
         if (added) await this._move(added.uid);
@@ -458,13 +557,15 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
   // ---- render -----------------------------------------------------------
 
   protected shouldUpdate(changed: PropertyValues): boolean {
-    return hassChangeMatters(changed, this.hass, [this._config?.entity]);
+    return hassChangeMatters(changed, this.hass, this._lists);
   }
 
   protected render() {
     const cfg = this._config;
     if (!cfg) return nothing;
-    if (this.hass && !this.hass.states[cfg.entity]) return renderMissingEntity(cfg.entity);
+    const entityId = this._entityId;
+    if (!entityId) return nothing;
+    if (this.hass && !this.hass.states[entityId]) return renderMissingEntity(entityId);
 
     const accent = resolveThemeColor(cfg.accent_color ?? DEFAULT_TODO_ACCENT);
     const { textColorCss, secondaryTextColorCss, cardBackgroundCss } = resolveCommonColors(cfg);
@@ -506,17 +607,33 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
 
   private _renderHeader(openCount: number, doneCount: number): TemplateResult {
     const cfg = this._config!;
+    const entityId = this._entityId ?? "";
+    const picker = this._lists.length > 1;
+    // With a picker the name is the list on screen, so a fixed `name` would stop
+    // it following the choice.
     const name =
-      cfg.name ??
-      (this.hass?.states[cfg.entity]?.attributes.friendly_name as string | undefined) ??
-      cfg.entity;
+      (picker ? undefined : cfg.name) ??
+      (this.hass?.states[entityId]?.attributes.friendly_name as string | undefined) ??
+      entityId;
     return html`
       <div class="header">
         <div class="header-icon">
           <ha-icon icon=${cfg.icon ?? DEFAULT_TODO_ICON}></ha-icon>
         </div>
         <div class="header-text">
-          <div class="header-name">${name}</div>
+          ${picker
+            ? html`<button
+                class="header-name header-picker"
+                aria-haspopup="listbox"
+                aria-expanded=${String(this._listMenuOpen)}
+                aria-label=${`${name}: ${this._t("todo_pick_list")}`}
+                title=${this._t("todo_pick_list")}
+                @click=${this._openListMenu}
+              >
+                <span class="header-picker-name">${name}</span>
+                <ha-icon icon="mdi:chevron-down"></ha-icon>
+              </button>`
+            : html`<div class="header-name">${name}</div>`}
           <div class="header-sub">
             ${this._t("todo_open_done", { offen: openCount, erledigt: doneCount })}
           </div>
@@ -610,7 +727,7 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
     if (this._editing === item.uid) return this._renderEditRow(item);
     const done = item.status === "completed";
     const press = this._pressHandlers(item);
-    const reorder = this._config?.reorderable && todoSupports(this.hass, this._config!.entity, TODO_FEATURE.move);
+    const reorder = this._config?.reorderable && todoSupports(this.hass, (this._entityId ?? ""), TODO_FEATURE.move);
     return html`
       <div
         class="row ${this._duplicate === item.uid ? "pulse" : ""} ${this._dragging === item.uid ? "dragging" : ""}"
@@ -680,7 +797,7 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
   private _renderDone(done: TodoItem[]): TemplateResult {
     const canClear =
       this._config?.show_clear_completed !== false &&
-      todoSupports(this.hass, this._config!.entity, TODO_FEATURE.delete);
+      todoSupports(this.hass, (this._entityId ?? ""), TODO_FEATURE.delete);
     return html`
       <div class="done-block">
         <div
@@ -795,6 +912,51 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+
+      /* With several lists the name is a button that opens the list menu. */
+      .header-picker {
+        display: flex;
+        align-items: center;
+        gap: 2px;
+        max-width: 100%;
+        padding: 0;
+        border: none;
+        background: none;
+        font: inherit;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.2;
+        text-align: start;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .header-picker:focus-visible {
+        outline: 2px solid var(--m3t-accent);
+        outline-offset: 2px;
+        border-radius: 6px;
+      }
+
+      .header-picker-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .header-picker ha-icon {
+        flex-shrink: 0;
+        --mdc-icon-size: 18px;
+        color: var(--m3t-secondary-text);
+        transition: transform 200ms ${EASING};
+      }
+
+      .header-picker[aria-expanded="true"] ha-icon {
+        transform: rotate(180deg);
+      }
+
+      .card-inner.no-animations .header-picker ha-icon {
+        transition: none;
       }
 
       .header-sub {

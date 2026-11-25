@@ -6,6 +6,18 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ## [Unreleased]
 
+### Added
+
+- **Todo card: `entities` list picker.** Name several `todo.*` lists under
+  `entities` and the header name becomes a drop-down built on the shared
+  dropdown menu, so one card can show whichever list you choose. `entity` is
+  the list shown first and is added to the menu when `entities` leaves it out.
+  The pick is kept per user in Home Assistant's frontend data and follows them
+  between devices. A list that no longer exists is skipped in favour of one that
+  does, instead of leaving the card on an error with no way to switch. With one
+  list, or none under `entities`, nothing changes. `entity` is now optional when
+  `entities` is set.
+
 ## [2.11.0] – 2026-11-24
 
 ### Added
