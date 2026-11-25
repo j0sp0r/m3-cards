@@ -3,15 +3,19 @@ import { cameraEntities, initialCamera, normalizeCameras } from "./camera-config
 
 describe("normalizeCameras", () => {
   it("takes the short forms", () => {
-    expect(normalizeCameras({ type: "x", camera: "camera.door" })).toEqual([{ camera: "camera.door" }]);
+    expect(normalizeCameras({ type: "x", camera: "camera.door" })).toEqual([{ camera: "camera.door", id: "camera.door" }]);
     expect(normalizeCameras({ type: "x", cameras: ["camera.a", { camera: "camera.b", name: "B" }] }).map((c) => c.camera)).toEqual([
       "camera.a",
       "camera.b",
     ]);
   });
-  it("drops repeats and entries without a camera", () => {
+  it("drops repeats and entries with neither camera nor doorbell", () => {
     const out = normalizeCameras({ type: "x", cameras: ["camera.a", "camera.a", { name: "x" } as never] });
     expect(out.map((c) => c.camera)).toEqual(["camera.a"]);
+  });
+  it("takes a doorbell without a camera, named by its doorbell", () => {
+    const out = normalizeCameras({ type: "x", cameras: [{ doorbell: "event.intercom_ding", name: "Hall" }] });
+    expect(out).toEqual([{ doorbell: "event.intercom_ding", name: "Hall", id: "event.intercom_ding" }]);
   });
   it("fills in the card-wide door and actions, but keeps a camera's own", () => {
     const door = { tap_action: { action: "none" as const } };

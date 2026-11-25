@@ -98,7 +98,8 @@ export class M3CameraCardEditor extends LitElement implements LovelaceCardEditor
   private _cameraSchema(): SchemaEntry[] {
     const ev = { entity: { domain: EVENT_DOMAINS } };
     return [
-      { name: "camera", required: true, selector: { entity: { domain: "camera" } } },
+      // Optional: an intercom without a camera has only its doorbell.
+      { name: "camera", selector: { entity: { domain: "camera" } } },
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },
       { name: "doorbell", selector: ev },
@@ -130,7 +131,7 @@ export class M3CameraCardEditor extends LitElement implements LovelaceCardEditor
 
   private _cameraData(c: CameraConfig): Record<string, unknown> {
     return {
-      camera: c.camera,
+      camera: c.camera ?? "",
       name: c.name ?? "",
       icon: c.icon ?? "",
       doorbell: c.doorbell ?? "",
@@ -152,7 +153,9 @@ export class M3CameraCardEditor extends LitElement implements LovelaceCardEditor
     const v = ev.detail.value as Record<string, unknown>;
     const cameras = this._cameras.slice();
     const prev = cameras[index] ?? { camera: "" };
-    const next: CameraConfig = { ...prev, camera: (v.camera as string) || prev.camera };
+    const next: CameraConfig = { ...prev };
+    if (typeof v.camera === "string" && v.camera) next.camera = v.camera;
+    else delete next.camera;
     for (const key of ["name", "icon", "doorbell", "person", "package", "motion", "battery", "snapshot_url_template"] as const) {
       const val = v[key];
       if (typeof val === "string" && val) next[key] = val;
@@ -255,7 +258,7 @@ export class M3CameraCardEditor extends LitElement implements LovelaceCardEditor
           html`
             ${cameras.map(
               (cam, i) => html`
-                <ha-expansion-panel outlined .header=${cam.name ?? (this.hass!.states[cam.camera]?.attributes.friendly_name as string | undefined) ?? cam.camera} ?expanded=${cameras.length === 1}>
+                <ha-expansion-panel outlined .header=${cam.name ?? (this.hass!.states[cam.camera ?? cam.doorbell ?? ""]?.attributes.friendly_name as string | undefined) ?? cam.camera ?? cam.doorbell ?? "?"} ?expanded=${cameras.length === 1}>
                   <div class="panel-content">
                     ${form(this._cameraData(cam), this._cameraSchema(), (e) => this._cameraChanged(i, e))}
                     ${cameras.length > 1

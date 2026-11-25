@@ -18,8 +18,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   camera, goes live and offers Talk (with a `talk_action`), Open door (with a
   `door_action`, confirmed and with feedback) and Ignore;
   `ring_overlay: fullscreen` also opens it over the dashboard, as a bottom
-  sheet on a phone. Asked for on Reddit; the live demo has a doorbell and two
-  cameras, with a "Someone rings" scenario.
+  sheet on a phone. An intercom without a camera (the Ring Intercom) works too:
+  the doorbell alone, no picture, Open door as the wide button. Asked for on
+  Reddit; the live demo has a doorbell and two cameras, with a "Someone rings"
+  scenario.
 - **Todo card: `entities` list picker.** Name several `todo.*` lists under
   `entities` and the header name becomes a drop-down built on the shared
   dropdown menu, so one card can show whichever list you choose. `entity` is

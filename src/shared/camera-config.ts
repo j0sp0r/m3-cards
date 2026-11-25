@@ -7,19 +7,27 @@
 
 import type { CameraConfig, M3CameraCardConfig } from "../types";
 
-export function normalizeCameras(config: M3CameraCardConfig | undefined): CameraConfig[] {
+/**
+ * A camera as the card works with it: the config plus `id`, which names it in
+ * chips and caches — the camera entity, or the doorbell for one without a
+ * camera (an intercom).
+ */
+export type CameraEntry = CameraConfig & { id: string };
+
+export function normalizeCameras(config: M3CameraCardConfig | undefined): CameraEntry[] {
   if (!config) return [];
   const raw: Array<string | CameraConfig> = [
     ...(config.cameras ?? []),
     ...(config.camera && !(config.cameras ?? []).length ? [config.camera] : []),
   ];
   const seen = new Set<string>();
-  const out: CameraConfig[] = [];
+  const out: CameraEntry[] = [];
   for (const item of raw) {
-    const cam: CameraConfig | undefined =
-      typeof item === "string" ? { camera: item } : item && typeof item.camera === "string" ? { ...item } : undefined;
-    if (!cam || !cam.camera || seen.has(cam.camera)) continue;
-    seen.add(cam.camera);
+    const base: CameraConfig | undefined = typeof item === "string" ? { camera: item } : item ? { ...item } : undefined;
+    const id = base?.camera || base?.doorbell;
+    if (!base || !id || seen.has(id)) continue;
+    seen.add(id);
+    const cam: CameraEntry = { ...base, id };
     cam.actions ??= config.actions;
     cam.door_action ??= config.door_action;
     cam.talk_action ??= config.talk_action;
@@ -29,9 +37,9 @@ export function normalizeCameras(config: M3CameraCardConfig | undefined): Camera
 }
 
 /** The camera shown first: `default_camera` when it is one of them, else the first. */
-export function initialCamera(cameras: readonly CameraConfig[], preferred?: string): string | undefined {
-  if (preferred && cameras.some((c) => c.camera === preferred)) return preferred;
-  return cameras[0]?.camera;
+export function initialCamera(cameras: readonly CameraEntry[], preferred?: string): string | undefined {
+  if (preferred && cameras.some((c) => c.id === preferred)) return preferred;
+  return cameras[0]?.id;
 }
 
 /** Every entity a camera reads, for shouldUpdate and the history request. */

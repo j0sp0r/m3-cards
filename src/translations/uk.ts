@@ -1262,6 +1262,7 @@ const uk: CustomTranslations = {
   camera_events_hours: "{h} год · подій: {n}",
   camera_events_all: "Усі",
   camera_kind_ring: "Дзвінок",
+  camera_kind_door: "Двері відчинено",
   camera_kind_person: "Людина",
   camera_kind_package: "Посилка",
   camera_kind_motion: "Рух",

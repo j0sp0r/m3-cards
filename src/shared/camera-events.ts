@@ -9,7 +9,7 @@
 
 import type { CameraConfig } from "../types";
 
-export type CameraEventKind = "ring" | "person" | "package" | "motion" | "other";
+export type CameraEventKind = "ring" | "door" | "person" | "package" | "motion" | "other";
 
 export interface CameraEvent {
   entity: string;
@@ -37,6 +37,8 @@ export interface StateLike {
 }
 
 const KIND_WORDS: Array<[CameraEventKind, RegExp]> = [
+  // An intercom's "intercom_unlock": the door was opened.
+  ["door", /\b(unlock|unlocked|opened|door open|open door)\b/i],
   ["ring", /\b(ding|ring|ringing|doorbell|press|pressed|button)\b/i],
   ["package", /\b(package|parcel|delivery)\b/i],
   ["person", /\b(person|people|face|human)\b/i],
@@ -175,7 +177,7 @@ export function currentDetection(
 export function fillEventTemplate(template: string, cam: CameraConfig, event: CameraEvent): string | undefined {
   if (/\{id\}/.test(template) && !event.id) return undefined;
   const values: Record<string, string> = {
-    camera: cam.camera.replace(/^camera\./, ""),
+    camera: (cam.camera ?? cam.doorbell ?? "").replace(/^[a-z_]+\./, ""),
     entity: event.entity,
     event_type: event.eventType ?? event.kind,
     timestamp: String(Math.floor(event.at / 1000)),

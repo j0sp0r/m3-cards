@@ -2221,8 +2221,11 @@ export type CameraEventTap =
   | { media_path: string };
 
 export interface CameraConfig {
-  /** The camera.* entity. */
-  camera: string;
+  /**
+   * The camera.* entity. Optional for a doorbell without a camera — an
+   * intercom that only rings and opens the door — which then needs `doorbell`.
+   */
+  camera?: string;
   name?: string;
   icon?: string;
   /** Battery level in %. */

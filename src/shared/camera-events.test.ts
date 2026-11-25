@@ -28,6 +28,7 @@ describe("kindOf", () => {
     expect(kindOf(cam, "event.front_door_motion", "person")).toBe("person");
     expect(kindOf(cam, "event.front_door_motion", "something")).toBe("motion");
     expect(kindOf(cam, "event.front_door_extra")).toBe("other");
+    expect(kindOf(cam, "event.front_door_extra", "intercom_unlock")).toBe("door");
   });
 });
 

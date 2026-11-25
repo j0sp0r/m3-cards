@@ -9199,6 +9199,32 @@ cameras:
 snapshot_refresh: 30
 ```
 
+**An intercom without a camera** — the Ring Intercom, say, which only rings
+and opens the door. Leave `camera` out and give the doorbell: the card has no
+picture then, Open door takes the wide button, and the rest — the ring, the
+door with its confirmation, the timeline — works the same. An `event.*`
+feedback entity (the intercom's "unlocked") shows "Door opened" for a moment
+after each event.
+
+```yaml
+type: custom:m3-camera-card
+cameras:
+  - name: Hallway
+    doorbell: event.hallway_ding
+    battery: sensor.hallway_battery
+    events:
+      - event.hallway_intercom_unlock
+    door_action:
+      tap_action:
+        action: perform-action
+        perform_action: button.press
+        target:
+          entity_id: button.hallway_open_door
+      feedback_entity: event.hallway_intercom_unlock
+```
+
+A doorbell without a camera can also sit among cameras, as one more chip.
+
 **Several cameras**, with buttons of your own:
 
 ```yaml
@@ -9237,7 +9263,7 @@ Up to three round buttons sit beside Watch live; more go into a menu.
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
 | `cameras` | list | – | One or more cameras: a `camera.*` id, or an object with the fields below |
-| `cameras[].camera` | entity | – | The camera (required) |
+| `cameras[].camera` | entity | – | The camera. Leave it out for an intercom without one; `doorbell` is then required |
 | `cameras[].name` / `icon` | string | the entity's | Name and icon for header and chip |
 | `cameras[].battery` | entity | – | Battery level in %, as a pill in the header |
 | `cameras[].doorbell` | entity | – | `event.*` or `binary_sensor.*` that rings |

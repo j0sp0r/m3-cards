@@ -2,7 +2,6 @@ import { LitElement, html, css, nothing, unsafeCSS, type PropertyValues, type Te
 import { customElement, property, state } from "lit/decorators.js";
 import type {
   CameraActionConfig,
-  CameraConfig,
   HaActionConfig,
   HomeAssistant,
   LovelaceCard,
@@ -43,7 +42,7 @@ import { confirmDialogStyles, renderConfirmDialog, type ConfirmRequest } from ".
 import { syncDialogOpenState } from "./shared/popup-card";
 import { ensureHaCardDefined } from "./shared/card-helpers";
 import { openEntityDetail } from "./shared/entity-detail";
-import { cameraEntities, eventEntities, initialCamera, normalizeCameras } from "./shared/camera-config";
+import { cameraEntities, eventEntities, initialCamera, normalizeCameras, type CameraEntry } from "./shared/camera-config";
 import {
   currentDetection,
   eventFromChange,
@@ -65,6 +64,7 @@ console.info(
 
 const KIND_ICON: Record<CameraEventKind, string> = {
   ring: "mdi:bell-ring-outline",
+  door: "mdi:door-open",
   person: "mdi:account-outline",
   package: "mdi:package-variant-closed",
   motion: "mdi:run",
@@ -73,6 +73,7 @@ const KIND_ICON: Record<CameraEventKind, string> = {
 
 const KIND_COLOR: Record<CameraEventKind, string> = {
   ring: CAMERA_RING_COLOR,
+  door: CAMERA_PERSON_COLOR,
   person: CAMERA_PERSON_COLOR,
   package: CAMERA_PACKAGE_COLOR,
   motion: CAMERA_MOTION_COLOR,
@@ -111,7 +112,7 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
   @state() private _confirm?: ConfirmRequest;
   @state() private _menuOpen = false;
 
-  private _cameras: CameraConfig[] = [];
+  private _cameras: CameraEntry[] = [];
   private _controller = new LiveController((live) => {
     this._live = live;
     if (!live) this._tick++;
@@ -134,10 +135,10 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
 
   public setConfig(config: M3CameraCardConfig): void {
     const cameras = normalizeCameras(config);
-    if (!cameras.length) throw new Error("cameras is required (one camera.* entity at least)");
+    if (!cameras.length) throw new Error("cameras is required: a camera.* entity, or a doorbell for an intercom without a camera");
     this._config = config;
     this._cameras = cameras;
-    if (!this._selected || !cameras.some((c) => c.camera === this._selected)) {
+    if (!this._selected || !cameras.some((c) => c.id === this._selected)) {
       this._selected = initialCamera(cameras, config.default_camera);
     }
     this._controller.setIdle((config.live_idle_timeout ?? DEFAULT_CAMERA_LIVE_IDLE_S) * 1000);
@@ -174,8 +175,8 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     return s;
   }
 
-  private get _camera(): CameraConfig | undefined {
-    return this._cameras.find((c) => c.camera === this._selected) ?? this._cameras[0];
+  private get _camera(): CameraEntry | undefined {
+    return this._cameras.find((c) => c.id === this._selected) ?? this._cameras[0];
   }
 
   private get _ringTimeoutMs(): number {
@@ -261,16 +262,25 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
         if (!before || prev === next) continue;
         const event = eventFromChange(cam, entity, prev, next);
         if (!event) continue;
-        if (this._historyLoaded.has(cam.camera)) {
-          const list = mergeEvents(this._events.get(cam.camera) ?? [], [event], this._windowStart());
-          this._events = new Map(this._events).set(cam.camera, list);
+        if (this._historyLoaded.has(cam.id)) {
+          const list = mergeEvents(this._events.get(cam.id) ?? [], [event], this._windowStart());
+          this._events = new Map(this._events).set(cam.id, list);
         }
-        if (cam.camera === this._selected) {
+        if (cam.id === this._selected) {
           this._imgFailures = 0;
           this._imgError = false;
           this._tick++;
         }
       }
+    }
+
+    // A feedback entity that is an event (an intercom's "unlocked"): the door
+    // shows as opened for a moment after each one.
+    for (const cam of this._cameras) {
+      const fb = cam.door_action?.feedback_entity;
+      if (!fb?.startsWith("event.") || !before || before.states[fb] === this.hass.states[fb]) continue;
+      const at = Date.parse(this.hass.states[fb]?.state ?? "");
+      if (!isNaN(at) && now - at < CAMERA_DOOR_FEEDBACK_MS) this._showDoorOpened(at + CAMERA_DOOR_FEEDBACK_MS - now);
     }
 
     this._checkRing(now);
@@ -281,11 +291,11 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
   private _checkRing(now: number): void {
     for (const cam of this._cameras) {
       const at = lastRingAt(cam, this.hass!.states);
-      if (!at || now - at >= this._ringTimeoutMs || at <= (this._handledRing.get(cam.camera) ?? 0)) continue;
-      this._handledRing.set(cam.camera, at);
+      if (!at || now - at >= this._ringTimeoutMs || at <= (this._handledRing.get(cam.id) ?? 0)) continue;
+      this._handledRing.set(cam.id, at);
       if (at <= this._ignoredAt) continue;
-      if (this._selected !== cam.camera) this._select(cam.camera);
-      this._ringCamera = cam.camera;
+      if (this._selected !== cam.id) this._select(cam.id);
+      this._ringCamera = cam.id;
       this._ringAt = at;
       this._talk = false;
       if (liveMode(cam.live_provider, this._featuresOf(cam)) !== "image") this._controller.start("ring");
@@ -299,8 +309,8 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     const cam = this._camera;
     if (!cam || !this._config?.auto_live_on_motion || this._ringing) return;
     const det = currentDetection(cam, this.hass!.states, now, this._ringTimeoutMs);
-    if (!det || det.at <= (this._handledDetection.get(cam.camera) ?? 0)) return;
-    this._handledDetection.set(cam.camera, det.at);
+    if (!det || det.at <= (this._handledDetection.get(cam.id) ?? 0)) return;
+    this._handledDetection.set(cam.id, det.at);
     if (liveMode(cam.live_provider, this._featuresOf(cam)) !== "image") this._controller.start("motion");
   }
 
@@ -336,8 +346,8 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     }
   }
 
-  private _featuresOf(cam: CameraConfig): number {
-    return Number(this.hass?.states[cam.camera]?.attributes.supported_features) || 0;
+  private _featuresOf(cam: CameraEntry): number {
+    return cam.camera ? Number(this.hass?.states[cam.camera]?.attributes.supported_features) || 0 : 0;
   }
 
   private _windowStart(): number {
@@ -345,10 +355,10 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
   }
 
   /** The events of the last hours, once per camera; afterwards only added to. */
-  private async _loadHistory(cam: CameraConfig): Promise<void> {
-    if (!this.hass || this._historyLoaded.has(cam.camera) || this._historyLoading.has(cam.camera)) return;
+  private async _loadHistory(cam: CameraEntry): Promise<void> {
+    if (!this.hass || this._historyLoaded.has(cam.id) || this._historyLoading.has(cam.id)) return;
     const ids = eventEntities(cam).filter((id) => this.hass!.states[id]);
-    this._historyLoading.add(cam.camera);
+    this._historyLoading.add(cam.id);
     const start = this._windowStart();
     const ask = async (entityIds: string[], withAttributes: boolean): Promise<Record<string, HistoryRow[]>> => {
       if (!entityIds.length) return {};
@@ -372,13 +382,13 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
       for (const [entity, rows] of Object.entries({ ...withAttrs, ...plain })) {
         found.push(...eventsFromHistory(cam, entity, rows ?? [], start));
       }
-      const merged = mergeEvents(this._events.get(cam.camera) ?? [], found, start);
-      this._events = new Map(this._events).set(cam.camera, merged);
+      const merged = mergeEvents(this._events.get(cam.id) ?? [], found, start);
+      this._events = new Map(this._events).set(cam.id, merged);
     } catch (e) {
       console.warn("m3-camera-card: could not read the event history", e);
     } finally {
-      this._historyLoading.delete(cam.camera);
-      this._historyLoaded.add(cam.camera);
+      this._historyLoading.delete(cam.id);
+      this._historyLoaded.add(cam.id);
     }
   }
 
@@ -390,6 +400,7 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     }
     const cam = this._camera;
     if (!cam) return;
+    if (!cam.camera) return;
     await ensureHaCardDefined("hui-picture-entity-card", { type: "picture-entity", entity: cam.camera, camera_view: "live" });
     const ok = await Promise.race([
       customElements.whenDefined("ha-camera-stream").then(() => true),
@@ -468,17 +479,23 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     };
   };
 
-  private async _openDoor(cam: CameraConfig): Promise<void> {
+  private async _openDoor(cam: CameraEntry): Promise<void> {
     const door = cam.door_action;
     if (!door) return;
     const ok = await this._run(door.tap_action);
-    if (!ok || door.feedback_entity) return;
-    this._doorUntil = Date.now() + CAMERA_DOOR_FEEDBACK_MS;
+    // A feedback entity says itself when the door is open; an event one may
+    // never come, so the card still shows its three seconds then.
+    if (!ok || (door.feedback_entity && !door.feedback_entity.startsWith("event."))) return;
+    this._showDoorOpened(CAMERA_DOOR_FEEDBACK_MS);
+  }
+
+  private _showDoorOpened(ms: number): void {
+    this._doorUntil = Math.max(this._doorUntil, Date.now() + ms);
     if (this._doorTimer !== undefined) window.clearTimeout(this._doorTimer);
     this._doorTimer = window.setTimeout(() => {
       this._doorTimer = undefined;
       this._now = Date.now();
-    }, CAMERA_DOOR_FEEDBACK_MS + 30);
+    }, this._doorUntil - Date.now() + 30);
   }
 
   private _runCustom(action: CameraActionConfig): void {
@@ -525,7 +542,7 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     openEntityDetail(this, entityId);
   }
 
-  private _openEvent(cam: CameraConfig, event: CameraEvent): void {
+  private _openEvent(cam: CameraEntry, event: CameraEvent): void {
     const tap = cam.event_tap ?? "more-info";
     if (tap === "more-info") return this._moreInfo(event.entity);
     if ("url_template" in tap) {
@@ -560,8 +577,8 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
 
   // ---- text ------------------------------------------------------------
 
-  private _cameraName(cam: CameraConfig): string {
-    return cam.name ?? (this.hass?.states[cam.camera]?.attributes.friendly_name as string | undefined) ?? cam.camera;
+  private _cameraName(cam: CameraEntry): string {
+    return cam.name ?? (this.hass?.states[cam.camera ?? cam.id]?.attributes.friendly_name as string | undefined) ?? cam.id;
   }
 
   private _time(ms: number): string {
@@ -571,6 +588,11 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
   private _ago(ms: number): string {
     const minutes = Math.floor((this._now - ms) / 60_000);
     return minutes < 1 ? this._t("camera_just_now") : this._t("camera_minutes_ago", { n: minutes });
+  }
+
+  private _defaultIcon(cam: CameraEntry): string {
+    if (!cam.camera) return "mdi:doorbell";
+    return cam.doorbell ? "mdi:doorbell-video" : CAMERA_DEFAULT_ICON;
   }
 
   private _kindLabel(kind: CameraEventKind): string {
@@ -583,11 +605,12 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     const cfg = this._config;
     const cam = this._camera;
     if (!cfg || !cam || !this.hass) return nothing;
-    const st = this.hass.states[cam.camera];
-    const unavailable = !st || st.state === "unavailable";
-    const ringing = this._ringing && this._ringCamera === cam.camera;
+    // An intercom without a camera has no picture: it is never "unavailable" for want of one.
+    const st = cam.camera ? this.hass.states[cam.camera] : undefined;
+    const unavailable = !!cam.camera && (!st || st.state === "unavailable");
+    const ringing = this._ringing && this._ringCamera === cam.id;
     const det = ringing ? undefined : currentDetection(cam, this.hass.states, this._now, this._ringTimeoutMs);
-    const events = (this._events.get(cam.camera) ?? []).filter((e) => e.at >= this._windowStart());
+    const events = (this._events.get(cam.id) ?? []).filter((e) => e.at >= this._windowStart());
     const name = this._cameraName(cam);
     const radius = resolveCornerRadius(cfg.radius ?? DEFAULT_CAMERA_RADIUS, cfg.corners);
     const { textColorCss, secondaryTextColorCss, cardBackgroundCss } = resolveCommonColors(cfg);
@@ -621,12 +644,14 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     const overlayMode = cfg.ring_overlay === "fullscreen" && ringing && this._overlay;
     const body = (inOverlay: boolean) => html`
       ${renderCardHeader({
-        icon: ringing ? "mdi:bell-ring-outline" : cam.icon ?? (cam.doorbell ? "mdi:doorbell-video" : CAMERA_DEFAULT_ICON),
+        icon: ringing ? "mdi:bell-ring-outline" : cam.icon ?? this._defaultIcon(cam),
         name: ringing ? this._t("camera_ringing") : name,
         subtitle,
         right: this._renderBattery(cam),
       })}
-      ${this._renderStage(cam, st, unavailable, ringing, det?.kind, inOverlay || !overlayMode)}
+      ${cam.camera
+        ? this._renderStage(cam, st, unavailable, ringing, det?.kind, inOverlay || !overlayMode)
+        : this._renderStatus(cam)}
       ${ringing ? this._renderRingActions(cam) : this._renderActions(cam, unavailable)}
     `;
 
@@ -660,7 +685,7 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     `;
   }
 
-  private _renderBattery(cam: CameraConfig): TemplateResult | undefined {
+  private _renderBattery(cam: CameraEntry): TemplateResult | undefined {
     if (!cam.battery) return undefined;
     const value = Number(this.hass?.states[cam.battery]?.state);
     if (!Number.isFinite(value)) return undefined;
@@ -678,7 +703,7 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
    * inside the overlay's card the still stands in, so one stream runs at once.
    */
   private _renderStage(
-    cam: CameraConfig,
+    cam: CameraEntry,
     st: HomeAssistant["states"][string] | undefined,
     unavailable: boolean,
     ringing: boolean,
@@ -739,16 +764,28 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     `;
   }
 
-  private _doorOpen(cam: CameraConfig): boolean {
+  /** Without a camera there is no picture to carry the pills: they get a row of their own. */
+  private _renderStatus(cam: CameraEntry): TemplateResult | typeof nothing {
+    const door = this._doorOpen(cam);
+    if (!door && !this._talk) return nothing;
+    return html`<div class="status-row">
+      ${this._talk ? html`<span class="pill talk"><ha-icon icon="mdi:microphone"></ha-icon>${this._t("camera_talk_active")}</span>` : nothing}
+      ${door ? html`<span class="pill door"><ha-icon icon="mdi:door-open"></ha-icon>${this._t("camera_door_opened")}</span>` : nothing}
+    </div>`;
+  }
+
+  private _doorOpen(cam: CameraEntry): boolean {
     const fb = cam.door_action?.feedback_entity;
-    if (fb) return DOOR_OPEN_STATES.has(this.hass?.states[fb]?.state ?? "");
+    if (fb && !fb.startsWith("event.")) return DOOR_OPEN_STATES.has(this.hass?.states[fb]?.state ?? "");
     return this._now < this._doorUntil || Date.now() < this._doorUntil;
   }
 
-  private _renderActions(cam: CameraConfig, unavailable: boolean): TemplateResult {
-    const mode = liveMode(cam.live_provider, this._featuresOf(cam));
+  private _renderActions(cam: CameraEntry, unavailable: boolean): TemplateResult {
+    const mode = cam.camera ? liveMode(cam.live_provider, this._featuresOf(cam)) : "image";
+    // Without a camera there is nothing to watch: opening the door takes the wide button.
+    const doorWide = !cam.camera && !!cam.door_action;
     const icons: Array<{ key: string; icon: string; label: string; run: () => void }> = [];
-    if (cam.door_action) {
+    if (cam.door_action && !doorWide) {
       icons.push({ key: "door", icon: cam.door_action.icon ?? "mdi:lock-open-variant-outline", label: cam.door_action.name ?? this._t("camera_open_door"), run: this._requestDoor });
     }
     const custom = [...(cam.actions ?? [])].sort((a, b) => Number(!!b.primary) - Number(!!a.primary));
@@ -756,9 +793,15 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     const overflow = icons.length > CAMERA_MAX_ICON_BUTTONS;
     const shown = overflow ? icons.slice(0, CAMERA_MAX_ICON_BUTTONS - 1) : icons;
     const rest = overflow ? icons.slice(CAMERA_MAX_ICON_BUTTONS - 1) : [];
-    if (mode === "image" && !icons.length) return html``;
+    if (mode === "image" && !icons.length && !doorWide) return html``;
     return html`
       <div class="actions">
+        ${doorWide
+          ? html`<button class="primary" @click=${this._requestDoor}>
+              <ha-icon icon=${cam.door_action!.icon ?? "mdi:lock-open-variant-outline"}></ha-icon>
+              <span>${cam.door_action!.name ?? this._t("camera_open_door")}</span>
+            </button>`
+          : nothing}
         ${mode !== "image"
           ? html`<button class="primary ${this._live ? "on" : ""}" ?disabled=${unavailable} @click=${this._toggleLive}>
               <ha-icon icon=${this._live ? "mdi:stop" : "mdi:play"}></ha-icon>
@@ -794,7 +837,7 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
   }
 
   /** While it rings: Talk (with a talk action) | Open door (with a door action) | Ignore. */
-  private _renderRingActions(cam: CameraConfig): TemplateResult {
+  private _renderRingActions(cam: CameraEntry): TemplateResult {
     return html`
       <div class="actions ring-actions">
         ${cam.talk_action
@@ -820,14 +863,14 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     return html`
       <div class="chips" role="tablist" aria-label=${this._t("camera_cameras")}>
         ${this._cameras.map((c) => {
-          const active = c.camera === this._selected;
+          const active = c.id === this._selected;
           return html`<button
             class="chip ${active ? "active" : ""}"
             role="tab"
             aria-selected=${String(active)}
-            @click=${() => this._select(c.camera)}
+            @click=${() => this._select(c.id)}
           >
-            <ha-icon icon=${c.icon ?? (c.doorbell ? "mdi:doorbell-video" : CAMERA_DEFAULT_ICON)}></ha-icon>
+            <ha-icon icon=${c.icon ?? this._defaultIcon(c)}></ha-icon>
             <span>${this._cameraName(c)}</span>
           </button>`;
         })}
@@ -835,7 +878,7 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     `;
   }
 
-  private _renderTimeline(cam: CameraConfig, events: CameraEvent[]): TemplateResult {
+  private _renderTimeline(cam: CameraEntry, events: CameraEvent[]): TemplateResult {
     const hours = this._config?.events_hours ?? DEFAULT_CAMERA_EVENTS_HOURS;
     const max = this._config?.max_events ?? DEFAULT_CAMERA_MAX_EVENTS;
     const midnight = new Date(this._now);
@@ -1005,6 +1048,11 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
       }
       @keyframes cam-dot {
         50% { opacity: 0.35; }
+      }
+      .status-row {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
       }
       .fs-button {
         position: absolute;
