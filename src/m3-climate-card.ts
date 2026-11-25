@@ -72,6 +72,13 @@ import { shouldAnimate } from "./shared/animation";
 import { migrateAnimationsField } from "./shared/config-migration";
 import { activateOnKey } from "./shared/a11y";
 import { SetpointDraft, parseTarget } from "./shared/setpoint-draft";
+import {
+  SWING_AXES,
+  currentSwingMode,
+  swingModeIcon,
+  swingModes,
+  type SwingAxis,
+} from "./shared/climate-swing";
 import { openDropdownMenu, closeDropdownMenu } from "./shared/dropdown-menu";
 import { TemplatedCard } from "./shared/templated-card";
 import {
@@ -93,6 +100,13 @@ console.info(
 /** The per-render values both styles share — see `_resolveView`. */
 type ClimateView = ReturnType<M3ClimateCard["_resolveView"]>;
 
+/** One swing axis the card shows: its values and the current one. */
+interface SwingRow {
+  axis: SwingAxis;
+  modes: string[];
+  current?: string;
+}
+
 @customElement("m3-climate-card")
 export class M3ClimateCard extends TemplatedCard(LitElement) implements LovelaceCard {
   @property({ attribute: false }) public hass?: HomeAssistant;
@@ -101,6 +115,8 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
   @state() private _presetMenuOpen = false;
   @state() private _modeMenuOpen = false;
   @state() private _fanMenuOpen = false;
+  /** The swing axis whose menu is open, for its button's aria-expanded. */
+  @state() private _swingMenuOpen?: SwingAxis;
   /** Bumped when a draft target moves: a draft is not a property. */
   @state() private _draftTick = 0;
   /** The target being typed in ("single", "low", "high"), while its field is open. */
@@ -178,7 +194,7 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
     super.disconnectedCallback();
     // The dropdown lives on document.body, so it would outlive a card removed
     // while its menu is open (view switch, editor preview).
-    if (this._modeMenuOpen || this._presetMenuOpen || this._fanMenuOpen)
+    if (this._modeMenuOpen || this._presetMenuOpen || this._fanMenuOpen || this._swingMenuOpen)
       closeDropdownMenu();
   }
 
@@ -250,6 +266,44 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
     this.hass.callService("climate", "set_fan_mode", {
       entity_id: this._config.entity,
       fan_mode: fanMode,
+    });
+  }
+
+  private _selectSwingMode(axis: SwingAxis, mode: string, unavailable: boolean): void {
+    if (unavailable || !this.hass || !this._config) return;
+    const spec = SWING_AXES[axis];
+    this.hass.callService("climate", spec.service, {
+      entity_id: this._config.entity,
+      [spec.field]: mode,
+    });
+  }
+
+  // As with the fan: the values Home Assistant defines are translated, anything
+  // an integration made up ("left", "swing", "3") is shown tidied up.
+  private _swingModeLabel(axis: SwingAxis, mode?: string): string {
+    if (!mode) return this._t(SWING_AXES[axis].titleKey);
+    const key = `swing_mode_${mode.toLowerCase()}` as TranslationKey;
+    const translated = this._t(key);
+    if (translated !== key) return translated;
+    return mode.charAt(0).toUpperCase() + mode.slice(1).replace(/_/g, " ");
+  }
+
+  private _openSwingMenu(event: Event, row: SwingRow, unavailable: boolean): void {
+    if (unavailable || row.modes.length === 0) return;
+    this._swingMenuOpen = row.axis;
+    openDropdownMenu({
+      anchor: event.currentTarget as HTMLElement,
+      label: this._t(SWING_AXES[row.axis].titleKey),
+      items: row.modes.map((mode) => ({
+        value: mode,
+        label: this._swingModeLabel(row.axis, mode),
+        icon: swingModeIcon(mode) ?? SWING_AXES[row.axis].icon,
+        selected: mode === row.current,
+      })),
+      onSelect: (mode) => this._selectSwingMode(row.axis, mode, unavailable),
+      onClose: () => {
+        this._swingMenuOpen = undefined;
+      },
     });
   }
 
@@ -674,6 +728,18 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
     const currentFanMode =
       typeof attrs.fan_mode === "string" ? attrs.fan_mode : undefined;
 
+    // Swing (Reddit), opt-in per axis like the fan speed: up/down and
+    // left/right are separate settings in Home Assistant.
+    const swingRows: SwingRow[] = (
+      [
+        ["vertical", config.show_swing_modes],
+        ["horizontal", config.show_swing_horizontal_modes],
+      ] as const
+    )
+      .filter(([, shown]) => shown === true)
+      .map(([axis]) => ({ axis, modes: swingModes(attrs, axis), current: currentSwingMode(attrs, axis) }))
+      .filter((row) => row.modes.length > 0);
+
     // In heat/cool a thermostat holds a band rather than one setpoint. The
     // attributes decide which it is — see shared/climate-target.ts.
     const target = readClimateTarget(attrs);
@@ -708,6 +774,7 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
       fanModes,
       showFanModes,
       currentFanMode,
+      swingRows,
       tempInHeader: config.temperature_chip_placement === "header",
       target,
       step,
@@ -869,7 +936,11 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
               : nothing}
           </div>
 
-          ${v.showFanModes ? this._renderFanRow(v) : nothing}
+          ${v.swingRows.length
+            ? this._renderAirflowRow(v)
+            : v.showFanModes
+              ? this._renderFanRow(v)
+              : nothing}
 
           ${v.showSensors &&
           ((v.currentTemperature !== undefined && !v.tempInHeader) ||
@@ -1408,6 +1479,23 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
                   </button>
                 `
               : nothing}
+            ${v.swingRows.map((row) => {
+              const title = `${this._t(SWING_AXES[row.axis].titleKey)}: ${this._swingModeLabel(row.axis, row.current)}`;
+              return html`
+                <button
+                  class="preset-button swing-button ${showControlLabels ? "" : "icon-only"} ${row.current === "off" ? "swing-off" : ""}"
+                  ?disabled=${v.dimUnavailable}
+                  aria-label=${title}
+                  title=${title}
+                  aria-haspopup="listbox"
+                  aria-expanded=${String(this._swingMenuOpen === row.axis)}
+                  @click=${(event: Event) => this._openSwingMenu(event, row, v.dimUnavailable)}
+                >
+                  <ha-icon icon=${SWING_AXES[row.axis].icon}></ha-icon>
+                  ${showControlLabels ? html`<span>${this._swingModeLabel(row.axis, row.current)}</span>` : nothing}
+                </button>
+              `;
+            })}
           </div>
         </div>
       </ha-card>
@@ -1462,6 +1550,57 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
                 : html`<span class="fan-pill-label">${label}</span>`}
             </button>
           `;
+        })}
+      </div>
+    `;
+  }
+
+  /**
+   * Style `tiles` with swing: the fan speed and each swing axis share one row
+   * of menu buttons — icon, current value, a small chevron — instead of a row
+   * of pills each. Three rows of pills under the modes made the card a wall
+   * of buttons; these are settings one changes now and then, so a menu is
+   * enough. The fan's icon is its current speed; each swing button carries
+   * its axis' arrow, so up/down and left/right cannot be confused. Without
+   * swing the fan keeps its pill row, as before.
+   */
+  private _renderAirflowRow(v: ClimateView): TemplateResult {
+    const color = this._modeColor("fan_only");
+    const fan = v.showFanModes
+      ? html`<button
+          class="air-button ${v.currentFanMode && v.currentFanMode !== "off" ? "moving" : ""}"
+          style=${`--pill-color: ${color};`}
+          ?disabled=${v.dimUnavailable}
+          aria-label=${`${this._t("fan_mode")}: ${this._fanModeLabel(v.currentFanMode)}`}
+          title=${`${this._t("fan_mode")}: ${this._fanModeLabel(v.currentFanMode)}`}
+          aria-haspopup="listbox"
+          aria-expanded=${String(this._fanMenuOpen)}
+          @click=${(event: Event) => this._openFanMenu(event, v.fanModes, v.currentFanMode, v.dimUnavailable)}
+        >
+          <ha-icon icon=${this._fanModeIcon(v.currentFanMode)}></ha-icon>
+          <span class="air-value">${this._fanModeLabel(v.currentFanMode)}</span>
+          <ha-icon class="air-caret" icon="mdi:chevron-down"></ha-icon>
+        </button>`
+      : nothing;
+    return html`
+      <div class="air-row">
+        ${fan}
+        ${v.swingRows.map((row) => {
+          const title = `${this._t(SWING_AXES[row.axis].titleKey)}: ${this._swingModeLabel(row.axis, row.current)}`;
+          return html`<button
+            class="air-button ${row.current && row.current !== "off" ? "moving" : ""}"
+            style=${`--pill-color: ${color};`}
+            ?disabled=${v.dimUnavailable}
+            aria-label=${title}
+            title=${title}
+            aria-haspopup="listbox"
+            aria-expanded=${String(this._swingMenuOpen === row.axis)}
+            @click=${(event: Event) => this._openSwingMenu(event, row, v.dimUnavailable)}
+          >
+            <ha-icon icon=${SWING_AXES[row.axis].icon}></ha-icon>
+            <span class="air-value">${this._swingModeLabel(row.axis, row.current)}</span>
+            <ha-icon class="air-caret" icon="mdi:chevron-down"></ha-icon>
+          </button>`;
         })}
       </div>
     `;
@@ -1677,6 +1816,88 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    /* Airflow row (tiles with swing): fan and swing as menu buttons. */
+    .air-row {
+      display: flex;
+      gap: 8px;
+      container-type: inline-size;
+    }
+
+    /* Narrow (a phone, a half-width slot): the values keep the room, the
+       chevrons go — the button still says it opens a menu by its look. */
+    @container (max-width: 380px) {
+      .air-button {
+        gap: 4px;
+        padding: 0 8px;
+      }
+      .air-button .air-caret {
+        display: none;
+      }
+    }
+
+    .air-button {
+      flex: 1 1 0;
+      min-width: 0;
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 0 10px 0 12px;
+      border: none;
+      border-radius: 14px;
+      background: color-mix(in srgb, var(--primary-text-color) 7%, transparent);
+      color: var(--primary-text-color);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 200ms ease;
+    }
+
+    .air-button:hover:not([disabled]) {
+      background: color-mix(in srgb, var(--primary-text-color) 11%, transparent);
+    }
+
+    .air-button[aria-expanded="true"] {
+      background: color-mix(in srgb, var(--pill-color) 22%, transparent);
+    }
+
+    .air-button[disabled] {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    .air-button ha-icon {
+      flex: 0 0 auto;
+      --mdc-icon-size: 20px;
+      opacity: 0.6;
+    }
+
+    /* The fan turning or the vanes swinging: the glyph takes the fan colour. */
+    .air-button.moving ha-icon:not(.air-caret) {
+      color: var(--pill-color);
+      opacity: 1;
+    }
+
+    .air-value {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .air-button .air-caret {
+      --mdc-icon-size: 16px;
+      opacity: 0.45;
+    }
+
+    /* Swing off: the axis button steps back, as the vanes stand still. */
+    .style-expressive .swing-button.swing-off ha-icon {
+      opacity: 0.55;
     }
 
     .style-expressive .fan-button .fan-short {

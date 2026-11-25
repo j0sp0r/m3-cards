@@ -19,6 +19,14 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   `entities` is set. Thanks to @Richard9e98 (#66). The editor no longer marks
   `entity` as required once `entities` names the lists, and the picker speaks
   Ukrainian too.
+- **Climate card: swing.** `show_swing_modes` (up/down) and
+  `show_swing_horizontal_modes` (left/right) set where an air conditioner's
+  vanes point: each axis is a button with its arrow and the current value that
+  opens a menu. In `tiles` the fan speed joins them in one row of such buttons,
+  so the card gains one row rather than three; in `expressive` they sit beside
+  the fan button. Off by
+  default, and only for an entity that reports the values and the feature.
+  Asked for on Reddit. The live demo has an air conditioner to try it on.
 - **Energy flow card: `devices`.** Big consumers — a wallbox, a heat pump —
   branch off the home in a row of small nodes of their own, up to four, fed
   along a line as thick as what flows through it. With `source: energy` each is

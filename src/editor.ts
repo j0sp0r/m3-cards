@@ -132,6 +132,8 @@ export class M3ClimateCardEditor
             },
           ] as SchemaEntry[])
         : []),
+      { name: "show_swing_modes", selector: { boolean: {} } },
+      { name: "show_swing_horizontal_modes", selector: { boolean: {} } },
       { name: "show_sensors", selector: { boolean: {} } },
       {
         name: "hidden_modes",
@@ -259,6 +261,8 @@ export class M3ClimateCardEditor
       preset_style: "editor_preset_style",
       show_fan_modes: "editor_show_fan_modes",
       fan_modes_when: "editor_fan_modes_when",
+      show_swing_modes: "editor_show_swing_modes",
+      show_swing_horizontal_modes: "editor_show_swing_horizontal_modes",
       hidden_modes: "editor_hidden_modes",
       temperature_chip_placement: "editor_temperature_chip_placement",
       height: "editor_height",
@@ -373,6 +377,8 @@ export class M3ClimateCardEditor
       preset_style: this._config.preset_style ?? "chip",
       show_fan_modes: this._config.show_fan_modes ?? false,
       fan_modes_when: this._config.fan_modes_when ?? "always",
+      show_swing_modes: this._config.show_swing_modes ?? false,
+      show_swing_horizontal_modes: this._config.show_swing_horizontal_modes ?? false,
       show_sensors: this._config.show_sensors ?? true,
       hidden_modes: this._config.hidden_modes ?? [],
     };

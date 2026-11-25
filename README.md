@@ -540,6 +540,28 @@ show_fan_modes: true
 fan_modes_when: fan_only # only while the fan runs on its own
 ```
 
+### Swing
+
+Many air conditioners can move their vanes: up and down, and on some units
+left and right as a separate setting. Home Assistant keeps the two apart as
+`swing_modes` and `swing_horizontal_modes`. `show_swing_modes: true` and
+`show_swing_horizontal_modes: true` offer them, each on its own, as a button
+with the axis' arrow and the current value that opens a menu. In `tiles` the
+fan speed joins them in one row of such buttons under the modes, instead of a
+row of pills each; in `expressive` they sit beside the fan button. The values
+Home Assistant defines (on, off, both, vertical, horizontal) get an icon and a
+translated name; others such as `left` or `top` are shown by name. Off by
+default; each row appears only for an entity that reports the values and the
+matching feature.
+
+```yaml
+type: custom:m3-climate-card
+entity: climate.bedroom_ac
+show_fan_modes: true
+show_swing_modes: true            # up/down
+show_swing_horizontal_modes: true # left/right
+```
+
 ### The `expressive` style
 
 <img src="docs/images/climate-card-expressive.png" alt="Climate Card: tiles vs expressive style (light theme)" width="640">
@@ -633,6 +655,8 @@ chevron, since the header no longer folds anything — see "Tapping the header".
 | `preset_style` | `chip` \| `pill` | `chip` | Preset as its own wide row (`chip`) or as an extra pill in the mode row (`pill`) |
 | `show_fan_modes` | boolean | `false` | The fan speed, for an entity that reports `fan_modes` (an air conditioner, mostly). See [Fan speed](#fan-speed) |
 | `fan_modes_when` | `always` \| `fan_only` | `always` | Show the fan speed in every mode, or only while the HVAC mode is "fan only" |
+| `show_swing_modes` | boolean | `false` | Swing up/down, for an entity that reports `swing_modes`. See [Swing](#swing) |
+| `show_swing_horizontal_modes` | boolean | `false` | Swing left/right, for an entity that reports `swing_horizontal_modes`. See [Swing](#swing) |
 | `show_sensors` | boolean | `true` | Show sensor chips (temperature/humidity) |
 | `temperature_chip_placement` | `info_row` \| `header` | `info_row` | Current temperature in the sensor row or as a chip top-right in the header |
 | `temperature_sensor` | string | – | External temperature sensor, overrides `current_temperature` |

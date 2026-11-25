@@ -177,6 +177,10 @@ function views() {
         { type: "custom:m3-climate-card", entity: "climate.living_room", temperature_sensor: "sensor.living_room_temperature", humidity_sensor: "sensor.living_room_humidity", show_presets: true },
         { type: "custom:m3-detail-card", entity: "sensor.living_room_temperature", secondary_entity: "sensor.living_room_humidity", show_related: false, details: "hidden" },
       ]],
+      [t("Air conditioning", "Klimaanlage"), [
+        { type: "custom:m3-climate-card", entity: "climate.bedroom_ac", show_fan_modes: true, show_swing_modes: true, show_swing_horizontal_modes: true, variant: "tiles" },
+        { type: "custom:m3-climate-card", entity: "climate.bedroom_ac", style: "expressive", show_fan_modes: true, show_swing_modes: true, show_swing_horizontal_modes: true, variant: "expressive" },
+      ]],
       [t("Other rooms", "Weitere Räume"), [
         { type: "custom:m3-climate-card-mini", entity: "climate.bedroom" },
         { type: "custom:m3-climate-card-mini", entity: "climate.kids_room" },

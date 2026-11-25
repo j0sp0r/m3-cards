@@ -381,6 +381,9 @@ export class Sim {
         }
         if (service === "set_hvac_mode") return this.set(id, data.hvac_mode);
         if (service === "set_preset_mode") return this.set(id, undefined, { preset_mode: data.preset_mode });
+        if (service === "set_fan_mode") return this.set(id, undefined, { fan_mode: data.fan_mode });
+        if (service === "set_swing_mode") return this.set(id, undefined, { swing_mode: data.swing_mode });
+        if (service === "set_swing_horizontal_mode") return this.set(id, undefined, { swing_horizontal_mode: data.swing_horizontal_mode });
         if (service === "turn_off") return this.set(id, "off");
         if (service === "turn_on") return this.set(id, "heat");
         return;
@@ -917,7 +920,7 @@ const SERVICES = Object.fromEntries(
     ["switch", ["turn_on", "turn_off", "toggle"]],
     ["input_boolean", ["turn_on", "turn_off", "toggle"]],
     ["fan", ["turn_on", "turn_off", "toggle", "set_percentage"]],
-    ["climate", ["set_temperature", "set_hvac_mode", "set_preset_mode", "turn_on", "turn_off"]],
+    ["climate", ["set_temperature", "set_hvac_mode", "set_preset_mode", "set_fan_mode", "set_swing_mode", "set_swing_horizontal_mode", "turn_on", "turn_off"]],
     ["cover", ["open_cover", "close_cover", "stop_cover", "set_cover_position", "toggle"]],
     ["media_player", ["media_play", "media_pause", "media_play_pause", "media_next_track", "media_previous_track", "volume_set", "volume_mute", "select_source", "turn_on", "turn_off", "toggle"]],
     ["lock", ["lock", "unlock", "open"]],

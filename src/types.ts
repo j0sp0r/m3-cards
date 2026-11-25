@@ -167,6 +167,14 @@ export interface M3ClimateCardConfig extends DetailModeConfig {
    * only while the HVAC mode is "fan only".
    */
   fan_modes_when?: "always" | "fan_only";
+  /**
+   * Swing up/down — the entity's `swing_modes` — as a row of pills in style
+   * `tiles`, a button with a menu in `expressive`. Only for an entity that
+   * reports them and the SWING_MODE feature. @default false
+   */
+  show_swing_modes?: boolean;
+  /** Swing left/right (`swing_horizontal_modes`), likewise. @default false */
+  show_swing_horizontal_modes?: boolean;
   height?: number;
   radius?: number;
   corners?: CornerRadiusConfig;
