@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 import { afterEach, describe, expect, it } from "vitest";
 import { localize, type CustomTranslationRegistry, type TranslationKey } from "./localize";
+import nlBe from "./translations/nl-be";
 import uk from "./translations/uk";
 
 /**
@@ -167,6 +168,21 @@ describe("user translations (window.m3CardsTranslations)", () => {
     expect(localize("editor_entity", "uk-UA")).toBe("Сутність");
   });
 
+  it.each(["nl-BE", "nl-be", "NL-be"])("selects Belgian Dutch for %s", (language) => {
+    expect(localize("energy_weekday_today", language)).toBe(nlBe.energy_weekday_today);
+    expect(localize("editor_entity", language)).toBe(nlBe.editor_entity);
+  });
+
+  it("resolves regional and base overrides before built-in Belgian Dutch", () => {
+    register({
+      nl: { energy_weekday_today: "Heden", multigraph_summary_mean: "Gemiddeld (NL)" },
+      "nl-BE": { energy_weekday_today: "Vandaag (custom)" },
+    });
+    expect(localize("energy_weekday_today", "nl-BE")).toBe("Vandaag (custom)");
+    expect(localize("multigraph_summary_mean", "nl-BE")).toBe("Gemiddeld (NL)");
+    expect(localize("editor_entity", "nl-BE")).toBe(nlBe.editor_entity);
+  });
+
   it("a partial map overrides its keys and leaves the rest in English", () => {
     register({ nl: { energy_weekday_today: "Vandaag" } });
     expect(localize("energy_weekday_today", "nl")).toBe("Vandaag");
@@ -224,6 +240,18 @@ describe("Ukrainian translation placeholders", () => {
       const english = localize(key, "en").match(placeholders) ?? [];
       const ukrainian = localize(key, "uk").match(placeholders) ?? [];
       return english.sort().join() !== ukrainian.sort().join();
+    });
+    expect(mismatches).toEqual([]);
+  });
+});
+
+describe("Belgian Dutch translation placeholders", () => {
+  it("preserves the placeholders used by the English strings", () => {
+    const placeholders = /\{[a-z_]+\}|\[\[[a-z_]+\]\]/g;
+    const mismatches = (Object.keys(nlBe) as TranslationKey[]).filter((key) => {
+      const english = localize(key, "en").match(placeholders) ?? [];
+      const dutchBe = localize(key, "nl-BE").match(placeholders) ?? [];
+      return english.sort().join() !== dutchBe.sort().join();
     });
     expect(mismatches).toEqual([]);
   });

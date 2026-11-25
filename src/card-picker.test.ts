@@ -1,7 +1,8 @@
 import { expect, it, vi } from "vitest";
+import { dutchBeCardDescriptions } from "./translations/nl-be-card-descriptions";
 import { ukrainianCardDescriptions } from "./translations/uk-card-descriptions";
 
-it("registers a Ukrainian picker description for every M3 card", { timeout: 20_000 }, async () => {
+it("registers Ukrainian and Belgian Dutch picker descriptions for every M3 card", { timeout: 20_000 }, async () => {
   const otherCard = { type: "other-card", description: "Another custom card" };
   const cards = [otherCard];
   vi.stubGlobal("window", Object.assign(new EventTarget(), { customCards: cards }));
@@ -12,6 +13,7 @@ it("registers a Ukrainian picker description for every M3 card", { timeout: 20_0
     await import("./index");
     const m3Cards = cards.filter((card) => card.type.startsWith("m3-"));
     expect(m3Cards.map(({ type }) => type).sort()).toEqual([...ukrainianCardDescriptions.keys()].sort());
+    expect(m3Cards.map(({ type }) => type).sort()).toEqual([...dutchBeCardDescriptions.keys()].sort());
 
     const root: { hass?: { locale?: { language: string }; language?: string } } = {};
     vi.stubGlobal("document", {
@@ -27,10 +29,18 @@ it("registers a Ukrainian picker description for every M3 card", { timeout: 20_0
     }
     expect(otherCard.description).toBe("Another custom card");
 
+    root.hass = { locale: { language: "nl-BE" }, language: "en" };
+    for (const card of m3Cards) {
+      expect(card.description, card.type).toBe(dutchBeCardDescriptions.get(card.type));
+    }
+    expect(otherCard.description).toBe("Another custom card");
+
     root.hass = { locale: { language: "de" }, language: "uk" };
     expect(weather.description).toBe(original);
     root.hass = { language: "uk" };
     expect(weather.description).toBe(ukrainianCardDescriptions.get(weather.type));
+    root.hass = { language: "nl-BE" };
+    expect(weather.description).toBe(dutchBeCardDescriptions.get(weather.type));
 
     weather.description = "Custom weather description";
     expect(weather.description).toBe("Custom weather description");

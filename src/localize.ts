@@ -1,6 +1,7 @@
+import nlBe from "./translations/nl-be";
 import uk from "./translations/uk";
 
-export type Lang = "de" | "en" | "uk";
+export type Lang = "de" | "en" | "nl-BE" | "uk";
 
 const defaultTranslations = {
   de: {
@@ -7113,7 +7114,7 @@ export type TranslationKey = keyof (typeof defaultTranslations)["en"];
  */
 export type CustomTranslations = Partial<Record<TranslationKey, string>>;
 
-const translations: Record<Lang, CustomTranslations> = { ...defaultTranslations, uk };
+const translations: Record<Lang, CustomTranslations> = { ...defaultTranslations, "nl-BE": nlBe, uk };
 
 /**
  * Translations supplied from outside the bundle, keyed by language tag
@@ -7155,6 +7156,7 @@ export const TRANSLATIONS_LOADED_EVENT = "m3-cards-translations-loaded";
 export function resolveLang(language?: string): Lang {
   const normalized = language?.toLowerCase();
   if (normalized?.startsWith("de")) return "de";
+  if (normalized === "nl-be" || normalized?.startsWith("nl-be-")) return "nl-BE";
   return normalized?.split("-", 1)[0] === "uk" ? "uk" : "en";
 }
 

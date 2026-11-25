@@ -168,7 +168,7 @@ the image — everything else is live data.</sub>
   per-corner overrides) across every card
 - `unavailable` handling without crashing: values shown as "–", controls
   dimmed
-- Localized in German, English and Ukrainian (follows `hass.locale.language`).
+- Localized in German, English, Dutch (Belgium) and Ukrainian (follows `hass.locale.language`).
   Add other languages or override wording with [your own translations](#your-own-translations).
 - Accessible: every interactive element is keyboard-reachable
   (Tab/Enter/Space) with a visible focus ring and `aria-label`
@@ -307,7 +307,7 @@ rather than icons, such as a power button, keep their surface.
 
 ## Your own translations
 
-The cards ship in German, English and Ukrainian. English is the fallback for
+The cards ship in German, English, Dutch (Belgium) and Ukrainian. English is the fallback for
 other languages.
 To change that, give the cards your own strings from a small file of your
 own — any language, as many or as few strings as you like. Whatever the file

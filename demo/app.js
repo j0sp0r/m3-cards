@@ -24,7 +24,7 @@ if (EMBED) document.body.classList.add("embed");
 const narrowQuery = matchMedia("(max-width: 600px)");
 const phoneLayout = () => EMBED || narrowQuery.matches;
 const sim = new Sim(buildHome(), NAMES_DE);
-if (["en", "de", "uk"].includes(params.get("lang"))) sim.setLanguage(params.get("lang"));
+if (["en", "de", "nl-BE", "uk"].includes(params.get("lang"))) sim.setLanguage(params.get("lang"));
 window.m3Demo = sim;
 const notes = setupNotifications(sim, document.querySelector("header"));
 
@@ -878,6 +878,7 @@ titlesBtn.addEventListener("click", () => apply({ titles: !titles }));
 const LANGUAGES = [
   { code: "en", name: "English" },
   { code: "de", name: "Deutsch" },
+  { code: "nl-BE", name: "Nederlands (België)" },
   // The cards' own Ukrainian (#59); the demo's page texts stay English.
   { code: "uk", name: "Українська" },
 ];
