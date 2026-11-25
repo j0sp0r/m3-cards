@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { HomeAssistant } from "../types";
 import {
-  dropEmptyEntities,
+  type TodoListsConfig,
+  discoverTodoLists,
+  dropEmptyLists,
+  isTodoDiscovery,
   resolveActiveList,
   todoListChoiceId,
   todoListMenuItems,
@@ -86,26 +89,153 @@ describe("resolveActiveList", () => {
   });
 });
 
-describe("dropEmptyEntities", () => {
-  it("removes an emptied list, so the YAML does not keep `entities: []`", () => {
-    expect(dropEmptyEntities({ entity: "todo.a", entities: [] })).toEqual({ entity: "todo.a" });
+describe("isTodoDiscovery", () => {
+  it("is on only when neither entity nor entities names a list", () => {
+    expect(isTodoDiscovery({})).toBe(true);
+    expect(isTodoDiscovery({ entities: [] })).toBe(true);
+    expect(isTodoDiscovery({ entity: "" })).toBe(true);
+    expect(isTodoDiscovery(undefined)).toBe(true);
+    expect(isTodoDiscovery({ entity: "todo.a" })).toBe(false);
+    expect(isTodoDiscovery({ entities: ["todo.a"] })).toBe(false);
+  });
+});
+
+// A hass with the pieces discovery reads: names, the registry entries, devices.
+interface Entry {
+  area_id?: string | null;
+  device_id?: string | null;
+  labels?: string[];
+  hidden?: boolean;
+  hidden_by?: string | null;
+}
+const discoveryHass = (
+  names: Record<string, string | undefined>,
+  entities?: Record<string, Entry>,
+  devices?: Record<string, { area_id?: string | null; labels?: string[] }>,
+) =>
+  ({
+    states: Object.fromEntries(
+      Object.entries(names).map(([id, name]) => [
+        id,
+        { entity_id: id, state: "0", attributes: name ? { friendly_name: name } : {} },
+      ]),
+    ),
+    entities,
+    devices,
+  }) as unknown as HomeAssistant;
+
+describe("discoverTodoLists", () => {
+  const names = {
+    "todo.inbox": "Inbox",
+    "todo.bills": "bills",
+    "todo.chores": "Chores",
+    "light.kitchen": "Kitchen",
+    "sensor.count": "Count",
+  };
+
+  it("finds every todo list and nothing else, sorted by name regardless of case", () => {
+    expect(discoverTodoLists(discoveryHass(names), {})).toEqual(["todo.bills", "todo.chores", "todo.inbox"]);
   });
 
-  it("keeps a list that has entries, and returns the same object", () => {
+  it("sorts a list without a name by its entity id", () => {
+    const hass = discoveryHass({ "todo.zeta": undefined, "todo.alpha": "Alpha" });
+    expect(discoverTodoLists(hass, {})).toEqual(["todo.alpha", "todo.zeta"]);
+  });
+
+  it("works for a frontend without the registries", () => {
+    expect(discoverTodoLists(discoveryHass(names, undefined, undefined), undefined)).toHaveLength(3);
+  });
+
+  it("leaves out a list the user has hidden, as the other discovering cards do", () => {
+    const hass = discoveryHass(names, {
+      "todo.inbox": { hidden: true },
+      "todo.chores": { hidden_by: "user" },
+    });
+    expect(discoverTodoLists(hass, {})).toEqual(["todo.bills"]);
+  });
+
+  it("removes the lists exclude_entities names", () => {
+    const hass = discoveryHass(names);
+    expect(discoverTodoLists(hass, { exclude_entities: ["todo.chores", "todo.inbox"] })).toEqual(["todo.bills"]);
+  });
+
+  it("ignores an include_entities left in hand-written YAML, so discovery stays discovery", () => {
+    const stray = { include_entities: ["todo.chores"] } as unknown as TodoListsConfig;
+    expect(discoverTodoLists(discoveryHass(names), stray)).toEqual(["todo.bills", "todo.chores", "todo.inbox"]);
+  });
+
+  it("reads labels from the entity and from its device", () => {
+    const hass = discoveryHass(
+      names,
+      {
+        "todo.inbox": { labels: ["projects"] },
+        "todo.bills": { device_id: "dev1" },
+        "todo.chores": { labels: ["home"] },
+      },
+      { dev1: { labels: ["projects"] } },
+    );
+    expect(discoverTodoLists(hass, { include_labels: ["projects"] })).toEqual(["todo.bills", "todo.inbox"]);
+    expect(discoverTodoLists(hass, { exclude_labels: ["projects"] })).toEqual(["todo.chores"]);
+  });
+
+  it("takes the area from the entity, or from its device when the entity has none", () => {
+    const hass = discoveryHass(
+      names,
+      {
+        "todo.inbox": { area_id: "office" },
+        "todo.bills": { device_id: "dev1" },
+        "todo.chores": { area_id: "kitchen", device_id: "dev1" },
+      },
+      { dev1: { area_id: "office" } },
+    );
+    expect(discoverTodoLists(hass, { include_area: ["office"] })).toEqual(["todo.bills", "todo.inbox"]);
+    expect(discoverTodoLists(hass, { exclude_area: ["kitchen"] })).toEqual(["todo.bills", "todo.inbox"]);
+  });
+
+  it("finds nothing for a label filter when there is no registry to read labels from", () => {
+    expect(discoverTodoLists(discoveryHass(names), { include_labels: ["projects"] })).toEqual([]);
+  });
+});
+
+describe("dropEmptyLists", () => {
+  it("removes an emptied list and the emptied filters, so the YAML does not keep `[]`", () => {
+    expect(
+      dropEmptyLists({ entity: "todo.a", entities: [], include_labels: [], exclude_entities: ["todo.b"] }),
+    ).toEqual({ entity: "todo.a", exclude_entities: ["todo.b"] });
+  });
+
+  it("removes a cleared entity", () => {
+    expect(dropEmptyLists({ entity: "", include_area: ["office"] })).toEqual({ include_area: ["office"] });
+  });
+
+  it("keeps lists that have entries, and returns the same object", () => {
     const config = { entity: "todo.a", entities: ["todo.b"] };
-    expect(dropEmptyEntities(config)).toBe(config);
+    expect(dropEmptyLists(config)).toBe(config);
   });
 
-  it("leaves a config without the key alone", () => {
-    const config = { entity: "todo.a" };
-    expect(dropEmptyEntities(config)).toBe(config);
+  it("leaves a config with nothing to drop alone", () => {
+    const config = { entity: "todo.a", name: "x" };
+    expect(dropEmptyLists(config)).toBe(config);
   });
 });
 
 describe("todoListChoiceId", () => {
-  it("is stable for the same lists and different when the lists change", () => {
-    expect(todoListChoiceId(["todo.a", "todo.b"])).toBe(todoListChoiceId(["todo.a", "todo.b"]));
-    expect(todoListChoiceId(["todo.a", "todo.b"])).not.toBe(todoListChoiceId(["todo.a", "todo.c"]));
+  it("for named lists is stable for the same lists and different when they change", () => {
+    const a = { entities: ["todo.a", "todo.b"] };
+    const c = { entities: ["todo.a", "todo.c"] };
+    expect(todoListChoiceId(a, ["todo.a", "todo.b"])).toBe(todoListChoiceId(a, ["todo.a", "todo.b"]));
+    expect(todoListChoiceId(a, ["todo.a", "todo.b"])).not.toBe(todoListChoiceId(c, ["todo.a", "todo.c"]));
+  });
+
+  it("for discovery follows the filter, not what it finds, so a new list keeps the saved pick", () => {
+    const filter = { include_labels: ["projects"] };
+    expect(todoListChoiceId(filter, ["todo.a"])).toBe(todoListChoiceId(filter, ["todo.a", "todo.new"]));
+  });
+
+  it("for discovery differs by filter and ignores the order of the values", () => {
+    expect(todoListChoiceId({ include_labels: ["b", "a"] }, [])).toBe(todoListChoiceId({ include_labels: ["a", "b"] }, []));
+    expect(todoListChoiceId({ include_labels: ["a"] }, [])).not.toBe(todoListChoiceId({ exclude_labels: ["a"] }, []));
+    expect(todoListChoiceId({}, ["todo.a"])).toBe("*");
   });
 });
 

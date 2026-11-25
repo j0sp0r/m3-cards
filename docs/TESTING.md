@@ -428,6 +428,11 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Liste fehlt | Eine der Listen in HA entfernen oder umbenennen | Karte zeigt die nächste vorhandene Liste, keine Fehlerkarte |
 | Eine Liste | Nur `entity` oder `entities` mit einer Liste | Kopfzeile wie bisher, kein Pfeil, `name` wirkt |
 | Hell/Dunkel, schmal | Menü in beiden Themes und auf Handybreite öffnen; Name sehr lang | Menü lesbar, Name wird gekürzt, Pfeil bleibt sichtbar |
+| Alle Listen | Weder `entity` noch `entities` setzen | Kopfzeile zeigt eine Auswahl mit allen `todo.*`-Listen, nach Name sortiert |
+| Filter | `include_labels`, `exclude_entities` und `include_area` einzeln setzen | Nur passende Listen im Menü; in HA ausgeblendete Listen fehlen (mit `entities` benannt erscheinen sie) |
+| Neue Liste | Eine zum Filter passende Liste anlegen, Dashboard offen lassen | Liste erscheint im Menü ohne Neuladen; die gespeicherte Auswahl bleibt |
+| Keine Treffer | Filter so setzen, dass nichts passt | Hinweis „Keine Todo-Listen gefunden“ statt einer leeren Karte |
+| Editor | `entity` leeren und Filter im Editor setzen | Felder zeigen die Auswahl; geleerte Felder verschwinden aus dem YAML |
 
 ## M3 Time Card
 

@@ -52,11 +52,12 @@ import { STANDARD_EASING, shouldAnimate } from "./shared/animation";
 import { fetchTodoItems, todoSupports, TODO_FEATURE, type TodoItem } from "./shared/ha-todo";
 import { collectSupplyChips } from "./shared/supply-chips";
 import { localize, type TranslationKey } from "./localize";
-import { hassChangeMatters } from "./shared/should-update";
+import { hassChangeMatters, discoveryChangeMatters } from "./shared/should-update";
 import { openDropdownMenu, closeDropdownMenu } from "./shared/dropdown-menu";
 import { loadUserData, saveUserData } from "./shared/user-data";
 import {
   TODO_LIST_CHOICE_KEY,
+  discoverTodoLists,
   resolveActiveList,
   todoListChoiceId,
   todoListMenuItems,
@@ -113,6 +114,8 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
   private _choices: Record<string, string> = {};
   private _choicesLoaded = false;
   private _choiceLoading = false;
+  /** The lists found when neither `entity` nor `entities` is set. */
+  private _discovered: string[] = [];
   private _morphTimer?: number;
   private _duplicateTimer?: number;
   private _clearTimer?: number;
@@ -133,7 +136,6 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
   }
 
   public setConfig(config: M3TodoCardConfig): void {
-    if (todoLists(config).length === 0) throw new Error("entity or entities is required");
     this._config = {
       glass_background: true,
       animation: "auto",
@@ -148,6 +150,7 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
     // The offered lists may have changed, and the saved pick belongs to them.
     this._selected = undefined;
     this._choicesLoaded = false;
+    this._discovered = [];
   }
 
   public getCardSize(): number {
@@ -170,6 +173,15 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
     if (this._pressTimer) clearTimeout(this._pressTimer);
   }
 
+  protected willUpdate(changed: PropertyValues): void {
+    super.willUpdate(changed);
+    // Discovery runs ahead of the render, from the states and registries Home
+    // Assistant already holds, so it needs no request of its own.
+    if (this.hass && this._config && todoLists(this._config).length === 0) {
+      this._discovered = discoverTodoLists(this.hass, this._config);
+    }
+  }
+
   protected updated(changed: PropertyValues): void {
     super.updated(changed);
     this._loadChoice();
@@ -189,9 +201,14 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
 
   // ---- data -------------------------------------------------------------
 
-  /** Every list the card offers. More than one means a picker. */
+  /**
+   * Every list the card offers. More than one means a picker. With no `entity`
+   * and no `entities` that is every list it can find, narrowed by the
+   * include_* / exclude_* options.
+   */
   private get _lists(): string[] {
-    return todoLists(this._config);
+    const named = todoLists(this._config);
+    return named.length ? named : this._discovered;
   }
 
   /** The list on screen: the picked one, else the configured one. */
@@ -261,11 +278,11 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
   private _loadChoice(): void {
     if (this._choicesLoaded || this._choiceLoading || !this.hass || this._lists.length < 2) return;
     this._choiceLoading = true;
-    const id = todoListChoiceId(this._lists);
+    const id = todoListChoiceId(this._config, this._lists);
     void loadUserData<Record<string, string>>(this.hass, TODO_LIST_CHOICE_KEY).then((saved) => {
       this._choiceLoading = false;
       // The config changed while this was loading: read again for the new lists.
-      if (id !== todoListChoiceId(this._lists)) {
+      if (id !== todoListChoiceId(this._config, this._lists)) {
         this.requestUpdate();
         return;
       }
@@ -297,7 +314,7 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
     this._items = []; // do not flash the previous list's entries
     this._editing = undefined;
     this._lastStateKey = undefined;
-    void this._saveChoice(todoListChoiceId(this._lists), entityId);
+    void this._saveChoice(todoListChoiceId(this._config, this._lists), entityId);
   }
 
   /**
@@ -557,14 +574,27 @@ export class M3TodoCard extends TemplatedCard(LitElement) implements LovelaceCar
   // ---- render -----------------------------------------------------------
 
   protected shouldUpdate(changed: PropertyValues): boolean {
-    return hassChangeMatters(changed, this.hass, this._lists);
+    // A discovering card also has to notice a list being added or removed,
+    // which no entity it reads yet can announce.
+    return todoLists(this._config).length === 0
+      ? discoveryChangeMatters(changed, this.hass, this._lists)
+      : hassChangeMatters(changed, this.hass, this._lists);
   }
 
   protected render() {
     const cfg = this._config;
     if (!cfg) return nothing;
     const entityId = this._entityId;
-    if (!entityId) return nothing;
+    if (!entityId) {
+      // Discovery that found nothing says so, instead of leaving an empty space.
+      return this.hass && todoLists(cfg).length === 0
+        ? html`<ha-card>
+            <div class="card-inner ${glassCardClass(cfg.glass_background)}">
+              <div class="hint">${this._t("todo_no_lists")}</div>
+            </div>
+          </ha-card>`
+        : nothing;
+    }
     if (this.hass && !this.hass.states[entityId]) return renderMissingEntity(entityId);
 
     const accent = resolveThemeColor(cfg.accent_color ?? DEFAULT_TODO_ACCENT);
