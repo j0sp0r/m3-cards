@@ -13,6 +13,8 @@ export interface SnackbarOptions {
   message: string;
   action?: { label: string; onAction: () => void };
   durationMs?: number;
+  /** `error` paints the bar in the theme's error colour, for a failed action. */
+  tone?: "error";
 }
 
 @customElement(TAG)
@@ -43,7 +45,7 @@ export class M3Snackbar extends LitElement {
   protected render() {
     const o = this._opts;
     return html`
-      <div class="bar ${this._open ? "open" : ""}" role="status" aria-live="polite">
+      <div class="bar ${this._open ? "open" : ""} ${o?.tone === "error" ? "error" : ""}" role=${o?.tone === "error" ? "alert" : "status"} aria-live=${o?.tone === "error" ? "assertive" : "polite"}>
         ${o
           ? html`<span class="msg">${o.message}</span>
               ${o.action && this._open
@@ -81,6 +83,10 @@ export class M3Snackbar extends LitElement {
       opacity: 0;
       transform: translateY(12px);
       transition: opacity 180ms ease, transform 220ms cubic-bezier(0.2, 0, 0, 1);
+    }
+    .bar.error {
+      background: var(--error-color, #db4437);
+      color: #fff;
     }
     .bar.open {
       opacity: 1;

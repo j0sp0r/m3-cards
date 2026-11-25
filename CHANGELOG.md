@@ -8,6 +8,18 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **Camera card (card 60).** Cameras and video doorbells from any integration
+  — Ring, Frigate, Reolink, UniFi Protect, any `camera` entity. A still with
+  its time at rest, live through Home Assistant's own player only on demand
+  (stopping after a spell without a touch, off screen or in a background tab),
+  chips to switch cameras and a timeline of the day's events from the history
+  of their event entities, with pictures from a URL template where there is a
+  source. A ring turns the card into the blue info container, switches to that
+  camera, goes live and offers Talk (with a `talk_action`), Open door (with a
+  `door_action`, confirmed and with feedback) and Ignore;
+  `ring_overlay: fullscreen` also opens it over the dashboard, as a bottom
+  sheet on a phone. Asked for on Reddit; the live demo has a doorbell and two
+  cameras, with a "Someone rings" scenario.
 - **Todo card: `entities` list picker.** Name several `todo.*` lists under
   `entities` and the header name becomes a drop-down built on the shared
   dropdown menu, so one card can show whichever list you choose. `entity` is

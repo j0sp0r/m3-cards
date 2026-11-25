@@ -2174,6 +2174,121 @@ export interface NetworkOverrideConfig {
   fixed_ip?: boolean;
 }
 
+// ---- m3-camera-card ---------------------------------------------------------
+
+/** How the camera card shows live video. `image` never streams. */
+export type CameraLiveProvider = "auto" | "webrtc" | "hls" | "image";
+
+/** A button of one's own on the camera card: a light, a siren. */
+export interface CameraActionConfig {
+  name?: string;
+  icon: string;
+  tap_action: HaActionConfig;
+  /** Ask first. `true`, or `{ text }` for the question to ask. */
+  confirmation?: boolean | { text?: string };
+  /** Ahead of the others, so it stays out of the overflow menu. */
+  primary?: boolean;
+}
+
+/** "Open the door": any action — a button press, an unlock, a script. */
+export interface CameraDoorActionConfig {
+  tap_action: HaActionConfig;
+  /** Ask before opening. @default true */
+  confirmation?: boolean;
+  /** Shows "Door opened" while this entity is on/unlocked/open, instead of 3 s. */
+  feedback_entity?: string;
+  name?: string;
+  icon?: string;
+}
+
+/**
+ * "Talk": the card sends no audio itself. The action starts whatever does —
+ * an integration's service, a script, the vendor's app — and the card shows
+ * "Two-way audio on" until it is tapped again.
+ */
+export interface CameraTalkActionConfig {
+  tap_action: HaActionConfig;
+  /** Runs when talking is turned off again, if anything has to. */
+  stop_action?: HaActionConfig;
+  name?: string;
+  icon?: string;
+}
+
+/** Where a tap on an event in the timeline goes. */
+export type CameraEventTap =
+  | "more-info"
+  | { url_template: string }
+  | { media_path: string };
+
+export interface CameraConfig {
+  /** The camera.* entity. */
+  camera: string;
+  name?: string;
+  icon?: string;
+  /** Battery level in %. */
+  battery?: string;
+  /** event.* or binary_sensor.* for the doorbell. */
+  doorbell?: string;
+  motion?: string;
+  person?: string;
+  package?: string;
+  /** Further event.* / binary_sensor.* for the timeline. */
+  events?: string[];
+  /** @default "auto" */
+  live_provider?: CameraLiveProvider;
+  /**
+   * A picture per event: {camera}, {entity}, {event_type}, {timestamp}
+   * (epoch seconds) and {id} (the event's `event_id`, if it has one). For
+   * Frigate: /api/frigate/notifications/{id}/thumbnail.jpg
+   */
+  snapshot_url_template?: string;
+  /** @default "more-info" */
+  event_tap?: CameraEventTap;
+  actions?: CameraActionConfig[];
+  door_action?: CameraDoorActionConfig;
+  talk_action?: CameraTalkActionConfig;
+}
+
+export interface M3CameraCardConfig extends DetailModeConfig {
+  type: string;
+  /** One or more cameras; a plain "camera.x" is short for `{ camera: camera.x }`. */
+  cameras?: Array<string | CameraConfig>;
+  /** Short form for a single camera. */
+  camera?: string;
+  default_camera?: string;
+  /** @default true */
+  show_events?: boolean;
+  /** @default 24 */
+  events_hours?: number;
+  /** @default 10 */
+  max_events?: number;
+  /** The "All" link over the timeline. Without it there is no link. */
+  events_all_action?: HaActionConfig;
+  /** Defaults for every camera that has none of its own. */
+  actions?: CameraActionConfig[];
+  door_action?: CameraDoorActionConfig;
+  talk_action?: CameraTalkActionConfig;
+  /** @default "card" */
+  ring_overlay?: "card" | "fullscreen";
+  /** Seconds a ring (and a detection) counts as current. @default 60 */
+  ring_timeout?: number;
+  /** Go live by itself on motion or a person. @default false */
+  auto_live_on_motion?: boolean;
+  /** Seconds without interaction before a live view stops. @default 60 */
+  live_idle_timeout?: number;
+  /** Seconds between still images while idle; 0 = only on an event. @default 10 */
+  snapshot_refresh?: number;
+  name?: string;
+  glass_background?: boolean;
+  animation?: "auto" | "on" | "off";
+  radius?: number;
+  corners?: CornerRadiusConfig;
+  card_background?: string;
+  text_color?: string;
+  secondary_text_color?: string;
+  card_version?: string;
+}
+
 export interface M3NetworkCardConfig extends DetailModeConfig, NotifyConfigBase {
   type: string;
   title?: string;

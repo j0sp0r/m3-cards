@@ -118,6 +118,27 @@ class HaCard extends HTMLElement {
 }
 customElements.define("ha-card", HaCard);
 
+// Home Assistant's live camera view. The demo has no stream, so it shows the
+// camera's picture as it changes, with a slow pan that reads as "moving".
+class HaCameraStream extends HTMLElement {
+  set stateObj(s) {
+    this._pic = s?.attributes?.entity_picture;
+    this._draw();
+  }
+  connectedCallback() {
+    if (!this.shadowRoot) {
+      this.attachShadow({ mode: "open" }).innerHTML =
+        `<style>:host{display:block;overflow:hidden}img{width:100%;height:100%;object-fit:cover;animation:pan 9s ease-in-out infinite alternate}@keyframes pan{to{transform:scale(1.06) translateX(-1.5%)}}@media (prefers-reduced-motion:reduce){img{animation:none}}</style><img alt="">`;
+    }
+    this._draw();
+  }
+  _draw() {
+    const img = this.shadowRoot?.querySelector("img");
+    if (img && this._pic && img.getAttribute("src") !== this._pic) img.setAttribute("src", this._pic);
+  }
+}
+customElements.define("ha-camera-stream", HaCameraStream);
+
 // Home Assistant's card factory, which the popup and the detail sheet use to
 // build the cards they hold.
 window.loadCardHelpers = async () => ({

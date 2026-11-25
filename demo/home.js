@@ -4,6 +4,8 @@
 // installation. The registry ties them together the way Home Assistant does,
 // so the cards that discover their own entities find a coherent home.
 
+import { CAMERA_SCENES } from "./camera-scenes.js";
+
 const AREAS = [
   ["living_room", "Living Room", "mdi:sofa"],
   ["kitchen", "Kitchen", "mdi:silverware-fork-knife"],
@@ -171,6 +173,14 @@ function devices() {
       ["binary_sensor.front_door", "off", { friendly_name: "Front Door", device_class: "door" }],
       sensor("sensor.front_door_battery", B(43), "Front Door Battery"),
     ]],
+    // A video doorbell at the front door, with the lock to open it.
+    front_doorbell: ["Front Door Camera", "hallway", "Video doorbell", [
+      ["camera.front_door", "idle", { friendly_name: "Front Door", entity_picture: CAMERA_SCENES.front, supported_features: 2 }],
+      ["event.front_door_ding", ago(132), { friendly_name: "Front Door Ding", device_class: "doorbell", event_type: "ding", event_types: ["ding"] }],
+      ["event.front_door_package", ago(270), { friendly_name: "Front Door Package", event_type: "package", event_types: ["package"] }],
+      ["binary_sensor.front_door_person", "off", { friendly_name: "Front Door Person", device_class: "occupancy" }],
+      sensor("sensor.front_door_camera_battery", B(82), "Front Door Camera Battery"),
+    ]],
     alarm: ["Alarm Panel", "hallway", "Alarm panel", [["alarm_control_panel.home", "disarmed", {
       friendly_name: "House", supported_features: 63, code_format: "number", code_arm_required: false, changed_by: null,
     }]]],
@@ -203,6 +213,14 @@ function devices() {
 
     // Garden and garage
     garden_light: ["Garden Lights", "garden", "Outdoor spots", [["light.garden", "off", { friendly_name: "Garden", ...dim }]]],
+    garden_camera: ["Garden Camera", "garden", "Outdoor camera", [
+      ["camera.garden", "idle", { friendly_name: "Garden", entity_picture: CAMERA_SCENES.garden, supported_features: 2 }],
+      ["binary_sensor.garden_motion", "off", { friendly_name: "Garden Motion", device_class: "motion" }],
+    ]],
+    driveway_camera: ["Driveway Camera", "garage", "Outdoor camera", [
+      ["camera.driveway", "idle", { friendly_name: "Driveway", entity_picture: CAMERA_SCENES.drive, supported_features: 2 }],
+      ["binary_sensor.driveway_motion", "off", { friendly_name: "Driveway Motion", device_class: "motion" }],
+    ]],
     outdoor: ["Weather Station", "garden", "Outdoor sensor", [
       sensor("sensor.outdoor_temperature", T(11.8), "Outdoor Temperature"),
       sensor("sensor.outdoor_humidity", H(72), "Outdoor Humidity"),
@@ -372,7 +390,7 @@ export const NAMES_DE = {
     "sensor.office_temperature": "Temperatur Büro", "sensor.office_humidity": "Luftfeuchte Büro", "switch.desk_plug": "Schreibtisch-Steckdose",
     "sensor.desk_plug_power": "Schreibtisch", "light.bathroom": "Bad", "sensor.bathroom_temperature": "Temperatur Bad",
     "sensor.bathroom_humidity": "Luftfeuchte Bad", "fan.bathroom": "Lüfter Bad", "binary_sensor.bathroom_leak": "Hinter dem Waschbecken",
-    "light.hallway": "Flur", "lock.front_door": "Haustür", "binary_sensor.front_door": "Haustür", "alarm_control_panel.home": "Haus",
+    "light.hallway": "Flur", "lock.front_door": "Haustür", "camera.front_door": "Haustür", "camera.garden": "Garten", "camera.driveway": "Einfahrt", "binary_sensor.front_door": "Haustür", "alarm_control_panel.home": "Haus",
     "binary_sensor.smoke_hallway": "Rauchmelder", "sensor.smoke_hallway_battery": "Rauchmelder", "sensor.washer_state": "Waschmaschine",
     "sensor.washer_power": "Waschmaschine", "sensor.dryer_state": "Trockner", "sensor.dryer_power": "Trockner",
     "binary_sensor.utility_leak": "Neben der Waschmaschine", "valve.main_water": "Hauptwasser", "light.garden": "Garten",

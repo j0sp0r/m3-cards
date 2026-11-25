@@ -3450,3 +3450,29 @@ export const USAGE_SLIDE_PX = 24;
 export const USAGE_COUNT_MS = 450;
 /** Each bar starts a little after the one before it, up to this in all. */
 export const USAGE_STAGGER_TOTAL_MS = 240;
+
+// ---- m3-camera-card ----------------------------------------------------------
+
+export const DEFAULT_CAMERA_RADIUS = RADIUS.card;
+export const CAMERA_STAGE_RADIUS = 22;
+export const CAMERA_DEFAULT_ICON = "mdi:cctv";
+export const CAMERA_DOORBELL_ICON = "mdi:doorbell-video";
+export const DEFAULT_CAMERA_EVENTS_HOURS = 24;
+export const DEFAULT_CAMERA_MAX_EVENTS = 10;
+export const DEFAULT_CAMERA_RING_TIMEOUT_S = 60;
+export const DEFAULT_CAMERA_LIVE_IDLE_S = 60;
+export const DEFAULT_CAMERA_SNAPSHOT_REFRESH_S = 10;
+/** How long "Door opened" shows without a feedback entity. */
+export const CAMERA_DOOR_FEEDBACK_MS = 3000;
+/** Tries again after a still image failed to load, then gives up until the next event. */
+export const CAMERA_IMAGE_RETRY_MS = [10_000, 30_000, 60_000] as const;
+/** Battery pill turns to the error colour below this. */
+export const CAMERA_BATTERY_LOW = 30;
+/** Round icon buttons beside "Watch live" before the rest go to a menu. */
+export const CAMERA_MAX_ICON_BUTTONS = 3;
+/** Colours per event kind: the info container for a ring, accent green for a person, amber for a parcel. */
+export const CAMERA_RING_COLOR = PALETTE.cool;
+export const CAMERA_PERSON_COLOR = PALETTE.ok;
+export const CAMERA_PACKAGE_COLOR = PALETTE.solar;
+export const CAMERA_MOTION_COLOR = PALETTE.fan;
+

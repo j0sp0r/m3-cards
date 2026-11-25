@@ -36,6 +36,15 @@ const ENERGY = {
   "sensor.office_energy": { perDay: 1.6, shape: (h) => (h > 8 && h < 18 ? 1 : 0.08) },
   "sensor.tv_energy": { perDay: 0.5, shape: (h) => (h > 18 && h < 23 ? 1 : 0.03) },
 };
+/** Minutes ago of the camera events in the invented day (the timeline's history). */
+const CAMERA_PAST = {
+  "event.front_door_ding": [132, 610],
+  "event.front_door_package": [270],
+  "binary_sensor.front_door_person": [133, 298, 611],
+  "binary_sensor.garden_motion": [45, 190, 420],
+  "binary_sensor.driveway_motion": [80, 515],
+};
+
 const DEVICE_ENERGY = ["sensor.wallbox_energy", "sensor.washer_energy", "sensor.dishwasher_energy", "sensor.dryer_energy", "sensor.fridge_energy", "sensor.office_energy", "sensor.tv_energy"];
 
 const STATE_LABELS = {
@@ -388,6 +397,13 @@ export class Sim {
         if (service === "turn_on") return this.set(id, "heat");
         return;
       case "lock":
+        // The front door locks itself again a moment after it was opened.
+        if (service === "unlock" && id === "lock.front_door") {
+          setTimeout(() => {
+            this.set(id, "locked");
+            this.flush();
+          }, 5000);
+        }
         return this.set(id, service === "lock" ? "locked" : service === "unlock" ? "unlocked" : s.state === "locked" ? "unlocked" : "locked");
       case "alarm_control_panel": {
         if (service === "alarm_disarm") return this.set(id, "disarmed", { changed_by: "Alex" });
@@ -617,6 +633,10 @@ export class Sim {
     for (const id of [].concat(msg.entity_ids ?? msg.entity_id ?? [])) {
       const s = this.states[id];
       if (!s) continue;
+      if (CAMERA_PAST[id]) {
+        out[id] = this._cameraHistory(id, start, end);
+        continue;
+      }
       const numeric = s.attributes.unit_of_measurement && Number.isFinite(Number(s.state));
       if (numeric) {
         const step = Math.max(5 * 60e3, (end - start) / 300);
@@ -634,6 +654,24 @@ export class Sim {
       }
     }
     return out;
+  }
+
+  /** The camera events of an invented day, then what happened here since. */
+  _cameraHistory(id, start, end) {
+    const rows = [];
+    const now = Date.now();
+    const isEvent = id.startsWith("event.");
+    for (const minutes of CAMERA_PAST[id]) {
+      const t = now - minutes * 60e3;
+      if (t < start || t > end) continue;
+      if (isEvent) rows.push({ s: new Date(t).toISOString(), a: this.states[id].attributes, lu: t / 1000 });
+      else rows.push({ s: "on", lu: t / 1000 }, { s: "off", lu: t / 1000 + 40 });
+    }
+    rows.sort((a, b) => a.lu - b.lu);
+    for (const c of this.changes[id] ?? []) {
+      if (c.lu * 1000 >= start) rows.push(isEvent ? { ...c, a: this.states[id].attributes } : c);
+    }
+    return rows;
   }
 
   _statistics(msg) {

@@ -15,6 +15,7 @@ body:
         - Battery (m3-battery-card)
         - Button (m3-button-card)
         - Calendar (m3-calendar-card)
+        - Camera (m3-camera-card)
         - Check-in (m3-checkin-card)
         - Chip Buttons (m3-chip-buttons-card)
         - Climate (m3-climate-card)

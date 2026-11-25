@@ -6,6 +6,8 @@
 // sliding in at the top of the page, with a shade behind the bell that keeps
 // the last few. The scenarios menu makes those events happen on demand.
 
+import { CAMERA_SCENES } from "./camera-scenes.js";
+
 const TEXT = {
   en: {
     app: "Home Assistant",
@@ -24,6 +26,8 @@ const TEXT = {
     batteryTitle: "Battery low",
     alarm: (by) => `Alarm triggered — ${by}`,
     alarmTitle: "Intruder alarm",
+    ring: "Someone is at the front door.",
+    ringTitle: "Doorbell",
     door: (n) => `${n} is open while nobody is home.`,
     s: {
       leak: ["mdi:water-alert", "Water under the sink", "The leak sensor reports water; the valve closes."],
@@ -32,6 +36,7 @@ const TEXT = {
       offline: ["mdi:wifi-off", "A sensor drops out", "Leo's room sensor goes unreachable for a while."],
       alarm: ["mdi:shield-alert", "Someone at the terrace door", "The alarm is armed and the door opens."],
       battery: ["mdi:battery-alert-variant-outline", "A battery runs low", "The remote drops below 10 %."],
+      doorbell: ["mdi:doorbell-video", "Someone rings", "A visitor at the front door: the camera card goes live and offers to open the door."],
       reset: ["mdi:restore", "Back to normal", "Everything as it was."],
     },
   },
@@ -52,6 +57,8 @@ const TEXT = {
     batteryTitle: "Batterie schwach",
     alarm: (by) => `Alarm ausgelöst — ${by}`,
     alarmTitle: "Einbruchalarm",
+    ring: "Jemand steht vor der Haustür.",
+    ringTitle: "Klingel",
     door: (n) => `${n} ist offen, obwohl niemand zuhause ist.`,
     s: {
       leak: ["mdi:water-alert", "Wasser unter der Spüle", "Der Wassersensor schlägt an, das Ventil schließt."],
@@ -60,6 +67,7 @@ const TEXT = {
       offline: ["mdi:wifi-off", "Ein Sensor fällt aus", "Der Sensor in Leos Zimmer ist eine Weile nicht erreichbar."],
       alarm: ["mdi:shield-alert", "Jemand an der Terrassentür", "Die Alarmanlage ist scharf, die Tür geht auf."],
       battery: ["mdi:battery-alert-variant-outline", "Eine Batterie wird schwach", "Die Fernbedienung fällt unter 10 %."],
+      doorbell: ["mdi:doorbell-video", "Es klingelt", "Besuch an der Haustür: Die Kamerakarte schaltet live und bietet an, die Tür zu öffnen."],
       reset: ["mdi:restore", "Alles wieder normal", "Alles wie vorher."],
     },
   },
@@ -242,6 +250,9 @@ export function setupNotifications(sim, header) {
     if (id.startsWith("binary_sensor.") && id.endsWith("_leak") && after === "on") {
       push(tx.leakTitle, tx.leak(name(id)), "mdi:water-alert", "#6ba7dc", "security");
     }
+    if (id === "event.front_door_ding" && after !== before) {
+      push(tx.ringTitle, tx.ring, "mdi:doorbell-video", "#6ba7dc", "security");
+    }
     if (id === "valve.main_water" && after === "closed" && before === "open") {
       push(name(id), tx.valve, "mdi:valve-closed", "#6ba7dc", "security");
     }
@@ -278,7 +289,7 @@ export function setupNotifications(sim, header) {
     for (const id of ids) if (!(id in saved)) saved[id] = { state: sim.get(id).state, attributes: { ...sim.get(id).attributes } };
   };
   /** The page each scenario plays on: the one with the cards it moves. */
-  const SCENARIO_VIEW = { reel: "household", washer: "household", leak: "security", offline: "security", alarm: "security", battery: "security" };
+  const SCENARIO_VIEW = { reel: "household", washer: "household", leak: "security", offline: "security", alarm: "security", battery: "security", doorbell: "security" };
   /** Opens the scenario's page first, then lets it happen there. */
   const play = (key) => {
     const view = SCENARIO_VIEW[key];
@@ -291,6 +302,22 @@ export function setupNotifications(sim, header) {
   };
   const SCENARIOS = {
     reel: () => sim.showReel(),
+    // A visitor walks up, is seen, rings, and leaves again a little later.
+    doorbell: () => {
+      remember("binary_sensor.front_door_person", "camera.front_door", "lock.front_door");
+      sim.set("camera.front_door", undefined, { entity_picture: CAMERA_SCENES.frontPerson });
+      sim.set("binary_sensor.front_door_person", "on");
+      sim.flush();
+      setTimeout(() => {
+        sim.set("event.front_door_ding", new Date().toISOString(), { event_type: "ding" });
+        sim.flush();
+      }, 1500);
+      setTimeout(() => {
+        sim.set("binary_sensor.front_door_person", "off");
+        sim.set("camera.front_door", undefined, { entity_picture: CAMERA_SCENES.front });
+        sim.flush();
+      }, 45_000);
+    },
     leak: () => {
       remember("binary_sensor.kitchen_leak", "valve.main_water");
       sim.set("binary_sensor.kitchen_leak", "on");

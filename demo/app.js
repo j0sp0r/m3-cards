@@ -325,6 +325,23 @@ function views() {
       ];
     })(),
     security: [
+      [t("Cameras", "Kameras"), [
+        { type: "custom:m3-camera-card", cameras: [
+          {
+            camera: "camera.front_door", name: t("Front door", "Haustür"), icon: "mdi:doorbell-video",
+            doorbell: "event.front_door_ding", person: "binary_sensor.front_door_person", package: "event.front_door_package",
+            battery: "sensor.front_door_camera_battery",
+            door_action: { tap_action: { action: "perform-action", perform_action: "lock.unlock", target: { entity_id: "lock.front_door" } }, feedback_entity: "lock.front_door" },
+            talk_action: { tap_action: { action: "none" } },
+            actions: [
+              { name: t("Porch light", "Flurlicht"), icon: "mdi:lightbulb-outline", tap_action: { action: "perform-action", perform_action: "light.toggle", target: { entity_id: "light.hallway" } } },
+              { name: t("Garden light", "Gartenlicht"), icon: "mdi:outdoor-lamp", tap_action: { action: "perform-action", perform_action: "light.toggle", target: { entity_id: "light.garden" } } },
+            ],
+          },
+          { camera: "camera.garden", name: t("Garden", "Garten"), icon: "mdi:flower-outline", motion: "binary_sensor.garden_motion" },
+          { camera: "camera.driveway", name: t("Driveway", "Einfahrt"), icon: "mdi:car-outline", motion: "binary_sensor.driveway_motion" },
+        ] },
+      ]],
       [t("Alarm", "Alarm"), [
         { type: "custom:m3-alarm-card", entity: "alarm_control_panel.home" },
       ]],
