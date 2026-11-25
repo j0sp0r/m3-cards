@@ -516,9 +516,7 @@ export const FLOW_NODE_SIZE = 72;
 export const FLOW_NODE_RX = 26;
 export const FLOW_MIN_STROKE = 4;
 export const FLOW_MAX_STROKE = 20;
-/** Consumer nodes (`devices`): smaller than the four main nodes, at most this many. */
-export const FLOW_DEVICE_NODE_SIZE = 52;
-export const FLOW_DEVICE_NODE_RX = 18;
+/** Consumers (`devices`): at most this many. */
 export const FLOW_MAX_DEVICES = 4;
 // layout: compact (#54): below these card widths the row of tiles goes to two
 // columns — about 70px a tile for four, 60px for three.
