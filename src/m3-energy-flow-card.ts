@@ -7,6 +7,7 @@ import {
   svg,
   type PropertyValues,
   type SVGTemplateResult,
+  type TemplateResult,
 } from "lit";
 import { customElement, property, state } from "lit/decorators.js";
 import type {
@@ -30,6 +31,9 @@ import {
   FLOW_NODE_RX,
   FLOW_MIN_STROKE,
   FLOW_MAX_STROKE,
+  FLOW_DEVICE_NODE_SIZE,
+  FLOW_DEVICE_NODE_RX,
+  FLOW_MAX_DEVICES,
   FLOW_DOT_DURATION_MS,
   FLOW_COMPACT_NARROW_3,
   FLOW_COMPACT_NARROW_4,
@@ -46,6 +50,7 @@ import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
 import { shouldAnimate } from "./shared/animation";
 import { getEnergyDashboardEntities, fetchTodayChangeSum } from "./shared/ha-energy";
 import { displayUnit, flowMeasure, toBase, type FlowMeasure } from "./shared/energy-flow-units";
+import { branchPath, deviceRowLayout, shortName, trunkPath } from "./shared/energy-flow-devices";
 import { localize, type TranslationKey } from "./localize";
 import { formatNumber } from "./shared/formatting";
 import { hassChangeMatters } from "./shared/should-update";
@@ -75,7 +80,8 @@ const SPLIT_BEND_Y = 145;
 const CORNER_RADIUS = 20;
 
 interface FlowNodeData {
-  key: "pv" | "grid" | "home" | "battery";
+  /** pv, grid, home, battery, or device-<n> for a consumer node. */
+  key: string;
   x: number;
   y: number;
   color: string;
@@ -84,6 +90,8 @@ interface FlowNodeData {
   label: string;
   /** A second, smaller line under the label (the grid's other direction). */
   sub?: string;
+  /** A consumer node (`devices`): smaller, its name alone under it. */
+  device?: boolean;
 }
 
 interface FlowLineData {
@@ -153,6 +161,8 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
   @state() private _gridExport = 0;
   @state() private _batteryCharge = 0;
   @state() private _batteryDischarge = 0;
+  /** Each of `devices`' readings, in the base unit, in config order. */
+  @state() private _deviceValues: number[] = [];
   /** `home_entity`'s reading; undefined computes the home from the flows. */
   @state() private _homeReading?: number;
   @state() private _hasSolar = false;
@@ -310,6 +320,9 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
     }
     const home = c.home_entity ? signed(c.home_entity) : undefined;
     this._homeReading = home === undefined ? undefined : Math.max(0, home);
+    // The consumers follow the card's measure; they do not decide it, so one
+    // odd sensor cannot turn the whole card from power to energy.
+    this._deviceValues = this._devices().map((d) => read(d.entity));
 
     this._loading = false;
   }
@@ -345,6 +358,10 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
           this._gridExport = gridExport;
           this._batteryCharge = batteryCharge;
           this._batteryDischarge = batteryDischarge;
+          // Today's use of each consumer, from its meter's statistics.
+          this._deviceValues = await Promise.all(
+            this._devices().map((d) => fetchTodayChangeSum(this.hass!, [d.entity])),
+          );
         }
       }
     } catch (e) {
@@ -412,6 +429,11 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
         ? this._t(exporting ? "flow_import_short" : "flow_export_short").replace("{v}", this._formatNumber(other))
         : undefined;
     return { icon, value, label, sub, exporting };
+  }
+
+  /** The configured consumers that can be drawn: at most four. */
+  private _devices(): NonNullable<M3EnergyFlowCardConfig["devices"]> {
+    return (this._config?.devices ?? []).filter((d) => d && d.entity).slice(0, FLOW_MAX_DEVICES);
   }
 
   private _homeConsumption(): number {
@@ -526,7 +548,40 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
       }
     }
 
-    return { nodes, flows, viewHeight: showBattery ? VIEW_HEIGHT_WITH_BATTERY : VIEW_HEIGHT };
+    let viewHeight = showBattery ? VIEW_HEIGHT_WITH_BATTERY : VIEW_HEIGHT;
+    const devices = this._devices();
+    if (devices.length) {
+      const row = deviceRowLayout(devices.length, HOME_POS.x, HOME_POS.y + HALF + 16, viewHeight, FLOW_DEVICE_NODE_SIZE);
+      const total = this._deviceValues.reduce((sum, v) => sum + (v ?? 0), 0);
+      if (total > 0) {
+        flows.push({ key: "home-devices", path: trunkPath(row, HOME_POS.x), color: colors.home, value: total });
+      }
+      devices.forEach((d, i) => {
+        const value = this._deviceValues[i] ?? 0;
+        const st = this.hass?.states[d.entity];
+        const color = d.color ? resolveThemeColor(d.color) : colors.home;
+        nodes.push({
+          key: `device-${i}`,
+          x: row.xs[i],
+          y: row.nodeY,
+          color,
+          icon: d.icon ?? (st?.attributes.icon as string | undefined) ?? "mdi:flash",
+          value,
+          label: shortName(d.name ?? (st?.attributes.friendly_name as string | undefined) ?? d.entity),
+          device: true,
+        });
+        if (value > 0) {
+          flows.push({
+            key: `devices-${i}`,
+            path: branchPath(row, HOME_POS.x, row.xs[i], FLOW_DEVICE_NODE_SIZE),
+            color,
+            value,
+          });
+        }
+      });
+      viewHeight = row.viewHeight;
+    }
+    return { nodes, flows, viewHeight };
   }
 
   protected shouldUpdate(changed: PropertyValues): boolean {
@@ -539,6 +594,7 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
       this._config?.battery_soc_entity,
       this._config?.home_entity,
       this._config?.grid_entity,
+      ...this._devices().map((d) => d.entity),
     ]);
   }
 
@@ -559,7 +615,7 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
     const icon = this._config.icon || DEFAULT_FLOW_ICON;
     const power = this._measure === "power";
     const subtitle = this._config.subtitle || this._t(power ? "flow_subtitle_now" : "flow_subtitle_today");
-    const largest = Math.max(this._solarTotal, this._gridImport, this._gridExport, this._batteryCharge, this._batteryDischarge);
+    const largest = Math.max(this._solarTotal, this._gridImport, this._gridExport, this._batteryCharge, this._batteryDischarge, ...this._deviceValues);
     const shownUnit = displayUnit(this._measure, largest, this._config.unit);
     this._unitDivisor = shownUnit.divisor;
     this._unitLabel = shownUnit.label;
@@ -674,6 +730,7 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
                 : nothing}
               ${nodes.map((n) => this._renderNode(n, this._config?.node_tint_opacity))}
             </svg>
+            ${nodes.map((n) => this._renderNodeIcon(n, viewHeight, this._config?.node_tint_opacity))}
           </div>
 
           ${this._config.show_self_sufficiency !== false
@@ -849,37 +906,50 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
 
   private _renderNode(node: FlowNodeData, nodeTintOpacity: number | undefined): SVGTemplateResult {
     const fill = tintOn(this, node.color, nodeTintOpacity, 18);
+    const size = node.device ? FLOW_DEVICE_NODE_SIZE : FLOW_NODE_SIZE;
+    const half = size / 2;
     return svg`
-      <g class="flow-node">
+      <g class="flow-node ${node.device ? "device" : ""}">
         <rect
-          x=${node.x - HALF}
-          y=${node.y - HALF}
-          width=${FLOW_NODE_SIZE}
-          height=${FLOW_NODE_SIZE}
-          rx=${FLOW_NODE_RX}
+          x=${node.x - half}
+          y=${node.y - half}
+          width=${size}
+          height=${size}
+          rx=${node.device ? FLOW_DEVICE_NODE_RX : FLOW_NODE_RX}
           fill=${fill}
           stroke=${node.color}
           stroke-width="2"
         ></rect>
-        <foreignObject x=${node.x - 14} y=${node.y - 28} width="28" height="28">
-          <div
-            xmlns="http://www.w3.org/1999/xhtml"
-            style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; box-sizing: border-box;"
-          >
-            <ha-icon icon=${node.icon} style=${`color: ${foregroundOn(node.color, fill)};`}></ha-icon>
-          </div>
-        </foreignObject>
-        <text x=${node.x} y=${node.y + 22} text-anchor="middle" class="node-value">
+        <text x=${node.x} y=${node.y + half - 14} text-anchor="middle" class="node-value">
           ${this._formatNumber(node.value)}
         </text>
-        <text x=${node.x} y=${node.y + HALF + 16} text-anchor="middle" class="node-label">
+        <text x=${node.x} y=${node.y + half + 16} text-anchor="middle" class="node-label">
           ${node.label}
         </text>
         ${node.sub
-          ? svg`<text x=${node.x} y=${node.y + HALF + 30} text-anchor="middle" class="node-label node-sub">${node.sub}</text>`
+          ? svg`<text x=${node.x} y=${node.y + half + 30} text-anchor="middle" class="node-label node-sub">${node.sub}</text>`
           : nothing}
       </g>
     `;
+  }
+
+  /**
+   * A node's icon, laid over the diagram as HTML rather than drawn inside it.
+   * In a <foreignObject> it scaled with the SVG on desktop, but iOS WebKit
+   * leaves foreignObject content out of the viewBox scaling, so on an iPhone
+   * the icons sat off their nodes (#68). Placed by percentage of the diagram,
+   * and sized as a share of its width, it lands in the same spot everywhere.
+   */
+  private _renderNodeIcon(node: FlowNodeData, viewHeight: number, nodeTintOpacity: number | undefined): TemplateResult {
+    const fill = tintOn(this, node.color, nodeTintOpacity, 18);
+    const half = (node.device ? FLOW_DEVICE_NODE_SIZE : FLOW_NODE_SIZE) / 2;
+    const iconSize = node.device ? 18 : 22;
+    const cy = node.y - half * 0.39;
+    return html`<ha-icon
+      class="node-icon"
+      icon=${node.icon}
+      style=${`left: ${(node.x / VIEW_WIDTH) * 100}%; top: ${(cy / viewHeight) * 100}%; width: ${(iconSize / VIEW_WIDTH) * 100}%; color: ${foregroundOn(node.color, fill)};`}
+    ></ha-icon>`;
   }
 
   static styles = [
@@ -887,7 +957,19 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
     cardHeaderStyles,
     css`
       .diagram-wrap {
+        position: relative;
         transition: opacity 0.3s ease;
+      }
+
+      /* The node icons over the diagram (#68): centred on their spot, as wide
+         as their share of the diagram, square. */
+      .node-icon {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        aspect-ratio: 1;
+        display: block;
+        --mdc-icon-size: 100%;
+        pointer-events: none;
       }
 
       .diagram-wrap.loading {
@@ -925,9 +1007,12 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
         opacity: 0.5;
       }
 
-      .flow-node ha-icon {
-        --mdc-icon-size: 22px;
-        display: block;
+      .flow-node.device .node-value {
+        font-size: 11px;
+      }
+
+      .flow-node.device .node-label {
+        font-size: 10px;
       }
 
       .node-value {

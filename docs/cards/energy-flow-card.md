@@ -63,6 +63,33 @@ in, its number is the export, its icon points out and its name reads
 other a small line under the name ("Import 3.1"). A single grid sensor that
 goes negative on export works as `grid_entity`.
 
+### Consumers
+
+`devices` hangs your big consumers off the home — a wallbox, a heat pump, a
+sauna. Each gets a small node of its own in a row under the diagram, fed from
+the home along a line that is as thick as what flows through it. Up to four
+are drawn; the home's figure stays the whole house, the devices are part of
+it.
+
+With `source: energy` each device is an energy meter, and the card shows its
+use today from the statistics, as the Energy dashboard does — the same meters
+you have under "Individual devices" there. With `source: entities` it is a
+sensor read as it stands, power or energy like the other nodes. Name, icon and
+colour are optional; the name and icon default to the sensor's own.
+
+```yaml
+type: custom:m3-energy-flow-card
+source: energy
+devices:
+  - entity: sensor.wallbox_energy
+    icon: mdi:ev-station
+  - entity: sensor.heat_pump_energy
+    name: Heat pump
+    icon: mdi:heat-pump
+```
+
+`layout: compact` leaves the devices out: there is no room for them in the row.
+
 ### Compact
 
 `layout: compact` puts the nodes side by side — solar, grid, home, battery —
@@ -141,6 +168,7 @@ paused) when `animation: "off"` or `prefers-reduced-motion` is active.
 | `show_self_sufficiency` | boolean | `true` | Show the self-sufficiency bar |
 | `tap_action` | action | – | What a tap on the card does, in both layouts — `navigate` to a popup's hash, say. Unset, a tap does nothing |
 | `show_battery` | `auto` \| `always` \| `never` | `auto` | Battery node visibility |
+| `devices` | list | – | Consumers branching off the home, up to four: `entity`, and optionally `name`, `icon`, `color`. See [Consumers](#consumers) |
 | `flow_speed` | `slow` \| `normal` \| `fast` | `normal` | Flow dot speed |
 | `pv_color` / `grid_color` / `home_color` / `battery_color` | string | theme default | Node colors |
 | `self_sufficiency_color` | string | `#81c784` | Self-sufficiency bar color |

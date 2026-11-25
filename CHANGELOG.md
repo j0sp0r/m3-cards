@@ -19,8 +19,20 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   `entities` is set. Thanks to @Richard9e98 (#66). The editor no longer marks
   `entity` as required once `entities` names the lists, and the picker speaks
   Ukrainian too.
+- **Energy flow card: `devices`.** Big consumers — a wallbox, a heat pump —
+  branch off the home in a row of small nodes of their own, up to four, fed
+  along a line as thick as what flows through it. With `source: energy` each is
+  an energy meter shown as today's use; with `source: entities` a sensor read
+  as it stands. Asked for on Reddit.
 - **Presence card: `home_zone`.** Another zone can count as home, for a card on
   a second house's dashboard; Home Assistant's own home then shows as a zone.
+
+### Fixed
+
+- **Energy flow card: node icons on iOS (#68).** On an iPhone the icons sat off
+  their nodes, because iOS WebKit leaves HTML inside an SVG out of its scaling.
+  They are now laid over the diagram instead and land in the same spot
+  everywhere.
 
 ### Changed
 

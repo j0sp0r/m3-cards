@@ -466,6 +466,19 @@ export type EnergyFlowSource = "energy" | "entities";
 export type FlowBatteryVisibility = "auto" | "always" | "never";
 export type FlowSpeed = "slow" | "normal" | "fast";
 
+/** One consumer node on the energy flow card. */
+export interface FlowDeviceConfig {
+  /**
+   * Its energy or power sensor. With `source: energy` an energy meter, read as
+   * today's use from its statistics, as the Energy dashboard does; with
+   * `source: entities` a sensor read as it stands, like the other nodes.
+   */
+  entity: string;
+  name?: string;
+  icon?: string;
+  color?: string;
+}
+
 export interface M3EnergyFlowCardConfig {
   type: string;
   source?: EnergyFlowSource;
@@ -524,6 +537,12 @@ export interface M3EnergyFlowCardConfig {
   tap_action?: HaActionConfig;
   show_self_sufficiency?: boolean;
   show_battery?: FlowBatteryVisibility;
+  /**
+   * Consumers branching off the home — a wallbox, a heat pump. Each gets a
+   * small node of its own in a row under the diagram. Up to four are drawn;
+   * `layout: compact` leaves them out.
+   */
+  devices?: FlowDeviceConfig[];
   pv_color?: string;
   grid_color?: string;
   home_color?: string;
