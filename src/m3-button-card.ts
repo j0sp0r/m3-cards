@@ -243,7 +243,9 @@ export class M3ButtonCard extends TemplatedCard(LitElement) implements LovelaceC
       case "fan": {
         const pct = entity.attributes.percentage;
         if (typeof pct !== "number") return undefined;
-        return { value: pct, min: 0, max: 100, step: 1, unit: "%" };
+        // A fan that is off keeps its last speed in `percentage` (#69); the
+        // slider shows what it does now, 0, and a drag still sets a speed.
+        return { value: entity.state === "off" ? 0 : pct, min: 0, max: 100, step: 1, unit: "%" };
       }
       case "input_number":
       case "number": {

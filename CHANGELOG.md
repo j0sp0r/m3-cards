@@ -55,6 +55,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Button card: a fan that is off shows an empty slider (#69).** It kept its
+  last speed in `percentage`, so the slider stayed filled and read 100 %.
 - **Energy flow card: node icons on iOS (#68).** On an iPhone the icons sat off
   their nodes, because iOS WebKit leaves HTML inside an SVG out of its scaling.
   They are now laid over the diagram instead and land in the same spot
