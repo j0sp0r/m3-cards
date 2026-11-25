@@ -5,6 +5,7 @@ import { DEFAULT_TODO_RADIUS, TODO_DEFAULT_MAX_QUICK_ADD } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { fireEvent, colorRow, listRow, editorStyles, type SchemaEntry } from "./shared/editor-helpers";
 import { radiusLabelMap } from "./shared/radius-editor";
+import { dropEmptyEntities } from "./shared/todo-lists";
 import {
   initAppearanceState,
   radiusPresetPatch,
@@ -45,6 +46,7 @@ export class M3TodoCardEditor extends LitElement implements LovelaceCardEditor {
   private _listSchema(): SchemaEntry[] {
     return [
       { name: "entity", required: true, selector: { entity: { domain: "todo" } } },
+      { name: "entities", selector: { entity: { domain: "todo", multiple: true } } },
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },
     ];
@@ -119,6 +121,7 @@ export class M3TodoCardEditor extends LitElement implements LovelaceCardEditor {
   private _computeLabel = (schema: SchemaEntry): string => {
     const labelMap: Record<string, TranslationKey> = {
       entity: "editor_entity",
+      entities: "editor_todo_entities",
       name: "editor_name",
       icon: "editor_icon",
       add_position: "editor_todo_add_position",
@@ -139,7 +142,9 @@ export class M3TodoCardEditor extends LitElement implements LovelaceCardEditor {
 
   private _valueChanged(ev: CustomEvent): void {
     if (!this._config) return;
-    this._emit({ ...this._config, ...(ev.detail.value as Record<string, unknown>) } as M3TodoCardConfig);
+    this._emit(
+      dropEmptyEntities({ ...this._config, ...(ev.detail.value as Record<string, unknown>) } as M3TodoCardConfig),
+    );
   }
 
   private _colorChanged(
@@ -195,6 +200,7 @@ export class M3TodoCardEditor extends LitElement implements LovelaceCardEditor {
 
     const listData = {
       entity: this._config.entity,
+      entities: this._config.entities ?? [],
       name: this._config.name,
       icon: this._config.icon,
     };

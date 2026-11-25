@@ -29,6 +29,27 @@ You need a to-do list first: **Settings → Devices & services → Add
 integration → Local to-do**. Any todo integration works — the card reads
 whatever `todo.*` entity you point it at.
 
+### Several lists in one card
+
+Name more than one list under `entities` and the header name becomes a
+drop-down, so one card can show whichever list you pick — handy for a
+dashboard with many projects.
+
+```yaml
+type: custom:m3-todo-card
+entities:
+  - todo.shopping_list
+  - todo.chores
+  - todo.projects
+```
+
+`entity` is the list shown first, and it is added to the drop-down if
+`entities` leaves it out. The pick is remembered per user and follows them from
+phone to tablet. Two cards offering the same lists share it. A list that no
+longer exists is skipped in favour of one that does. With a single list the card
+looks and behaves exactly as before, and a fixed `name` is ignored while the
+drop-down is shown, since the header then names the list on screen.
+
 ### Quick-add chips
 
 Optional one-tap buttons above the list, filled from one of three sources via
@@ -58,7 +79,8 @@ stored as "Fruit: apples" reads as "apples" beneath a "Fruit" heading.
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `entity` | string | – | The `todo.*` list (required) |
+| `entity` | string | – | The `todo.*` list. Required unless `entities` is set |
+| `entities` | list | – | `todo.*` lists to choose between: the header name becomes a drop-down. `entity` is the one shown first |
 | `name` / `icon` | string | entity's own | Header name and icon |
 | `add_position` | `top` \| `bottom` | `top` | Where new entries land |
 | `prevent_duplicates` | boolean | `true` | Pulse the existing entry instead of adding twice |

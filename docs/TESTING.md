@@ -422,6 +422,12 @@ implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichze
 | Schnellwahl-Chips | Quelle auf Supply-Karten stellen | Knappster Vorrat zuerst als Chip |
 | Umbenennen/Löschen | Zeile lange drücken | Dialog erscheint, beide Aktionen wirken |
 | Nicht-Admin (#32) | Dashboard mit einem Benutzer ohne Adminrechte öffnen | Einträge erscheinen; im HA-Log kein „Unauthorized“ |
+| Listenauswahl | `entities` mit drei `todo.*`-Listen setzen, Kopfzeile antippen | Menü öffnet unter dem Namen, aktuelle Liste markiert; Auswahl wechselt die Liste ohne Flackern der alten Einträge |
+| Auswahl merken | Liste wechseln, Dashboard neu laden, dann auf einem zweiten Gerät desselben Benutzers öffnen | Gewählte Liste bleibt; `entity` gilt nur, solange noch nichts gewählt wurde |
+| Auswahl per Tastatur | Namen mit Tab fokussieren, Enter oder Leertaste | Menü öffnet; Escape schließt, Fokus bleibt am Namen; Screenreader nennt Liste und „Liste auswählen“ |
+| Liste fehlt | Eine der Listen in HA entfernen oder umbenennen | Karte zeigt die nächste vorhandene Liste, keine Fehlerkarte |
+| Eine Liste | Nur `entity` oder `entities` mit einer Liste | Kopfzeile wie bisher, kein Pfeil, `name` wirkt |
+| Hell/Dunkel, schmal | Menü in beiden Themes und auf Handybreite öffnen; Name sehr lang | Menü lesbar, Name wird gekürzt, Pfeil bleibt sichtbar |
 
 ## M3 Time Card
 

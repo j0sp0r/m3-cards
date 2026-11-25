@@ -2553,7 +2553,13 @@ export type TodoQuickAddMode = "none" | "fixed" | "recent" | "supplies";
 
 export interface M3TodoCardConfig {
   type: string;
-  entity: string;
+  /** The list shown first. Optional when `entities` names the lists. */
+  entity?: string;
+  /**
+   * Lists to offer in a picker: the header name becomes a drop-down. `entity`
+   * is added to it when missing. One list, or none, means no picker.
+   */
+  entities?: string[];
   name?: string;
   icon?: string;
   add_position?: TodoAddPosition;
