@@ -77,6 +77,7 @@ export class M3PresenceCardEditor extends LitElement implements LovelaceCardEdit
       { name: "show_distance", selector: { boolean: {} } },
       { name: "show_since", selector: { boolean: {} } },
       { name: "show_map", selector: { boolean: {} } },
+      { name: "home_zone", selector: { entity: { domain: "zone" } } },
       {
         name: "sort",
         selector: {
@@ -137,6 +138,7 @@ export class M3PresenceCardEditor extends LitElement implements LovelaceCardEdit
       show_since: "editor_presence_show_since",
       show_map: "editor_presence_show_map",
       sort: "editor_presence_sort",
+      home_zone: "editor_presence_home_zone",
       layout: "editor_presence_layout",
       frameless: "editor_presence_frameless",
       shape_by_state: "editor_shape_by_state",
@@ -281,6 +283,7 @@ export class M3PresenceCardEditor extends LitElement implements LovelaceCardEdit
       show_since: this._config.show_since ?? true,
       show_map: this._config.show_map ?? false,
       sort: this._config.sort ?? "home_first",
+      home_zone: this._config.home_zone,
     };
     const animationData = { animation: this._config.animation ?? "auto" };
     const actionsData = {

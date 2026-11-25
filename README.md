@@ -2287,6 +2287,17 @@ inside a frame.
 - **`auto_discover: false`**: only the selection explicitly listed in
   `entities` (`person.*` or `device_tracker.*`).
 
+### Another home
+
+For a second house — a holiday home, the parents' place — `home_zone` makes
+another zone count as home: whoever is in it shows as home, and Home
+Assistant's own home shows as a zone by its name.
+
+```yaml
+type: custom:m3-presence-card
+home_zone: zone.holiday_home
+```
+
 ### Interaction
 
 Tapping a person opens their more-info dialog; a long press (500ms)
@@ -2415,6 +2426,7 @@ person_actions:
 | `sort` | `home_first` \| `name` | `home_first` | Sort order: home first or alphabetical |
 | `home_color` / `not_home_color` / `zone_color` / `unknown_color` | string | green/blue/purple/gray | Status ring colors |
 | `zone_colors` | object (zone name → color) | – | Override per named zone |
+| `home_zone` | entity (`zone.*`) | – | A zone that counts as home instead of Home Assistant's own, for a second house |
 | `tap_action` | action object | more-info | Action on a tap on an avatar, targeting that person. Unset, a tap opens their more-info — or their `person_popups` entry, if they have one. Adds a `popup` action kind |
 | `hold_action` | action object | – | Action on a long press (500ms) on an avatar, targeting that person |
 | `person_actions` | object (`entity_id` → `tap_action` / `hold_action`) | – | Actions of a person's own, winning over the card-level ones for that person |

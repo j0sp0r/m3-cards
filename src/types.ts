@@ -1586,6 +1586,11 @@ export interface M3PresenceCardConfig extends DetailModeConfig {
   zone_color?: string;
   unknown_color?: string;
   zone_colors?: Record<string, string>;
+  /**
+   * Another zone that counts as home, e.g. `zone.holiday_home` for a card on a
+   * second house's dashboard. Home Assistant's own home then shows as a zone.
+   */
+  home_zone?: string;
   presence_tint_opacity?: number;
   /**
    * What a tap on a person does. Card-level, like `hold_action`: one setting

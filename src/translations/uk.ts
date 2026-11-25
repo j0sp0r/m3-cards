@@ -969,6 +969,7 @@ const uk: CustomTranslations = {
   editor_presence_actions_hint: "Стосується кожної людини; той, кого торкаються або утримують, є ціллю. Якщо не встановлено дію дотику, дотик відкриває додаткову інформацію про цю особу.",
   editor_presence_popups_hint: "\"person_popups\" (тільки YAML) надає одній людині власне спливаюче вікно з будь-якою карткою в ньому; натискання відкриває це замість докладної інформації.",
   editor_presence_sort: "Сортування",
+  editor_presence_home_zone: "Зона, що вважається домом (напр. другий будинок)",
   editor_presence_layout: "Макет",
   editor_presence_frameless: "Без рамки картки (індикатори безпосередньо в сітці)",
   editor_presence_layout_grid: "Сітка з заголовком",

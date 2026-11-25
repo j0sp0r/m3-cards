@@ -19,6 +19,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   `entities` is set. Thanks to @Richard9e98 (#66). The editor no longer marks
   `entity` as required once `entities` names the lists, and the picker speaks
   Ukrainian too.
+- **Presence card: `home_zone`.** Another zone can count as home, for a card on
+  a second house's dashboard; Home Assistant's own home then shows as a zone.
 
 ### Changed
 

@@ -66,6 +66,7 @@ import { TemplatedCard } from "./shared/templated-card";
 import { cssUrl } from "./shared/css-safe";
 import { openEntityDetail } from "./shared/entity-detail";
 import { ensureHaCardDefined } from "./shared/card-helpers";
+import { homeZoneName, presenceStateFor } from "./shared/presence-home";
 
 console.info(
   `%c M3-PRESENCE-CARD %c v${CARD_VERSION} `,
@@ -254,11 +255,16 @@ export class M3PresenceCard extends TemplatedCard(LitElement) implements Lovelac
     const autoDiscover = this._config.auto_discover ?? true;
     const ids = autoDiscover ? this._discovered : (this._config.entities ?? []);
     const rows: PersonRow[] = [];
+    // `home_zone`: another zone stands in for home, for a card that belongs to a
+    // second house. A person's state names their zone, so match its name; Home
+    // Assistant's own home then reads as a zone like any other.
+    const homeZone = homeZoneName(this._config.home_zone, (id) => this.hass?.states[id]?.attributes.friendly_name as string | undefined);
+    const mainHome = (this.hass.states["zone.home"]?.attributes.friendly_name as string | undefined) ?? "Home";
     for (const entityId of ids) {
       const entity: HassEntity | undefined = this.hass.states[entityId];
       if (!entity) continue;
       const name = entity.attributes.friendly_name || entityId;
-      const state = entity.state;
+      const state = presenceStateFor(entity.state, homeZone, mainHome);
       let status: PersonRow["status"];
       let zoneName: string | undefined;
       let color: string;
