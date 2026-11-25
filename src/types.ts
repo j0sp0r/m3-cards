@@ -485,6 +485,8 @@ export interface FlowDeviceConfig {
   name?: string;
   icon?: string;
   color?: string;
+  /** A second line in the list: an entity's state ("Car 58 %") or a text. */
+  secondary?: string;
 }
 
 export interface M3EnergyFlowCardConfig {
@@ -512,7 +514,7 @@ export interface M3EnergyFlowCardConfig {
    * `compact`: the nodes side by side in one row, about as tall as a tile,
    * for a half-width slot next to a weather or status card (#54).
    */
-  layout?: "full" | "compact";
+  layout?: "full" | "compact" | "flow";
   /** The header with name and subtitle. Default: on, off for `compact`. */
   show_header?: boolean;
   /** A separate charge sensor (positive), e.g. "charged today" in kWh. */
@@ -551,6 +553,8 @@ export interface M3EnergyFlowCardConfig {
    * `layout: compact` leaves them out.
    */
   devices?: FlowDeviceConfig[];
+  /** "Other": what the home uses that no device accounts for. @default true */
+  show_other?: boolean;
   pv_color?: string;
   grid_color?: string;
   home_color?: string;

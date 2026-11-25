@@ -196,10 +196,16 @@ function views() {
       [t("Right now", "Gerade jetzt"), [
         { type: "custom:m3-energy-flow-card", source: "entities", solar_entity: "sensor.solar_power", grid_entity: "sensor.grid_power", battery_entity: "sensor.battery_power", battery_soc_entity: "sensor.battery_soc", home_entity: "sensor.house_power",
           devices: [
-            { entity: "sensor.wallbox_power", icon: "mdi:ev-station" },
+            { entity: "sensor.wallbox_power", icon: "mdi:ev-station", secondary: "sensor.car_battery" },
             { entity: "sensor.washer_power", icon: "mdi:washing-machine" },
             { entity: "sensor.dishwasher_power", icon: "mdi:dishwasher" },
           ] },
+        { type: "custom:m3-energy-flow-card", layout: "flow", source: "entities", solar_entity: "sensor.solar_power", grid_entity: "sensor.grid_power", battery_entity: "sensor.battery_power", battery_soc_entity: "sensor.battery_soc", home_entity: "sensor.house_power",
+          devices: [
+            { entity: "sensor.wallbox_power", icon: "mdi:ev-station" },
+            { entity: "sensor.washer_power", icon: "mdi:washing-machine" },
+            { entity: "sensor.dishwasher_power", icon: "mdi:dishwasher" },
+          ], variant: "layout: flow" },
         { type: "custom:m3-gauge-card", style: "needle", entity: "sensor.house_power", name: t("House", "Haus"), min: 0, max: 6000, segments: [{ from: 0, color: "#b3d88a" }, { from: 2500, color: "#f0c987" }, { from: 4500, color: "#e8a08a" }] },
       ]],
       [t("Battery", "Speicher"), [

@@ -41,11 +41,15 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   the fan button. Off by
   default, and only for an entity that reports the values and the feature.
   Asked for on Reddit. The live demo has an air conditioner to try it on.
-- **Energy flow card: `devices`.** Big consumers — a wallbox, a heat pump —
-  branch off the home in a row of small nodes of their own, up to four, fed
-  along a line as thick as what flows through it. With `source: energy` each is
-  an energy meter shown as today's use; with `source: entities` a sensor read
-  as it stands. Asked for on Reddit.
+- **Energy flow card: consumers (`devices`).** Up to four big consumers — a
+  wallbox, a heat pump — plus "Other" for the rest of the home. In the classic
+  diamond they are listed underneath: their shares as one bar, then a row each
+  with icon, name, an optional `secondary` line (an entity's state or a text),
+  the value and its share. **`layout: flow`** draws them into the diagram:
+  sources left, the home large in the middle, consumers right, joined by
+  curves as thick as what flows. With `source: energy` each device is an
+  energy meter shown as today's use; with `source: entities` a sensor read as
+  it stands. Asked for on Reddit.
 - **Presence card: `home_zone`.** Another zone can count as home, for a card on
   a second house's dashboard; Home Assistant's own home then shows as a zone.
 

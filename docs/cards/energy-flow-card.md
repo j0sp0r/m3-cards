@@ -65,24 +65,35 @@ goes negative on export works as `grid_entity`.
 
 ### Consumers
 
-`devices` hangs your big consumers off the home — a wallbox, a heat pump, a
-sauna. Each gets a small node of its own in a row under the diagram, fed from
-the home along a line that is as thick as what flows through it. Up to four
-are drawn; the home's figure stays the whole house, the devices are part of
-it.
+`devices` adds your big consumers — a wallbox, a heat pump, a sauna — and
+shows what the home's figure is made of. Up to four; "Other" is what the home
+uses that none of them accounts for (`show_other: false` leaves it out).
 
-With `source: energy` each device is an energy meter, and the card shows its
-use today from the statistics, as the Energy dashboard does — the same meters
-you have under "Individual devices" there. With `source: entities` it is a
-sensor read as it stands, power or energy like the other nodes. Name, icon and
-colour are optional; the name and icon default to the sensor's own.
+In the classic diamond they appear underneath: their shares of the home as
+one bar, then a row each with icon, name, the value and its share. A
+`secondary` line under the name takes an entity's state ("Car battery · 58 %")
+or a text of your own.
+
+`layout: flow` draws them into the diagram instead: the sources in a column on
+the left, the home large in the middle, the consumers on the right, every line
+a curve through the home as thick as what flows. The battery charging or the
+house feeding the grid runs from the home outwards, the dots showing the way.
+
+With `source: energy` each device is an energy meter, shown as today's use
+from its statistics, as the Energy dashboard does — the same meters as under
+"Individual devices" there. With `source: entities` it is a sensor read as it
+stands, power or energy like the other nodes. Name, icon and colour are
+optional; the name and icon default to the sensor's own, the colour to one of
+a palette in turn.
 
 ```yaml
 type: custom:m3-energy-flow-card
 source: energy
+layout: flow        # or leave it out for the diamond with the list
 devices:
   - entity: sensor.wallbox_energy
     icon: mdi:ev-station
+    secondary: sensor.car_battery
   - entity: sensor.heat_pump_energy
     name: Heat pump
     icon: mdi:heat-pump
@@ -154,7 +165,7 @@ paused) when `animation: "off"` or `prefers-reduced-motion` is active.
 | `solar_entity` / `grid_import_entity` / `grid_export_entity` / `battery_entity` | string | – | Only for `source: entities`. See [The battery](#the-battery) for the sign of `battery_entity` |
 | `grid_entity` | string | – | Only for `source: entities` — one signed grid sensor instead of the import/export pair: positive draws from the grid, negative feeds in |
 | `grid_invert` | boolean | `false` | `grid_entity` counts export as positive |
-| `layout` | `full` \| `compact` | `full` | `compact`: the nodes side by side in one row, about as tall as a tile. See [Compact](#compact) |
+| `layout` | `full` \| `compact` \| `flow` | `full` | `compact`: the nodes side by side in one row, about as tall as a tile. See [Compact](#compact). `flow`: sources left, home in the middle, consumers right. See [Consumers](#consumers) |
 | `show_header` | boolean | `true`, `false` for `compact` | The header with name and subtitle |
 | `battery_invert` | boolean | `false` | `battery_entity` counts charging as positive |
 | `battery_charge_entity` | string | – | A separate charge sensor; `battery_entity` is then the discharge alone |
@@ -168,7 +179,8 @@ paused) when `animation: "off"` or `prefers-reduced-motion` is active.
 | `show_self_sufficiency` | boolean | `true` | Show the self-sufficiency bar |
 | `tap_action` | action | – | What a tap on the card does, in both layouts — `navigate` to a popup's hash, say. Unset, a tap does nothing |
 | `show_battery` | `auto` \| `always` \| `never` | `auto` | Battery node visibility |
-| `devices` | list | – | Consumers branching off the home, up to four: `entity`, and optionally `name`, `icon`, `color`. See [Consumers](#consumers) |
+| `devices` | list | – | Consumers, up to four: `entity`, and optionally `name`, `icon`, `color`, `secondary`. See [Consumers](#consumers) |
+| `show_other` | boolean | `true` | "Other": what the home uses beyond the devices |
 | `flow_speed` | `slow` \| `normal` \| `fast` | `normal` | Flow dot speed |
 | `pv_color` / `grid_color` / `home_color` / `battery_color` | string | theme default | Node colors |
 | `self_sufficiency_color` | string | `#81c784` | Self-sufficiency bar color |

@@ -31,8 +31,6 @@ import {
   FLOW_NODE_RX,
   FLOW_MIN_STROKE,
   FLOW_MAX_STROKE,
-  FLOW_DEVICE_NODE_SIZE,
-  FLOW_DEVICE_NODE_RX,
   FLOW_MAX_DEVICES,
   FLOW_DOT_DURATION_MS,
   FLOW_COMPACT_NARROW_3,
@@ -50,7 +48,7 @@ import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
 import { shouldAnimate } from "./shared/animation";
 import { getEnergyDashboardEntities, fetchTodayChangeSum } from "./shared/ha-energy";
 import { displayUnit, flowMeasure, toBase, type FlowMeasure } from "./shared/energy-flow-units";
-import { deviceFlowLines, deviceRowLayout, shortName } from "./shared/energy-flow-devices";
+import { DEVICE_PALETTE, OTHER_COLOR, consumerShares, curvePath, flowColumns, homeAnchorY, shortName, type ConsumerShare } from "./shared/energy-flow-devices";
 import { localize, type TranslationKey } from "./localize";
 import { formatNumber } from "./shared/formatting";
 import { hassChangeMatters } from "./shared/should-update";
@@ -90,8 +88,8 @@ interface FlowNodeData {
   label: string;
   /** A second, smaller line under the label (the grid's other direction). */
   sub?: string;
-  /** A consumer node (`devices`): smaller, its name alone under it. */
-  device?: boolean;
+  /** Edge length; the four main nodes of the diamond are FLOW_NODE_SIZE. */
+  size?: number;
 }
 
 interface FlowLineData {
@@ -548,37 +546,167 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
       }
     }
 
-    let viewHeight = showBattery ? VIEW_HEIGHT_WITH_BATTERY : VIEW_HEIGHT;
-    const devices = this._devices();
-    if (devices.length) {
-      const row = deviceRowLayout(devices.length, HOME_POS.x, HOME_POS.y + HALF + 16, viewHeight, FLOW_DEVICE_NODE_SIZE);
-      const colorOf = (i: number) => (devices[i].color ? resolveThemeColor(devices[i].color!) : colors.home);
-      for (const line of deviceFlowLines(row, HOME_POS.x, FLOW_DEVICE_NODE_SIZE, this._deviceValues)) {
-        flows.push({
-          key: `devices-${line.key}`,
-          path: line.path,
-          color: line.device === undefined ? colors.home : colorOf(line.device),
-          value: line.value,
-        });
-      }
-      devices.forEach((d, i) => {
-        const value = this._deviceValues[i] ?? 0;
-        const st = this.hass?.states[d.entity];
-        const color = d.color ? resolveThemeColor(d.color) : colors.home;
-        nodes.push({
-          key: `device-${i}`,
-          x: row.xs[i],
-          y: row.nodeY,
-          color,
-          icon: d.icon ?? (st?.attributes.icon as string | undefined) ?? "mdi:flash",
-          value,
-          label: shortName(d.name ?? (st?.attributes.friendly_name as string | undefined) ?? d.entity),
-          device: true,
-        });
-      });
-      viewHeight = row.viewHeight;
-    }
+    const viewHeight = showBattery ? VIEW_HEIGHT_WITH_BATTERY : VIEW_HEIGHT;
     return { nodes, flows, viewHeight };
+  }
+
+  /** A device's colour: its own, else the palette's in turn. */
+  private _deviceColor(i: number): string {
+    const own = this._devices()[i]?.color;
+    return own ? resolveThemeColor(own) : DEVICE_PALETTE[i % DEVICE_PALETTE.length];
+  }
+
+  private _deviceName(i: number): string {
+    const d = this._devices()[i];
+    if (!d) return this._t("flow_other");
+    return d.name ?? (this.hass?.states[d.entity]?.attributes.friendly_name as string | undefined) ?? d.entity;
+  }
+
+  private _deviceIcon(i: number): string {
+    const d = this._devices()[i];
+    if (!d) return "mdi:power-plug-outline";
+    return d.icon ?? (this.hass?.states[d.entity]?.attributes.icon as string | undefined) ?? "mdi:flash";
+  }
+
+  private _shares(): ConsumerShare[] {
+    return consumerShares(this._homeConsumption(), this._deviceValues, this._config?.show_other !== false);
+  }
+
+  /**
+   * `layout: flow`: sources left, the home in the middle, consumers right.
+   * Every line runs through the home, so the battery charging or the house
+   * feeding the grid is a line from the home outwards, its dots showing the
+   * way. Without devices the right column holds the home's own use alone.
+   */
+  private _buildFlowDiagram(
+    colors: { pv: string; grid: string; home: string; battery: string },
+    showBattery: boolean,
+  ): { nodes: FlowNodeData[]; flows: FlowLineData[]; viewHeight: number; headings: { left: number; right: number; y: number } } {
+    const grid = this._gridView();
+    const charging = this._batteryCharge >= this._batteryDischarge;
+    const left: Array<{ node: Omit<FlowNodeData, "x" | "y">; inward: boolean }> = [];
+    if (this._hasSolar) {
+      left.push({ node: { key: "pv", color: colors.pv, icon: "mdi:white-balance-sunny", value: this._solarTotal, label: this._nodeLabel("pv") }, inward: true });
+    }
+    if (showBattery) {
+      left.push({
+        node: {
+          key: "battery",
+          color: colors.battery,
+          icon: charging ? "mdi:battery-charging" : "mdi:battery-arrow-down-outline",
+          value: charging ? this._batteryCharge : this._batteryDischarge,
+          label: this._nodeLabel("battery", this._batterySoc()),
+        },
+        inward: !charging,
+      });
+    }
+    left.push({ node: { key: "grid", color: colors.grid, icon: grid.icon, value: grid.value, label: grid.label, sub: grid.sub }, inward: !grid.exporting });
+
+    const shares = this._devices().length ? this._shares() : [];
+    const layout = flowColumns(left.length, shares.length);
+    const nodes: FlowNodeData[] = [];
+    const flows: FlowLineData[] = [];
+    const sideHalf = layout.side / 2;
+    const homeHalf = layout.home / 2;
+
+    left.forEach(({ node, inward }, i) => {
+      const y = layout.yLeft[i];
+      nodes.push({ ...node, x: layout.xLeft, y, size: layout.side });
+      if (node.value <= 0) return;
+      const a = { x: layout.xLeft + sideHalf, y };
+      const b = { x: layout.xHome - homeHalf, y: homeAnchorY(layout.yHome, i, left.length) };
+      flows.push({
+        key: `flow-${node.key}`,
+        path: inward ? curvePath(a.x, a.y, b.x, b.y) : curvePath(b.x, b.y, a.x, a.y),
+        color: node.color,
+        value: node.value,
+      });
+    });
+
+    nodes.push({
+      key: "home",
+      x: layout.xHome,
+      y: layout.yHome,
+      color: colors.home,
+      icon: "mdi:home",
+      value: Math.max(0, this._homeConsumption()),
+      label: this._nodeLabel("home"),
+      size: layout.home,
+    });
+
+    shares.forEach((s, i) => {
+      const y = layout.yRight[i];
+      const color = s.index < 0 ? OTHER_COLOR : this._deviceColor(s.index);
+      nodes.push({
+        key: `consumer-${i}`,
+        x: layout.xRight,
+        y,
+        color,
+        icon: this._deviceIcon(s.index),
+        value: s.value,
+        label: shortName(this._deviceName(s.index)),
+        size: layout.side,
+      });
+      if (s.value <= 0) return;
+      flows.push({
+        key: `flow-consumer-${i}`,
+        path: curvePath(layout.xHome + homeHalf, homeAnchorY(layout.yHome, i, shares.length), layout.xRight - sideHalf, y),
+        color,
+        value: s.value,
+      });
+    });
+
+    return { nodes, flows, viewHeight: layout.viewHeight, headings: { left: layout.xLeft, right: layout.xRight, y: layout.headingY } };
+  }
+
+  /**
+   * The classic diamond with devices: their shares as one bar, then a row
+   * each — icon, name, an optional second line, the value and its share.
+   */
+  private _renderConsumerList(): TemplateResult | typeof nothing {
+    if (!this._devices().length) return nothing;
+    const shares = this._shares();
+    const unit = this._unitLabel;
+    return html`
+      <div class="consumers">
+        <div class="consumers-head">${this._t("flow_in_home")}</div>
+        <div class="share-bar" aria-hidden="true">
+          ${shares.filter((s) => s.share > 0.004).map(
+            (s) => html`<span style=${`flex: ${s.share}; background: ${s.index < 0 ? OTHER_COLOR : this._deviceColor(s.index)};`}></span>`,
+          )}
+        </div>
+        ${shares.map((s) => {
+          const color = s.index < 0 ? OTHER_COLOR : this._deviceColor(s.index);
+          const secondary = s.index < 0 ? this._t("flow_other_hint") : this._deviceSecondary(s.index);
+          return html`<div class="consumer">
+            <span class="consumer-icon" style=${`background: color-mix(in srgb, ${color} 22%, transparent); color: ${color};`}>
+              <ha-icon icon=${this._deviceIcon(s.index)}></ha-icon>
+            </span>
+            <span class="consumer-text">
+              <span class="consumer-name">${this._deviceName(s.index)}</span>
+              ${secondary ? html`<span class="consumer-sub">${secondary}</span>` : nothing}
+            </span>
+            <span class="consumer-figures">
+              <span class="consumer-value">${this._formatNumber(s.value)}${unit ? ` ${unit}` : ""}</span>
+              <span class="consumer-share">${formatNumber(this._language, Math.round(s.share * 100))} %</span>
+            </span>
+          </div>`;
+        })}
+      </div>
+    `;
+  }
+
+  /** A device's second line: an entity's state, or the text as written. */
+  private _deviceSecondary(i: number): string | undefined {
+    const raw = this._devices()[i]?.secondary;
+    if (!raw) return undefined;
+    const st = /^[a-z_]+\.[a-z0-9_]+$/.test(raw) ? this.hass?.states[raw] : undefined;
+    if (!st) return raw;
+    const unit = st.attributes.unit_of_measurement as string | undefined;
+    const num = Number(st.state);
+    const value = Number.isFinite(num) ? formatNumber(this._language, num, { maximumFractionDigits: 1 }) : st.state;
+    const name = st.attributes.friendly_name as string | undefined;
+    return `${name ? `${name} · ` : ""}${value}${unit ? ` ${unit}` : ""}`;
   }
 
   protected shouldUpdate(changed: PropertyValues): boolean {
@@ -591,7 +719,7 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
       this._config?.battery_soc_entity,
       this._config?.home_entity,
       this._config?.grid_entity,
-      ...this._devices().map((d) => d.entity),
+      ...this._devices().flatMap((d) => [d.entity, d.secondary]),
     ]);
   }
 
@@ -648,10 +776,12 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
           ? false
           : this._hasBattery;
 
-    const { nodes, flows, viewHeight } = this._buildDiagram(
-      { pv: pvColor, grid: gridColor, home: homeColor, battery: batteryColor },
-      showBattery,
-    );
+    const flowLayout = this._config.layout === "flow";
+    const built = flowLayout
+      ? this._buildFlowDiagram({ pv: pvColor, grid: gridColor, home: homeColor, battery: batteryColor }, showBattery)
+      : this._buildDiagram({ pv: pvColor, grid: gridColor, home: homeColor, battery: batteryColor }, showBattery);
+    const { nodes, flows, viewHeight } = built;
+    const headings = (built as { headings?: { left: number; right: number; y: number } }).headings;
     const maxFlow = Math.max(1, ...flows.map((f) => f.value));
 
     const homeConsumption = this._homeConsumption();
@@ -721,15 +851,22 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
               viewBox="0 0 ${VIEW_WIDTH} ${viewHeight}"
               preserveAspectRatio="xMidYMid meet"
             >
-              ${flows.filter((f) => !f.key.startsWith("devices-")).map((f) => this._renderFlow(f, maxFlow, animate, dotDuration))}
-              ${this._renderDeviceNet(flows.filter((f) => f.key.startsWith("devices-")), maxFlow, animate, dotDuration)}
-              ${flows.length > 1
+              ${flows.map((f) => this._renderFlow(f, maxFlow, animate, dotDuration))}
+              ${!flowLayout && flows.length > 1
                 ? svg`<circle class="junction-dot" cx=${PV_POS.x} cy=${SPLIT_BEND_Y} r="3"></circle>`
+                : nothing}
+              ${headings
+                ? svg`<text class="column-heading" x=${headings.left - 30} y=${headings.y}>${this._t("flow_sources")}</text>
+                    ${this._devices().length
+                      ? svg`<text class="column-heading" x=${headings.right + 30} y=${headings.y} text-anchor="end">${this._t("flow_consumers")}</text>`
+                      : nothing}`
                 : nothing}
               ${nodes.map((n) => this._renderNode(n, this._config?.node_tint_opacity))}
             </svg>
             ${nodes.map((n) => this._renderNodeIcon(n, viewHeight, this._config?.node_tint_opacity))}
           </div>
+
+          ${flowLayout ? nothing : this._renderConsumerList()}
 
           ${this._config.show_self_sufficiency !== false
             ? html`
@@ -871,31 +1008,6 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
     `;
   }
 
-  /**
-   * The consumers' lines as one network: drawn opaque inside a group that is
-   * faded as a whole, so where the trunk meets the bus and the drops the
-   * lines merge instead of stacking into a brighter blot. The moving dots go
-   * on top, at full strength like everywhere else.
-   */
-  private _renderDeviceNet(lines: FlowLineData[], maxFlow: number, animate: boolean, dotDuration: number): SVGTemplateResult | typeof nothing {
-    if (!lines.length) return nothing;
-    const parts = lines.map((f) => ({ f, width: this._strokeWidth(f.value, maxFlow) }));
-    return svg`
-      <g class="device-net">
-        ${parts.map(({ f, width }) => svg`<path class="flow-bg" d=${f.path} stroke=${f.color} stroke-width=${width}></path>`)}
-      </g>
-      ${animate
-        ? parts.map(
-            ({ f, width }) => svg`<path class="flow-dots" d=${f.path} stroke=${f.color} stroke-width=${Math.max(2, width * 0.4)} style=${`animation-duration: ${dotDuration}ms;`}></path>`,
-          )
-        : nothing}
-    `;
-  }
-
-  private _strokeWidth(value: number, maxFlow: number): number {
-    return Math.min(FLOW_MAX_STROKE, Math.max(FLOW_MIN_STROKE, FLOW_MIN_STROKE + 16 * (value / maxFlow)));
-  }
-
   private _renderFlow(
     flow: FlowLineData,
     maxFlow: number,
@@ -929,21 +1041,22 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
 
   private _renderNode(node: FlowNodeData, nodeTintOpacity: number | undefined): SVGTemplateResult {
     const fill = tintOn(this, node.color, nodeTintOpacity, 18);
-    const size = node.device ? FLOW_DEVICE_NODE_SIZE : FLOW_NODE_SIZE;
+    const size = node.size ?? FLOW_NODE_SIZE;
     const half = size / 2;
+    const scale = size / FLOW_NODE_SIZE;
     return svg`
-      <g class="flow-node ${node.device ? "device" : ""}">
+      <g class="flow-node ${size < FLOW_NODE_SIZE ? "small" : size > FLOW_NODE_SIZE ? "large" : ""}">
         <rect
           x=${node.x - half}
           y=${node.y - half}
           width=${size}
           height=${size}
-          rx=${node.device ? FLOW_DEVICE_NODE_RX : FLOW_NODE_RX}
+          rx=${FLOW_NODE_RX * scale}
           fill=${fill}
           stroke=${node.color}
           stroke-width="2"
         ></rect>
-        <text x=${node.x} y=${node.y + half - 14} text-anchor="middle" class="node-value">
+        <text x=${node.x} y=${node.y + half - 14 * scale} text-anchor="middle" class="node-value">
           ${this._formatNumber(node.value)}
         </text>
         <text x=${node.x} y=${node.y + half + 16} text-anchor="middle" class="node-label">
@@ -965,8 +1078,9 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
    */
   private _renderNodeIcon(node: FlowNodeData, viewHeight: number, nodeTintOpacity: number | undefined): TemplateResult {
     const fill = tintOn(this, node.color, nodeTintOpacity, 18);
-    const half = (node.device ? FLOW_DEVICE_NODE_SIZE : FLOW_NODE_SIZE) / 2;
-    const iconSize = node.device ? 18 : 22;
+    const size = node.size ?? FLOW_NODE_SIZE;
+    const half = size / 2;
+    const iconSize = 22 * Math.sqrt(size / FLOW_NODE_SIZE);
     const cy = node.y - half * 0.39;
     return html`<ha-icon
       class="node-icon"
@@ -1037,12 +1151,91 @@ export class M3EnergyFlowCard extends TemplatedCard(LitElement) implements Lovel
         opacity: 0.5;
       }
 
-      .flow-node.device .node-value {
-        font-size: 11px;
+      .flow-node.small .node-value {
+        font-size: 12px;
+      }
+      .flow-node.large .node-value {
+        font-size: 16px;
+      }
+      .column-heading {
+        font-size: 10px;
+        fill: var(--m3p-secondary-text);
+        opacity: 0.7;
+        font-family: inherit;
       }
 
-      .flow-node.device .node-label {
-        font-size: 10px;
+      .consumers {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .consumers-head {
+        font-size: 12px;
+        color: var(--m3p-secondary-text);
+        opacity: 0.8;
+      }
+      .share-bar {
+        display: flex;
+        gap: 4px;
+        height: 10px;
+      }
+      .share-bar span {
+        border-radius: 5px;
+        min-width: 6px;
+      }
+      .consumer {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        border-radius: 16px;
+        background: color-mix(in srgb, var(--m3p-text) 5%, transparent);
+      }
+      .consumer-icon {
+        flex: 0 0 auto;
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        --mdc-icon-size: 22px;
+      }
+      .consumer-text {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .consumer-name {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--m3p-text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .consumer-sub {
+        font-size: 12px;
+        color: var(--m3p-secondary-text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .consumer-figures {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+      }
+      .consumer-value {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--m3p-text);
+        white-space: nowrap;
+      }
+      .consumer-share {
+        font-size: 11px;
+        color: var(--m3p-secondary-text);
       }
 
       .node-value {

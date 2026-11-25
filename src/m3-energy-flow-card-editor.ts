@@ -81,6 +81,7 @@ export class M3EnergyFlowCardEditor extends LitElement implements LovelaceCardEd
             options: [
               { value: "full", label: this._t("editor_flow_layout_full") },
               { value: "compact", label: this._t("editor_flow_layout_compact") },
+              { value: "flow", label: this._t("editor_flow_layout_flow") },
             ],
           },
         },

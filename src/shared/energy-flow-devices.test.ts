@@ -1,55 +1,44 @@
 import { describe, expect, it } from "vitest";
-import { branchPath, deviceFlowLines, deviceRowLayout, shortName, trunkPath } from "./energy-flow-devices";
+import { consumerShares, curvePath, flowColumns, homeAnchorY, shortName } from "./energy-flow-devices";
 
-describe("deviceRowLayout", () => {
-  it("puts one device straight under the home", () => {
-    const l = deviceRowLayout(1, 268, 212, 250, 52);
-    expect(l.xs).toEqual([268]);
-    expect(branchPath(l, 268, 268, 52)).toBe(`M 268 ${l.busY} L 268 ${l.nodeY - 26}`);
+describe("consumerShares", () => {
+  it("gives each device its share and Other the rest", () => {
+    const s = consumerShares(5.2, [3.7, 0.9], true);
+    expect(s.map((x) => x.index)).toEqual([0, 1, -1]);
+    expect(s[2].value).toBeCloseTo(0.6);
+    expect(s[0].share).toBeCloseTo(3.7 / 5.2);
   });
-  it("spreads four devices leftwards and keeps them inside the diagram", () => {
-    const l = deviceRowLayout(4, 268, 212, 250, 52);
-    expect(l.xs).toEqual([40, 116, 192, 268]);
-    expect(Math.min(...l.xs) - 26).toBeGreaterThanOrEqual(0);
+  it("leaves Other out when asked, or when nothing is left", () => {
+    expect(consumerShares(5, [3, 2], true).map((x) => x.index)).toEqual([0, 1]);
+    expect(consumerShares(5, [1], false).map((x) => x.index)).toEqual([0]);
   });
-  it("runs the bus below the diagram and grows it by the row", () => {
-    const l = deviceRowLayout(2, 268, 212, 330, 52);
-    expect(l.busY).toBe(338);
-    expect(l.viewHeight).toBeGreaterThan(l.labelY);
-    expect(trunkPath(l, 268)).toBe(`M 268 222 L 268 338`);
-  });
-  it("turns a branch along the bus and down into its node", () => {
-    const l = deviceRowLayout(2, 268, 212, 250, 52);
-    expect(branchPath(l, 268, 192, 52)).toMatch(/^M 268 \d+ L 202 \d+ Q 192/);
+  it("never lets the shares exceed the whole", () => {
+    const s = consumerShares(2, [3, 1], true);
+    expect(s.reduce((t, x) => t + x.share, 0)).toBeCloseTo(1);
   });
 });
 
-describe("shortName", () => {
-  it("keeps short names and shortens long ones", () => {
+describe("flowColumns", () => {
+  it("centres the home and spreads each column over the rows", () => {
+    const l = flowColumns(3, 4);
+    expect(l.xLeft).toBeLessThan(l.xHome);
+    expect(l.xRight).toBeGreaterThan(l.xHome);
+    expect(l.yLeft).toHaveLength(3);
+    expect(l.yRight).toHaveLength(4);
+    expect(l.yRight[3]).toBeLessThan(l.viewHeight);
+    expect(l.yLeft[0]).toBeGreaterThan(l.headingY);
+  });
+});
+
+describe("curvePath / homeAnchorY / shortName", () => {
+  it("draws a level S", () => {
+    expect(curvePath(80, 50, 118, 150)).toBe("M 80 50 C 99 50 99 150 118 150");
+  });
+  it("spreads the anchors around the middle", () => {
+    expect([0, 1, 2].map((i) => homeAnchorY(100, i, 3))).toEqual([88, 100, 112]);
+  });
+  it("shortens long names", () => {
     expect(shortName("Wallbox")).toBe("Wallbox");
     expect(shortName("Wärmepumpe Keller")).toBe("Wärmepumpe…");
-  });
-});
-
-describe("deviceFlowLines", () => {
-  const l = deviceRowLayout(4, 268, 212, 330, 52);
-  it("thins the bus past each node and drops into each", () => {
-    const lines = deviceFlowLines(l, 268, 52, [4, 1, 2, 0.5]);
-    const by = Object.fromEntries(lines.map((x) => [x.key, x.value]));
-    expect(by.trunk).toBe(7.5);
-    expect(by["drop-3"]).toBe(0.5);
-    expect(by["bus-3"]).toBe(7); // left of the node under the home
-    expect(by["drop-2"]).toBe(2);
-    expect(by["bus-2"]).toBe(5);
-    expect(by["drop-1"]).toBe(1);
-    expect(by["drop-0"]).toBe(4); // round the corner into the leftmost
-  });
-  it("draws nothing to a device that uses nothing, and no bus beyond it", () => {
-    const lines = deviceFlowLines(l, 268, 52, [0, 0, 2, 0]);
-    expect(lines.map((x) => x.key).sort()).toEqual(["bus-3", "drop-2", "trunk"]);
-  });
-  it("is one drop for a single device", () => {
-    const one = deviceRowLayout(1, 268, 212, 250, 52);
-    expect(deviceFlowLines(one, 268, 52, [3]).map((x) => x.key)).toEqual(["trunk", "drop-0"]);
   });
 });
