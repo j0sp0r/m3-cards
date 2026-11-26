@@ -107,6 +107,18 @@ export class M3WasteCardEditor extends LitElement implements LovelaceCardEditor 
   private _displaySchema(): SchemaEntry[] {
     return [
       {
+        name: "layout",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: (["full", "row", "tile", "pill"] as const).map((value) => ({
+              value,
+              label: this._t(`editor_waste_layout_${value}` as TranslationKey),
+            })),
+          },
+        },
+      },
+      {
         name: "hero_primary",
         selector: {
           select: {
@@ -298,6 +310,7 @@ export class M3WasteCardEditor extends LitElement implements LovelaceCardEditor 
       entity: "editor_entity",
       name: "editor_name",
       icon: "editor_icon",
+      layout: "editor_waste_layout",
       hero_primary: "editor_waste_hero_primary",
       hero_icon: "editor_waste_hero_icon",
       show_timeline: "editor_waste_show_timeline",

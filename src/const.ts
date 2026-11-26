@@ -1407,6 +1407,9 @@ export const WASTE_TIMELINE_DAYS = 14;
  * their width over the ends; the renderer pulls them back in by this radius
  * and the CSS has to agree with it. */
 export const WASTE_TIMELINE_DOT_PX = 15;
+/** Compact layouts: the bin's icon well, and the tile's height. */
+export const WASTE_COMPACT_ICON_PX = 48;
+export const WASTE_TILE_MIN_HEIGHT_PX = 160;
 /** While a reminder is escalating the hero stops wearing the bin's own colour
  * and wears this instead. A grey Restmüll bin gave "put it out now" a grey
  * wash, which is the one thing that message must not look like. The bin's

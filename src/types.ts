@@ -2511,6 +2511,13 @@ export interface M3WasteCardConfig extends NotifyConfigBase, DetailModeConfig {
   name_strip?: string[];
   hero_primary?: "days" | "weekday";
   hero_icon?: "first" | "multi";
+  /**
+   * `full`: hero, timeline and a row per bin. The compact ones show only the
+   * next collection: `row` one line across, `tile` a square for a half-width
+   * slot, `pill` a chip for a header or a chip row.
+   * @default full
+   */
+  layout?: "full" | "row" | "tile" | "pill";
   show_timeline?: boolean;
   timeline_days?: number;
   /** Rows shown at once, the rest behind "show more"; 0 = all. The name the

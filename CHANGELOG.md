@@ -8,6 +8,11 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **Waste card: compact sizes (`layout`).** `row`, `tile` and `pill` show only
+  the next collection — a line with a short date and a days chip, a square
+  for a half-width slot, a chip for a header — quiet days away, tinted
+  tomorrow, filled today, with overlapping icons when several bins go the
+  same day. Asked for on Reddit.
 - **Dutch (#70).** The cards speak Belgian Dutch as a fourth built-in
   language, card descriptions in the "Add card" picker included. Home
   Assistant's "Nederlands" (`nl`) gets it as well as `nl-BE`. Thanks to

@@ -1567,6 +1567,8 @@ const uk: CustomTranslations = {
   waste_today_short: "сьогодні",
   waste_tomorrow_short: "завтра",
   waste_days: "{n} дн.",
+  waste_days_short: "{n} дн.",
+  waste_days_unit: "днів",
   waste_unknown: "Невідомо",
   waste_count: "{n} контейнери",
   waste_ack: "Позначити як виданий",

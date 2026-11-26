@@ -1605,6 +1605,8 @@ const nlBe: CustomTranslations = {
   waste_today_short: "vandaag",
   waste_tomorrow_short: "morgen",
   waste_days: "{n} dagen",
+  waste_days_short: "{n} d.",
+  waste_days_unit: "dagen",
   waste_unknown: "Onbekend",
   waste_count: "{n} containers",
   waste_ack: "Als buitengezet markeren",

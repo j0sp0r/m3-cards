@@ -2,6 +2,7 @@ import { LitElement, html, css, nothing, type PropertyValues, unsafeCSS } from "
 import { customElement, property, state } from "lit/decorators.js";
 import type {
   HomeAssistant,
+  LovelaceGridOptions,
   M3WasteCardConfig,
   WasteEntityConfig,
   LovelaceCard,
@@ -23,8 +24,10 @@ import {
   resolveCornerRadius,
   WASTE_TIMELINE_DOT_PX,
   WASTE_ESCALATE_COLOR,
+  WASTE_COMPACT_ICON_PX,
+  WASTE_TILE_MIN_HEIGHT_PX,
 } from "./const";
-import { resolveThemeColor, buildCssVars, tintOn, tintInk, foregroundOn, resolveCommonColors , foregroundVars} from "./shared/color-config";
+import { resolveThemeColor, buildCssVars, tintOn, tintInk, foregroundOn, resolveCommonColors, foregroundVars, inkOn } from "./shared/color-config";
 import { glassCardStyles, glassCardClass } from "./shared/glass-card";
 import { shouldAnimate, isReducedMotion } from "./shared/animation";
 import { localize, type TranslationKey } from "./localize";
@@ -95,8 +98,24 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
     };
   }
 
+  private get _layout(): "full" | "row" | "tile" | "pill" {
+    const l = this._config?.layout;
+    return l === "row" || l === "tile" || l === "pill" ? l : "full";
+  }
+
   public getCardSize(): number {
-    return 4;
+    return { full: 4, row: 1, tile: 3, pill: 1 }[this._layout];
+  }
+
+  public getGridOptions(): LovelaceGridOptions {
+    switch (this._layout) {
+      case "tile":
+        return { columns: 6, rows: "auto", min_columns: 3 };
+      case "pill":
+        return { columns: 4, rows: "auto", min_columns: 3 };
+      default:
+        return { columns: 12, rows: "auto" };
+    }
   }
 
   public connectedCallback(): void {
@@ -417,6 +436,10 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
       heroSub = next.date ? `${namesJoined} · ${this._weekday(next.date)}` : namesJoined;
     }
 
+    if (this._layout !== "full") {
+      return this._renderCompact(this._layout, { next, sameDay, escalate, acked, ackKey, cssVars, radius, cardBackgroundCss, animate });
+    }
+
     const timelineDays = Math.max(7, Math.min(28, this._config.timeline_days ?? WASTE_TIMELINE_DAYS));
     const maxRows = this._config.max_visible ?? this._config.max_rows ?? 0;
     const visibleRows = maxRows > 0 ? streams.slice(0, maxRows) : streams;
@@ -457,6 +480,143 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
                 </button>
                 ${this._expanded ? html`<div class="row-list">${hiddenRows.map((s) => this._renderRow(s, next))}</div>` : nothing}`
             : nothing}
+        </div>
+      </ha-card>
+    `;
+  }
+
+  // ---- render: compact ------------------------------------------------------
+
+  /** "Heute", "Morgen", "14 T." — the right size for a chip. */
+  private _daysCompact(days: number): string {
+    if (days <= 0) return this._t("waste_today");
+    if (days === 1) return this._t("waste_tomorrow");
+    return this._t("waste_days_short").replace("{n}", String(days));
+  }
+
+  /** "Do., 10. Dez." */
+  private _compactDate(date: Date): string {
+    return new Intl.DateTimeFormat(this._language, { weekday: "short", day: "numeric", month: "short" }).format(date);
+  }
+
+  /** One bin's icon in a well, or up to three overlapping when several go the same day. */
+  private _renderCompactIcon(sameDay: WasteStream[], fallbackIcon: string): unknown {
+    if (sameDay.length > 1) {
+      return html`<div class="c-icons">
+        ${sameDay.slice(0, 3).map(
+          (s, i) => html`<div class="c-mini" style=${`background: ${tintOn(this, s.color, undefined, 22)}; color: ${tintInk(this, s.color, undefined, 22, 3)}; z-index: ${3 - i};`}>
+            <ha-icon icon=${s.icon}></ha-icon>
+          </div>`,
+        )}
+      </div>`;
+    }
+    const s = sameDay[0];
+    const color = s?.color ?? DEFAULT_WASTE_COLOR;
+    return html`<div class="c-icon" style=${`background: ${iconWell(tintOn(this, color, undefined, 22))}; color: ${tintInk(this, color, undefined, 22, 3)};`}>
+      <ha-icon icon=${s?.icon ?? fallbackIcon}></ha-icon>
+    </div>`;
+  }
+
+  /**
+   * Only the next collection, in three sizes from one card: a row across the
+   * width, a tile for a half-width slot, a pill for a header or a chip row.
+   * Days away it stays quiet; tomorrow the card takes the bin's tint and the
+   * chip its colour; today (or when a reminder is due) the chip is filled.
+   * Several bins on the same day overlap their icons and share the names.
+   */
+  private _renderCompact(
+    layout: "row" | "tile" | "pill",
+    c: {
+      next?: WasteStream;
+      sameDay: WasteStream[];
+      escalate: boolean;
+      acked: boolean;
+      ackKey: string;
+      cssVars: string;
+      radius: string;
+      cardBackgroundCss?: string;
+      animate: boolean;
+    },
+  ): unknown {
+    const cfg = this._config!;
+    const { next, sameDay, escalate, acked, ackKey } = c;
+    const days = next?.daysTo;
+    const urgency = escalate || days === 0 ? "today" : days === 1 ? "tomorrow" : days === undefined ? "none" : "later";
+    const names = sameDay.length > 1 ? sameDay.map((s) => s.name).join(" · ") : next?.name ?? this._t("waste_none_label");
+    const chip = days === undefined ? "—" : this._daysCompact(days);
+    const date = next?.date ? this._compactDate(next.date) : "";
+    const icon = this._renderCompactIcon(sameDay, cfg.icon || DEFAULT_WASTE_ICON);
+    const accent = escalate ? WASTE_ESCALATE_COLOR : next?.color ?? DEFAULT_WASTE_COLOR;
+    const chipStyle =
+      urgency === "today"
+        ? `background: ${accent}; color: ${inkOn(accent, this)};`
+        : urgency === "tomorrow"
+          ? `background: ${tintOn(this, accent, undefined, 24)}; color: ${foregroundOn(accent, tintOn(this, accent, undefined, 24), 4.5)};`
+          : "";
+    const open = () => next && this._moreInfo(next.entity);
+    const label = next ? `${names}: ${days !== undefined ? this._daysHero(days) : ""}${date ? `, ${date}` : ""}` : this._t("waste_none_label");
+    const ackButton =
+      escalate && layout !== "pill"
+        ? html`<button
+            class="c-ack ${acked ? "done" : ""}"
+            aria-label=${this._t("waste_ack")}
+            title=${this._t("waste_ack")}
+            @click=${(e: Event) => {
+              e.stopPropagation();
+              this._ack(ackKey);
+            }}
+          >
+            <ha-icon icon="mdi:check"></ha-icon>
+          </button>`
+        : nothing;
+
+    let body: unknown;
+    if (layout === "row") {
+      body = html`
+        ${icon}
+        <div class="c-text">
+          <div class="c-name">${names}</div>
+          ${date ? html`<div class="c-sub">${date}</div>` : nothing}
+        </div>
+        <div class="c-chip" style=${chipStyle}>${chip}</div>
+        ${ackButton}
+      `;
+    } else if (layout === "tile") {
+      const big =
+        days !== undefined && days >= 2
+          ? html`<span class="c-num">${days}</span><span class="c-unit">${this._t("waste_days_unit")}</span>`
+          : html`<span class="c-word">${chip}</span>`;
+      const shortDate = next?.date ? this._shortDate(next.date) : "";
+      // Three names do not fit a half-width tile; the icons above say which.
+      const tileNames = sameDay.length > 2 ? this._t("waste_count").replace("{n}", String(sameDay.length)) : names;
+      body = html`
+        <div class="c-top">${icon}${ackButton}</div>
+        <div class="c-bottom">
+          <div class="c-big">${big}</div>
+          <div class="c-sub">${shortDate ? `${tileNames} · ${shortDate}` : tileNames}</div>
+        </div>
+      `;
+    } else {
+      body = html`${icon}<span class="c-pill-label">${chip}</span>`;
+    }
+
+    return html`
+      <ha-card class="compact-host ${layout}" style=${`${c.cssVars} border-radius: ${layout === "pill" ? "999px" : c.radius};`}>
+        <div
+          class="card-inner compact ${layout} ${urgency} ${glassCardClass(cfg.glass_background)} ${c.animate ? "" : "no-animations"}"
+          style=${`border-radius: ${layout === "pill" ? "999px" : c.radius};${c.cardBackgroundCss ? ` background: ${c.cardBackgroundCss};` : ""}`}
+          role="button"
+          tabindex="0"
+          aria-label=${label}
+          @click=${open}
+          @keydown=${(e: KeyboardEvent) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              open();
+            }
+          }}
+        >
+          ${body}
         </div>
       </ha-card>
     `;
@@ -768,6 +928,182 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
       }
       .collapse-toggle .chevron.open {
         transform: rotate(180deg);
+      }
+
+      /* ---- compact layouts ---- */
+      .card-inner.compact {
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .card-inner.compact.tomorrow {
+        background: color-mix(in srgb, var(--waste-accent) 9%, var(--ha-card-background, var(--card-background-color)));
+      }
+      .card-inner.compact.today {
+        background: color-mix(in srgb, var(--waste-accent) 16%, var(--ha-card-background, var(--card-background-color)));
+        border-color: color-mix(in srgb, var(--waste-accent) 32%, var(--ha-card-background, var(--card-background-color)));
+      }
+      .card-inner.compact:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: -2px;
+      }
+      .c-icon {
+        flex-shrink: 0;
+        width: ${unsafeCSS(WASTE_COMPACT_ICON_PX)}px;
+        height: ${unsafeCSS(WASTE_COMPACT_ICON_PX)}px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .c-icon ha-icon {
+        --mdc-icon-size: 24px;
+      }
+      .c-icons {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        height: ${unsafeCSS(WASTE_COMPACT_ICON_PX)}px;
+      }
+      .c-mini {
+        width: 30px;
+        height: 30px;
+        border-radius: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 0 2px var(--ha-card-background, var(--card-background-color));
+      }
+      .c-mini + .c-mini {
+        margin-left: -9px;
+      }
+      .c-mini ha-icon {
+        --mdc-icon-size: 17px;
+      }
+      .c-text {
+        flex: 1;
+        min-width: 0;
+      }
+      .c-name {
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--m3p-text);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .c-sub {
+        font-size: 13px;
+        color: var(--m3p-secondary-text);
+        opacity: 0.8;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .c-chip {
+        flex-shrink: 0;
+        height: 34px;
+        padding: 0 14px;
+        border-radius: 17px;
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+        font-weight: 700;
+        white-space: nowrap;
+        color: var(--m3p-text);
+        background: color-mix(in srgb, var(--primary-text-color) 9%, var(--ha-card-background, var(--card-background-color)));
+      }
+      .c-ack {
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        border: none;
+        border-radius: 20px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: color-mix(in srgb, var(--primary-text-color) 12%, var(--ha-card-background, var(--card-background-color)));
+        color: var(--m3p-text);
+        transition: border-radius 0.3s ease, background 0.3s ease;
+      }
+      .c-ack.done {
+        background: #81c784;
+        color: #1c1c1c;
+        border-radius: 13px;
+      }
+
+      .card-inner.compact.row {
+        flex-direction: row;
+        align-items: center;
+        gap: 14px;
+      }
+
+      .card-inner.compact.tile {
+        min-height: ${unsafeCSS(WASTE_TILE_MIN_HEIGHT_PX)}px;
+        justify-content: space-between;
+      }
+      .c-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+      }
+      .c-big {
+        display: flex;
+        align-items: baseline;
+        gap: 6px;
+        color: var(--m3p-text);
+        line-height: 1.05;
+      }
+      .card-inner.compact.tile.tomorrow .c-big,
+      .card-inner.compact.tile.today .c-big {
+        color: var(--waste-accent-fg, var(--waste-accent));
+      }
+      .c-num {
+        font-size: 40px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+      .c-unit {
+        font-size: 18px;
+        font-weight: 600;
+      }
+      .c-word {
+        font-size: 28px;
+        font-weight: 700;
+      }
+
+      ha-card.compact-host.pill {
+        width: fit-content;
+        max-width: 100%;
+      }
+      .card-inner.compact.pill {
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 18px 6px 6px;
+      }
+      .card-inner.compact.pill .c-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 18px;
+      }
+      .card-inner.compact.pill .c-icon ha-icon {
+        --mdc-icon-size: 20px;
+      }
+      .card-inner.compact.pill .c-mini {
+        width: 26px;
+        height: 26px;
+        border-radius: 13px;
+      }
+      .c-pill-label {
+        font-size: 15px;
+        font-weight: 700;
+        white-space: nowrap;
+        color: var(--m3p-text);
+      }
+      .card-inner.compact.pill.tomorrow .c-pill-label,
+      .card-inner.compact.pill.today .c-pill-label {
+        color: var(--waste-accent-fg, var(--waste-accent));
       }
 
       /* Safari gained color-mix() in 16.2, and an iPod touch 7 or an iPad Air 2

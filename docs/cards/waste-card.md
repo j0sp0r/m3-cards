@@ -29,11 +29,36 @@ entities:
   - { entity: sensor.recycling, name: Recycling, color: '#f0c46e' }
 ```
 
+### Compact sizes
+
+`layout` shows only the next collection, in three sizes from the same card:
+
+- `row` — one line across: the bin, a short date ("Thu, 10 Dec") and a chip
+  with the days ("14 d").
+- `tile` — a square for a half-width slot: the bin's icon, the days large,
+  the bin and date underneath.
+- `pill` — a chip for a header or a row of chips: icon and days.
+
+Days away, they stay quiet. Tomorrow the card takes the bin's tint and the
+chip its colour; today — or once a reminder is due in `reminder` mode — the
+chip is filled. Several bins on the same day overlap their icons. A tap opens
+the bin's details; in `reminder` mode `row` and `tile` carry the "put out"
+button while it is due.
+
+```yaml
+type: custom:m3-waste-card
+layout: row      # full (default) | row | tile | pill
+entities:
+  - sensor.paper
+  - sensor.bio
+```
+
 ### Configuration options
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
 | `mode` | `info` \| `reminder` | `info` | Information only, or escalate + acknowledge |
+| `layout` | `full` \| `row` \| `tile` \| `pill` | `full` | Everything, or only the next collection in one of three compact sizes. See [Compact sizes](#compact-sizes) |
 | `entities` | list | – | Sensors (days-until-collection): id or `{ entity, name, icon, color }` |
 | `calendar_entity` | string | – | A calendar with one event per collection, the event summary naming the bin. Merged with `entities`. |
 | `hero_primary` | `days` \| `weekday` | `days` | Hero shows "in 3 days" or "Monday" |
