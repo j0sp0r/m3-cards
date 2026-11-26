@@ -35,6 +35,7 @@ import { hassChangeMatters, listEntities } from "./shared/should-update";
 import { TemplatedCard } from "./shared/templated-card";
 import { openEntityDetail } from "./shared/entity-detail";
 import { iconWell } from "./shared/icon-well";
+import { openDropdownMenu } from "./shared/dropdown-menu";
 
 console.info(
   `%c M3-WASTE-CARD %c v${CARD_VERSION} `,
@@ -553,7 +554,21 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
         : urgency === "tomorrow"
           ? `background: ${tintOn(this, accent, undefined, 24)}; color: ${foregroundOn(accent, tintOn(this, accent, undefined, 24), 4.5)};`
           : "";
-    const open = () => next && this._moreInfo(next.entity);
+    // Several bins on one day: a tap asks which one rather than opening the
+    // first and leaving the others out of reach.
+    const open = (e?: Event) => {
+      if (!next) return;
+      if (sameDay.length < 2) {
+        this._moreInfo(next.entity);
+        return;
+      }
+      openDropdownMenu({
+        anchor: (e?.currentTarget as HTMLElement | null) ?? this,
+        label: date || names,
+        items: sameDay.map((s) => ({ value: s.entity, label: s.name, icon: s.icon })),
+        onSelect: (entity) => this._moreInfo(entity),
+      });
+    };
     const label = next ? `${names}: ${days !== undefined ? this._daysHero(days) : ""}${date ? `, ${date}` : ""}` : this._t("waste_none_label");
     const ackButton =
       escalate && layout !== "pill"
@@ -608,11 +623,12 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
           role="button"
           tabindex="0"
           aria-label=${label}
-          @click=${open}
+          aria-haspopup=${sameDay.length > 1 ? "listbox" : nothing}
+          @click=${(e: Event) => open(e)}
           @keydown=${(e: KeyboardEvent) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
-              open();
+              open(e);
             }
           }}
         >

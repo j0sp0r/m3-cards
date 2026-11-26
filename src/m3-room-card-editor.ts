@@ -389,7 +389,19 @@ export class M3RoomCardEditor extends LitElement implements LovelaceCardEditor {
     if (this._config?.collapsible) {
       schema.push(
         { name: "default_collapsed", selector: { boolean: {} } },
-        { name: "folded_sensors", selector: { boolean: {} } },
+        {
+          name: "folded_sensors",
+          selector: {
+            select: {
+              multiple: true,
+              mode: "list",
+              options: (["temperature", "humidity", "power", "windows", "doors"] as const).map((value) => ({
+                value,
+                label: this._t(`editor_room_folded_${value}` as TranslationKey),
+              })),
+            },
+          },
+        },
         { name: "scroll_on_expand", selector: { boolean: {} } },
       );
       if (this._config?.scroll_on_expand) {
@@ -470,6 +482,7 @@ export class M3RoomCardEditor extends LitElement implements LovelaceCardEditor {
     const patch = ev.detail.value as Record<string, unknown>;
     const next: Record<string, unknown> = { ...this._config, ...patch };
     if (next.area_picture === "none") delete next.area_picture;
+    if (Array.isArray(next.folded_sensors) && next.folded_sensors.length === 0) delete next.folded_sensors;
     for (const key of [
       "name",
       "icon",
@@ -966,6 +979,13 @@ export class M3RoomCardEditor extends LitElement implements LovelaceCardEditor {
                 show_active_names: cfg.show_active_names ?? false,
                 shape_by_state: cfg.shape_by_state ?? false,
                 default_collapsed: cfg.default_collapsed ?? false,
+                // `true` is shorthand for the default three; the picker shows them ticked.
+                folded_sensors:
+                  cfg.folded_sensors === true
+                    ? ["temperature", "windows", "doors"]
+                    : Array.isArray(cfg.folded_sensors)
+                      ? cfg.folded_sensors
+                      : [],
                 scroll_on_expand: cfg.scroll_on_expand ?? false,
                 scroll_duration: cfg.scroll_duration ?? ROOM_SCROLL_MS,
                 collapse_memory: cfg.collapse_memory ?? "device",

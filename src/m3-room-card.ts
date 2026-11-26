@@ -10,6 +10,7 @@ import type {
   LovelaceGridOptions,
   M3RoomCardConfig,
   RoomCategoryConfig,
+  RoomFoldedSensor,
 } from "./types";
 import {
   CARD_VERSION,
@@ -211,6 +212,9 @@ function scrollParent(start: Element): Element {
 function easeOut(t: number): number {
   return 1 - (1 - t) ** 3;
 }
+
+/** `folded_sensors: true`: the temperature, and windows or doors while open. */
+const ROOM_FOLDED_DEFAULT: RoomFoldedSensor[] = ["temperature", "windows", "doors"];
 
 interface Chip {
   key: string;
@@ -1362,16 +1366,25 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
   private _renderPeek(chips: Chip[]): TemplateResult | typeof nothing {
     const cfg = this._config;
     if (!cfg?.collapsible || !cfg.folded_sensors || !this._folded) return nothing;
+    const kinds: RoomFoldedSensor[] = Array.isArray(cfg.folded_sensors) ? cfg.folded_sensors : ROOM_FOLDED_DEFAULT;
     const items: Array<{ key: string; icon: string; text?: string; color?: string; label: string }> = [];
-    const temp = chips.find((c) => c.icon === "mdi:thermometer");
-    if (temp) {
-      // "21.4 °C" reads as "21.4°" at this size; the unit is plain from the icon.
-      const short = temp.text.replace(/\s*°\s*[CF]$/i, "°");
-      items.push({ key: "temp", icon: "mdi:thermometer", text: short, label: temp.text });
-    }
-    for (const key of ["windows", "doors"]) {
-      const chip = chips.find((c) => c.key === key);
-      if (chip?.color) items.push({ key, icon: chip.icon, color: chip.color, label: chip.text });
+    for (const kind of kinds) {
+      if (kind === "temperature") {
+        const temp = chips.find((c) => c.icon === "mdi:thermometer");
+        // "21.4 °C" reads as "21.4°" at this size; the unit is plain from the icon.
+        if (temp) items.push({ key: kind, icon: temp.icon, text: temp.text.replace(/\s*°\s*[CF]$/i, "°"), label: temp.text });
+      } else if (kind === "humidity") {
+        const hum = chips.find((c) => c.icon === "mdi:water-percent");
+        if (hum) items.push({ key: kind, icon: hum.icon, text: hum.text.replace(/\s+%$/, "%"), label: hum.text });
+      } else if (kind === "power") {
+        // Only present above the threshold, as in the chip row.
+        const power = chips.find((c) => c.icon === "mdi:flash");
+        if (power) items.push({ key: kind, icon: power.icon, text: power.text, color: power.color, label: power.text });
+      } else {
+        // Windows and doors only while one is open: the point is what needs a look.
+        const chip = chips.find((c) => c.key === kind);
+        if (chip?.color) items.push({ key: kind, icon: chip.icon, color: chip.color, label: chip.text });
+      }
     }
     if (!items.length) return nothing;
     return html`<div class="peek" aria-label=${items.map((i) => i.label).join(", ")}>

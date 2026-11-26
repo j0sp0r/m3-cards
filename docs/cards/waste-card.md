@@ -42,7 +42,7 @@ entities:
 Days away, they stay quiet. Tomorrow the card takes the bin's tint and the
 chip its colour; today — or once a reminder is due in `reminder` mode — the
 chip is filled. Several bins on the same day overlap their icons. A tap opens
-the bin's details; in `reminder` mode `row` and `tile` carry the "put out"
+the bin's details — with several on that day, a menu asks which; in `reminder` mode `row` and `tile` carry the "put out"
 button while it is due.
 
 ```yaml
@@ -52,6 +52,9 @@ entities:
   - sensor.paper
   - sensor.bio
 ```
+
+A compact card follows whichever bin comes next among its `entities`. For one
+bin alone — a pill that only ever shows the paper — give it just that one.
 
 ### Configuration options
 

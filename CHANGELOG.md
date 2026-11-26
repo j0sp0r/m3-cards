@@ -10,12 +10,13 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 - **Room card: `folded_sensors`.** A folded card still shows the room at a
   glance beside its name — the temperature, and a window or door icon while
-  one is open. Asked for on Reddit.
+  one is open — or, as a list, what you pick of temperature, humidity, power,
+  windows and doors. Asked for on Reddit.
 - **Waste card: compact sizes (`layout`).** `row`, `tile` and `pill` show only
   the next collection — a line with a short date and a days chip, a square
   for a half-width slot, a chip for a header — quiet days away, tinted
   tomorrow, filled today, with overlapping icons when several bins go the
-  same day. Asked for on Reddit.
+  same day; a tap then asks which bin to open. Asked for on Reddit.
 - **Dutch (#70).** The cards speak Belgian Dutch as a fourth built-in
   language, card descriptions in the "Add card" picker included. Home
   Assistant's "Nederlands" (`nl`) gets it as well as `nl-BE`. Thanks to

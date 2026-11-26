@@ -2972,6 +2972,9 @@ export interface RoomCategoryConfig {
  */
 export type RoomCardMode = "auto" | "manual";
 
+/** What a folded room card can show in its header. */
+export type RoomFoldedSensor = "temperature" | "humidity" | "power" | "windows" | "doors";
+
 export interface M3RoomCardConfig extends DetailModeConfig {
   /** The outline follows the state: rounder while off, squarer while on. */
   shape_by_state?: boolean;
@@ -3053,11 +3056,12 @@ export interface M3RoomCardConfig extends DetailModeConfig {
    */
   show_active_names?: boolean;
   /**
-   * Folded, the header still shows the room at a glance: the temperature, and
-   * a window or door icon while one is open. Only with `collapsible`.
+   * Folded, the header still shows the room at a glance. `true` means the
+   * temperature, and a window or door icon while one is open; a list picks
+   * which of them, in its order. Only with `collapsible`.
    * @default false
    */
-  folded_sensors?: boolean;
+  folded_sensors?: boolean | RoomFoldedSensor[];
   default_collapsed?: boolean;
   /**
    * Scrolls the card into view after it is unfolded.
