@@ -1364,10 +1364,27 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
    * its name — the temperature, and a window or door icon while one is open.
    * Closed windows say nothing here; the point is what needs a look.
    */
-  private _renderPeek(chips: Chip[], place: "header" | "below"): TemplateResult | typeof nothing {
+  /** The kinds `folded_sensors` asks for; empty when it is off or the card does not fold. */
+  private _foldedKinds(): RoomFoldedSensor[] {
     const cfg = this._config;
-    if (!cfg?.collapsible || !cfg.folded_sensors || !this._folded) return nothing;
-    const kinds: RoomFoldedSensor[] = Array.isArray(cfg.folded_sensors) ? cfg.folded_sensors : ROOM_FOLDED_DEFAULT;
+    if (!cfg?.collapsible || !cfg.folded_sensors) return [];
+    return Array.isArray(cfg.folded_sensors) ? cfg.folded_sensors : ROOM_FOLDED_DEFAULT;
+  }
+
+  /**
+   * More than one kind asked for: the chip row itself stays out of the fold,
+   * under the header, exactly as on the open card, and only the tiles fold.
+   * Decided by the setting, not by what is open right now, so the row never
+   * jumps between two places when a window opens.
+   */
+  private get _chipsOutsideFold(): boolean {
+    return this._foldedKinds().length > 1;
+  }
+
+  private _renderPeek(chips: Chip[]): TemplateResult | typeof nothing {
+    const kinds = this._foldedKinds();
+    // One reading sits beside the name while folded; several are the chip row.
+    if (kinds.length !== 1 || !this._folded) return nothing;
     const items: Array<{ key: string; icon: string; text?: string; color?: string; label: string }> = [];
     for (const kind of kinds) {
       if (kind === "temperature") {
@@ -1388,13 +1405,8 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
       }
     }
     if (!items.length) return nothing;
-    // Two stack beside the name; three or more would squeeze the name to a
-    // couple of letters, so they take a row of their own under the header.
-    if ((place === "header") !== items.length <= 2) return nothing;
-    // Drawn as the chips of the open card — the same tint, ink and frame —
-    // and stacked two to a column, so they take height beside the name, not
-    // the width the name needs.
-    return html`<div class="peek ${place === "below" ? "below" : items.length > 1 ? "stacked" : ""}" aria-label=${items.map((i) => i.label).join(", ")}>
+    // Drawn as a chip of the open card — the same tint, ink and frame.
+    return html`<div class="peek" aria-label=${items.map((i) => i.label).join(", ")}>
       ${items.map((i) => {
         const color = i.color ?? "var(--primary-text-color)";
         const background = tintOn(this, color, undefined, ROOM_CHIP_TINT);
@@ -1579,8 +1591,8 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
     // is bound to the header that stops being true, so the chevron goes rather
     // than sitting there pointing at something that no longer happens.
     const showFoldArrow = !!cfg.collapsible && !headerAction;
-    const peek = this._renderPeek(chips, "header");
-    const peekBelow = this._renderPeek(chips, "below");
+    const peek = this._renderPeek(chips);
+    const chipsOutside = this._chipsOutsideFold;
 
     return html`
       <ha-card style=${`${cssVars} border-radius: ${radius};`}>
@@ -1638,10 +1650,10 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
                 </button>`
               : nothing}
           </div>
-          ${peekBelow}
+          ${chipsOutside ? html`<div class="chips-outside">${this._renderChips(chips)}</div>` : nothing}
           <div class="body">
             <div class="body-inner">
-              ${this._renderChips(chips)}
+              ${chipsOutside ? nothing : this._renderChips(chips)}
               ${manual
                 ? nothing
                 : categories.length
@@ -1786,22 +1798,14 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
       /* folded_sensors: the room at a glance beside its name while folded. */
       .peek {
         flex: 0 0 auto;
-        display: grid;
-        grid-auto-flow: column;
-        gap: 4px;
-        justify-items: stretch;
+        display: flex;
         animation: room-peek-in 220ms ease-out;
       }
-      /* Two to a column: three or four readings fit beside the name in the
-         header's height instead of pushing the name into an ellipsis. */
-      .peek.stacked {
-        grid-template-rows: repeat(2, auto);
-      }
-      .peek.below {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 6px;
-        margin-top: var(--m3-card-gap, 12px);
+      /* folded_sensors with several kinds: the chip row out of the fold. The
+         header has no gap below it (the body pads itself so its padding folds
+         with it), so the row brings its own. */
+      .chips-outside {
+        padding-top: var(--m3-card-gap, 12px);
       }
       .peek .peek-item {
         height: ${ROOM_PEEK_CHIP_HEIGHT}px;

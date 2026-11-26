@@ -9,9 +9,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 ### Added
 
 - **Room card: `folded_sensors`.** A folded card still shows the room at a
-  glance beside its name — the temperature, and a window or door icon while
-  one is open — or, as a list, what you pick of temperature, humidity, power,
-  windows and doors. Asked for on Reddit.
+  glance: one reading (`[temperature]`, say) as a chip beside the name, or
+  with `true` or several kinds the chip row stays under the header and only
+  the tiles fold away. Asked for on Reddit.
 - **Waste card: compact sizes (`layout`).** `row`, `tile` and `pill` show only
   the next collection — a line with a short date and a days chip, a square
   for a half-width slot, a chip for a header — quiet days away, tinted
