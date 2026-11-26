@@ -21,7 +21,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   source. A ring turns the card into the blue info container, switches to that
   camera, goes live and offers Talk (with a `talk_action`), Open door (with a
   `door_action`, confirmed, its button going from a closed lock through
-  "Opening …" to "Door opened" with a change of shape) and Ignore;
+  "Opening …" to "Door opened" with a change of shape, or with `style: slide`
+  a lock to slide across instead of the question) and Ignore;
   `ring_overlay: fullscreen` also opens it over the dashboard, as a bottom
   sheet on a phone. An intercom without a camera (the Ring Intercom) works too:
   the doorbell alone, no picture, Open door as the wide button. Asked for on

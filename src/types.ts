@@ -2197,8 +2197,14 @@ export interface CameraActionConfig {
 /** "Open the door": any action — a button press, an unlock, a script. */
 export interface CameraDoorActionConfig {
   tap_action: HaActionConfig;
-  /** Ask before opening. @default true */
+  /** Ask before opening. Not asked with `style: slide`: the slide is the question. @default true */
   confirmation?: boolean;
+  /**
+   * `button`: a tap, then the question. `slide`: a lock to slide across a
+   * track, opening at the end without a question.
+   * @default button
+   */
+  style?: "button" | "slide";
   /** Shows "Door opened" while this entity is on/unlocked/open, instead of 3 s. */
   feedback_entity?: string;
   name?: string;

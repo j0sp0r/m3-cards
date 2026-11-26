@@ -1254,6 +1254,7 @@ const uk: CustomTranslations = {
   camera_open_door: "Відчинити двері",
   camera_door_opened: "Двері відчинено",
   camera_door_opening: "Відчиняємо …",
+  camera_door_slide: "Проведіть, щоб відчинити",
   camera_door_confirm_title: "Відчинити двері?",
   camera_door_confirm_text: "{camera}: двері відчиняться одразу.",
   camera_action_failed: "Не вдалося: {error}",

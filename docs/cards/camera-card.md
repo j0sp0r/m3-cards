@@ -74,6 +74,24 @@ moment it reports on, open or unlocked until it no longer does (an `event.*`
 one: three seconds after its event). If the service call fails, a red
 snackbar says why and the lock closes again.
 
+`style: slide` makes it a lock to slide across a track instead: past the end
+the door opens, with no question, since the slide is one; let go short of it
+and the lock springs back. It then waits at the end while the door opens and
+is open, and springs home as it locks again. On a card with a camera the
+slider takes a row of its own under Watch live; while it rings, under Talk.
+With reduced motion there is nothing to slide, and the button with its
+question comes back; the keyboard gets the question too.
+
+```yaml
+door_action:
+  style: slide
+  tap_action:
+    action: perform-action
+    perform_action: button.press
+    target:
+      entity_id: button.hallway_open_door
+```
+
 ### Talk
 
 The card sends no audio itself. `talk_action` starts whatever does — an
@@ -233,7 +251,7 @@ Up to three round buttons sit beside Watch live; more go into a menu.
 | `cameras[].snapshot_url_template` | string | – | A picture per event. See [Events](#events) |
 | `cameras[].event_tap` | `more-info` \| `{url_template}` \| `{media_path}` | `more-info` | Where a tap on an event goes |
 | `cameras[].actions` | list | – | Buttons of your own: `name`, `icon`, `tap_action`, `confirmation`, `primary` |
-| `cameras[].door_action` | object | – | `tap_action`, `confirmation` (default `true`), `feedback_entity`, `name`, `icon` |
+| `cameras[].door_action` | object | – | `tap_action`, `style` (`button` \| `slide`, default `button`), `confirmation` (default `true`, never with `slide`), `feedback_entity`, `name`, `icon` |
 | `cameras[].talk_action` | object | – | `tap_action`, `stop_action`, `name`, `icon` |
 | `actions` / `door_action` / `talk_action` | | – | For every camera that has none of its own |
 | `default_camera` | entity | the first | The camera shown first |

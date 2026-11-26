@@ -36,6 +36,7 @@ const LABELS: Record<string, TranslationKey> = {
   snapshot_url_template: "editor_camera_snapshot_template",
   door_tap_action: "editor_camera_door_action",
   door_confirmation: "editor_camera_door_confirm",
+  door_style: "editor_camera_door_style",
   door_feedback_entity: "editor_camera_feedback",
   talk_tap_action: "editor_camera_talk",
   ring_overlay: "editor_camera_ring_overlay",
@@ -123,6 +124,18 @@ export class M3CameraCardEditor extends LitElement implements LovelaceCardEditor
       },
       { name: "snapshot_url_template", selector: { text: {} } },
       { name: "door_tap_action", selector: { ui_action: {} } },
+      {
+        name: "door_style",
+        selector: {
+          select: {
+            mode: "dropdown",
+            options: [
+              { value: "button", label: this._t("editor_camera_door_style_button") },
+              { value: "slide", label: this._t("editor_camera_door_style_slide") },
+            ],
+          },
+        },
+      },
       { name: "door_confirmation", selector: { boolean: {} } },
       { name: "door_feedback_entity", selector: { entity: {} } },
       { name: "talk_tap_action", selector: { ui_action: {} } },
@@ -143,6 +156,7 @@ export class M3CameraCardEditor extends LitElement implements LovelaceCardEditor
       snapshot_url_template: c.snapshot_url_template ?? "",
       door_tap_action: c.door_action?.tap_action,
       door_confirmation: c.door_action?.confirmation !== false,
+      door_style: c.door_action?.style ?? "button",
       door_feedback_entity: c.door_action?.feedback_entity ?? "",
       talk_tap_action: c.talk_action?.tap_action,
     };
@@ -170,9 +184,11 @@ export class M3CameraCardEditor extends LitElement implements LovelaceCardEditor
         tap_action: doorAction,
         ...(v.door_confirmation === false ? { confirmation: false } : {}),
         ...(v.door_feedback_entity ? { feedback_entity: v.door_feedback_entity as string } : {}),
+        ...(v.door_style === "slide" ? { style: "slide" as const } : {}),
       };
       if (v.door_confirmation !== false) delete next.door_action.confirmation;
       if (!v.door_feedback_entity) delete next.door_action.feedback_entity;
+      if (v.door_style !== "slide") delete next.door_action.style;
     } else {
       delete next.door_action;
     }

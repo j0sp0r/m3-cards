@@ -18,6 +18,11 @@ import {
   CAMERA_DOOR_OPENING_MIN_MS,
   CAMERA_DOOR_SPRING_EASING,
   CAMERA_DOOR_CLOSING_MS,
+  CAMERA_SLIDE_HANDLE,
+  CAMERA_SLIDE_HEIGHT,
+  CAMERA_SLIDE_PAD,
+  CAMERA_SLIDE_SPRING_MS,
+  CAMERA_SLIDE_THRESHOLD,
   CAMERA_MAX_ICON_BUTTONS,
   CAMERA_MOTION_COLOR,
   CAMERA_PACKAGE_COLOR,
@@ -36,6 +41,8 @@ import { buildCssVars, resolveCommonColors } from "./shared/color-config";
 import { glassCardClass, glassCardStyles } from "./shared/glass-card";
 import { renderCardHeader, cardHeaderStyles } from "./shared/card-header";
 import { shouldAnimate, STANDARD_EASING } from "./shared/animation";
+import { swipeProgress } from "./shared/checkin";
+import { stopSwipe } from "./shared/swipe";
 import { localize, type TranslationKey } from "./localize";
 import { TemplatedCard } from "./shared/templated-card";
 import { hassChangeMatters } from "./shared/should-update";
@@ -117,6 +124,9 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
   @state() private _doorOpening?: string;
   /** The camera whose door just locked again: its lock snaps shut. */
   @state() private _doorClosing?: string;
+  /** A drag in progress on the door slider's handle. */
+  @state() private _slide?: { pointerId: number; startX: number; travel: number; progress: number; moved: boolean };
+  @state() private _slideNudge = false;
   @state() private _confirm?: ConfirmRequest;
   @state() private _menuOpen = false;
 
@@ -594,6 +604,114 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     </button>`;
   }
 
+  /** `style: slide`, unless motion is reduced: then there is nothing to slide, and the button asks. */
+  private _slideStyle(cam: CameraEntry): boolean {
+    return cam.door_action?.style === "slide" && shouldAnimate(this._config?.animation);
+  }
+
+  /**
+   * The door as a lock to slide across a track. Past the threshold it opens,
+   * without a question: the slide is one. Short of it the lock springs back.
+   * Then it shows the same way as the button — the handle waits at the end
+   * while the door opens and is open, and springs home as it locks again.
+   * The keyboard gets the button's way: Enter, then the question.
+   */
+  private _renderDoorSlide(cam: CameraEntry): TemplateResult {
+    const door = cam.door_action!;
+    const phase = this._doorPhase(cam);
+    const drag = phase === "locked" ? this._slide : undefined;
+    const p = phase === "locked" ? (drag?.progress ?? 0) : 1;
+    const closing = phase === "locked" && this._doorClosing === cam.id;
+    const fb = door.feedback_entity;
+    const left = phase === "open" && !(fb && !fb.startsWith("event.")) ? Math.max(0, this._doorUntil - Date.now()) : 0;
+    const icon =
+      phase === "open"
+        ? door.icon ? "mdi:check" : "mdi:lock-open-variant"
+        : phase === "opening"
+          ? door.icon ?? "mdi:lock-open-variant-outline"
+          : door.icon ?? "mdi:lock-outline";
+    const label =
+      phase === "open" ? this._t("camera_door_opened") : phase === "opening" ? this._t("camera_door_opening") : door.name ?? this._t("camera_door_slide");
+    const handleStyle = drag ? `left: ${CAMERA_SLIDE_PAD + drag.travel * drag.progress}px;` : "";
+    return html`<div
+      class="door-slide ${phase} ${drag ? "dragging" : ""} ${closing ? "closing" : ""} ${left ? "timed" : ""} ${this._slideNudge ? "nudge" : ""}"
+      role="button"
+      tabindex=${phase === "locked" ? "0" : "-1"}
+      aria-label=${label}
+      aria-busy=${phase === "opening" ? "true" : "false"}
+      aria-disabled=${phase === "locked" ? "false" : "true"}
+      style=${`--p: ${p};${left ? ` --door-left: ${left}ms;` : ""}`}
+      @keydown=${(e: KeyboardEvent) => {
+        if ((e.key !== " " && e.key !== "Enter") || phase !== "locked") return;
+        e.preventDefault();
+        this._requestDoor();
+      }}
+    >
+      <span class="slide-label" aria-live="polite">${label}</span>
+      <div
+        class="swiper slide-handle"
+        style=${handleStyle}
+        @pointerdown=${(e: PointerEvent) => this._slideStart(e, phase === "locked")}
+        @pointermove=${this._slideMove}
+        @pointerup=${(e: PointerEvent) => this._slideEnd(e, cam, false)}
+        @pointercancel=${(e: PointerEvent) => this._slideEnd(e, cam, true)}
+        @touchstart=${stopSwipe}
+        @touchmove=${stopSwipe}
+        @touchend=${stopSwipe}
+        @mousedown=${stopSwipe}
+        @mousemove=${stopSwipe}
+        @mouseup=${stopSwipe}
+      >
+        <ha-icon icon=${icon}></ha-icon>
+      </div>
+    </div>`;
+  }
+
+  private _slideStart(e: PointerEvent, allowed: boolean): void {
+    if (!allowed || this._slide) return;
+    const handle = e.currentTarget as HTMLElement;
+    const track = handle.parentElement;
+    if (!track) return;
+    e.preventDefault();
+    try {
+      handle.setPointerCapture(e.pointerId);
+    } catch {
+      // A pointer the browser no longer knows; the drag still works while the finger stays on.
+    }
+    this._touch();
+    this._slide = {
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      travel: track.clientWidth - 2 * CAMERA_SLIDE_PAD - CAMERA_SLIDE_HANDLE,
+      progress: 0,
+      moved: false,
+    };
+  }
+
+  private _slideMove = (e: PointerEvent): void => {
+    const drag = this._slide;
+    if (!drag || e.pointerId !== drag.pointerId) return;
+    const dx = e.clientX - drag.startX;
+    const progress = swipeProgress(dx, drag.travel, false);
+    if (progress === drag.progress && drag.moved) return;
+    this._slide = { ...drag, progress, moved: drag.moved || Math.abs(dx) > 4 };
+  };
+
+  private _slideEnd(e: PointerEvent, cam: CameraEntry, cancelled: boolean): void {
+    const drag = this._slide;
+    if (!drag || e.pointerId !== drag.pointerId) return;
+    this._slide = undefined;
+    if (!cancelled && drag.progress >= CAMERA_SLIDE_THRESHOLD) {
+      void this._openDoor(cam);
+      return;
+    }
+    // A tap, not a slide: nudge the lock the way it goes, so the gesture explains itself.
+    if (!cancelled && !drag.moved) {
+      this._slideNudge = true;
+      window.setTimeout(() => (this._slideNudge = false), 180);
+    }
+  }
+
   private _showDoorOpened(ms: number): void {
     this._doorUntil = Math.max(this._doorUntil, Date.now() + ms);
     if (this._doorTimer !== undefined) window.clearTimeout(this._doorTimer);
@@ -888,8 +1006,10 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     const mode = cam.camera ? liveMode(cam.live_provider, this._featuresOf(cam)) : "image";
     // Without a camera there is nothing to watch: opening the door takes the wide button.
     const doorWide = !cam.camera && !!cam.door_action;
+    // A slider needs the width: it takes a row of its own under the buttons.
+    const slide = this._slideStyle(cam);
     const icons: Array<{ key: string; icon: string; label: string; run: () => void; door?: boolean }> = [];
-    if (cam.door_action && !doorWide) {
+    if (cam.door_action && !doorWide && !slide) {
       icons.push({ key: "door", icon: cam.door_action.icon ?? "mdi:lock-outline", label: cam.door_action.name ?? this._t("camera_open_door"), run: this._requestDoor, door: true });
     }
     const custom = [...(cam.actions ?? [])].sort((a, b) => Number(!!b.primary) - Number(!!a.primary));
@@ -897,10 +1017,12 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     const overflow = icons.length > CAMERA_MAX_ICON_BUTTONS;
     const shown = overflow ? icons.slice(0, CAMERA_MAX_ICON_BUTTONS - 1) : icons;
     const rest = overflow ? icons.slice(CAMERA_MAX_ICON_BUTTONS - 1) : [];
-    if (mode === "image" && !icons.length && !doorWide) return html``;
+    const slider = slide ? html`<div class="actions">${this._renderDoorSlide(cam)}</div>` : nothing;
+    if (slide && doorWide && !icons.length) return html`${slider}`;
+    if (mode === "image" && !icons.length && !doorWide) return html`${slider}`;
     return html`
       <div class="actions">
-        ${doorWide ? this._renderDoorButton(cam, "primary") : nothing}
+        ${doorWide && !slide ? this._renderDoorButton(cam, "primary") : nothing}
         ${mode !== "image"
           ? html`<button class="primary ${this._live ? "on" : ""}" ?disabled=${unavailable} @click=${this._toggleLive}>
               <ha-icon icon=${this._live ? "mdi:stop" : "mdi:play"}></ha-icon>
@@ -934,23 +1056,35 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
             </button>`
           : nothing}
       </div>
+      ${slider}
     `;
   }
 
-  /** While it rings: Talk (with a talk action) | Open door (with a door action) | Ignore. */
+  /**
+   * While it rings: Talk (with a talk action) | Open door (with a door action) | Ignore.
+   * A door slider takes a row of its own under Talk, with Ignore beside it when there is no Talk.
+   */
   private _renderRingActions(cam: CameraEntry): TemplateResult {
+    const talk = cam.talk_action
+      ? html`<button class="tonal talk ${this._talk ? "on" : ""}" aria-pressed=${String(this._talk)} @click=${this._toggleTalk}>
+          <ha-icon icon=${cam.talk_action.icon ?? "mdi:microphone"}></ha-icon>
+          <span>${cam.talk_action.name ?? this._t("camera_talk")}</span>
+        </button>`
+      : nothing;
+    const ignore = html`<button class="round ignore" aria-label=${this._t("camera_ignore")} title=${this._t("camera_ignore")} @click=${this._ignore}>
+      <ha-icon icon="mdi:close"></ha-icon>
+    </button>`;
+    if (cam.door_action && this._slideStyle(cam)) {
+      return html`
+        ${cam.talk_action ? html`<div class="actions ring-actions">${talk}${ignore}</div>` : nothing}
+        <div class="actions ring-actions">${this._renderDoorSlide(cam)}${cam.talk_action ? nothing : ignore}</div>
+      `;
+    }
     return html`
       <div class="actions ring-actions">
-        ${cam.talk_action
-          ? html`<button class="tonal talk ${this._talk ? "on" : ""}" aria-pressed=${String(this._talk)} @click=${this._toggleTalk}>
-              <ha-icon icon=${cam.talk_action.icon ?? "mdi:microphone"}></ha-icon>
-              <span>${cam.talk_action.name ?? this._t("camera_talk")}</span>
-            </button>`
-          : nothing}
+        ${talk}
         ${cam.door_action ? this._renderDoorButton(cam, "primary", "door") : nothing}
-        <button class="round ignore" aria-label=${this._t("camera_ignore")} title=${this._t("camera_ignore")} @click=${this._ignore}>
-          <ha-icon icon="mdi:close"></ha-icon>
-        </button>
+        ${ignore}
       </div>
     `;
   }
@@ -1321,6 +1455,123 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
       .door-button.opening:active,
       .door-button.open:active {
         border-radius: 16px;
+      }
+      /* The door slider: a track with the lock as its handle. */
+      .door-slide {
+        position: relative;
+        flex: 1;
+        min-width: 0;
+        height: ${CAMERA_SLIDE_HEIGHT}px;
+        border-radius: ${CAMERA_SLIDE_HEIGHT / 2}px;
+        overflow: hidden;
+        isolation: isolate;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 ${CAMERA_SLIDE_HANDLE + CAMERA_SLIDE_PAD + 8}px;
+        box-sizing: border-box;
+        user-select: none;
+        -webkit-user-select: none;
+        background: color-mix(in srgb, ${unsafeCSS(CAMERA_PERSON_COLOR)} calc(18% + var(--p) * 40%), transparent);
+        transition:
+          border-radius 420ms ${unsafeCSS(CAMERA_DOOR_SPRING_EASING)},
+          background 260ms ease;
+      }
+      .door-slide.dragging {
+        transition: border-radius 420ms ${unsafeCSS(CAMERA_DOOR_SPRING_EASING)};
+      }
+      .door-slide.opening,
+      .door-slide.open {
+        border-radius: 16px;
+      }
+      .door-slide.open {
+        background: color-mix(in srgb, ${unsafeCSS(CAMERA_PERSON_COLOR)} 26%, transparent);
+        box-shadow: inset 0 0 0 1.5px color-mix(in srgb, ${unsafeCSS(CAMERA_PERSON_COLOR)} 70%, transparent);
+      }
+      .door-slide:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+      .slide-label {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--cam-text);
+        opacity: calc(0.9 - var(--p) * 1.3);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        pointer-events: none;
+        transition: opacity 200ms ease;
+      }
+      .door-slide.opening .slide-label,
+      .door-slide.open .slide-label {
+        opacity: 1;
+      }
+      .slide-handle {
+        position: absolute;
+        top: ${CAMERA_SLIDE_PAD}px;
+        left: ${CAMERA_SLIDE_PAD}px;
+        width: ${CAMERA_SLIDE_HANDLE}px;
+        height: ${CAMERA_SLIDE_HANDLE}px;
+        border-radius: ${CAMERA_SLIDE_HANDLE / 2}px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: ${unsafeCSS(CAMERA_PERSON_COLOR)};
+        color: #1c1c1c;
+        /* Only the handle claims the touch: the rest of the card still scrolls. */
+        touch-action: none;
+        cursor: grab;
+        transition:
+          left ${CAMERA_SLIDE_SPRING_MS}ms ${unsafeCSS(CAMERA_DOOR_SPRING_EASING)},
+          border-radius 300ms ${unsafeCSS(STANDARD_EASING)},
+          transform 180ms ${unsafeCSS(STANDARD_EASING)};
+      }
+      .door-slide.dragging .slide-handle {
+        border-radius: 16px;
+        cursor: grabbing;
+        transition: border-radius 300ms ${unsafeCSS(STANDARD_EASING)};
+      }
+      .door-slide.opening .slide-handle,
+      .door-slide.open .slide-handle {
+        left: calc(100% - ${CAMERA_SLIDE_PAD + CAMERA_SLIDE_HANDLE}px);
+        border-radius: 12px;
+        cursor: default;
+      }
+      .door-slide.nudge .slide-handle {
+        transform: translateX(10px);
+      }
+      .slide-handle ha-icon {
+        --mdc-icon-size: 22px;
+        display: flex;
+        pointer-events: none;
+      }
+      .door-slide.opening::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, #fff 30%, transparent) 50%, transparent 100%);
+        transform: translateX(-100%);
+        animation: cam-door-sweep 1.1s ${unsafeCSS(STANDARD_EASING)} infinite;
+      }
+      .door-slide.open.timed::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: color-mix(in srgb, ${unsafeCSS(CAMERA_PERSON_COLOR)} 55%, transparent);
+        transform-origin: left center;
+        animation: cam-door-drain var(--door-left, 3000ms) linear forwards;
+      }
+      .door-slide.opening .slide-handle ha-icon {
+        animation: cam-door-nudge 0.9s ease-in-out infinite;
+      }
+      .door-slide.open .slide-handle ha-icon {
+        animation: cam-door-pop 360ms ${unsafeCSS(CAMERA_DOOR_SPRING_EASING)};
+      }
+      .door-slide.closing .slide-handle ha-icon {
+        animation: cam-door-snap 480ms ${unsafeCSS(CAMERA_DOOR_SPRING_EASING)};
       }
       @keyframes cam-door-sweep {
         to { transform: translateX(100%); }
