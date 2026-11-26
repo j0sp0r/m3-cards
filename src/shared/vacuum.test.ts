@@ -131,7 +131,7 @@ describe("OptimisticActivity", () => {
 
 describe("isVacuumError", () => {
   it("reads Valetudo's \"No error\" as healthy, like Roborock's none (#73)", () => {
-    for (const s of ["No error", "no_error", "none", "ok", "OK", " None "]) expect(isVacuumError(s)).toBe(false);
+    for (const s of ["No error", "no_error", "none", "ok"]) expect(isVacuumError(s)).toBe(false);
   });
 
   it("does not report a sensor it cannot read", () => {

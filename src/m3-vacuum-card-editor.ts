@@ -13,7 +13,7 @@ import {
   renderAppearanceSection,
   type AppearanceState,
 } from "./shared/appearance-editor";
-import { VACUUM_NO_ERROR_STATES, discoverVacuum, supportsFeature } from "./shared/vacuum";
+import { VACUUM_NO_ERROR_STATES, discoverVacuum, isVacuumError, supportsFeature } from "./shared/vacuum";
 import {
   notifyActions,
   notifyMessageSchema,
@@ -138,7 +138,7 @@ export class M3VacuumCardEditor extends LitElement implements LovelaceCardEditor
             // A sensor already in an error state makes the better sample for
             // a hand-run than one that is fine.
             prelude: triggerStatePrelude(
-              notifySampleEntity(this.hass, ids, (st) => !healthy.includes(st.state)),
+              notifySampleEntity(this.hass, ids, (st) => isVacuumError(st.state)),
             ),
             tokens: { geraet: "{{ s.name }}", fehler: "{{ s.state }}" },
           },
