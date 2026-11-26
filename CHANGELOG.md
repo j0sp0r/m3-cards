@@ -72,6 +72,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Climate card in a half-width slot.** Six HVAC modes ran off the card's
+  right edge, as the mode buttons would not shrink below their icon; they
+  now share the width with tighter gaps. With swing, the fan and vane
+  buttons put their value under the icon instead of cutting it to "…".
 - **Swiping sideways no longer changes the view** on the camera card's
   picture, camera chips and event timeline, or on the media card's source
   row. A test now fails for any sideways-scrolling area without the guard.

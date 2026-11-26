@@ -1753,10 +1753,14 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
     .mode-row {
       display: flex;
       gap: 8px;
+      container-type: inline-size;
     }
 
     .pill {
       flex: 1;
+      /* Shrink below the icon's natural box: six modes in a half-width card
+         otherwise ran off its right edge. */
+      min-width: 0;
       height: 52px;
       display: flex;
       align-items: center;
@@ -1794,6 +1798,19 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
       background: var(--pill-color);
     }
 
+    /* A half-width card: tighter gaps and icons, so every mode still fits. */
+    @container (max-width: 260px) {
+      .pill {
+        height: 44px;
+      }
+      .mode-row:not(.fan-row) .pill ha-icon {
+        --mdc-icon-size: 20px;
+      }
+    }
+    .mode-row:not(.fan-row) {
+      gap: clamp(4px, 2.5cqi, 8px);
+    }
+
     .pill.active ha-icon {
       color: color-mix(in srgb, var(--pill-color) 65%, black 35%);
     }
@@ -1828,12 +1845,34 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
     /* Narrow (a phone, a half-width slot): the values keep the room, the
        chevrons go — the button still says it opens a menu by its look. */
     @container (max-width: 380px) {
-      .air-button {
+      /* .air-row in front: the base .air-button rule comes later in the sheet. */
+      .air-row .air-button {
         gap: 4px;
         padding: 0 8px;
       }
-      .air-button .air-caret {
+      .air-row .air-button .air-caret {
         display: none;
+      }
+    }
+
+    /* Narrower still (a half-width card): the value goes under its icon
+       rather than vanishing into an ellipsis, so the row still says what is set. */
+    @container (max-width: 260px) {
+      .air-row {
+        gap: 6px;
+      }
+      .air-row .air-button {
+        flex-direction: column;
+        gap: 1px;
+        padding: 0 4px;
+        height: 48px;
+        font-size: 11px;
+      }
+      .air-row .air-button ha-icon {
+        --mdc-icon-size: 18px;
+      }
+      .air-row .air-value {
+        max-width: 100%;
       }
     }
 
