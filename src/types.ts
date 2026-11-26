@@ -4699,6 +4699,8 @@ export interface M3RemoteCardConfig extends DetailModeConfig {
 
   show_now_playing?: boolean;
   power_toggle?: boolean;
+  /** Samsung Frame: a tap while on sends KEY_POWER (art mode ↔ TV), a hold switches off. */
+  art_mode?: boolean;
   haptics?: boolean;
 
   accent_color?: string;

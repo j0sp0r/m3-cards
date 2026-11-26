@@ -2890,6 +2890,9 @@ export const REMOTE_HEADER_ICON_SIZE = 44;
 export const REMOTE_HEADER_ICON_RADIUS = RADIUS.squircle44;
 /** The power button: a squircle while on, a full circle while off. */
 export const REMOTE_POWER_SIZE = 44;
+/* `art_mode`: how long the power button is held before it really switches
+   off, like the Frame's own remote. */
+export const REMOTE_POWER_HOLD_MS = 800;
 export const REMOTE_POWER_RADIUS_ON = 16;
 export const REMOTE_POWER_RADIUS_OFF = 22;
 

@@ -49,6 +49,7 @@ import {
   REMOTE_OK_RADIUS_PRESSED,
   REMOTE_POWER_RADIUS_OFF,
   REMOTE_POWER_RADIUS_ON,
+  REMOTE_POWER_HOLD_MS,
   REMOTE_POWER_SIZE,
   REMOTE_REPEAT_DELAY,
   REMOTE_ROCKER_END_HEIGHT,
@@ -214,6 +215,7 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
   public disconnectedCallback(): void {
     super.disconnectedCallback();
     this._clearTimers();
+    this._powerUp();
     this._ticker.disconnect();
   }
 
@@ -558,11 +560,56 @@ export class M3RemoteCard extends TemplatedCard(LitElement) implements LovelaceC
         type="button"
         aria-label=${on ? this._t("remote_turn_off") : this._t("remote_turn_on")}
         aria-pressed=${on ? "true" : "false"}
-        @click=${() => this._power(!on)}
+        @click=${() => this._powerClick(on)}
+        @pointerdown=${this._powerDown}
+        @pointerup=${this._powerUp}
+        @pointercancel=${this._powerUp}
+        @pointerleave=${this._powerUp}
+        @contextmenu=${(e: Event) => this._config?.art_mode && e.preventDefault()}
       >
         <ha-icon icon="mdi:power"></ha-icon>
       </button>
     `;
+  }
+
+  // ---- art mode (Samsung Frame) ----------------------------------------------
+  //
+  // A Frame's own remote has two powers on one button: a press switches
+  // between art mode and the TV, a hold switches the set off. HA's
+  // `turn_off` is the hold, so a card that sends it for every tap can never
+  // get back from art mode to the TV (#78). With `art_mode` the tap sends the
+  // press instead, as a key, and holding the card's button is the real off.
+
+  private _powerHold?: number;
+  private _powerHeld = false;
+
+  private _powerDown = (): void => {
+    if (!this._config?.art_mode || !this._isOn) return;
+    this._powerHeld = false;
+    window.clearTimeout(this._powerHold);
+    this._powerHold = window.setTimeout(() => {
+      this._powerHeld = true;
+      this._power(false);
+    }, REMOTE_POWER_HOLD_MS);
+  };
+
+  private _powerUp = (): void => {
+    window.clearTimeout(this._powerHold);
+    this._powerHold = undefined;
+  };
+
+  private _powerClick(on: boolean): void {
+    if (this._powerHeld) {
+      this._powerHeld = false;
+      return;
+    }
+    const remote = this._remoteEntity;
+    if (this._config?.art_mode && on && remote && this.hass) {
+      this.hass.callService("remote", "send_command", { entity_id: remote, command: "KEY_POWER" });
+      if (this._config.haptics !== false) fireHaptic(this, "medium");
+      return;
+    }
+    this._power(!on);
   }
 
   private _power(on: boolean): void {

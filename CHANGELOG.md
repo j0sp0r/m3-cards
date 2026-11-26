@@ -81,6 +81,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 - **Presence card: `home_zone`.** Another zone can count as home, for a card on
   a second house's dashboard; Home Assistant's own home then shows as a zone.
 
+- **Remote card: `art_mode` for a Samsung Frame.** A tap on the power button
+  while the set is on sends `KEY_POWER`, which switches between art mode and
+  the TV like the Frame's own remote; holding the button for 0.8 s switches it
+  off. Without it the card could only switch the Frame off, never back from
+  art mode to the TV (#78).
+
 ### Fixed
 
 - **Climate card in a half-width slot.** Six HVAC modes ran off the card's

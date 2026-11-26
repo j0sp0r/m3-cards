@@ -199,6 +199,7 @@ export class M3RemoteCardEditor extends LitElement implements LovelaceCardEditor
     return [
       { name: "show_now_playing", selector: { boolean: {} } },
       { name: "power_toggle", selector: { boolean: {} } },
+      { name: "art_mode", selector: { boolean: {} } },
       { name: "haptics", selector: { boolean: {} } },
     ];
   }
@@ -243,6 +244,7 @@ export class M3RemoteCardEditor extends LitElement implements LovelaceCardEditor
       show_apps: "editor_remote_show_now_playing",
       show_now_playing: "editor_remote_show_now_playing",
       power_toggle: "editor_remote_power_toggle",
+      art_mode: "editor_remote_art_mode",
       haptics: "editor_remote_haptics",
       glass_background: "editor_glass_background",
       animation: "editor_progress_animation",
@@ -548,6 +550,7 @@ export class M3RemoteCardEditor extends LitElement implements LovelaceCardEditor
               .data=${{
                 show_now_playing: cfg.show_now_playing ?? defaults.showNowPlaying,
                 power_toggle: cfg.power_toggle ?? true,
+                art_mode: cfg.art_mode ?? false,
                 haptics: cfg.haptics ?? true,
               }}
               .schema=${this._displaySchema()}

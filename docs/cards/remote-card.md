@@ -303,8 +303,26 @@ whoever finds the default out of step with their device.
 | `max_apps` | number | `0` | `0` shows all. |
 | `show_now_playing` | boolean | by profile | — |
 | `power_toggle` | boolean | `true` | One button that toggles, instead of two. |
+| `art_mode` | boolean | `false` | Samsung Frame: see below. |
 | `haptics` | boolean | `true` | Haptic feedback on the companion app. |
 | `accent_color`, `text_color`, `secondary_text_color`, `card_background`, `glass_background`, `radius`, `corners`, `animation`, `card_version` | — | — | The usual shared appearance options. |
+
+## Samsung Frame: art mode
+
+A Frame's own remote has two powers on one button. A press switches between
+art mode and the TV; a hold switches the set off. Home Assistant's `turn_off`
+is the hold, so a power button that sends it can switch the Frame off, but can
+never bring it back from art mode to the TV. `art_mode: true` makes the card's
+button behave like the Frame's: while the set is on, a **tap sends `KEY_POWER`**
+through the `remote` entity, and **holding it for 0.8 s** switches off. While the
+set is off a tap switches it on as before. Only the single toggle button does
+this; with `power_toggle: false` the two buttons stay plain on and off.
+
+```yaml
+type: custom:m3-remote-card
+entity: media_player.samsung_frame
+art_mode: true
+```
 
 ## States
 
