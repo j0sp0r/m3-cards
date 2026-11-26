@@ -18,6 +18,15 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   list, or none under `entities`, nothing changes. `entity` is now optional when
   `entities` is set.
 
+### Fixed
+
+- **Vacuum card: Valetudo showed "Error: No error".** Valetudo's error sensor
+  reads `No error` when nothing is wrong, and the card only took `ok` and
+  `none` for that, so a docked robot carried a red error chip for good. The
+  error notification from the editor had the same list and would have
+  announced "No error" each time an error cleared. Both now share one list of
+  healthy states (#73).
+
 ## [2.11.0] – 2026-11-24
 
 ### Added

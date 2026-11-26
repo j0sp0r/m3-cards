@@ -6,6 +6,7 @@ import {
   discoverVacuum,
   findDockDevice,
   fanSpeedKey,
+  isVacuumError,
   optimisticActivity,
   primaryIntent,
   resolveActivity,
@@ -125,6 +126,22 @@ describe("OptimisticActivity", () => {
     vi.advanceTimersByTime(70_001);
     expect(expired).not.toHaveBeenCalled();
     expect(o.resolve("docked").pending).toBe(false);
+  });
+});
+
+describe("isVacuumError", () => {
+  it("reads Valetudo's \"No error\" as healthy, like Roborock's none (#73)", () => {
+    for (const s of ["No error", "no_error", "none", "ok", "OK", " None "]) expect(isVacuumError(s)).toBe(false);
+  });
+
+  it("does not report a sensor it cannot read", () => {
+    for (const s of [undefined, "", "unknown", "unavailable"]) expect(isVacuumError(s)).toBe(false);
+  });
+
+  it("reports real errors, including ones that merely start with no", () => {
+    for (const s of ["water_empty", "Main brush jammed", "no_water_tank", "Dustbin missing"]) {
+      expect(isVacuumError(s)).toBe(true);
+    }
   });
 });
 

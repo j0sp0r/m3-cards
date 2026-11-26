@@ -13,7 +13,7 @@ import {
   renderAppearanceSection,
   type AppearanceState,
 } from "./shared/appearance-editor";
-import { discoverVacuum, supportsFeature } from "./shared/vacuum";
+import { VACUUM_NO_ERROR_STATES, discoverVacuum, supportsFeature } from "./shared/vacuum";
 import {
   notifyActions,
   notifyMessageSchema,
@@ -106,7 +106,7 @@ export class M3VacuumCardEditor extends LitElement implements LovelaceCardEditor
       const ids = [found.vacuumError, found.dockError].filter(Boolean) as string[];
       if (!ids.length) throw new Error("no error sensors on this vacuum");
 
-      const healthy = ["ok", "none", "unknown", "unavailable"];
+      const healthy = [...VACUUM_NO_ERROR_STATES, "unknown", "unavailable"];
       const cardName =
         cfg.name || this.hass.states[cfg.entity]?.attributes.friendly_name || cfg.entity;
       const automationId = resolveAutomationId("vacuum_error", cfg.notify_automation_id);
