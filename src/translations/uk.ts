@@ -2100,6 +2100,7 @@ const uk: CustomTranslations = {
   editor_room_collapsible: "Розбірні",
   editor_room_collapsible_hint: "Картка складається до свого заголовка. Субтитри залишаються видимими, тож ви можете бачити, чи щось працює.",
   editor_room_default_collapsed: "Старти згорнуті",
+  editor_room_folded_sensors: "Згорнуто: показувати температуру й відчинені вікна в заголовку",
   editor_room_scroll_on_expand: "Прокрутіть до перегляду після відкриття",
   editor_room_scroll_duration: "Тривалість прокручування (0 = стрибок)",
   editor_room_collapse_memory: "Пам’ятайте про складку",

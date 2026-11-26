@@ -203,6 +203,7 @@ area_picture: banner
 | `collapsible` | boolean | `false` | Fold the card down to its header. On a card narrower than 260px (a half-width slot on a phone) the fold pill sits under the name instead of beside it |
 | `shape_by_state` | boolean | `false` | An idle category tile rounds out and its icon well becomes a circle; an active one keeps its corners and squircle, as on the button card |
 | `default_collapsed` | boolean | `false` | |
+| `folded_sensors` | boolean | `false` | Folded, the header still shows the room at a glance: the temperature, and a window or door icon while one is open. On a narrow card it takes a line under the name. Uses the same sensors as the chips, so it needs `show_sensors` |
 | `collapse_state_entity` | string | – | An `input_boolean` holding the folded state |
 | `strip_area_name` | boolean | `false` | Remove the room's name from a single device's name. Off because it assumes a convention |
 

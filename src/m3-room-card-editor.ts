@@ -389,6 +389,7 @@ export class M3RoomCardEditor extends LitElement implements LovelaceCardEditor {
     if (this._config?.collapsible) {
       schema.push(
         { name: "default_collapsed", selector: { boolean: {} } },
+        { name: "folded_sensors", selector: { boolean: {} } },
         { name: "scroll_on_expand", selector: { boolean: {} } },
       );
       if (this._config?.scroll_on_expand) {
@@ -578,6 +579,7 @@ export class M3RoomCardEditor extends LitElement implements LovelaceCardEditor {
       collapsible: "editor_room_collapsible",
       show_active_names: "editor_room_show_active_names",
       default_collapsed: "editor_room_default_collapsed",
+      folded_sensors: "editor_room_folded_sensors",
       scroll_on_expand: "editor_room_scroll_on_expand",
       scroll_duration: "editor_room_scroll_duration",
       collapse_memory: "editor_room_collapse_memory",

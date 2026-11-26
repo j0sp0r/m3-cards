@@ -3052,6 +3052,12 @@ export interface M3RoomCardConfig extends DetailModeConfig {
    * of counting it. Names come from the nested cards when they give one.
    */
   show_active_names?: boolean;
+  /**
+   * Folded, the header still shows the room at a glance: the temperature, and
+   * a window or door icon while one is open. Only with `collapsible`.
+   * @default false
+   */
+  folded_sensors?: boolean;
   default_collapsed?: boolean;
   /**
    * Scrolls the card into view after it is unfolded.

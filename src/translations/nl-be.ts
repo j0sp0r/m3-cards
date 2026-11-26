@@ -2137,6 +2137,7 @@ const nlBe: CustomTranslations = {
   editor_room_collapsible: "Inklapbaar",
   editor_room_collapsible_hint: "De kaart klapt in tot de koptekst. De ondertitel blijft zichtbaar, zodat je nog steeds ziet of er iets actief is.",
   editor_room_default_collapsed: "Start ingeklapt",
+  editor_room_folded_sensors: "Ingeklapt: temperatuur en open ramen in de kop tonen",
   editor_room_scroll_on_expand: "In beeld scrollen bij openen",
   editor_room_scroll_duration: "Scrollduur (0 = verspringen)",
   editor_room_collapse_memory: "Inklapstatus onthouden",

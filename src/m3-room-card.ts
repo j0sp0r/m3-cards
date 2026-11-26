@@ -1354,6 +1354,36 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
 
   // ---- rendering -----------------------------------------------------------
 
+  /**
+   * `folded_sensors`: what the folded card still says about the room, beside
+   * its name — the temperature, and a window or door icon while one is open.
+   * Closed windows say nothing here; the point is what needs a look.
+   */
+  private _renderPeek(chips: Chip[]): TemplateResult | typeof nothing {
+    const cfg = this._config;
+    if (!cfg?.collapsible || !cfg.folded_sensors || !this._folded) return nothing;
+    const items: Array<{ key: string; icon: string; text?: string; color?: string; label: string }> = [];
+    const temp = chips.find((c) => c.icon === "mdi:thermometer");
+    if (temp) {
+      // "21.4 °C" reads as "21.4°" at this size; the unit is plain from the icon.
+      const short = temp.text.replace(/\s*°\s*[CF]$/i, "°");
+      items.push({ key: "temp", icon: "mdi:thermometer", text: short, label: temp.text });
+    }
+    for (const key of ["windows", "doors"]) {
+      const chip = chips.find((c) => c.key === key);
+      if (chip?.color) items.push({ key, icon: chip.icon, color: chip.color, label: chip.text });
+    }
+    if (!items.length) return nothing;
+    return html`<div class="peek" aria-label=${items.map((i) => i.label).join(", ")}>
+      ${items.map((i) => {
+        const style = i.color ? `color: ${foregroundOn(i.color, "var(--ha-card-background, var(--card-background-color))", 3, this)};` : "";
+        return html`<span class="peek-item ${i.color ? "warn" : ""}" style=${style} title=${i.label}>
+          <ha-icon icon=${i.icon}></ha-icon>${i.text ? html`<span>${i.text}</span>` : nothing}
+        </span>`;
+      })}
+    </div>`;
+  }
+
   private _renderChips(chips: Chip[]): TemplateResult | typeof nothing {
     if (chips.length === 0) return nothing;
     return html`
@@ -1527,6 +1557,7 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
     // is bound to the header that stops being true, so the chevron goes rather
     // than sitting there pointing at something that no longer happens.
     const showFoldArrow = !!cfg.collapsible && !headerAction;
+    const peek = this._renderPeek(chips);
 
     return html`
       <ha-card style=${`${cssVars} border-radius: ${radius};`}>
@@ -1546,7 +1577,7 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
               ></div>`
             : nothing}
           <div
-            class="header ${headerTappable ? "tappable" : ""} ${pillFold ? "has-pill" : ""}"
+            class="header ${headerTappable ? "tappable" : ""} ${pillFold ? "has-pill" : ""} ${peek === nothing ? "" : "has-peek"}"
             role=${headerTappable ? "button" : nothing}
             tabindex=${headerTappable ? "0" : nothing}
             aria-expanded=${showFoldArrow ? String(!this._folded) : nothing}
@@ -1566,6 +1597,7 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
               <div class="name" title=${name}>${name}</div>
               <div class="subtitle">${subtitle}</div>
             </div>
+            ${peek}
             ${pillFold
               ? html`<button
                   class="fold-pill pill-toggle ${activeDevices > 0 ? "on" : ""}"
@@ -1725,6 +1757,36 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
         display: flex;
         flex-direction: column;
         gap: 2px;
+      }
+
+      /* folded_sensors: the room at a glance beside its name while folded. */
+      .peek {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--m3p-secondary-text, var(--secondary-text-color));
+        font-size: 13px;
+        font-weight: 600;
+        animation: room-peek-in 220ms ease-out;
+      }
+      .peek-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        white-space: nowrap;
+      }
+      .peek-item ha-icon {
+        --mdc-icon-size: 17px;
+      }
+      .peek-item:not(.warn) ha-icon {
+        opacity: 0.75;
+      }
+      @keyframes room-peek-in {
+        from { opacity: 0; transform: translateX(4px); }
+      }
+      .no-animations .peek {
+        animation: none;
       }
 
       .name {
@@ -1964,6 +2026,17 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
           justify-self: start;
           align-self: start;
           max-width: 100%;
+        }
+        /* Narrow: no room beside the pill, so the glance takes a line of its
+           own under the name, where the subtitle stood. */
+        .header.has-pill.has-peek {
+          grid-template-areas: "icon name" "icon peek" "icon pill";
+        }
+        .header.has-pill .peek {
+          grid-area: peek;
+          justify-self: start;
+          gap: 8px;
+          font-size: 12px;
         }
         .room-icon {
           width: ${unsafeCSS(ROOM_HEADER_ICON_NARROW)}px;
