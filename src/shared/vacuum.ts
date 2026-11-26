@@ -474,15 +474,15 @@ export function discoverVacuum(hass: HomeAssistant, vacuumEntityId: string): Dis
 // ---- error sensors ----------------------------------------------------------
 
 /**
- * The states of an error sensor that mean nothing is wrong: Roborock writes
- * `none`, Valetudo the words `No error`. Compared exactly, so the card and
- * the error notification's `not_to` agree on every state.
+ * The states of an error sensor that name no error: Roborock writes `none`,
+ * Valetudo the words `No error`, and an unreadable sensor reports nothing.
+ * Compared exactly, so the card and the error notification's `not_to` agree.
  */
-export const VACUUM_NO_ERROR_STATES = ["ok", "none", "no_error", "No error"];
+export const VACUUM_HEALTHY_STATES = ["ok", "none", "no_error", "No error", "unknown", "unavailable"];
 
 /** Whether an error sensor's state names an actual error. */
 export function isVacuumError(state: string | undefined): boolean {
-  return !!state && state !== "unknown" && state !== "unavailable" && !VACUUM_NO_ERROR_STATES.includes(state);
+  return !!state && !VACUUM_HEALTHY_STATES.includes(state);
 }
 
 // ---- fan speed --------------------------------------------------------------
