@@ -64,9 +64,14 @@ camera's more-info where there is none (Safari on an iPhone).
 
 `door_action` is any action: pressing a button, unlocking a lock, a switch
 pulse, a script. It only ever runs from a tap on its button, and asks first
-unless `confirmation: false`. After it, "Door opened" shows for three seconds
-— or, with `feedback_entity`, for as long as that entity is on, open or
-unlocked. If the service call fails, a red snackbar says why.
+unless `confirmation: false`. The button follows the door: a closed lock at
+rest; after the tap it turns squarer and the lock opens while the door takes
+its moment ("Opening …"); then "Door opened" in a lighter tone, until the door
+is locked again and the button is a pill once more. Without a
+`feedback_entity` "Door opened" shows for three seconds; with one, from the
+moment it reports on, open or unlocked until it no longer does (an `event.*`
+one: three seconds after its event). If the service call fails, a red
+snackbar says why and the lock closes again.
 
 ### Talk
 

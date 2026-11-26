@@ -14,6 +14,9 @@ import {
   CAMERA_BATTERY_LOW,
   CAMERA_DEFAULT_ICON,
   CAMERA_DOOR_FEEDBACK_MS,
+  CAMERA_DOOR_OPENING_MAX_MS,
+  CAMERA_DOOR_OPENING_MIN_MS,
+  CAMERA_DOOR_SPRING_EASING,
   CAMERA_MAX_ICON_BUTTONS,
   CAMERA_MOTION_COLOR,
   CAMERA_PACKAGE_COLOR,
@@ -109,6 +112,8 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
   @state() private _overlay = false;
   @state() private _talk = false;
   @state() private _doorUntil = 0;
+  /** The camera whose door is opening: tapped, and not yet reported open. */
+  @state() private _doorOpening?: string;
   @state() private _confirm?: ConfirmRequest;
   @state() private _menuOpen = false;
 
@@ -129,6 +134,7 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
   private _ringTimer?: number;
   private _retryTimer?: number;
   private _doorTimer?: number;
+  private _openingTimer?: number;
   private _observer?: IntersectionObserver;
   private _onScreen = true;
   private _tabVisible = true;
@@ -210,8 +216,9 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     this._observer = undefined;
     this._controller.stop();
     for (const t of [this._refreshTimer, this._clockTimer]) if (t !== undefined) window.clearInterval(t);
-    for (const t of [this._ringTimer, this._retryTimer, this._doorTimer]) if (t !== undefined) window.clearTimeout(t);
-    this._refreshTimer = this._clockTimer = this._ringTimer = this._retryTimer = this._doorTimer = undefined;
+    for (const t of [this._ringTimer, this._retryTimer, this._doorTimer, this._openingTimer]) if (t !== undefined) window.clearTimeout(t);
+    this._refreshTimer = this._clockTimer = this._ringTimer = this._retryTimer = this._doorTimer = this._openingTimer = undefined;
+    this._doorOpening = undefined;
   }
 
   private _onDocVisibility = (): void => {
@@ -280,8 +287,14 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
       const fb = cam.door_action?.feedback_entity;
       if (!fb?.startsWith("event.") || !before || before.states[fb] === this.hass.states[fb]) continue;
       const at = Date.parse(this.hass.states[fb]?.state ?? "");
-      if (!isNaN(at) && now - at < CAMERA_DOOR_FEEDBACK_MS) this._showDoorOpened(at + CAMERA_DOOR_FEEDBACK_MS - now);
+      if (!isNaN(at) && now - at < CAMERA_DOOR_FEEDBACK_MS) {
+        if (this._doorOpening === cam.id) this._stopOpening();
+        this._showDoorOpened(at + CAMERA_DOOR_FEEDBACK_MS - now);
+      }
     }
+    // A feedback entity with a state ends "opening" as soon as it reports open.
+    const opening = this._cameras.find((c) => c.id === this._doorOpening);
+    if (opening && this._doorOpen(opening)) this._stopOpening();
 
     this._checkRing(now);
     this._checkDetection(now);
@@ -479,14 +492,83 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     };
   };
 
+  /**
+   * The button shows the door's way from locked to open: "opening" from the
+   * tap until the door is reported open, then "opened". Without a feedback
+   * entity "opening" lasts a moment, so the change can be seen; with one it
+   * lasts until the entity says so, at most CAMERA_DOOR_OPENING_MAX_MS. An
+   * event feedback that never comes still ends in "opened" — the call went
+   * through — while a state one that never turns says nothing it cannot know.
+   */
   private async _openDoor(cam: CameraEntry): Promise<void> {
     const door = cam.door_action;
-    if (!door) return;
+    if (!door || this._doorOpening === cam.id) return;
+    const fb = door.feedback_entity;
+    const started = Date.now();
+    this._doorOpening = cam.id;
     const ok = await this._run(door.tap_action);
-    // A feedback entity says itself when the door is open; an event one may
-    // never come, so the card still shows its three seconds then.
-    if (!ok || (door.feedback_entity && !door.feedback_entity.startsWith("event."))) return;
-    this._showDoorOpened(CAMERA_DOOR_FEEDBACK_MS);
+    if (this._doorOpening !== cam.id) return;
+    if (!ok) {
+      this._stopOpening();
+      return;
+    }
+    if (fb && !fb.startsWith("event.")) {
+      if (this._doorOpen(cam)) this._stopOpening();
+      else this._holdOpening(CAMERA_DOOR_OPENING_MAX_MS - (Date.now() - started), false);
+      return;
+    }
+    if (fb) this._holdOpening(CAMERA_DOOR_OPENING_MAX_MS - (Date.now() - started), true);
+    else this._holdOpening(CAMERA_DOOR_OPENING_MIN_MS - (Date.now() - started), true);
+  }
+
+  /** Keeps "opening" for `ms` more, then shows "opened" or goes back to locked. */
+  private _holdOpening(ms: number, thenOpened: boolean): void {
+    if (this._openingTimer !== undefined) window.clearTimeout(this._openingTimer);
+    this._openingTimer = window.setTimeout(() => {
+      this._stopOpening();
+      if (thenOpened) this._showDoorOpened(CAMERA_DOOR_FEEDBACK_MS);
+    }, Math.max(0, ms));
+  }
+
+  private _stopOpening(): void {
+    if (this._openingTimer !== undefined) window.clearTimeout(this._openingTimer);
+    this._openingTimer = undefined;
+    this._doorOpening = undefined;
+  }
+
+  private _doorPhase(cam: CameraEntry): "locked" | "opening" | "open" {
+    if (this._doorOpen(cam)) return "open";
+    return this._doorOpening === cam.id ? "opening" : "locked";
+  }
+
+  /**
+   * The door button, wide or round: a closed lock at rest; on a tap it takes
+   * a squarer shape and the lock opens while it waits; once the door is open
+   * it stays square in a lighter tone until the door closes again.
+   */
+  private _renderDoorButton(cam: CameraEntry, variant: "primary" | "round", extra = ""): TemplateResult {
+    const door = cam.door_action!;
+    const phase = this._doorPhase(cam);
+    const name = door.name ?? this._t("camera_open_door");
+    const icon =
+      phase === "open"
+        ? door.icon ? "mdi:check" : "mdi:lock-open-variant"
+        : phase === "opening"
+          ? door.icon ?? "mdi:lock-open-variant-outline"
+          : door.icon ?? "mdi:lock-outline";
+    const label = phase === "open" ? this._t("camera_door_opened") : phase === "opening" ? this._t("camera_door_opening") : name;
+    const run = phase === "locked" ? this._requestDoor : undefined;
+    return html`<button
+      class="${variant} door-button ${phase} ${extra}"
+      aria-label=${label}
+      title=${variant === "round" ? label : nothing}
+      aria-busy=${phase === "opening" ? "true" : "false"}
+      aria-disabled=${phase === "locked" ? "false" : "true"}
+      @click=${() => run?.()}
+    >
+      <ha-icon icon=${icon}></ha-icon>
+      ${variant === "primary" ? html`<span aria-live="polite">${label}</span>` : nothing}
+    </button>`;
   }
 
   private _showDoorOpened(ms: number): void {
@@ -651,7 +733,7 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
       })}
       ${cam.camera
         ? this._renderStage(cam, st, unavailable, ringing, det?.kind, inOverlay || !overlayMode)
-        : this._renderStatus(cam)}
+        : this._renderStatus()}
       ${ringing ? this._renderRingActions(cam) : this._renderActions(cam, unavailable)}
     `;
 
@@ -764,13 +846,12 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     `;
   }
 
-  /** Without a camera there is no picture to carry the pills: they get a row of their own. */
-  private _renderStatus(cam: CameraEntry): TemplateResult | typeof nothing {
-    const door = this._doorOpen(cam);
-    if (!door && !this._talk) return nothing;
+  /** Without a camera there is no picture to carry Talk's pill: it gets a row of its own. */
+  private _renderStatus(): TemplateResult | typeof nothing {
+    // The door button shows its own state; only Talk needs a pill here.
+    if (!this._talk) return nothing;
     return html`<div class="status-row">
-      ${this._talk ? html`<span class="pill talk"><ha-icon icon="mdi:microphone"></ha-icon>${this._t("camera_talk_active")}</span>` : nothing}
-      ${door ? html`<span class="pill door"><ha-icon icon="mdi:door-open"></ha-icon>${this._t("camera_door_opened")}</span>` : nothing}
+      <span class="pill talk"><ha-icon icon="mdi:microphone"></ha-icon>${this._t("camera_talk_active")}</span>
     </div>`;
   }
 
@@ -784,9 +865,9 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     const mode = cam.camera ? liveMode(cam.live_provider, this._featuresOf(cam)) : "image";
     // Without a camera there is nothing to watch: opening the door takes the wide button.
     const doorWide = !cam.camera && !!cam.door_action;
-    const icons: Array<{ key: string; icon: string; label: string; run: () => void }> = [];
+    const icons: Array<{ key: string; icon: string; label: string; run: () => void; door?: boolean }> = [];
     if (cam.door_action && !doorWide) {
-      icons.push({ key: "door", icon: cam.door_action.icon ?? "mdi:lock-open-variant-outline", label: cam.door_action.name ?? this._t("camera_open_door"), run: this._requestDoor });
+      icons.push({ key: "door", icon: cam.door_action.icon ?? "mdi:lock-outline", label: cam.door_action.name ?? this._t("camera_open_door"), run: this._requestDoor, door: true });
     }
     const custom = [...(cam.actions ?? [])].sort((a, b) => Number(!!b.primary) - Number(!!a.primary));
     custom.forEach((a, i) => icons.push({ key: `a${i}`, icon: a.icon, label: a.name ?? a.icon, run: () => this._runCustom(a) }));
@@ -796,20 +877,17 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     if (mode === "image" && !icons.length && !doorWide) return html``;
     return html`
       <div class="actions">
-        ${doorWide
-          ? html`<button class="primary" @click=${this._requestDoor}>
-              <ha-icon icon=${cam.door_action!.icon ?? "mdi:lock-open-variant-outline"}></ha-icon>
-              <span>${cam.door_action!.name ?? this._t("camera_open_door")}</span>
-            </button>`
-          : nothing}
+        ${doorWide ? this._renderDoorButton(cam, "primary") : nothing}
         ${mode !== "image"
           ? html`<button class="primary ${this._live ? "on" : ""}" ?disabled=${unavailable} @click=${this._toggleLive}>
               <ha-icon icon=${this._live ? "mdi:stop" : "mdi:play"}></ha-icon>
               <span>${this._live ? this._t("camera_stop_live") : this._t("camera_watch_live")}</span>
             </button>`
           : nothing}
-        ${shown.map(
-          (b) => html`<button class="round" aria-label=${b.label} title=${b.label} @click=${b.run}><ha-icon icon=${b.icon}></ha-icon></button>`,
+        ${shown.map((b) =>
+          b.door
+            ? this._renderDoorButton(cam, "round")
+            : html`<button class="round" aria-label=${b.label} title=${b.label} @click=${b.run}><ha-icon icon=${b.icon}></ha-icon></button>`,
         )}
         ${rest.length
           ? html`<button
@@ -846,12 +924,7 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
               <span>${cam.talk_action.name ?? this._t("camera_talk")}</span>
             </button>`
           : nothing}
-        ${cam.door_action
-          ? html`<button class="primary door" @click=${this._requestDoor}>
-              <ha-icon icon=${cam.door_action.icon ?? "mdi:lock-open-variant-outline"}></ha-icon>
-              <span>${cam.door_action.name ?? this._t("camera_open_door")}</span>
-            </button>`
-          : nothing}
+        ${cam.door_action ? this._renderDoorButton(cam, "primary", "door") : nothing}
         <button class="round ignore" aria-label=${this._t("camera_ignore")} title=${this._t("camera_ignore")} @click=${this._ignore}>
           <ha-icon icon="mdi:close"></ha-icon>
         </button>
@@ -1155,6 +1228,68 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
       }
       .round:hover {
         background: color-mix(in srgb, var(--primary-text-color) 13%, transparent);
+      }
+
+      /* The door button: a pill with a closed lock; squarer while the door
+         opens, with a sweep and a nudging lock; square and lighter once open. */
+      .door-button {
+        position: relative;
+        overflow: hidden;
+        isolation: isolate;
+        transition:
+          border-radius 420ms ${unsafeCSS(CAMERA_DOOR_SPRING_EASING)},
+          background 260ms ease,
+          color 260ms ease !important;
+      }
+      .door-button.opening,
+      .door-button.open {
+        border-radius: 16px;
+        cursor: default;
+      }
+      .door-button.opening::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: linear-gradient(
+          90deg,
+          transparent 0%,
+          color-mix(in srgb, #fff 45%, transparent) 50%,
+          transparent 100%
+        );
+        transform: translateX(-100%);
+        animation: cam-door-sweep 1.1s ${unsafeCSS(STANDARD_EASING)} infinite;
+      }
+      .door-button.round.opening {
+        background: color-mix(in srgb, ${unsafeCSS(CAMERA_PERSON_COLOR)} 35%, transparent);
+      }
+      .door-button.opening ha-icon {
+        animation: cam-door-nudge 0.9s ease-in-out infinite;
+      }
+      .door-button.open {
+        background: color-mix(in srgb, ${unsafeCSS(CAMERA_PERSON_COLOR)} 26%, transparent);
+        color: var(--cam-text);
+        box-shadow: inset 0 0 0 1.5px color-mix(in srgb, ${unsafeCSS(CAMERA_PERSON_COLOR)} 70%, transparent);
+      }
+      .door-button.open ha-icon {
+        color: ${unsafeCSS(CAMERA_PERSON_COLOR)};
+        animation: cam-door-pop 360ms ${unsafeCSS(CAMERA_DOOR_SPRING_EASING)};
+      }
+      .door-button.opening:active,
+      .door-button.open:active {
+        border-radius: 16px;
+      }
+      @keyframes cam-door-sweep {
+        to { transform: translateX(100%); }
+      }
+      @keyframes cam-door-nudge {
+        0%, 100% { transform: rotate(0deg); }
+        30% { transform: rotate(-12deg); }
+        60% { transform: rotate(8deg); }
+      }
+      @keyframes cam-door-pop {
+        0% { transform: scale(0.6); }
+        100% { transform: scale(1); }
       }
       .actions ha-icon {
         --mdc-icon-size: 22px;

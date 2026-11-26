@@ -3462,6 +3462,12 @@ export const DEFAULT_CAMERA_LIVE_IDLE_S = 60;
 export const DEFAULT_CAMERA_SNAPSHOT_REFRESH_S = 10;
 /** How long "Door opened" shows without a feedback entity. */
 export const CAMERA_DOOR_FEEDBACK_MS = 3000;
+/** "Opening" on the door button without a feedback entity: long enough to be seen. */
+export const CAMERA_DOOR_OPENING_MIN_MS = 1200;
+/** "Opening" while waiting for a feedback entity, at most. */
+export const CAMERA_DOOR_OPENING_MAX_MS = 8000;
+/** The door button's change of shape: a slight overshoot. */
+export const CAMERA_DOOR_SPRING_EASING = "cubic-bezier(0.34, 1.4, 0.64, 1)";
 /** Tries again after a still image failed to load, then gives up until the next event. */
 export const CAMERA_IMAGE_RETRY_MS = [10_000, 30_000, 60_000] as const;
 /** Battery pill turns to the error colour below this. */
