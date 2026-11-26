@@ -24,6 +24,34 @@ export function liveMode(provider: CameraLiveProvider | undefined, supportedFeat
   return provider ?? "auto";
 }
 
+/** Something that may hold a picture: an element, its shadow root, a video or an image. */
+interface PictureNode {
+  tagName?: string;
+  readyState?: number;
+  videoWidth?: number;
+  complete?: boolean;
+  naturalWidth?: number;
+  shadowRoot?: PictureNode | null;
+  children?: ArrayLike<PictureNode>;
+}
+
+/**
+ * Whether a live player shows a picture yet: a video with a frame, or an
+ * image (MJPEG) that has loaded one, anywhere inside it, shadow roots
+ * included. Until then the card keeps the still on top of it, so starting
+ * live never flashes an empty stage.
+ */
+export function playerShowsPicture(node: PictureNode | null | undefined, depth = 0): boolean {
+  if (!node || depth > 12) return false;
+  const tag = node.tagName?.toLowerCase();
+  if (tag === "video" && (node.readyState ?? 0) >= 2 && (node.videoWidth ?? 0) > 0) return true;
+  if (tag === "img" && node.complete && (node.naturalWidth ?? 0) > 0) return true;
+  if (node.shadowRoot && playerShowsPicture(node.shadowRoot, depth + 1)) return true;
+  const kids = node.children;
+  if (kids) for (let i = 0; i < kids.length; i++) if (playerShowsPicture(kids[i], depth + 1)) return true;
+  return false;
+}
+
 /** The still image's URL with a cache-buster, so a refresh fetches a new frame. */
 export function snapshotUrl(entityPicture: string | undefined, tick: number): string | undefined {
   if (!entityPicture) return undefined;

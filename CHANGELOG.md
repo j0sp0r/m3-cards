@@ -23,7 +23,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   `door_action`, confirmed, its button going from a closed lock through
   "Opening …" to "Door opened" with a change of shape, or with `style: slide`
   a lock to slide across instead of the question) and Ignore;
-  `ring_overlay: fullscreen` also opens it over the dashboard, as a bottom
+  Starting and stopping live crossfades between still and stream, never
+  through an empty picture. `ring_overlay: fullscreen` also opens it over the dashboard, as a bottom
   sheet on a phone. An intercom without a camera (the Ring Intercom) works too:
   the doorbell alone, no picture, Open door as the wide button. Asked for on
   Reddit; the live demo has a doorbell and two cameras, with a "Someone rings"

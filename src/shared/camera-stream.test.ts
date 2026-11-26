@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { LiveController, imageRetryDelay, liveMode, snapshotUrl } from "./camera-stream";
+import { LiveController, imageRetryDelay, liveMode, snapshotUrl, playerShowsPicture } from "./camera-stream";
 
 describe("liveMode", () => {
   it("falls back to stills without the stream feature or when told", () => {
@@ -58,5 +58,24 @@ describe("LiveController", () => {
     c.setVisible(true);
     c.start("user");
     expect(c.live).toBe(true);
+  });
+});
+
+describe("playerShowsPicture", () => {
+  it("finds a video with a frame inside shadow roots", () => {
+    const video = { tagName: "VIDEO", readyState: 4, videoWidth: 1280 };
+    const player = { tagName: "HA-CAMERA-STREAM", shadowRoot: { children: [{ tagName: "HA-HLS-PLAYER", shadowRoot: { children: [video] } }] } };
+    expect(playerShowsPicture(player)).toBe(true);
+  });
+  it("waits while the video has no frame yet", () => {
+    const player = { tagName: "HA-CAMERA-STREAM", shadowRoot: { children: [{ tagName: "VIDEO", readyState: 1, videoWidth: 0 }] } };
+    expect(playerShowsPicture(player)).toBe(false);
+  });
+  it("counts a loaded MJPEG image, not one still loading", () => {
+    expect(playerShowsPicture({ tagName: "DIV", children: [{ tagName: "IMG", complete: true, naturalWidth: 640 }] })).toBe(true);
+    expect(playerShowsPicture({ tagName: "DIV", children: [{ tagName: "IMG", complete: false, naturalWidth: 0 }] })).toBe(false);
+  });
+  it("is false for nothing", () => {
+    expect(playerShowsPicture(undefined)).toBe(false);
   });
 });

@@ -57,6 +57,10 @@ feature shows stills whatever is set. An unreachable camera shows a
 placeholder; a still that fails to load is tried again after 10, 30 and 60
 seconds, then not until the next event.
 
+Switching never shows an empty picture: starting live, the still stays until
+the stream shows a frame and then fades into it; stopping, the stream stays
+until the fresh still has loaded under it.
+
 The full-screen button uses the browser's full-screen mode, or opens the
 camera's more-info where there is none (Safari on an iPhone).
 

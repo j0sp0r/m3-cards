@@ -18,6 +18,8 @@ import {
   CAMERA_DOOR_OPENING_MIN_MS,
   CAMERA_DOOR_SPRING_EASING,
   CAMERA_DOOR_CLOSING_MS,
+  CAMERA_LIVE_LINGER_MAX_MS,
+  CAMERA_LIVE_START_MAX_MS,
   CAMERA_SLIDE_HANDLE,
   CAMERA_SLIDE_HEIGHT,
   CAMERA_SLIDE_PAD,
@@ -65,7 +67,7 @@ import {
   type CameraEventKind,
   type HistoryRow,
 } from "./shared/camera-events";
-import { LiveController, imageRetryDelay, liveMode, snapshotUrl } from "./shared/camera-stream";
+import { LiveController, imageRetryDelay, liveMode, playerShowsPicture, snapshotUrl } from "./shared/camera-stream";
 
 console.info(
   `%c M3-CAMERA-CARD %c v${CARD_VERSION} `,
@@ -132,9 +134,24 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
 
   private _cameras: CameraEntry[] = [];
   private _controller = new LiveController((live) => {
+    // Stopping live: the player stays up until the fresh still has loaded
+    // under it, so the picture never drops to an empty stage in between.
+    if (!live && this._live && this._streamPlaying) {
+      this._lingering = true;
+      if (this._lingerTimer !== undefined) window.clearTimeout(this._lingerTimer);
+      this._lingerTimer = window.setTimeout(() => this._endLinger(), CAMERA_LIVE_LINGER_MAX_MS);
+    }
     this._live = live;
-    if (!live) this._tick++;
+    if (live) this._endLinger();
+    else this._tick++;
   }, DEFAULT_CAMERA_LIVE_IDLE_S * 1000);
+  /** The live player shows a picture; until then the still stays on top. */
+  @state() private _streamPlaying = false;
+  /** Live has stopped, and the player waits for the new still to load under it. */
+  @state() private _lingering = false;
+  private _lingerTimer?: number;
+  private _playWatch?: number;
+  private _playWatchSince = 0;
   private _historyLoaded = new Set<string>();
   private _historyLoading = new Set<string>();
   /** The ring each camera last acted on, so a ring is handled once. */
@@ -230,6 +247,9 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     this._observer?.disconnect();
     this._observer = undefined;
     this._controller.stop();
+    this._endLinger();
+    if (this._playWatch !== undefined) window.clearInterval(this._playWatch);
+    this._playWatch = undefined;
     for (const t of [this._refreshTimer, this._clockTimer]) if (t !== undefined) window.clearInterval(t);
     for (const t of [this._ringTimer, this._retryTimer, this._doorTimer, this._openingTimer, this._closingTimer]) if (t !== undefined) window.clearTimeout(t);
     this._refreshTimer = this._clockTimer = this._ringTimer = this._retryTimer = this._doorTimer = this._openingTimer = this._closingTimer = undefined;
@@ -378,6 +398,13 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
       this._lastDoorPhase.set(cam.id, phase);
     }
     if (this._live && !this._streamReady) void this._ensureStream();
+    this._watchPlayer();
+    // A still that is already in (same picture, nothing to fetch) fires no
+    // load: the lingering player can go now.
+    if (this._lingering) {
+      const still = this.renderRoot.querySelector<HTMLImageElement>(".stage .still");
+      if (still?.complete && still.naturalWidth > 0) this._endLinger();
+    }
     syncDialogOpenState(this.renderRoot.querySelector<HTMLDialogElement>("dialog.m3-confirm"), !!this._confirm);
     const overlay = this.renderRoot.querySelector<HTMLDialogElement>("dialog.ring-overlay");
     if (overlay) {
@@ -455,6 +482,7 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
   private _select(camera: string): void {
     if (camera === this._selected) return;
     this._controller.stop();
+    this._endLinger();
     this._selected = camera;
     this._imgFailures = 0;
     this._imgError = false;
@@ -782,7 +810,36 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     this._imgFailures = 0;
     this._imgError = false;
     this._stillAt = Date.now();
+    if (this._lingering) this._endLinger();
   };
+
+  private _endLinger(): void {
+    if (this._lingerTimer !== undefined) window.clearTimeout(this._lingerTimer);
+    this._lingerTimer = undefined;
+    this._lingering = false;
+    if (!this._live) this._streamPlaying = false;
+  }
+
+  /** Watches a starting player until it shows a picture, then lets it fade in over the still. */
+  private _watchPlayer(): void {
+    const player = this.renderRoot.querySelector(".stage .live");
+    if (!player || this._streamPlaying) {
+      if (this._playWatch !== undefined) window.clearInterval(this._playWatch);
+      this._playWatch = undefined;
+      return;
+    }
+    if (this._playWatch !== undefined) return;
+    this._playWatchSince = Date.now();
+    this._playWatch = window.setInterval(() => {
+      const el = this.renderRoot.querySelector(".stage .live");
+      const timedOut = Date.now() - this._playWatchSince > CAMERA_LIVE_START_MAX_MS;
+      if (!el || playerShowsPicture(el as never) || timedOut) {
+        window.clearInterval(this._playWatch);
+        this._playWatch = undefined;
+        if (el) this._streamPlaying = true;
+      }
+    }, 150);
+  }
 
   /** A still that will not load: try again later, slower each time, then wait for an event. */
   private _imgFailed = (): void => {
@@ -937,20 +994,27 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     const streaming = mayStream && this._live && mode !== "image" && !unavailable;
     const url = snapshotUrl(st?.attributes.entity_picture as string | undefined, this._tick);
     const doorOpen = this._doorOpen(cam);
-    let picture: TemplateResult;
-    if (unavailable || (!streaming && (this._imgError || !url))) {
-      picture = html`<div class="placeholder">
-        <ha-icon icon="mdi:video-off-outline"></ha-icon>
-        <span>${this._t("camera_unavailable")}</span>
-      </div>`;
-    } else if (streaming && this._streamReady) {
-      picture =
-        mode === "webrtc" && customElements.get("ha-web-rtc-player")
-          ? html`<ha-web-rtc-player class="live" .hass=${this.hass} .entityid=${cam.camera} .muted=${true} .playsInline=${true} .controls=${false}></ha-web-rtc-player>`
-          : html`<ha-camera-stream class="live" .hass=${this.hass} .stateObj=${st} .muted=${true} .controls=${false} allow-exoplayer></ha-camera-stream>`;
-    } else {
-      picture = html`<img class="still" src=${url!} alt=${this._cameraName(cam)} @load=${this._imgLoaded} @error=${this._imgFailed} />`;
-    }
+    // Layers, so a change never shows an empty stage: the still at the bottom
+    // whenever there is one, and the player over it, see-through until it
+    // shows a picture. Stopping, the player stays until the new still is in.
+    const showPlayer = mayStream && !unavailable && mode !== "image" && this._streamReady && (streaming || this._lingering);
+    const showStill = !unavailable && !!url && !this._imgError;
+    const playerClass = `live ${this._streamPlaying ? "playing" : ""}`;
+    const picture = html`
+      ${showStill
+        ? html`<img class="still" src=${url!} alt=${this._cameraName(cam)} @load=${this._imgLoaded} @error=${this._imgFailed} />`
+        : showPlayer
+          ? nothing
+          : html`<div class="placeholder">
+              <ha-icon icon="mdi:video-off-outline"></ha-icon>
+              <span>${this._t("camera_unavailable")}</span>
+            </div>`}
+      ${showPlayer
+        ? mode === "webrtc" && customElements.get("ha-web-rtc-player")
+          ? html`<ha-web-rtc-player class=${playerClass} .hass=${this.hass} .entityid=${cam.camera} .muted=${true} .playsInline=${true} .controls=${false}></ha-web-rtc-player>`
+          : html`<ha-camera-stream class=${playerClass} .hass=${this.hass} .stateObj=${st} .muted=${true} .controls=${false} allow-exoplayer></ha-camera-stream>`
+        : nothing}
+    `;
     const kindColor = detection ? KIND_COLOR[detection] : undefined;
     return html`
       <div
@@ -964,7 +1028,7 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
         ${picture}
         <div class="pills top-left">
           ${streaming
-            ? html`<span class="pill live-pill"><span class="dot"></span>${this._streamReady ? this._t("camera_live") : this._t("camera_loading_live")}</span>`
+            ? html`<span class="pill live-pill"><span class="dot"></span>${this._streamPlaying ? this._t("camera_live") : this._t("camera_loading_live")}</span>`
             : !unavailable && this._stillAt
               ? html`<span class="pill"><ha-icon icon="mdi:image-outline"></ha-icon>${this._t("camera_still", { time: this._time(this._stillAt) })}</span>`
               : nothing}
@@ -1217,6 +1281,14 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
       }
       .stage:fullscreen .still {
         object-fit: contain;
+      }
+      /* The player fades in over the still once it shows a picture. */
+      .live {
+        opacity: 0;
+        transition: opacity 280ms ${unsafeCSS(STANDARD_EASING)};
+      }
+      .live.playing {
+        opacity: 1;
       }
       .placeholder {
         position: absolute;
