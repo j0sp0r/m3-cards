@@ -1,7 +1,6 @@
 import type { HomeAssistant, PriceUnit, PricingConfig } from "../types";
 import { getNumberFormat } from "./formatting";
 import { fetchPeriodChangeByEntity } from "./ha-statistics";
-import { getGridEntities } from "./ha-energy";
 import { loadEnergySources } from "./energy-sources";
 
 const DEFAULT_PRICE_STEP = 0.1;
@@ -117,11 +116,12 @@ export async function resolveEffectivePrice(
   if (config.price_source !== "energy_dashboard") {
     return resolveCurrentPrice(hass, config);
   }
-  const [costIds, grid] = await Promise.all([getGridCostEntities(hass), getGridEntities(hass)]);
-  if (!costIds || !grid || grid.from.length === 0) return undefined;
+  // Cost and kWh from the same read, so both cover the same tariffs.
+  const { sources } = await loadEnergySources(hass);
+  if (!sources?.gridCost.length || !sources.gridFrom.length) return undefined;
   const [costByEntity, kwhByEntity] = await Promise.all([
-    fetchPeriodChangeByEntity(hass, costIds, periodStart, periodEnd, "day"),
-    fetchPeriodChangeByEntity(hass, grid.from, periodStart, periodEnd, "day"),
+    fetchPeriodChangeByEntity(hass, sources.gridCost, periodStart, periodEnd, "day"),
+    fetchPeriodChangeByEntity(hass, sources.gridFrom, periodStart, periodEnd, "day"),
   ]);
   const totalCost = Array.from(costByEntity.values()).reduce((a, b) => a + b, 0);
   const totalKwh = Array.from(kwhByEntity.values()).reduce((a, b) => a + b, 0);
