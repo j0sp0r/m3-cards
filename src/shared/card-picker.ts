@@ -1,4 +1,5 @@
 import { resolveLang } from "../localize";
+import { dutchBeCardDescriptions } from "../translations/nl-be-card-descriptions";
 import { ukrainianCardDescriptions } from "../translations/uk-card-descriptions";
 import type { HomeAssistant } from "../types";
 
@@ -13,7 +14,8 @@ export function localizeCardPickerDescriptions(): void {
   const { customCards } = window as Window & { customCards?: CardPickerEntry[] };
   for (const card of customCards ?? []) {
     const ukrainian = ukrainianCardDescriptions.get(card.type);
-    if (!ukrainian) continue;
+    const dutchBe = dutchBeCardDescriptions.get(card.type);
+    if (!ukrainian && !dutchBe) continue;
     const original = Object.getOwnPropertyDescriptor(card, "description");
     if (!original?.configurable || typeof original.value !== "string") continue;
 
@@ -24,7 +26,10 @@ export function localizeCardPickerDescriptions(): void {
       enumerable: original.enumerable,
       get() {
         const hass = document.querySelector<HomeAssistantRoot>("home-assistant")?.hass;
-        return resolveLang(hass?.locale?.language ?? hass?.language) === "uk" ? ukrainian : fallback;
+        const lang = resolveLang(hass?.locale?.language ?? hass?.language);
+        if (lang === "uk" && ukrainian) return ukrainian;
+        if (lang === "nl-BE" && dutchBe) return dutchBe;
+        return fallback;
       },
       set(value: string | undefined) {
         Object.defineProperty(card, "description", { ...original, value });

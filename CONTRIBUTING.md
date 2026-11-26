@@ -105,8 +105,9 @@ does not remove it — lit-html commits `setAttribute(name, value ?? '')`, so
 `aria-haspopup=${open ? "listbox" : undefined}` lands as `aria-haspopup=""`.
 
 **User-facing strings go in `src/localize.ts`, in both `de` and `en`.** Add the
-Ukrainian wording in `src/translations/uk.ts` when available. Check for an
-existing key first and keep placeholder names the same across languages.
+Ukrainian wording in `src/translations/uk.ts` and Belgian Dutch wording in
+`src/translations/nl-be.ts` when available. Check for an existing key first and
+keep placeholder names the same across languages.
 
 ## Two traps worth knowing
 
