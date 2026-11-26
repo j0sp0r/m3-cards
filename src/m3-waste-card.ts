@@ -429,6 +429,9 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
     if (!next) {
       heroMain = "—";
       heroSub = "";
+    } else if (heroPrimary === "date") {
+      heroMain = next.daysTo === 0 ? this._t("waste_today") : next.date ? this._compactDate(next.date) : "—";
+      heroSub = `${namesJoined} · ${this._daysHero(next.daysTo!)}`;
     } else if (heroPrimary === "weekday") {
       heroMain = next.daysTo === 0 ? this._t("waste_today") : next.date ? this._weekday(next.date) : "—";
       heroSub = `${namesJoined} · ${this._daysHero(next.daysTo!)}`;
@@ -544,8 +547,21 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
     const days = next?.daysTo;
     const urgency = escalate || days === 0 ? "today" : days === 1 ? "tomorrow" : days === undefined ? "none" : "later";
     const names = sameDay.length > 1 ? sameDay.map((s) => s.name).join(" · ") : next?.name ?? this._t("waste_none_label");
-    const chip = days === undefined ? "—" : this._daysCompact(days);
-    const date = next?.date ? this._compactDate(next.date) : "";
+    // `hero_primary` decides what leads here too: the days ("14 d"), the
+    // weekday ("Thu") or the date ("10 Dec"). Today and tomorrow stay words —
+    // they say more than any date — and what does not lead goes underneath.
+    const lead = cfg.hero_primary ?? "days";
+    const byDate = lead !== "days" && days !== undefined && days >= 2 && !!next?.date;
+    const weekdayLead = byDate && lead === "weekday" && days! <= 6;
+    const chip =
+      days === undefined
+        ? "—"
+        : !byDate
+          ? this._daysCompact(days)
+          : weekdayLead
+            ? new Intl.DateTimeFormat(this._language, { weekday: "short" }).format(next!.date!)
+            : this._shortDate(next!.date!);
+    const date = !next?.date ? "" : byDate ? this._daysHero(days!) : this._compactDate(next.date);
     const icon = this._renderCompactIcon(sameDay, cfg.icon || DEFAULT_WASTE_ICON);
     const accent = escalate ? WASTE_ESCALATE_COLOR : next?.color ?? DEFAULT_WASTE_COLOR;
     const chipStyle =
@@ -597,11 +613,19 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
         ${ackButton}
       `;
     } else if (layout === "tile") {
-      const big =
-        days !== undefined && days >= 2
-          ? html`<span class="c-num">${days}</span><span class="c-unit">${this._t("waste_days_unit")}</span>`
-          : html`<span class="c-word">${chip}</span>`;
-      const shortDate = next?.date ? this._shortDate(next.date) : "";
+      let big;
+      if (days === undefined || days < 2) big = html`<span class="c-word">${chip}</span>`;
+      else if (!byDate) big = html`<span class="c-num">${days}</span><span class="c-unit">${this._t("waste_days_unit")}</span>`;
+      else if (weekdayLead) big = html`<span class="c-word">${this._weekday(next!.date!)}</span>`;
+      else {
+        const parts = new Intl.DateTimeFormat(this._language, { day: "numeric", month: "short" }).formatToParts(next!.date!);
+        const day = parts.find((p) => p.type === "day")?.value ?? "";
+        const month = parts.find((p) => p.type === "month")?.value ?? "";
+        // "10." in German, "10" in English: the separator the locale puts after the day.
+        const dot = parts.find((p, i) => p.type === "literal" && parts[i - 1]?.type === "day")?.value.trim() ?? "";
+        big = html`<span class="c-num">${day}${dot}</span><span class="c-unit">${month}</span>`;
+      }
+      const shortDate = !next?.date ? "" : byDate ? this._daysHero(days!) : this._shortDate(next.date);
       // Three names do not fit a half-width tile; the icons above say which.
       const tileNames = sameDay.length > 2 ? this._t("waste_count").replace("{n}", String(sameDay.length)) : names;
       body = html`

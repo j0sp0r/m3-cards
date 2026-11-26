@@ -2509,7 +2509,8 @@ export interface M3WasteCardConfig extends NotifyConfigBase, DetailModeConfig {
   calendar_entity?: string;
   auto_discover?: boolean;
   name_strip?: string[];
-  hero_primary?: "days" | "weekday";
+  /** What leads: "in 3 days", "Monday" or "10 Dec" — in the hero, and in the compact layouts. */
+  hero_primary?: "days" | "weekday" | "date";
   hero_icon?: "first" | "multi";
   /**
    * `full`: hero, timeline and a row per bin. The compact ones show only the

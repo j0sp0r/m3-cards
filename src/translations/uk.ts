@@ -1636,6 +1636,7 @@ const uk: CustomTranslations = {
   editor_waste_hero_primary: "Основний герой",
   editor_waste_hero_days: "Днів (через 3 дні)",
   editor_waste_hero_weekday: "Будній день (понеділок)",
+  editor_waste_hero_date: "Дата (10 груд.)",
   editor_waste_hero_icon: "Значок героя",
   editor_waste_icon_first: "Перший контейнер",
   editor_waste_icon_multi: "Кілька (перекриття)",

@@ -64,7 +64,7 @@ bin alone — a pill that only ever shows the paper — give it just that one.
 | `layout` | `full` \| `row` \| `tile` \| `pill` | `full` | Everything, or only the next collection in one of three compact sizes. See [Compact sizes](#compact-sizes) |
 | `entities` | list | – | Sensors (days-until-collection): id or `{ entity, name, icon, color }` |
 | `calendar_entity` | string | – | A calendar with one event per collection, the event summary naming the bin. Merged with `entities`. |
-| `hero_primary` | `days` \| `weekday` | `days` | Hero shows "in 3 days" or "Monday" |
+| `hero_primary` | `days` \| `weekday` \| `date` | `days` | What leads: "in 3 days", "Monday" or "10 Dec" — in the hero and in the compact sizes, where the other goes underneath. Today and tomorrow stay words |
 | `hero_icon` | `first` \| `multi` | `first` | Single icon or overlapping bin icons |
 | `show_timeline` | boolean | `true` | Two-week timeline |
 | `timeline_days` | number | `14` | Timeline span (7–28) |

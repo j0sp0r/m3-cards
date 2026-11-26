@@ -126,6 +126,7 @@ export class M3WasteCardEditor extends LitElement implements LovelaceCardEditor 
             options: [
               { value: "days", label: this._t("editor_waste_hero_days") },
               { value: "weekday", label: this._t("editor_waste_hero_weekday") },
+              { value: "date", label: this._t("editor_waste_hero_date") },
             ],
           },
         },

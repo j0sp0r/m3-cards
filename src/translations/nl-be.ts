@@ -1674,6 +1674,7 @@ const nlBe: CustomTranslations = {
   editor_waste_hero_primary: "Hoofdweergave",
   editor_waste_hero_days: "Dagen (over 3 dagen)",
   editor_waste_hero_weekday: "Weekdag (maandag)",
+  editor_waste_hero_date: "Datum (10 dec.)",
   editor_waste_hero_icon: "Hoofdicoon",
   editor_waste_icon_first: "Eerste container",
   editor_waste_icon_multi: "Meerdere (overlappend)",
