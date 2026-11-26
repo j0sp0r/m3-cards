@@ -104,6 +104,28 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   their nodes, because iOS WebKit leaves HTML inside an SVG out of its scaling.
   They are now laid over the diagram instead and land in the same spot
   everywhere.
+- **Cost card: "No price configured" with a price on the energy dashboard.**
+  With `price_source: energy_dashboard` the card only read the grid's
+  `stat_cost`, which Home Assistant leaves empty when the price is a fixed
+  number or a price entity; the cost statistic it computes itself is listed
+  under `energy/info` instead. The card now finds it there, the way the energy
+  usage card already did. The top consumers card's cost mode with
+  `price_source: energy_dashboard` reads its price the same way and had the
+  same gap (#72). Thanks to @svenrienstra (#74).
+- **Energy usage card: cost for a day or a week.** The cost in the source
+  table covered the whole calendar month so far whenever the day or week view
+  was selected, because the cost statistics were always read in monthly
+  buckets, and the recorder starts a monthly bucket on the 1st. A day in late
+  November showed €87 where €2.28 was right. They are now read in the same
+  buckets as the energy next to them (#71). Thanks to @svenrienstra (#74).
+- **Vacuum card: Valetudo showed "Error: No error".** Valetudo's error sensor
+  reads `No error` when nothing is wrong, and the card only took `ok` and
+  `none` for that, so a docked robot carried a red error chip for good. The
+  error notification from the editor had the same list and would have
+  announced "No error" each time an error cleared. Both now share one list of
+  healthy states. A notification set up before this has the old list; open the
+  card's editor and set it up again to update it (#73). Dreame robots report
+  the same words. Thanks to @svenrienstra (#75).
 
 ### Changed
 
@@ -114,33 +136,6 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   one line on a phone-wide card.
 - **Room card: the banner picture is tappable** and does what the header does,
   folding the card or running its `tap_action` (#43).
-
-### Fixed
-
-- **Cost card: "No price configured" with a price on the energy dashboard.**
-  With `price_source: energy_dashboard` the card only read the grid's
-  `stat_cost`, which Home Assistant leaves empty when the price is a fixed
-  number or a price entity; the cost statistic it computes itself is listed
-  under `energy/info` instead. The card now finds it there, the way the energy
-  usage card already did. The top consumers card's cost mode with
-  `price_source: energy_dashboard` reads its price the same way and had the
-  same gap (#72).
-- **Energy usage card: cost for a day or a week.** The cost in the source
-  table covered the whole calendar month so far whenever the day or week view
-  was selected, because the cost statistics were always read in monthly
-  buckets, and the recorder starts a monthly bucket on the 1st. A day in late
-  November showed €87 where €2.28 was right. They are now read in the same
-  buckets as the energy next to them (#71).
-
-### Fixed
-
-- **Vacuum card: Valetudo showed "Error: No error".** Valetudo's error sensor
-  reads `No error` when nothing is wrong, and the card only took `ok` and
-  `none` for that, so a docked robot carried a red error chip for good. The
-  error notification from the editor had the same list and would have
-  announced "No error" each time an error cleared. Both now share one list of
-  healthy states. A notification set up before this has the old list; open the
-  card's editor and set it up again to update it (#73).
 
 ## [2.11.0] – 2026-11-24
 
