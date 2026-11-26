@@ -72,6 +72,9 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Swiping sideways no longer changes the view** on the camera card's
+  picture, camera chips and event timeline, or on the media card's source
+  row. A test now fails for any sideways-scrolling area without the guard.
 - **Room, appliance and nav cards: nested cards after the app comes back.**
   Returning to a dashboard left in the background, Home Assistant rebuilds
   it; if the frontend chunk that builds cards could not be loaded just then,

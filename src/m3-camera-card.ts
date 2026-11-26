@@ -1077,12 +1077,18 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     const kindColor = detection ? KIND_COLOR[detection] : undefined;
     return html`
       <div
-        class="stage"
+        class="swiper stage"
         style=${`border-radius: ${CAMERA_STAGE_RADIUS}px;`}
         @pointerdown=${this._touch}
         @pointermove=${this._touch}
         @wheel=${this._touch}
         @keydown=${this._touch}
+        @touchstart=${stopSwipe}
+        @touchmove=${stopSwipe}
+        @touchend=${stopSwipe}
+        @mousedown=${stopSwipe}
+        @mousemove=${stopSwipe}
+        @mouseup=${stopSwipe}
       >
         ${picture}
         <div class="pills top-left">
@@ -1214,7 +1220,18 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
 
   private _renderChips(): TemplateResult {
     return html`
-      <div class="chips" role="tablist" aria-label=${this._t("camera_cameras")}>
+      <!-- Scrolls sideways: a swipe here must not change the dashboard view. -->
+      <div
+        class="swiper chips"
+        role="tablist"
+        aria-label=${this._t("camera_cameras")}
+        @touchstart=${stopSwipe}
+        @touchmove=${stopSwipe}
+        @touchend=${stopSwipe}
+        @mousedown=${stopSwipe}
+        @mousemove=${stopSwipe}
+        @mouseup=${stopSwipe}
+      >
         ${this._cameras.map((c) => {
           const active = c.id === this._selected;
           return html`<button
@@ -1247,7 +1264,16 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
         <span>${heading}</span>
         ${all ? html`<button class="link" @click=${() => void this._run(all)}>${this._t("camera_events_all")}</button>` : nothing}
       </div>
-      <div class="timeline" role="list">
+      <div
+        class="swiper timeline"
+        role="list"
+        @touchstart=${stopSwipe}
+        @touchmove=${stopSwipe}
+        @touchend=${stopSwipe}
+        @mousedown=${stopSwipe}
+        @mousemove=${stopSwipe}
+        @mouseup=${stopSwipe}
+      >
         ${events.slice(0, max).map((e) => {
           const preview = cam.snapshot_url_template ? fillEventTemplate(cam.snapshot_url_template, cam, e) : undefined;
           return html`<button class="event" role="listitem" @click=${() => this._openEvent(cam, e)} aria-label=${`${this._kindLabel(e.kind)} ${this._time(e.at)}`}>

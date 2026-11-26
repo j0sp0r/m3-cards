@@ -1923,7 +1923,15 @@ export class M3MediaCard extends TemplatedCard(LitElement) implements LovelaceCa
 
   private _renderSourceSelect(sources: string[], current: string | undefined) {
     return html`
-      <div class="source-row">
+      <div
+        class="swiper source-row"
+        @touchstart=${stopSwipe}
+        @touchmove=${stopSwipe}
+        @touchend=${stopSwipe}
+        @mousedown=${stopSwipe}
+        @mousemove=${stopSwipe}
+        @mouseup=${stopSwipe}
+      >
         ${sources.map(
           (s) => html`
             <button

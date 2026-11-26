@@ -25,4 +25,23 @@ describe("swipe shield", () => {
     // The example in swipe.ts's own comment is not a template.
     expect(missing.filter((m) => !m.includes("shared/swipe.ts"))).toEqual([]);
   });
+
+  it("every element that scrolls sideways carries the skip class, so a swipe on it never changes the view", () => {
+    const missing: string[] = [];
+    for (const [file, src] of Object.entries(SOURCES)) {
+      if (file.includes(".test.")) continue;
+      // A card that puts the class on its own host covers everything inside it.
+      if (/classList\.add\(SWIPE_PLUGIN_SKIP\)/.test(src)) continue;
+      for (const rule of src.matchAll(/\n\s*([^{}\n]+)\{[^{}]*overflow-x:\s*(?:auto|scroll)/g)) {
+        for (const selector of rule[1].split(",")) {
+          const name = [...selector.matchAll(/\.([\w-]+)/g)].pop()?.[1];
+          if (!name) continue;
+          const attrs = [...src.matchAll(/class="([^"]*)"/g)].map((m) => m[1].split(/\s+/));
+          const uses = attrs.filter((classes) => classes.includes(name));
+          if (uses.length && !uses.every((classes) => classes.includes(SWIPE_PLUGIN_SKIP))) missing.push(`${file}: .${name}`);
+        }
+      }
+    }
+    expect(missing).toEqual([]);
+  });
 });
