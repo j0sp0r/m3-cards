@@ -2199,6 +2199,21 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
     .style-expressive .control-row:has(.fan-button, .swing-button) {
       container-type: inline-size;
     }
+
+    /* With swing, mode + fan + one or two vane buttons: compact pills, so
+       all four share one line on a phone-wide card rather than the fourth
+       wrapping onto a line of its own. Only above the half-width layout
+       below, which arranges them differently. */
+    .style-expressive .control-row:has(.swing-button) {
+      gap: 6px;
+    }
+    @container (min-width: 261px) {
+      .style-expressive .control-row > button.preset-button:not(.icon-only),
+      .style-expressive .control-row > button.mode-button:not(.icon-only) {
+        padding: 0 11px;
+        gap: 4px;
+      }
+    }
     @container (max-width: 260px) {
       .style-expressive .control-row .mode-button {
         flex: 1 0 100%;

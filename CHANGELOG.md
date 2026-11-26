@@ -99,6 +99,8 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 - **Climate card (expressive): the setpoint field is as wide as its value**,
   with the ± buttons joined to it and the three centred, rather than a bar
   across the whole card. In a half-width card it still shrinks to fit.
+  With swing, the mode, fan and vane buttons are compact pills that share
+  one line on a phone-wide card.
 - **Room card: the banner picture is tappable** and does what the header does,
   folding the card or running its `tap_action` (#43).
 
