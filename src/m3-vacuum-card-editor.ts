@@ -13,7 +13,7 @@ import {
   renderAppearanceSection,
   type AppearanceState,
 } from "./shared/appearance-editor";
-import { discoverVacuum, supportsFeature } from "./shared/vacuum";
+import { VACUUM_HEALTHY_STATES, discoverVacuum, isVacuumError, supportsFeature } from "./shared/vacuum";
 import {
   notifyActions,
   notifyMessageSchema,
@@ -106,7 +106,6 @@ export class M3VacuumCardEditor extends LitElement implements LovelaceCardEditor
       const ids = [found.vacuumError, found.dockError].filter(Boolean) as string[];
       if (!ids.length) throw new Error("no error sensors on this vacuum");
 
-      const healthy = ["ok", "none", "unknown", "unavailable"];
       const cardName =
         cfg.name || this.hass.states[cfg.entity]?.attributes.friendly_name || cfg.entity;
       const automationId = resolveAutomationId("vacuum_error", cfg.notify_automation_id);
@@ -116,7 +115,7 @@ export class M3VacuumCardEditor extends LitElement implements LovelaceCardEditor
         alias: `${cardName}: ${this._t("editor_vacuum_notify_error_alias")}`,
         description: this._t("editor_vacuum_notify_error_description"),
         mode: "single",
-        triggers: [{ trigger: "state", entity_id: ids, not_to: healthy }],
+        triggers: [{ trigger: "state", entity_id: ids, not_to: VACUUM_HEALTHY_STATES }],
         // A restart replays states; without this the first tick after one
         // would announce every error the machine was already in.
         conditions: [
@@ -138,7 +137,7 @@ export class M3VacuumCardEditor extends LitElement implements LovelaceCardEditor
             // A sensor already in an error state makes the better sample for
             // a hand-run than one that is fine.
             prelude: triggerStatePrelude(
-              notifySampleEntity(this.hass, ids, (st) => !healthy.includes(st.state)),
+              notifySampleEntity(this.hass, ids, (st) => isVacuumError(st.state)),
             ),
             tokens: { geraet: "{{ s.name }}", fehler: "{{ s.state }}" },
           },

@@ -90,6 +90,7 @@ import {
   activityIcon,
   discoverVacuum,
   fanSpeedKey,
+  isVacuumError,
   optimisticActivity,
   primaryIntent,
   supportsFeature,
@@ -1602,11 +1603,8 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
   private _enumState(entityId: string | undefined): string | undefined {
     if (!entityId) return undefined;
     const state = this.hass?.states[entityId];
-    const raw = state?.state;
-    if (!raw || raw === "ok" || raw === "none" || raw === "unknown" || raw === "unavailable") {
-      return undefined;
-    }
-    return this.hass?.formatEntityState?.(state!) ?? raw;
+    if (!state || !isVacuumError(state.state)) return undefined;
+    return this.hass?.formatEntityState?.(state) ?? state.state;
   }
 
   static styles = [

@@ -132,6 +132,16 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   November showed €87 where €2.28 was right. They are now read in the same
   buckets as the energy next to them (#71).
 
+### Fixed
+
+- **Vacuum card: Valetudo showed "Error: No error".** Valetudo's error sensor
+  reads `No error` when nothing is wrong, and the card only took `ok` and
+  `none` for that, so a docked robot carried a red error chip for good. The
+  error notification from the editor had the same list and would have
+  announced "No error" each time an error cleared. Both now share one list of
+  healthy states. A notification set up before this has the old list; open the
+  card's editor and set it up again to update it (#73).
+
 ## [2.11.0] – 2026-11-24
 
 ### Added
