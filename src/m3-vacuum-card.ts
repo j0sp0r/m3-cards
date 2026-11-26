@@ -46,6 +46,8 @@ import {
   VACUUM_SECONDARY_TINT,
   VACUUM_SECONDARY_WIDTH,
   CARD_VERSION,
+  VACUUM_CAMERA_MAP_ACTIVE_MS,
+  VACUUM_CAMERA_MAP_IDLE_MS,
 } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { formatNumber } from "./shared/formatting";
@@ -173,6 +175,10 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
   private _discovered?: DiscoveredVacuum;
   private _discoveredFor?: string;
   private _fanSettle?: number;
+  /** Refetch key and timer for a camera map, which has no timestamp state. */
+  @state() private _mapFrame = 0;
+  private _mapTimer?: number;
+  private _mapTimerMs = 0;
 
   public static async getConfigElement(): Promise<LovelaceCardEditor> {
     await import("./m3-vacuum-card-editor");
@@ -212,6 +218,7 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
     this._optimistic.clear();
     this._popupCard.reset();
     if (this._fanSettle) clearTimeout(this._fanSettle);
+    this._stopMapTimer();
     for (const t of Object.values(this._selectTimers)) clearTimeout(t);
     this._selectTimers = {};
   }
@@ -285,6 +292,7 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
 
   protected updated(): void {
     this._chipRow.sync(this.renderRoot);
+    this._syncMapTimer();
     this._maybeSyncPopupCard();
     if (this._popupCardEl && this.hass) this._popupCardEl.hass = this.hass;
     // Two dialogs live in this shadow root — the configured popup and the
@@ -991,7 +999,31 @@ export class M3VacuumCard extends TemplatedCard(LitElement) implements LovelaceC
     const state = this.hass?.states[entityId];
     const picture = state?.attributes.entity_picture as string | undefined;
     if (!picture) return undefined;
-    return { entityId, src: `${picture}${picture.includes("?") ? "&" : "?"}s=${state!.state}` };
+    // An image entity's state is its picture's timestamp; a camera's is
+    // `idle`, so a camera map is keyed on the card's own refetch counter.
+    const key = entityId.startsWith("camera.") ? `f=${this._mapFrame}` : `s=${state!.state}`;
+    return { entityId, src: `${picture}${picture.includes("?") ? "&" : "?"}${key}` };
+  }
+
+  /** Runs the camera map's refetch timer at the pace the robot's activity calls for. */
+  private _syncMapTimer(): void {
+    const entityId = this._config?.show_map === false ? undefined : this._entity("map_entity", "map");
+    const camera = !!entityId?.startsWith("camera.") && this.isConnected;
+    const ms = !camera
+      ? 0
+      : this._activity().activity === "docked"
+        ? VACUUM_CAMERA_MAP_IDLE_MS
+        : VACUUM_CAMERA_MAP_ACTIVE_MS;
+    if (ms === this._mapTimerMs) return;
+    this._stopMapTimer();
+    this._mapTimerMs = ms;
+    if (ms) this._mapTimer = window.setInterval(() => this._mapFrame++, ms);
+  }
+
+  private _stopMapTimer(): void {
+    if (this._mapTimer) clearInterval(this._mapTimer);
+    this._mapTimer = undefined;
+    this._mapTimerMs = 0;
   }
 
   /**

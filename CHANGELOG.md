@@ -118,6 +118,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   buckets, and the recorder starts a monthly bucket on the 1st. A day in late
   November showed €87 where €2.28 was right. They are now read in the same
   buckets as the energy next to them (#71). Thanks to @svenrienstra (#74).
+- **Vacuum card: the Dreame map.** A Dreame robot on the Dreame Vacuum
+  integration has no `image` entity for its map, but `camera` entities, and the
+  card looked only for an image, so the map stayed away. It now takes the live
+  map camera (`camera.…_map`, not `map_data`, saved or WiFi maps) and fetches
+  its picture again every 5 seconds while the robot is out, once a minute while
+  it is docked. `map_entity` still overrides it (#77).
 - **Vacuum card: Valetudo showed "Error: No error".** Valetudo's error sensor
   reads `No error` when nothing is wrong, and the card only took `ok` and
   `none` for that, so a docked robot carried a red error chip for good. The

@@ -56,6 +56,17 @@ Two things have to be true before a tap does anything: the vacuum must declare
 on the vacuum entity itself — its gear icon, *"Map vacuum segments to areas"*.
 Without the mapping the service is called and the robot ignores it.
 
+## Where the map comes from
+
+The map is the `image` entity on the vacuum's device (Roborock, Valetudo). A
+Dreame robot on the Dreame Vacuum integration has none; it draws its map as
+`camera` entities instead, and the card takes the live one (`camera.…_map`),
+never `map_data`, a saved `map_1`… or a WiFi map. Those cameras are only there
+with the integration's cloud connection. A camera has no timestamp to tell the
+card a new picture is ready, so the card fetches it again every 5 seconds while
+the robot is out and once a minute while it is docked. `map_entity` names
+another one, for example a saved map.
+
 ## The map is cropped to the floor plan
 
 A Roborock map is a picture of the robot's **whole coordinate space**, and a

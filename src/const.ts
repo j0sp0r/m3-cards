@@ -2440,6 +2440,12 @@ export const DEFAULT_VACUUM_ICON = "mdi:robot-vacuum";
    is the card's own, because the state colour it mixes is. */
 export const VACUUM_ICON_TINT = 16;
 
+/* A camera map (Dreame) has no timestamp state to key the picture on, so the
+   card refetches it: every few seconds while the robot is out, rarely while
+   it sits in the dock. */
+export const VACUUM_CAMERA_MAP_ACTIVE_MS = 5000;
+export const VACUUM_CAMERA_MAP_IDLE_MS = 60000;
+
 /** Battery chip in the header's trailing slot. */
 export const VACUUM_BATTERY_HEIGHT = 30;
 export const VACUUM_BATTERY_RADIUS = 15;

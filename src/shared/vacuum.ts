@@ -419,7 +419,10 @@ export function discoverVacuum(hass: HomeAssistant, vacuumEntityId: string): Dis
   // The map is the only one taken by domain alone: Roborock names the image
   // entity after the *map* ("Downstairs"), so there is no stable key to match,
   // and a vacuum device has no other image entity to confuse it with.
-  found.map = inDomain("image")[0]?.entity_id;
+  // Dreame (Tasshack) has no image entity but cameras: the live `map`, a
+  // `map_data` for other cards, saved `map_1`… and `wifi_map_1`…; only the
+  // live one is the map the card means (#77).
+  found.map = inDomain("image")[0]?.entity_id ?? pickMapCamera(inDomain("camera"));
 
   found.mopMode = pick("select", ["mop_mode"]);
   found.mopIntensity = pick("select", ["mop_intensity"]);
@@ -469,6 +472,22 @@ export function discoverVacuum(hass: HomeAssistant, vacuumEntityId: string): Dis
   found.dnd = pick("switch", ["dnd_switch", "do_not_disturb"]);
 
   return found;
+}
+
+/**
+ * The live map among a vacuum's camera entities: the one keyed `map`, else
+ * the only camera that is none of the known extras.
+ */
+export function pickMapCamera(cameras: RegistryEntry[]): string | undefined {
+  const extra = /(^|_)(map_data|map_\d+|wifi_map(_\d+)?)$/;
+  const live = cameras.find((e) => {
+    if (e.translation_key) return e.translation_key === "map";
+    const id = suffixOf(e.entity_id);
+    return (id === "map" || id.endsWith("_map")) && !extra.test(id);
+  });
+  if (live) return live.entity_id;
+  const rest = cameras.filter((e) => !extra.test(e.translation_key ?? suffixOf(e.entity_id)));
+  return rest.length === 1 ? rest[0].entity_id : undefined;
 }
 
 // ---- error sensors ----------------------------------------------------------

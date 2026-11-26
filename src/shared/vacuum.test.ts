@@ -7,6 +7,7 @@ import {
   findDockDevice,
   fanSpeedKey,
   isVacuumError,
+  pickMapCamera,
   optimisticActivity,
   primaryIntent,
   resolveActivity,
@@ -202,6 +203,38 @@ describe("discoverVacuum", () => {
     expect(found.binary.mop_attached).toBe("binary_sensor.sushi_mop_attached");
     expect(found.switches.mop_washing).toBe("switch.sushi_mop_washing");
     expect(found.consumables.filter).toBe("sensor.sushi_filter_time_left");
+  });
+
+  it("takes Dreame's live map camera when there is no image entity (#77)", () => {
+    const hass = fakeHass({
+      "vacuum.l20": { device_id: "dev1" },
+      "camera.l20_map_data": { device_id: "dev1", translation_key: "map_data" },
+      "camera.l20_map": { device_id: "dev1", translation_key: "map" },
+      "camera.l20_map_1": { device_id: "dev1", translation_key: "map_1" },
+      "camera.l20_wifi_map_1": { device_id: "dev1", translation_key: "wifi_map_1" },
+    });
+    expect(discoverVacuum(hass, "vacuum.l20").map).toBe("camera.l20_map");
+  });
+
+  it("finds the live map camera by its entity_id, and never a saved or WiFi map", () => {
+    expect(
+      pickMapCamera([
+        { entity_id: "camera.l20_wifi_map" },
+        { entity_id: "camera.l20_map_1" },
+        { entity_id: "camera.l20_map" },
+      ]),
+    ).toBe("camera.l20_map");
+    expect(pickMapCamera([{ entity_id: "camera.l20_map_data" }, { entity_id: "camera.l20_map_2" }])).toBeUndefined();
+    expect(pickMapCamera([{ entity_id: "camera.robot_floor" }])).toBe("camera.robot_floor");
+  });
+
+  it("prefers an image entity over a camera", () => {
+    const hass = fakeHass({
+      "vacuum.sushi": { device_id: "dev1" },
+      "camera.sushi_map": { device_id: "dev1" },
+      "image.sushi_downstairs": { device_id: "dev1" },
+    });
+    expect(discoverVacuum(hass, "vacuum.sushi").map).toBe("image.sushi_downstairs");
   });
 
   it("still finds a renamed entity, because it matches the translation key", () => {
