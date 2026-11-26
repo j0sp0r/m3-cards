@@ -2705,9 +2705,18 @@ export interface M3SupplyCardConfig extends NotifyConfigBase, DetailModeConfig {
 export type TodoAddPosition = "top" | "bottom";
 export type TodoQuickAddMode = "none" | "fixed" | "recent" | "supplies";
 
-export interface M3TodoCardConfig {
+// The area, label and exclude_entities options of the shared filter narrow
+// auto-discovery, which is on when neither `entity` nor `entities` is set. As in
+// the battery card, a list you want is named in `entities`, so there is no
+// include_entities. The state filters do not apply: a list's state is just its
+// open count.
+export interface M3TodoCardConfig
+  extends Omit<EntityFilterConfig, "include_state" | "exclude_state" | "include_entities"> {
   type: string;
-  /** The list shown first. Optional when `entities` names the lists. */
+  /**
+   * The list shown first. Optional when `entities` names the lists, or when
+   * neither is set and every list is discovered.
+   */
   entity?: string;
   /**
    * Lists to offer in a picker: the header name becomes a drop-down. `entity`

@@ -71,6 +71,17 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 - **Room card: the banner picture is tappable** and does what the header does,
   folding the card or running its `tap_action` (#43).
 
+- **Todo card: discover every list.** With neither `entity` nor `entities`, the
+  card offers every `todo.*` list it can find in the same drop-down, sorted by
+  name, and a list added later appears without reloading. The shared
+  `include_area` / `exclude_area`, `include_labels` / `exclude_labels` and
+  `exclude_entities` options narrow it, as in the battery card, resolved from the
+  states and registries the frontend already holds, so it works for users
+  without admin rights. Hidden lists are left out, as in the other discovering
+  cards; naming one in `entities` shows it. A pick is kept per filter, so a new
+  list does not make it vanish. A card with neither option used to be an
+  error, so no existing card changes meaning.
+
 ## [2.11.0] – 2026-11-24
 
 ### Added

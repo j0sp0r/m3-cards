@@ -5,7 +5,7 @@ import { DEFAULT_TODO_RADIUS, TODO_DEFAULT_MAX_QUICK_ADD } from "./const";
 import { localize, type TranslationKey } from "./localize";
 import { fireEvent, colorRow, listRow, editorStyles, type SchemaEntry } from "./shared/editor-helpers";
 import { radiusLabelMap } from "./shared/radius-editor";
-import { dropEmptyEntities } from "./shared/todo-lists";
+import { dropEmptyLists } from "./shared/todo-lists";
 import {
   initAppearanceState,
   radiusPresetPatch,
@@ -45,8 +45,7 @@ export class M3TodoCardEditor extends LitElement implements LovelaceCardEditor {
 
   private _listSchema(): SchemaEntry[] {
     return [
-      // With `entities` the card has its lists, and `entity` only picks the first one shown.
-      { name: "entity", required: !this._config?.entities?.length, selector: { entity: { domain: "todo" } } },
+      { name: "entity", selector: { entity: { domain: "todo" } } },
       { name: "entities", selector: { entity: { domain: "todo", multiple: true } } },
       { name: "name", selector: { text: {} } },
       { name: "icon", selector: { icon: {} } },
@@ -119,10 +118,25 @@ export class M3TodoCardEditor extends LitElement implements LovelaceCardEditor {
     ];
   }
 
+  private _discoverySchema(): SchemaEntry[] {
+    return [
+      { name: "include_area", selector: { area: { multiple: true } } },
+      { name: "exclude_area", selector: { area: { multiple: true } } },
+      { name: "include_labels", selector: { label: { multiple: true } } },
+      { name: "exclude_labels", selector: { label: { multiple: true } } },
+      { name: "exclude_entities", selector: { entity: { domain: "todo", multiple: true } } },
+    ];
+  }
+
   private _computeLabel = (schema: SchemaEntry): string => {
     const labelMap: Record<string, TranslationKey> = {
       entity: "editor_entity",
       entities: "editor_todo_entities",
+      include_area: "editor_todo_include_area",
+      exclude_area: "editor_todo_exclude_area",
+      include_labels: "editor_todo_include_labels",
+      exclude_labels: "editor_todo_exclude_labels",
+      exclude_entities: "editor_todo_exclude_entities",
       name: "editor_name",
       icon: "editor_icon",
       add_position: "editor_todo_add_position",
@@ -144,7 +158,7 @@ export class M3TodoCardEditor extends LitElement implements LovelaceCardEditor {
   private _valueChanged(ev: CustomEvent): void {
     if (!this._config) return;
     this._emit(
-      dropEmptyEntities({ ...this._config, ...(ev.detail.value as Record<string, unknown>) } as M3TodoCardConfig),
+      dropEmptyLists({ ...this._config, ...(ev.detail.value as Record<string, unknown>) } as M3TodoCardConfig),
     );
   }
 
@@ -205,6 +219,13 @@ export class M3TodoCardEditor extends LitElement implements LovelaceCardEditor {
       name: this._config.name,
       icon: this._config.icon,
     };
+    const discoveryData = {
+      include_area: this._config.include_area ?? [],
+      exclude_area: this._config.exclude_area ?? [],
+      include_labels: this._config.include_labels ?? [],
+      exclude_labels: this._config.exclude_labels ?? [],
+      exclude_entities: this._config.exclude_entities ?? [],
+    };
     const inputData = {
       add_position: this._config.add_position ?? "top",
       prevent_duplicates: this._config.prevent_duplicates ?? true,
@@ -228,6 +249,20 @@ export class M3TodoCardEditor extends LitElement implements LovelaceCardEditor {
               .hass=${this.hass}
               .data=${listData}
               .schema=${this._listSchema()}
+              .computeLabel=${this._computeLabel}
+              @value-changed=${this._valueChanged}
+            ></ha-form>
+          </div>
+        </ha-expansion-panel>
+
+        <ha-expansion-panel outlined .header=${this._t("editor_todo_discovery")}>
+          <ha-icon slot="leading-icon" icon="mdi:magnify"></ha-icon>
+          <div class="panel-content">
+            <div class="hint">${this._t("editor_todo_discovery_hint")}</div>
+            <ha-form
+              .hass=${this.hass}
+              .data=${discoveryData}
+              .schema=${this._discoverySchema()}
               .computeLabel=${this._computeLabel}
               @value-changed=${this._valueChanged}
             ></ha-form>

@@ -50,6 +50,30 @@ longer exists is skipped in favour of one that does. With a single list the card
 looks and behaves exactly as before, and a fixed `name` is ignored while the
 drop-down is shown, since the header then names the list on screen.
 
+### Every list, filtered
+
+Leave out both `entity` and `entities` and the card offers every `todo.*` list
+it can find, sorted by name. Narrow that by area or by label, and take single
+lists out with `exclude_entities`. To show only lists you name, use `entities`
+instead.
+
+```yaml
+type: custom:m3-todo-card
+include_labels:
+  - projects          # only lists carrying this label
+exclude_entities:
+  - todo.shopping_list
+```
+
+Labels come from the list's own entity and from its device. A list you have
+hidden in Home Assistant is left out; name it in `entities` to show it. New
+lists show up without reloading the dashboard. The state filters of the other
+cards do not apply here: a list's state is just its open count. These options
+only matter for discovery; with `entity` or `entities` set the card shows
+exactly the lists you named. As with any card, the drop-down appears once two
+or more lists are offered; if a filter leaves a single list, the card just shows
+that list.
+
 ### Quick-add chips
 
 Optional one-tap buttons above the list, filled from one of three sources via
@@ -79,8 +103,11 @@ stored as "Fruit: apples" reads as "apples" beneath a "Fruit" heading.
 
 | Option | Type | Default | Description |
 |---|---|---|---|
-| `entity` | string | – | The `todo.*` list. Required unless `entities` is set |
+| `entity` | string | – | The `todo.*` list, shown first. Leave out with `entities` to pick from several, or with neither to discover every list |
 | `entities` | list | – | `todo.*` lists to choose between: the header name becomes a drop-down. `entity` is the one shown first |
+| `include_area` / `exclude_area` | list\<string\> | – | Area filter for auto-discovery |
+| `include_labels` / `exclude_labels` | list\<string\> | – | Label filter for auto-discovery |
+| `exclude_entities` | list\<string\> | – | Lists to leave out of auto-discovery |
 | `name` / `icon` | string | entity's own | Header name and icon |
 | `add_position` | `top` \| `bottom` | `top` | Where new entries land |
 | `prevent_duplicates` | boolean | `true` | Pulse the existing entry instead of adding twice |
