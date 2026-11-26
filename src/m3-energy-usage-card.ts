@@ -273,7 +273,9 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
               start_time: p.start.toISOString(),
               end_time: end.toISOString(),
               statistic_ids: costIds,
-              period: "month",
+              // The same buckets as the energy: a "month" bucket starts on
+              // the 1st, so a day or a week would show the month so far.
+              period: unit,
               types: ["change"],
             }).catch(() => ({}))
           : Promise.resolve({} as Record<string, { start: string | number; change?: number }[]>),
