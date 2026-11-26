@@ -36,20 +36,29 @@ interface PictureNode {
 }
 
 /**
- * Whether a live player shows a picture yet: a video with a frame, or an
- * image (MJPEG) that has loaded one, anywhere inside it, shadow roots
- * included. Until then the card keeps the still on top of it, so starting
- * live never flashes an empty stage.
+ * Whether a live player shows a picture yet, looking inside it, shadow roots
+ * included. Where it holds a video, only a video with a frame counts: Home
+ * Assistant's player shows a poster image for a moment before it swaps in
+ * a still empty video, and taking that image for the stream faded in an
+ * empty stage. Only a player without any video — MJPEG — counts by a loaded
+ * image, and not with `videoOnly`: a camera that streams always ends in a
+ * video, and the image may come before the video element does.
  */
-export function playerShowsPicture(node: PictureNode | null | undefined, depth = 0): boolean {
-  if (!node || depth > 12) return false;
-  const tag = node.tagName?.toLowerCase();
-  if (tag === "video" && (node.readyState ?? 0) >= 2 && (node.videoWidth ?? 0) > 0) return true;
-  if (tag === "img" && node.complete && (node.naturalWidth ?? 0) > 0) return true;
-  if (node.shadowRoot && playerShowsPicture(node.shadowRoot, depth + 1)) return true;
-  const kids = node.children;
-  if (kids) for (let i = 0; i < kids.length; i++) if (playerShowsPicture(kids[i], depth + 1)) return true;
-  return false;
+export function playerShowsPicture(node: PictureNode | null | undefined, videoOnly = false): boolean {
+  const videos: PictureNode[] = [];
+  const images: PictureNode[] = [];
+  const walk = (n: PictureNode | null | undefined, depth: number): void => {
+    if (!n || depth > 12) return;
+    const tag = n.tagName?.toLowerCase();
+    if (tag === "video") videos.push(n);
+    else if (tag === "img") images.push(n);
+    if (n.shadowRoot) walk(n.shadowRoot, depth + 1);
+    const kids = n.children;
+    if (kids) for (let i = 0; i < kids.length; i++) walk(kids[i], depth + 1);
+  };
+  walk(node, 0);
+  if (videos.length || videoOnly) return videos.some((v) => (v.readyState ?? 0) >= 2 && (v.videoWidth ?? 0) > 0);
+  return images.some((i) => !!i.complete && (i.naturalWidth ?? 0) > 0);
 }
 
 /** The still image's URL with a cache-buster, so a refresh fetches a new frame. */

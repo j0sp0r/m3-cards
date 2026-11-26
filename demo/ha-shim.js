@@ -118,8 +118,10 @@ class HaCard extends HTMLElement {
 }
 customElements.define("ha-card", HaCard);
 
-// Home Assistant's live camera view. The demo has no stream, so it shows the
-// camera's picture as it changes, with a slow pan that reads as "moving".
+// Home Assistant's live camera view. The demo has no stream, so it paints the
+// camera's picture into a real <video> (a canvas stream), with a slow pan
+// that reads as "moving". A video, because the card waits for one with a
+// frame before it fades the stream in, as it does with Home Assistant's.
 class HaCameraStream extends HTMLElement {
   set stateObj(s) {
     this._pic = s?.attributes?.entity_picture;
@@ -128,13 +130,35 @@ class HaCameraStream extends HTMLElement {
   connectedCallback() {
     if (!this.shadowRoot) {
       this.attachShadow({ mode: "open" }).innerHTML =
-        `<style>:host{display:block;overflow:hidden}img{width:100%;height:100%;object-fit:cover;animation:pan 9s ease-in-out infinite alternate}@keyframes pan{to{transform:scale(1.06) translateX(-1.5%)}}@media (prefers-reduced-motion:reduce){img{animation:none}}</style><img alt="">`;
+        `<style>:host{display:block;overflow:hidden}video{width:100%;height:100%;object-fit:cover;animation:pan 9s ease-in-out infinite alternate}@keyframes pan{to{transform:scale(1.06) translateX(-1.5%)}}@media (prefers-reduced-motion:reduce){video{animation:none}}</style><video muted playsinline autoplay></video>`;
     }
     this._draw();
   }
+  disconnectedCallback() {
+    clearInterval(this._timer);
+    this._timer = undefined;
+  }
   _draw() {
-    const img = this.shadowRoot?.querySelector("img");
-    if (img && this._pic && img.getAttribute("src") !== this._pic) img.setAttribute("src", this._pic);
+    const video = this.shadowRoot?.querySelector("video");
+    if (!video || !this._pic || this._drawn === this._pic) return;
+    this._drawn = this._pic;
+    const img = new Image();
+    img.onload = () => {
+      const canvas = this._canvas ?? (this._canvas = document.createElement("canvas"));
+      canvas.width = img.naturalWidth || 640;
+      canvas.height = img.naturalHeight || 360;
+      const ctx = canvas.getContext("2d");
+      const paint = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      paint();
+      clearInterval(this._timer);
+      // A stream only produces frames when the canvas is painted.
+      this._timer = setInterval(paint, 200);
+      if (!video.srcObject && canvas.captureStream) {
+        video.srcObject = canvas.captureStream(5);
+        video.play?.().catch(() => {});
+      }
+    };
+    img.src = this._pic;
   }
 }
 customElements.define("ha-camera-stream", HaCameraStream);

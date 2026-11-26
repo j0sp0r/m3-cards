@@ -833,7 +833,7 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     this._playWatch = window.setInterval(() => {
       const el = this.renderRoot.querySelector(".stage .live");
       const timedOut = Date.now() - this._playWatchSince > CAMERA_LIVE_START_MAX_MS;
-      if (!el || playerShowsPicture(el as never) || timedOut) {
+      if (!el || playerShowsPicture(el as never, true) || timedOut) {
         window.clearInterval(this._playWatch);
         this._playWatch = undefined;
         if (el) this._streamPlaying = true;

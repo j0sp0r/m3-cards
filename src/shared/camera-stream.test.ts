@@ -75,6 +75,13 @@ describe("playerShowsPicture", () => {
     expect(playerShowsPicture({ tagName: "DIV", children: [{ tagName: "IMG", complete: true, naturalWidth: 640 }] })).toBe(true);
     expect(playerShowsPicture({ tagName: "DIV", children: [{ tagName: "IMG", complete: false, naturalWidth: 0 }] })).toBe(false);
   });
+  it("does not take the player's poster image for the stream while its video is still empty", () => {
+    const player = { tagName: "HA-CAMERA-STREAM", shadowRoot: { children: [{ tagName: "IMG", complete: true, naturalWidth: 640 }, { tagName: "VIDEO", readyState: 0, videoWidth: 0 }] } };
+    expect(playerShowsPicture(player)).toBe(false);
+  });
+  it("with videoOnly, an image before the video element exists does not count", () => {
+    expect(playerShowsPicture({ tagName: "DIV", children: [{ tagName: "IMG", complete: true, naturalWidth: 640 }] }, true)).toBe(false);
+  });
   it("is false for nothing", () => {
     expect(playerShowsPicture(undefined)).toBe(false);
   });
