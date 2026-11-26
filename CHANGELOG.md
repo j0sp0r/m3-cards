@@ -115,6 +115,23 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 - **Room card: the banner picture is tappable** and does what the header does,
   folding the card or running its `tap_action` (#43).
 
+### Fixed
+
+- **Cost card: "No price configured" with a price on the energy dashboard.**
+  With `price_source: energy_dashboard` the card only read the grid's
+  `stat_cost`, which Home Assistant leaves empty when the price is a fixed
+  number or a price entity; the cost statistic it computes itself is listed
+  under `energy/info` instead. The card now finds it there, the way the energy
+  usage card already did. The top consumers card's cost mode with
+  `price_source: energy_dashboard` reads its price the same way and had the
+  same gap (#72).
+- **Energy usage card: cost for a day or a week.** The cost in the source
+  table covered the whole calendar month so far whenever the day or week view
+  was selected, because the cost statistics were always read in monthly
+  buckets, and the recorder starts a monthly bucket on the 1st. A day in late
+  November showed €87 where €2.28 was right. They are now read in the same
+  buckets as the energy next to them (#71).
+
 ## [2.11.0] – 2026-11-24
 
 ### Added
