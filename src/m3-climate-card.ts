@@ -2192,6 +2192,37 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
       flex-shrink: 0;
     }
 
+    /* A half-width card: wrapped one per line, the mode, fan and vane buttons
+       stacked into a tall column. Instead the mode keeps a line of its own and
+       the airflow buttons share the next, each with its value under its icon. */
+    .style-expressive .control-row:has(.fan-button, .swing-button) {
+      container-type: inline-size;
+    }
+    @container (max-width: 260px) {
+      .style-expressive .control-row .mode-button {
+        flex: 1 0 100%;
+      }
+      .style-expressive .control-row .fan-button:not(.icon-only),
+      .style-expressive .control-row .swing-button:not(.icon-only) {
+        flex: 1 1 0;
+        min-width: 0;
+        width: auto;
+        height: 48px;
+        flex-direction: column;
+        gap: 1px;
+        padding: 0 4px;
+        border-radius: 14px;
+        font-size: 11px;
+      }
+      .style-expressive .control-row .fan-button span,
+      .style-expressive .control-row .swing-button span {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
     /* Preset button — a neutral hairline pill. Deliberately colourless: the
        heat/cool language is reserved for the setpoint pill, the mode pill and
        the glow, so the comfort preset reads as the quiet secondary control it
