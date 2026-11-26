@@ -340,8 +340,13 @@ too, and an `nl-BE` map can override just the words that differ. A `de` or
 `en` map works the same way, for when you only want to reword a few of the
 built-in strings.
 
-**Finding the keys.** Every string the cards show is in
+**Finding the keys.** [`docs/translations/template.js`](docs/translations/template.js)
+is a ready file with every string the cards show, in English: save a copy,
+change its `xx` to your language and translate as much as you like. It is
+regenerated with each release. The strings themselves live in
 [`src/localize.ts`](src/localize.ts); the `en` block is the complete list.
+A finished translation is welcome as an issue attachment or a pull request,
+to be built into the cards.
 Keys starting with `editor_` belong to the visual editor. Keep placeholders
 such as `{days}` or `{n}` exactly as they are — the card fills them in.
 
