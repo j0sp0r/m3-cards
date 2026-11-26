@@ -126,11 +126,12 @@ battery: {{ states.sensor | selectattr('attributes.device_class', 'eq', 'battery
 </details>
 
 <p align="center">
-  <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.11.0"><img src="docs/images/release-2.11.jpg" alt="What's new in 2.11: pages that slide on a tap, a nav bar pill that springs or stretches, Ukrainian and a live demo" width="880"></a>
+  <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.12.0"><img src="docs/images/release-2.12.jpg" alt="What's new in 2.12: a camera card that rings with the doorbell and opens the door with a slide, compact bins, folded rooms that show their sensors, and Dutch" width="880"></a>
 </p>
 
 <p align="center"><sub>
-  Earlier: <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.10.0">2.10</a> ·
+  Earlier: <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.11.0">2.11</a> ·
+  <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.10.0">2.10</a> ·
   <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.9.0">2.9</a> ·
   <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.8.0">2.8</a> ·
   <a href="https://github.com/j0sp0r/m3-cards/releases/tag/v2.7.0">2.7</a> ·

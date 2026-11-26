@@ -15,6 +15,8 @@ the doorbell rings the card turns blue, switches to that camera, goes live and
 offers **Talk**, **Open door** and **Ignore**. Underneath, the day's events as
 a scrolling timeline, and chips to switch between cameras.
 
+<img src="docs/images/camera-card.png" alt="Camera Card" width="440">
+
 <details>
 <summary>Configuration, examples & options</summary>
 

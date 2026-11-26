@@ -54,7 +54,7 @@ Beide Fehler ließen die Seite besser aussehen, als sie war.
 - Ein Handy oder ein per DevTools emuliertes Touch-Gerät für alle Drag-Interaktionen
   (Wave-Slider, Wischen) — Maus-Events allein decken `touch-action`-Konflikte nicht ab.
 
-## Cross-Cutting-Checkliste (für jede der 59 Karten)
+## Cross-Cutting-Checkliste (für jede der 60 Karten)
 
 Diese Punkte gelten kartenübergreifend, weil sie über gemeinsame `shared/*`-Module
 implementiert sind. Ein Fehlschlag hier betrifft potenziell alle Karten gleichzeitig.
@@ -1438,6 +1438,22 @@ minimal, nicht erreichbar; `?light`).
 | Animation aus | `animation: off` / reduzierte Bewegung | Keine Punkte, Streifen oder Balkenanimation |
 | Hell / dunkel | Theme umschalten | Werte in den Kacheln lesbar (4,5:1) |
 
+## M3 Camera Card
+
+Getestet mit einer Tapo-Kamera (WebRTC über go2rtc), einer Ring-Klingel samt
+Türöffner und der Demo-Ansicht „Sicherheit“ (gemalte Standbilder).
+
+| Test | Schritte | Erwartung |
+|---|---|---|
+| Standbild ↔ live | Live einschalten, wieder aus | Das Standbild bleibt stehen, bis das Video Bilder zeigt; beim Zurück bleibt das letzte Videobild, bis ein neues Standbild geladen ist. Kein grüner oder schwarzer Blitz |
+| Erster Stream nach dem Laden | Seite neu laden, sofort live | Auch wenn der Stream > 10 s braucht, kein leerer Player, das Standbild bleibt |
+| Klingeln | `doorbell`-Event auslösen | Karte springt in den Klingel-Modus, Sprechen-Knopf, Türöffner darunter |
+| Türknopf | `door_action` ohne `style` tippen | Schloss → „Öffnet …“ (Formwechsel) → offen, nach ein paar Sekunden sichtbar wieder zu |
+| Schieber | `door_action.style: slide` | Erst ab 85 % Weg öffnet die Tür; loslassen davor schnappt zurück; bei reduzierter Bewegung der normale Knopf |
+| Mehrere Kameras | `cameras` mit zwei Einträgen | Chips wechseln die Kamera; Wischen auf Bild, Chips und Zeitleiste ändert nicht die Ansicht (Swipe-Navigation) |
+| Ereignisse | Bewegung, Person, Paket | Zeitleiste „Heute“ mit Einträgen; ohne Ereignis „Noch keine Ereignisse“ |
+| Hell / dunkel | Theme umschalten | Chips und Knöpfe lesbar |
+
 ## Bekannte Einschränkungen
 
 Beide Punkte, die hier bis 2.0 standen — die Akzentfarben im hellen Theme und
@@ -1457,7 +1473,7 @@ kleiner konfigurierte Kachel angehoben und nicht abgeschnitten wird.
 1. Alle Cross-Cutting-Punkte (C1–C15) auf mindestens 3 unterschiedlichen Karten
    durchgehen (eine einfache, eine mit Editor-Unterinhalten wie Battery/Power-List,
    eine mit Animation wie Progress/Light).
-2. Jede der 55 Karten mindestens einmal mit einer Minimal-Config und einmal mit
+2. Jede der 60 Karten mindestens einmal mit einer Minimal-Config und einmal mit
    einer voll ausgereizten Config (alle Farben/Optionen gesetzt) rendern.
 3. `CHANGELOG.md` gegen die tatsächlich getesteten Änderungen abgleichen.
 4. Die Kartenzahl abgleichen. Zwei der vier Stellen zählen sich seit der
