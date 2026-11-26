@@ -99,6 +99,8 @@ export const HERO_TEMP_UNIT_WEIGHT = 300;
 export const EXPRESSIVE_STEPPER_HEIGHT_PX = HEIGHT.segmented;
 export const EXPRESSIVE_STEPPER_OUTER_RADIUS_PX = HEIGHT.segmented / 2;
 export const EXPRESSIVE_STEPPER_INNER_RADIUS_PX = RADIUS.segmentInner;
+/** The expressive setpoint field hugs its value, but never narrower than this. */
+export const EXPRESSIVE_SETPOINT_MIN_PX = 96;
 export const EXPRESSIVE_STEPPER_GAP_PX = SPACING.segmentGap;
 
 // The mode/preset control row's shape carries state: a tighter radius while

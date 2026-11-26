@@ -45,6 +45,7 @@ import {
   SETPOINT_WASH_PERCENT,
   EXPRESSIVE_STEPPER_OUTER_RADIUS_PX,
   EXPRESSIVE_STEPPER_INNER_RADIUS_PX,
+  EXPRESSIVE_SETPOINT_MIN_PX,
   EXPRESSIVE_STEPPER_HEIGHT_PX,
   EXPRESSIVE_STEPPER_GAP_PX,
   EXPRESSIVE_PILL_RADIUS_RESTING_PX,
@@ -2287,6 +2288,23 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
       gap: ${unsafeCSS(EXPRESSIVE_STEPPER_GAP_PX)}px;
       flex-shrink: 0;
       padding: 2px 0;
+      container-type: inline-size;
+    }
+
+    /* A half-width card: the field gives up its minimum and some padding, and
+       the figure steps down a size, so the ± buttons stay inside the card. */
+    @container (max-width: 240px) {
+      .style-expressive .setpoint-row .setpoint {
+        flex: 1 1 auto;
+        min-width: 0;
+        padding: 0 8px;
+      }
+      .style-expressive .setpoint-row .setpoint .value {
+        font-size: 18px;
+      }
+      .style-expressive .setpoint-row .stepper-btn {
+        width: 36px;
+      }
     }
 
     .style-expressive .setpoint-band {
@@ -2373,21 +2391,21 @@ export class M3ClimateCard extends TemplatedCard(LitElement) implements Lovelace
     }
 
     /* The setpoint field. Colour/outline/ink come from .setpoint-surface
-       (shared/climate-surface.ts); only its shape and type live here. It
-       takes the full width between the ± buttons — round outside, tight
-       inside — rather than the previous stadium pill floating as its own
-       fixed-width island, so the value gets the width instead of two circles
-       either side of it. */
+       (shared/climate-surface.ts); only its shape and type live here. It is
+       as wide as its value, with the ± buttons joined to either side — round
+       outside, tight inside — and the three centred. Stretched over a
+       full-width card it was a wide bar for four characters. In a narrow
+       card it still shrinks. */
     .style-expressive .setpoint {
-      flex: 1;
-      min-width: 0;
+      flex: 0 1 auto;
+      min-width: ${unsafeCSS(EXPRESSIVE_SETPOINT_MIN_PX)}px;
       height: ${unsafeCSS(EXPRESSIVE_STEPPER_HEIGHT_PX)}px;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       gap: 0;
-      padding: 0 12px;
+      padding: 0 18px;
       border-radius: ${unsafeCSS(EXPRESSIVE_STEPPER_INNER_RADIUS_PX)}px;
       cursor: pointer;
     }
