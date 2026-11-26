@@ -6,6 +6,7 @@ export const dutchBeCardDescriptions = new Map([
   ["m3-battery-card", "Batterijniveaus met automatische detectie van sensoren, sortering en kleuren per drempelwaarde."],
   ["m3-button-card", "Material 3-knop voor Home Assistant-entiteiten zoals schakelaars, verlichting en scènes."],
   ["m3-calendar-card", "Agenda en maandoverzicht voor meerdere kalenders. Lopende afspraken worden aangeduid en meerdaagse activiteiten verschijnen op elke dag."],
+  ["m3-camera-card", "Camera's en deurbellen van elk merk: een still in rust, live op verzoek, een belsignaal dat de hele kaart overneemt en de gebeurtenissen van de dag."],
   ["m3-checkin-card", "In- en uitchecken met één element. De kleur van de kaart toont de huidige status."],
   ["m3-chip-buttons-card", "Rij compacte Material 3-knoppen om eender welke entiteiten te bedienen."],
   ["m3-climate-card", "Bediening van airco of thermostaat in Material 3-stijl."],

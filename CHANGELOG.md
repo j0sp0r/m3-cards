@@ -8,6 +8,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Added
 
+- **Dutch (#70).** The cards speak Belgian Dutch as a fourth built-in
+  language, card descriptions in the "Add card" picker included. Home
+  Assistant's "Nederlands" (`nl`) gets it as well as `nl-BE`. Thanks to
+  @Jani-Aelterman-HoGent.
 - **Camera card (card 60).** Cameras and video doorbells from any integration
   — Ring, Frigate, Reolink, UniFi Protect, any `camera` entity. A still with
   its time at rest, live through Home Assistant's own player only on demand

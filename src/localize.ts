@@ -7348,7 +7348,9 @@ export const TRANSLATIONS_LOADED_EVENT = "m3-cards-translations-loaded";
 export function resolveLang(language?: string): Lang {
   const normalized = language?.toLowerCase();
   if (normalized?.startsWith("de")) return "de";
-  if (normalized === "nl-be" || normalized?.startsWith("nl-be-")) return "nl-BE";
+  // Home Assistant offers Dutch as plain "nl"; the Belgian translation serves
+  // every Dutch tag, since it reads far better to a Dutch speaker than English.
+  if (normalized?.split("-", 1)[0] === "nl") return "nl-BE";
   return normalized?.split("-", 1)[0] === "uk" ? "uk" : "en";
 }
 

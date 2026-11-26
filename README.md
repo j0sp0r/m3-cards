@@ -400,8 +400,8 @@ rather than icons, such as a power button, keep their surface.
 
 ## Your own translations
 
-The cards ship in German, English, Dutch (Belgium) and Ukrainian. English is the fallback for
-other languages.
+The cards ship in German, English, Dutch (Belgian Dutch, used for every Dutch
+setting) and Ukrainian. English is the fallback for other languages.
 To change that, give the cards your own strings from a small file of your
 own — any language, as many or as few strings as you like. Whatever the file
 leaves out falls back to the built-in language, then to English.
