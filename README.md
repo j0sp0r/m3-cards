@@ -9424,6 +9424,7 @@ Up to three round buttons sit beside Watch live; more go into a menu.
 | `live_idle_timeout` | number | `60` | Seconds without a touch before live stops |
 | `snapshot_refresh` | number | `10` | Seconds between stills at rest; `0` only on an event |
 | `detail_mode` | `more-info` \| `sheet` | `more-info` | Where the camera and event details open |
+| `accent_color`, `text_color`, `secondary_text_color`, `card_background`, `glass_background`, `radius`, `corners`, `animation`, `card_version` | — | — | The usual shared appearance options. |
 
 </details>
 
