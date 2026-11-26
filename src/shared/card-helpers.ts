@@ -33,7 +33,34 @@ declare global {
 }
 
 /**
- * Builds one element per config.
+ * Waits before each further try at the helpers. `loadCardHelpers()` imports a
+ * chunk of the frontend; on a dashboard rebuilt as the app comes back from
+ * the background, the network may still be waking and that import fails —
+ * and a card that gave up then showed its nested cards as missing until the
+ * page was reloaded.
+ */
+export const CARD_HELPERS_RETRY_MS = [500, 1500, 4000, 10_000] as const;
+
+/** The helpers, tried again after a missing global or a failed import; undefined once every try failed. */
+async function loadHelpers(): Promise<CardHelpers | undefined> {
+  for (let attempt = 0; ; attempt++) {
+    const loader = window.loadCardHelpers;
+    if (loader) {
+      try {
+        return await loader();
+      } catch {
+        // A chunk that did not load; the next try fetches it again.
+      }
+    }
+    if (attempt >= CARD_HELPERS_RETRY_MS.length) return undefined;
+    await new Promise((resolve) => window.setTimeout(resolve, CARD_HELPERS_RETRY_MS[attempt]));
+  }
+}
+
+/**
+ * Builds one element per config. An empty list back for a non-empty one
+ * means the helpers could not be had, even after the retries: the caller
+ * should forget it built anything, so a later config or reconnect tries again.
  *
  * A config Home Assistant cannot build comes back as its own error card rather
  * than throwing, which is what every other Lovelace container shows for a bad
@@ -43,17 +70,10 @@ export async function createCards(
   configs: Record<string, unknown>[],
   hass: HomeAssistant | undefined,
 ): Promise<HTMLElement[]> {
-  const loader = window.loadCardHelpers;
-  if (!loader || !configs.length) return [];
-  let helpers: CardHelpers;
-  try {
-    helpers = await loader();
-  } catch {
-    // The helpers are part of the frontend bundle a Lovelace card is loaded
-    // by, so this should not happen — but an empty sheet beats a card that
-    // throws during its own update.
-    return [];
-  }
+  if (!configs.length) return [];
+  const helpers = await loadHelpers();
+  // An empty sheet beats a card that throws during its own update.
+  if (!helpers) return [];
 
   const out: HTMLElement[] = [];
   for (const config of configs) {

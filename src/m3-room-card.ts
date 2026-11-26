@@ -296,7 +296,12 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
     const key = JSON.stringify(configs);
     if (key === JSON.stringify(this._cardsFor ?? [])) return;
     this._cardsFor = configs;
-    this._cards = await createCards(configs, this._hass);
+    const cards = await createCards(configs, this._hass);
+    // A newer config started its own build meanwhile; this one is stale.
+    if (this._cardsFor !== configs) return;
+    // Nothing could be built: forget it, so reconnecting tries again.
+    if (!cards.length && configs.length) this._cardsFor = undefined;
+    this._cards = cards;
     // Home Assistant sets the config before it sets hass, and building is
     // asynchronous — so the hass that arrived while this was awaiting never
     // reached a list that was still empty when the setter ran. Push it again
@@ -368,6 +373,13 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
       return true;
     }
     return hassChangeMatters(changed, this.hass, this._watched());
+  }
+
+  public connectedCallback(): void {
+    super.connectedCallback();
+    // A build that failed (the app came back before the network did) gets
+    // another go whenever the card is put on the page again.
+    if (this._config && this._cardsFor === undefined) void this._syncCards();
   }
 
   public disconnectedCallback(): void {
@@ -1588,7 +1600,7 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
                   >
                     ${this._cards}
                   </div>`
-                : manual
+                : manual && !cfg.cards?.length
                   ? html`<div class="empty">${this._t("room_manual_empty")}</div>`
                   : nothing}
             </div>

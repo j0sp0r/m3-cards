@@ -625,6 +625,8 @@ export class M3NavCard extends LitElement implements LovelaceCard {
 
   public connectedCallback(): void {
     super.connectedCallback();
+    // A drawer whose cards could not be built gets another go when the bar is back on the page.
+    if (this._config?.sheet_cards?.length && !this._sheetCardsKey) void this._syncSheetCards();
     // Read where we are now, not where we were when this card was last on
     // screen. A cached view comes back with whatever path it was put away
     // with, so the entry it highlighted stayed one navigation behind until
@@ -2897,7 +2899,10 @@ export class M3NavCard extends LitElement implements LovelaceCard {
     const key = JSON.stringify(configs);
     if (key === this._sheetCardsKey) return;
     this._sheetCardsKey = key;
-    this._sheetCards = await createCards(configs, this.hass);
+    const cards = await createCards(configs, this.hass);
+    if (this._sheetCardsKey !== key) return;
+    if (!cards.length && configs.length) this._sheetCardsKey = "";
+    this._sheetCards = cards;
     // The build is async, so `hass` may well have arrived while it ran.
     updateCardsHass(this._sheetCards, this.hass);
     this.requestUpdate();

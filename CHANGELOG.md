@@ -71,6 +71,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Room, appliance and nav cards: nested cards after the app comes back.**
+  Returning to a dashboard left in the background, Home Assistant rebuilds
+  it; if the frontend chunk that builds cards could not be loaded just then,
+  the room card said "No cards yet" until the page was reloaded. The build is
+  now tried again over about fifteen seconds and whenever the card is back on
+  the page, and that message only shows when there really are no cards.
 - **Button card: a fan that is off shows an empty slider (#69).** It kept its
   last speed in `percentage`, so the slider stayed filled and read 100 %.
 - **Energy flow card: node icons on iOS (#68).** On an iPhone the icons sat off

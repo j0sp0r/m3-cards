@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { ensureHaCardDefined } from "./card-helpers";
+import { CARD_HELPERS_RETRY_MS, createCards, ensureHaCardDefined } from "./card-helpers";
 
 // A stand-in for the browser's registry: `define` resolves pending
 // `whenDefined` promises, as the real one does.
@@ -98,5 +98,52 @@ describe("ensureHaCardDefined", () => {
     await vi.advanceTimersByTimeAsync(1000);
     await expect(result).resolves.toBe(false);
     expect(console.warn).toHaveBeenCalledOnce();
+  });
+});
+
+describe("createCards", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it("tries the helpers again when their import fails, as when the app comes back before the network", async () => {
+    vi.useFakeTimers();
+    const el = {} as HTMLElement;
+    const loadCardHelpers = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("chunk failed"))
+      .mockResolvedValue({ createCardElement: () => el });
+    vi.stubGlobal("window", { loadCardHelpers, setTimeout });
+    const built = createCards([{ type: "x" }], undefined);
+    await vi.advanceTimersByTimeAsync(CARD_HELPERS_RETRY_MS[0]);
+    await expect(built).resolves.toEqual([el]);
+    expect(loadCardHelpers).toHaveBeenCalledTimes(2);
+  });
+
+  it("waits for the global when it is not there yet", async () => {
+    vi.useFakeTimers();
+    const el = {} as HTMLElement;
+    const win: { setTimeout: typeof setTimeout; loadCardHelpers?: unknown } = { setTimeout };
+    vi.stubGlobal("window", win);
+    const built = createCards([{ type: "x" }], undefined);
+    win.loadCardHelpers = async () => ({ createCardElement: () => el });
+    await vi.advanceTimersByTimeAsync(CARD_HELPERS_RETRY_MS[0]);
+    await expect(built).resolves.toEqual([el]);
+  });
+
+  it("gives up with an empty list after the last try", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("window", { loadCardHelpers: () => Promise.reject(new Error("offline")), setTimeout });
+    const built = createCards([{ type: "x" }], undefined);
+    await vi.advanceTimersByTimeAsync(CARD_HELPERS_RETRY_MS.reduce((a, b) => a + b, 0));
+    await expect(built).resolves.toEqual([]);
+  });
+
+  it("builds nothing, and asks for nothing, for no configs", async () => {
+    const loadCardHelpers = vi.fn();
+    vi.stubGlobal("window", { loadCardHelpers });
+    await expect(createCards([], undefined)).resolves.toEqual([]);
+    expect(loadCardHelpers).not.toHaveBeenCalled();
   });
 });

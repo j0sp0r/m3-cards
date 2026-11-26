@@ -387,6 +387,8 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
 
   public connectedCallback(): void {
     super.connectedCallback();
+    // Nested cards that could not be built get another go when the card is back on the page.
+    if (this._config && this._cardsFor === undefined) void this._syncCards();
     this._resizeObserver = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width ?? 0;
       const narrow = width > 0 && width < APPLIANCE_NARROW_PX;
@@ -571,7 +573,10 @@ export class M3ApplianceCard extends TemplatedCard(LitElement) implements Lovela
     const key = JSON.stringify(this._config?.cards ?? []);
     if (key === this._cardsFor) return;
     this._cardsFor = key;
-    this._cards = await createCards(this._config?.cards ?? [], this._hass);
+    const cards = await createCards(this._config?.cards ?? [], this._hass);
+    if (this._cardsFor !== key) return;
+    if (!cards.length && this._config?.cards?.length) this._cardsFor = undefined;
+    this._cards = cards;
     // Home Assistant sets the config before hass, and building is async: the
     // hass that arrived meanwhile has to be pushed again.
     updateCardsHass(this._cards, this._hass);
