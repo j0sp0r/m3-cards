@@ -1720,6 +1720,8 @@ export const ROOM_DOT_PULSE_MS = 2200;
 export const ROOM_CHIP_HEIGHT = 30;
 export const ROOM_CHIP_RADIUS = RADIUS.chip;
 export const ROOM_CHIP_TINT = 10;
+/** The chips a folded header shows (folded_sensors), two to a column beside the name. */
+export const ROOM_PEEK_CHIP_HEIGHT = 24;
 /** Watts under which the power chip says nothing worth the room it takes. */
 export const ROOM_POWER_THRESHOLD = 5;
 

@@ -24,6 +24,7 @@ import {
   ROOM_CHIP_HEIGHT,
   ROOM_CHIP_RADIUS,
   ROOM_CHIP_TINT,
+  ROOM_PEEK_CHIP_HEIGHT,
   ROOM_DOT,
   ROOM_DOT_PULSE_MS,
   ROOM_FALLBACK_CATEGORY,
@@ -1363,7 +1364,7 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
    * its name — the temperature, and a window or door icon while one is open.
    * Closed windows say nothing here; the point is what needs a look.
    */
-  private _renderPeek(chips: Chip[]): TemplateResult | typeof nothing {
+  private _renderPeek(chips: Chip[], place: "header" | "below"): TemplateResult | typeof nothing {
     const cfg = this._config;
     if (!cfg?.collapsible || !cfg.folded_sensors || !this._folded) return nothing;
     const kinds: RoomFoldedSensor[] = Array.isArray(cfg.folded_sensors) ? cfg.folded_sensors : ROOM_FOLDED_DEFAULT;
@@ -1383,14 +1384,22 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
       } else {
         // Windows and doors only while one is open: the point is what needs a look.
         const chip = chips.find((c) => c.key === kind);
-        if (chip?.color) items.push({ key: kind, icon: chip.icon, color: chip.color, label: chip.text });
+        if (chip?.color) items.push({ key: kind, icon: chip.icon, text: chip.text, color: chip.color, label: chip.text });
       }
     }
     if (!items.length) return nothing;
-    return html`<div class="peek" aria-label=${items.map((i) => i.label).join(", ")}>
+    // Two stack beside the name; three or more would squeeze the name to a
+    // couple of letters, so they take a row of their own under the header.
+    if ((place === "header") !== items.length <= 2) return nothing;
+    // Drawn as the chips of the open card — the same tint, ink and frame —
+    // and stacked two to a column, so they take height beside the name, not
+    // the width the name needs.
+    return html`<div class="peek ${place === "below" ? "below" : items.length > 1 ? "stacked" : ""}" aria-label=${items.map((i) => i.label).join(", ")}>
       ${items.map((i) => {
-        const style = i.color ? `color: ${foregroundOn(i.color, "var(--ha-card-background, var(--card-background-color))", 3, this)};` : "";
-        return html`<span class="peek-item ${i.color ? "warn" : ""}" style=${style} title=${i.label}>
+        const color = i.color ?? "var(--primary-text-color)";
+        const background = tintOn(this, color, undefined, ROOM_CHIP_TINT);
+        const style = `background: ${background}; color: ${foregroundOn(color, background, 4.5, this)};`;
+        return html`<span class="chip peek-item" style=${style} title=${i.label}>
           <ha-icon icon=${i.icon}></ha-icon>${i.text ? html`<span>${i.text}</span>` : nothing}
         </span>`;
       })}
@@ -1570,7 +1579,8 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
     // is bound to the header that stops being true, so the chevron goes rather
     // than sitting there pointing at something that no longer happens.
     const showFoldArrow = !!cfg.collapsible && !headerAction;
-    const peek = this._renderPeek(chips);
+    const peek = this._renderPeek(chips, "header");
+    const peekBelow = this._renderPeek(chips, "below");
 
     return html`
       <ha-card style=${`${cssVars} border-radius: ${radius};`}>
@@ -1628,6 +1638,7 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
                 </button>`
               : nothing}
           </div>
+          ${peekBelow}
           <div class="body">
             <div class="body-inner">
               ${this._renderChips(chips)}
@@ -1775,25 +1786,29 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
       /* folded_sensors: the room at a glance beside its name while folded. */
       .peek {
         flex: 0 0 auto;
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        color: var(--m3p-secondary-text, var(--secondary-text-color));
-        font-size: 13px;
-        font-weight: 600;
+        display: grid;
+        grid-auto-flow: column;
+        gap: 4px;
+        justify-items: stretch;
         animation: room-peek-in 220ms ease-out;
       }
-      .peek-item {
-        display: inline-flex;
-        align-items: center;
-        gap: 3px;
+      /* Two to a column: three or four readings fit beside the name in the
+         header's height instead of pushing the name into an ellipsis. */
+      .peek.stacked {
+        grid-template-rows: repeat(2, auto);
+      }
+      .peek.below {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: var(--m3-card-gap, 12px);
+      }
+      .peek .peek-item {
+        height: ${ROOM_PEEK_CHIP_HEIGHT}px;
+        padding: 0 9px;
+        gap: 4px;
         white-space: nowrap;
-      }
-      .peek-item ha-icon {
-        --mdc-icon-size: 17px;
-      }
-      .peek-item:not(.warn) ha-icon {
-        opacity: 0.75;
+        --mdc-icon-size: 14px;
       }
       @keyframes room-peek-in {
         from { opacity: 0; transform: translateX(4px); }
@@ -2040,16 +2055,17 @@ export class M3RoomCard extends TemplatedCard(LitElement) implements LovelaceCar
           align-self: start;
           max-width: 100%;
         }
-        /* Narrow: no room beside the pill, so the glance takes a line of its
-           own under the name, where the subtitle stood. */
+        /* Narrow: no room beside the name, so the chips take a line of their
+           own under the whole header, side by side across the card. */
         .header.has-pill.has-peek {
-          grid-template-areas: "icon name" "icon peek" "icon pill";
+          grid-template-areas: "icon name" "icon pill" "peek peek";
         }
         .header.has-pill .peek {
           grid-area: peek;
           justify-self: start;
-          gap: 8px;
-          font-size: 12px;
+          display: flex;
+          flex-wrap: wrap;
+          margin-top: 4px;
         }
         .room-icon {
           width: ${unsafeCSS(ROOM_HEADER_ICON_NARROW)}px;
