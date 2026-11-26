@@ -17,6 +17,7 @@ import {
   CAMERA_DOOR_OPENING_MAX_MS,
   CAMERA_DOOR_OPENING_MIN_MS,
   CAMERA_DOOR_SPRING_EASING,
+  CAMERA_DOOR_CLOSING_MS,
   CAMERA_MAX_ICON_BUTTONS,
   CAMERA_MOTION_COLOR,
   CAMERA_PACKAGE_COLOR,
@@ -114,6 +115,8 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
   @state() private _doorUntil = 0;
   /** The camera whose door is opening: tapped, and not yet reported open. */
   @state() private _doorOpening?: string;
+  /** The camera whose door just locked again: its lock snaps shut. */
+  @state() private _doorClosing?: string;
   @state() private _confirm?: ConfirmRequest;
   @state() private _menuOpen = false;
 
@@ -135,6 +138,8 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
   private _retryTimer?: number;
   private _doorTimer?: number;
   private _openingTimer?: number;
+  private _closingTimer?: number;
+  private _lastDoorPhase = new Map<string, string>();
   private _observer?: IntersectionObserver;
   private _onScreen = true;
   private _tabVisible = true;
@@ -216,8 +221,8 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     this._observer = undefined;
     this._controller.stop();
     for (const t of [this._refreshTimer, this._clockTimer]) if (t !== undefined) window.clearInterval(t);
-    for (const t of [this._ringTimer, this._retryTimer, this._doorTimer, this._openingTimer]) if (t !== undefined) window.clearTimeout(t);
-    this._refreshTimer = this._clockTimer = this._ringTimer = this._retryTimer = this._doorTimer = this._openingTimer = undefined;
+    for (const t of [this._ringTimer, this._retryTimer, this._doorTimer, this._openingTimer, this._closingTimer]) if (t !== undefined) window.clearTimeout(t);
+    this._refreshTimer = this._clockTimer = this._ringTimer = this._retryTimer = this._doorTimer = this._openingTimer = this._closingTimer = undefined;
     this._doorOpening = undefined;
   }
 
@@ -350,6 +355,18 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     super.updated(changed);
     const cam = this._camera;
     if (cam && this._config?.show_events !== false) void this._loadHistory(cam);
+    if (cam?.door_action) {
+      const phase = this._doorPhase(cam);
+      if (this._lastDoorPhase.get(cam.id) === "open" && phase === "locked") {
+        this._doorClosing = cam.id;
+        if (this._closingTimer !== undefined) window.clearTimeout(this._closingTimer);
+        this._closingTimer = window.setTimeout(() => {
+          this._closingTimer = undefined;
+          this._doorClosing = undefined;
+        }, CAMERA_DOOR_CLOSING_MS);
+      }
+      this._lastDoorPhase.set(cam.id, phase);
+    }
     if (this._live && !this._streamReady) void this._ensureStream();
     syncDialogOpenState(this.renderRoot.querySelector<HTMLDialogElement>("dialog.m3-confirm"), !!this._confirm);
     const overlay = this.renderRoot.querySelector<HTMLDialogElement>("dialog.ring-overlay");
@@ -558,8 +575,14 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
           : door.icon ?? "mdi:lock-outline";
     const label = phase === "open" ? this._t("camera_door_opened") : phase === "opening" ? this._t("camera_door_opening") : name;
     const run = phase === "locked" ? this._requestDoor : undefined;
+    const closing = phase === "locked" && this._doorClosing === cam.id;
+    // While open on a timer, a fill drains over the time that is left; a
+    // feedback entity with a state says itself when it is over, so none then.
+    const fb = door.feedback_entity;
+    const left = phase === "open" && !(fb && !fb.startsWith("event.")) ? Math.max(0, this._doorUntil - Date.now()) : 0;
     return html`<button
-      class="${variant} door-button ${phase} ${extra}"
+      class="${variant} door-button ${phase} ${closing ? "closing" : ""} ${left ? "timed" : ""} ${extra}"
+      style=${left ? `--door-left: ${left}ms;` : nothing}
       aria-label=${label}
       title=${variant === "round" ? label : nothing}
       aria-busy=${phase === "opening" ? "true" : "false"}
@@ -1271,8 +1294,28 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
         color: var(--cam-text);
         box-shadow: inset 0 0 0 1.5px color-mix(in srgb, ${unsafeCSS(CAMERA_PERSON_COLOR)} 70%, transparent);
       }
+      .door-button.open.timed::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background: color-mix(in srgb, ${unsafeCSS(CAMERA_PERSON_COLOR)} 55%, transparent);
+        transform-origin: left center;
+        animation: cam-door-drain var(--door-left, 3000ms) linear forwards;
+      }
+      .door-button.closing ha-icon {
+        animation: cam-door-snap 480ms ${unsafeCSS(CAMERA_DOOR_SPRING_EASING)};
+      }
+      @keyframes cam-door-drain {
+        from { transform: scaleX(1); }
+        to { transform: scaleX(0); }
+      }
+      @keyframes cam-door-snap {
+        0% { transform: translateY(-5px) rotate(-14deg) scale(1.2); }
+        55% { transform: translateY(1px) rotate(3deg) scale(0.95); }
+        100% { transform: none; }
+      }
       .door-button.open ha-icon {
-        color: ${unsafeCSS(CAMERA_PERSON_COLOR)};
         animation: cam-door-pop 360ms ${unsafeCSS(CAMERA_DOOR_SPRING_EASING)};
       }
       .door-button.opening:active,

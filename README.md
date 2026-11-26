@@ -9151,8 +9151,9 @@ camera's more-info where there is none (Safari on an iPhone).
 pulse, a script. It only ever runs from a tap on its button, and asks first
 unless `confirmation: false`. The button follows the door: a closed lock at
 rest; after the tap it turns squarer and the lock opens while the door takes
-its moment ("Opening …"); then "Door opened" in a lighter tone, until the door
-is locked again and the button is a pill once more. Without a
+its moment ("Opening …"); then "Door opened" in a lighter tone, with a fill
+that drains over the seconds left, until the lock snaps shut and the button
+is a pill once more. Without a
 `feedback_entity` "Door opened" shows for three seconds; with one, from the
 moment it reports on, open or unlocked until it no longer does (an `event.*`
 one: three seconds after its event). If the service call fails, a red

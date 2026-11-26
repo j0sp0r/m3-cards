@@ -3467,6 +3467,8 @@ export const CAMERA_DOOR_OPENING_MIN_MS = 1200;
 /** "Opening" while waiting for a feedback entity, at most. */
 export const CAMERA_DOOR_OPENING_MAX_MS = 8000;
 /** The door button's change of shape: a slight overshoot. */
+/** The lock snapping shut when the door is locked again. */
+export const CAMERA_DOOR_CLOSING_MS = 600;
 export const CAMERA_DOOR_SPRING_EASING = "cubic-bezier(0.34, 1.4, 0.64, 1)";
 /** Tries again after a still image failed to load, then gives up until the next event. */
 export const CAMERA_IMAGE_RETRY_MS = [10_000, 30_000, 60_000] as const;
