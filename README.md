@@ -3696,7 +3696,10 @@ whichever sensor is wet has to be on screen without another tap.
 Bin-collection schedule: a hero with the next pickup, a two-week timeline, and
 a row per bin. Feed it sensors whose state is the number of days until
 collection (e.g. Waste Collection Schedule with
-`value_template: '{{ value.daysTo }}'`). Two modes: **info** (bins are
+`value_template: '{{ value.daysTo }}'`) or the date itself (`2026-12-01`, or a
+timestamp, as the Recycle! integration and other date sensors give it). A
+sensor's name loses its device's name in front, which for a collection
+schedule is often the street address. Two modes: **info** (bins are
 collected automatically — pure information) and **reminder** (you put them out
 yourself — escalates near the date with a "put out" acknowledge button).
 
@@ -3749,6 +3752,7 @@ bin alone — a pill that only ever shows the paper — give it just that one.
 | `layout` | `full` \| `row` \| `tile` \| `pill` | `full` | Everything, or only the next collection in one of three compact sizes. See [Compact sizes](#compact-sizes) |
 | `entities` | list | – | Sensors (days-until-collection): id or `{ entity, name, icon, color }` |
 | `calendar_entity` | string | – | A calendar with one event per collection, the event summary naming the bin. Merged with `entities`. |
+| `show_entity_picture` | boolean | `false` | The sensor's own picture (`entity_picture`, e.g. the bin pictures some integrations bring) in place of the icon, wherever the card shows one |
 | `hero_primary` | `days` \| `weekday` \| `date` | `days` | What leads: "in 3 days", "Monday" or "10 Dec" — in the hero and in the compact sizes, where the other goes underneath. Today and tomorrow stay words |
 | `hero_icon` | `first` \| `multi` | `first` | Single icon or overlapping bin icons |
 | `show_timeline` | boolean | `true` | Two-week timeline |

@@ -2511,6 +2511,8 @@ export interface M3WasteCardConfig extends NotifyConfigBase, DetailModeConfig {
   name_strip?: string[];
   /** What leads: "in 3 days", "Monday" or "10 Dec" — in the hero, and in the compact layouts. */
   hero_primary?: "days" | "weekday" | "date";
+  /** The sensor's `entity_picture` in place of the icon, where it has one. */
+  show_entity_picture?: boolean;
   hero_icon?: "first" | "multi";
   /**
    * `full`: hero, timeline and a row per bin. The compact ones show only the

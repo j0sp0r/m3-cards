@@ -36,6 +36,7 @@ import { TemplatedCard } from "./shared/templated-card";
 import { openEntityDetail } from "./shared/entity-detail";
 import { iconWell } from "./shared/icon-well";
 import { openDropdownMenu } from "./shared/dropdown-menu";
+import { wasteDaysFromState, withoutDeviceName } from "./shared/waste";
 
 console.info(
   `%c M3-WASTE-CARD %c v${CARD_VERSION} `,
@@ -54,6 +55,8 @@ interface WasteStream {
   name: string;
   icon: string;
   color: string;
+  /** The integration's own picture, shown with `show_entity_picture`. */
+  picture?: string;
   daysTo?: number; // undefined = unknown/unavailable
   date?: Date;
 }
@@ -141,6 +144,22 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
   }
 
   // ---- model ---------------------------------------------------------------
+
+  private _deviceName(entityId: string): string | undefined {
+    const deviceId = (this.hass?.entities as Record<string, { device_id?: string | null }> | undefined)?.[entityId]?.device_id;
+    const device = deviceId
+      ? (this.hass?.devices as Record<string, { name?: string | null; name_by_user?: string | null }> | undefined)?.[deviceId]
+      : undefined;
+    return device?.name_by_user || device?.name || undefined;
+  }
+
+  /** A bin's glyph: the integration's picture when asked for and there, else its icon. */
+  private _glyph(s: WasteStream | undefined, fallback: string = DEFAULT_WASTE_ICON): unknown {
+    if (this._config?.show_entity_picture && s?.picture) {
+      return html`<img class="waste-pic" src=${s.picture} alt="" />`;
+    }
+    return html`<ha-icon icon=${s?.icon ?? fallback}></ha-icon>`;
+  }
 
   private _stripName(name: string): string {
     const patterns = this._config?.name_strip ?? WASTE_DEFAULT_NAME_STRIP;
@@ -258,9 +277,8 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
       .map((c): WasteStream => {
         const st = hass.states[c.entity];
         const rawName = c.name || (st?.attributes?.friendly_name as string) || c.entity;
-        const name = c.name ? rawName : this._stripName(rawName);
-        const parsed = st ? parseFloat(st.state) : NaN;
-        let daysTo: number | undefined = isNaN(parsed) ? undefined : Math.round(parsed);
+        const name = c.name ? rawName : this._stripName(withoutDeviceName(rawName, this._deviceName(c.entity)));
+        let daysTo = wasteDaysFromState(st?.state);
         // A negative value (appointment already past) reads as "today".
         if (daysTo !== undefined && daysTo < 0) daysTo = 0;
         const date = daysTo !== undefined ? new Date(startOfToday.getTime() + daysTo * 86400_000) : undefined;
@@ -269,6 +287,7 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
           name,
           icon: this._iconFor(name, c.icon),
           color: this._colorFor(name, c.color),
+          picture: (st?.attributes?.entity_picture as string | undefined) || undefined,
           daysTo,
           date,
         };
@@ -366,13 +385,13 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
       return html`<div class="hero-multi">
         ${three.map(
           (s, i) => html`<div class="mini" style=${`background: ${tintOn(this, s.color, undefined, 22)}; color: ${tintInk(this, s.color, undefined, 22, 3)}; margin-left: ${i === 0 ? 0 : -8}px; z-index: ${3 - i};`}>
-            <ha-icon icon=${s.icon}></ha-icon>
+            ${this._glyph(s)}
           </div>`,
         )}
       </div>`;
     }
     return html`<div class="hero-icon" style=${`background: ${iconWell(tintOn(this, primaryColor, undefined, 22))}; color: ${tintInk(this, primaryColor, undefined, 22, 3)};`}>
-      <ha-icon icon=${sameDayStreams[0]?.icon ?? DEFAULT_WASTE_ICON}></ha-icon>
+      ${this._glyph(sameDayStreams[0])}
     </div>`;
   }
 
@@ -509,7 +528,7 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
       return html`<div class="c-icons">
         ${sameDay.slice(0, 3).map(
           (s, i) => html`<div class="c-mini" style=${`background: ${tintOn(this, s.color, undefined, 22)}; color: ${tintInk(this, s.color, undefined, 22, 3)}; z-index: ${3 - i};`}>
-            <ha-icon icon=${s.icon}></ha-icon>
+            ${this._glyph(s)}
           </div>`,
         )}
       </div>`;
@@ -517,7 +536,7 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
     const s = sameDay[0];
     const color = s?.color ?? DEFAULT_WASTE_COLOR;
     return html`<div class="c-icon" style=${`background: ${iconWell(tintOn(this, color, undefined, 22))}; color: ${tintInk(this, color, undefined, 22, 3)};`}>
-      <ha-icon icon=${s?.icon ?? fallbackIcon}></ha-icon>
+      ${this._glyph(s, fallbackIcon)}
     </div>`;
   }
 
@@ -729,7 +748,7 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
         @click=${() => this._moreInfo(s.entity)}
       >
         <div class="row-icon" style=${`background: ${iconWell(iconBgCss)}; color: ${iconInkCss};`}>
-          <ha-icon icon=${s.icon}></ha-icon>
+          ${this._glyph(s)}
         </div>
         <div class="row-text">
           <div class="row-name">${s.name}</div>
@@ -743,6 +762,15 @@ export class M3WasteCard extends TemplatedCard(LitElement) implements LovelaceCa
   static styles = [
     glassCardStyles,
     css`
+      /* The integration's picture fills the icon well, round or squircle. */
+      .waste-pic {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: inherit;
+        display: block;
+      }
+
       .card-inner.escalate {
         background: color-mix(in srgb, var(--waste-accent) 7%, var(--ha-card-background, var(--card-background-color)));
         border-color: color-mix(in srgb, var(--waste-accent) 30%, var(--ha-card-background, var(--card-background-color)));

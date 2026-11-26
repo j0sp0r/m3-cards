@@ -131,6 +131,7 @@ export class M3WasteCardEditor extends LitElement implements LovelaceCardEditor 
           },
         },
       },
+      { name: "show_entity_picture", selector: { boolean: {} } },
       {
         name: "hero_icon",
         selector: {
@@ -313,6 +314,7 @@ export class M3WasteCardEditor extends LitElement implements LovelaceCardEditor 
       icon: "editor_icon",
       layout: "editor_waste_layout",
       hero_primary: "editor_waste_hero_primary",
+      show_entity_picture: "editor_waste_show_entity_picture",
       hero_icon: "editor_waste_hero_icon",
       show_timeline: "editor_waste_show_timeline",
       timeline_days: "editor_waste_timeline_days",
@@ -407,6 +409,7 @@ export class M3WasteCardEditor extends LitElement implements LovelaceCardEditor 
     };
     const displayData = {
       hero_primary: this._config.hero_primary ?? "days",
+      show_entity_picture: this._config.show_entity_picture ?? false,
       hero_icon: this._config.hero_icon ?? "first",
       show_timeline: this._config.show_timeline ?? true,
       timeline_days: this._config.timeline_days ?? 14,

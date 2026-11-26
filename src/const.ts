@@ -1432,20 +1432,20 @@ export const WASTE_DEFAULT_NAME_STRIP = [
 ];
 // Name -> icon / default colour for the common German waste streams.
 export const WASTE_ICON_RULES: Array<[RegExp, string]> = [
-  [/(alt)?papier|paper|karton/i, "mdi:newspaper-variant-outline"],
-  [/bio|organic|grüngut|gruengut|compost/i, "mdi:leaf"],
-  [/rest(müll|muell)?|general|residual|schwarz/i, "mdi:trash-can-outline"],
-  [/wertstoff|gelb|plastik|plastic|verpackung|recycl|lvp/i, "mdi:recycle"],
-  [/glas|glass/i, "mdi:bottle-soda-outline"],
-  [/sperrm(ü|ue)ll|bulk/i, "mdi:sofa-outline"],
+  [/(alt)?papier|paper|karton|carton/i, "mdi:newspaper-variant-outline"],
+  [/bio|organi|grüngut|gruengut|compost|gft|tuinafval/i, "mdi:leaf"],
+  [/rest(müll|muell|afval)?|general|r(e|é)sidu|schwarz|ménagers|menagers/i, "mdi:trash-can-outline"],
+  [/wertstoff|gelb|plastik|plastic|verpackung|recycl|lvp|pmc/i, "mdi:recycle"],
+  [/glas|glass|verre/i, "mdi:bottle-soda-outline"],
+  [/sperrm(ü|ue)ll|bulk|encombrant|grofvuil/i, "mdi:sofa-outline"],
 ];
 export const WASTE_COLOR_RULES: Array<[RegExp, string]> = [
-  [/(alt)?papier|paper|karton/i, "#6ba7dc"],
-  [/bio|organic|grüngut|gruengut|compost/i, "#81c784"],
-  [/rest(müll|muell)?|general|residual|schwarz/i, "#888780"],
-  [/wertstoff|gelb|plastik|plastic|verpackung|recycl|lvp/i, "#f0c46e"],
-  [/glas|glass/i, "#7bc4b0"],
-  [/sperrm(ü|ue)ll|bulk/i, "#b8946a"],
+  [/(alt)?papier|paper|karton|carton/i, "#6ba7dc"],
+  [/bio|organi|grüngut|gruengut|compost|gft|tuinafval/i, "#81c784"],
+  [/rest(müll|muell|afval)?|general|r(e|é)sidu|schwarz|ménagers|menagers/i, "#888780"],
+  [/wertstoff|gelb|plastik|plastic|verpackung|recycl|lvp|pmc/i, "#f0c46e"],
+  [/glas|glass|verre/i, "#7bc4b0"],
+  [/sperrm(ü|ue)ll|bulk|encombrant|grofvuil/i, "#b8946a"],
 ];
 
 // ---------------------------------------------------------------------------
