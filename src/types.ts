@@ -2262,7 +2262,13 @@ export interface CameraConfig {
   talk_action?: CameraTalkActionConfig;
 }
 
-export interface M3CameraCardConfig extends DetailModeConfig {
+export interface M3CameraCardConfig extends DetailModeConfig, NotifyConfigBase {
+  /** The notification also for a person or a parcel, not only the doorbell. */
+  notify_detections?: boolean;
+  /** Minutes between two detection messages (default 5); a ring always gets through. */
+  notify_cooldown?: number;
+  /** The camera's picture in the push, for the companion app (default on). */
+  notify_snapshot?: boolean;
   type: string;
   /** One or more cameras; a plain "camera.x" is short for `{ camera: camera.x }`. */
   cameras?: Array<string | CameraConfig>;

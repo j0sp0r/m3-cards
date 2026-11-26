@@ -20,7 +20,22 @@ import {
   type AppearanceState,
 } from "./shared/appearance-editor";
 
+import {
+  notifyMessageSchema,
+  notifyServiceSchema,
+  notifyStyles,
+  notifyTitleSchema,
+  notifyTokenHint,
+  renderNotifyControls,
+  resolveAutomationId,
+  saveNotifyAutomation,
+  setAutomationEnabled,
+  type NotifyStatus,
+} from "./shared/notify-editor";
+import { buildCameraNotifyAutomation, cameraNotifySources } from "./shared/camera-notify";
+
 const EVENT_DOMAINS = ["event", "binary_sensor"];
+const DEFAULT_NOTIFY_COOLDOWN_MIN = 5;
 
 /** Labels for the fields of the forms, by schema name. */
 const LABELS: Record<string, TranslationKey> = {
@@ -48,6 +63,12 @@ const LABELS: Record<string, TranslationKey> = {
   events_hours: "editor_camera_events_hours",
   max_events: "editor_camera_max_events",
   events_all_action: "editor_camera_events",
+  notify_service: "editor_notify_service",
+  notify_title: "editor_notify_title",
+  notify_message: "editor_notify_message",
+  notify_detections: "editor_camera_notify_detections",
+  notify_cooldown: "editor_camera_notify_cooldown",
+  notify_snapshot: "editor_camera_notify_snapshot",
 };
 
 @customElement("m3-camera-card-editor")
@@ -56,6 +77,9 @@ export class M3CameraCardEditor extends LitElement implements LovelaceCardEditor
 
   @state() private _config?: M3CameraCardConfig;
   @state() private _appearance: AppearanceState = { showCustomRadius: false, showCorners: false, cornerCustom: {} };
+  @state() private _notifyBusy = false;
+  @state() private _notifyStatus: NotifyStatus = "idle";
+  @state() private _notifyDetail = "";
 
   public setConfig(config: M3CameraCardConfig): void {
     this._config = config;
@@ -199,6 +223,71 @@ export class M3CameraCardEditor extends LitElement implements LovelaceCardEditor
     this._writeCameras(cameras);
   }
 
+  // ---- notification ----------------------------------------------------------
+
+  private async _toggleNotify(enabled: boolean): Promise<void> {
+    if (!this._config || !this.hass) return;
+    this._emit({ ...this._config, notify_enabled: enabled });
+    if (enabled) {
+      await this._setupNotify();
+      return;
+    }
+    const id = this._config.notify_automation_id;
+    if (id) await setAutomationEnabled(this.hass, id, false);
+  }
+
+  /** Writes the doorbell automation (see shared/camera-notify.ts) and switches it on. */
+  private async _setupNotify(): Promise<void> {
+    const cfg = this._config;
+    if (!this.hass || !cfg) return;
+    const targets = cfg.notify_service ?? [];
+    if (!targets.length) {
+      this._notifyStatus = "error";
+      this._notifyDetail = this._t("editor_camera_notify_missing");
+      return;
+    }
+    const sources = cameraNotifySources(this.hass, this._cameras, cfg.notify_detections === true);
+    if (!sources.length) {
+      this._notifyStatus = "error";
+      this._notifyDetail = this._t("editor_camera_notify_none");
+      return;
+    }
+    this._notifyBusy = true;
+    this._notifyStatus = "idle";
+    this._notifyDetail = "";
+    try {
+      const automationId = resolveAutomationId("camera_ring", cfg.notify_automation_id);
+      await saveNotifyAutomation(
+        this.hass,
+        buildCameraNotifyAutomation({
+          id: automationId,
+          alias: `${sources[0].name}: ${this._t("editor_camera_notify_alias")}`,
+          description: this._t("editor_camera_notify_description"),
+          sources,
+          targets,
+          texts: {
+            ring: this._t("camera_notify_ring"),
+            person: this._t("camera_notify_person"),
+            package: this._t("camera_notify_package"),
+            words: { ring: this._t("camera_kind_ring"), person: this._t("camera_kind_person"), package: this._t("camera_kind_package") },
+          },
+          cooldownMinutes: cfg.notify_cooldown ?? DEFAULT_NOTIFY_COOLDOWN_MIN,
+          snapshot: cfg.notify_snapshot !== false,
+          customTitle: cfg.notify_title,
+          customMessage: cfg.notify_message,
+        }),
+      );
+      this._emit({ ...cfg, notify_automation_id: automationId, notify_enabled: true });
+      await setAutomationEnabled(this.hass, automationId, true);
+      this._notifyStatus = "success";
+    } catch (e) {
+      this._notifyStatus = "error";
+      this._notifyDetail = String(e).slice(0, 160);
+    } finally {
+      this._notifyBusy = false;
+    }
+  }
+
   private _addCamera = (): void => {
     const used = new Set(this._cameras.map((c) => c.camera));
     const free = Object.keys(this.hass?.states ?? {}).find((id) => id.startsWith("camera.") && !used.has(id));
@@ -340,6 +429,46 @@ export class M3CameraCardEditor extends LitElement implements LovelaceCardEditor
             (e) => this._valueChanged(e),
           ),
         )}
+        ${this._panel(
+          this._t("editor_camera_notify"),
+          "mdi:bell-outline",
+          html`
+            ${renderNotifyControls({
+              hass: this.hass,
+              language: this._language,
+              enabled: c.notify_enabled ?? false,
+              automationId: c.notify_automation_id,
+              busy: this._notifyBusy,
+              status: this._notifyStatus,
+              detail: this._notifyDetail,
+              onToggle: (enabled) => void this._toggleNotify(enabled),
+              onSetup: () => void this._setupNotify(),
+            })}
+            ${form(
+              {
+                notify_service: c.notify_service ?? [],
+                notify_detections: c.notify_detections === true,
+                notify_cooldown: c.notify_cooldown ?? DEFAULT_NOTIFY_COOLDOWN_MIN,
+                notify_snapshot: c.notify_snapshot !== false,
+                notify_title: c.notify_title ?? "",
+                notify_message: c.notify_message ?? "",
+              },
+              [
+                notifyServiceSchema(this.hass),
+                { name: "notify_detections", selector: { boolean: {} } },
+                ...(c.notify_detections
+                  ? [{ name: "notify_cooldown", selector: { number: { min: 0, max: 120, mode: "box", unit_of_measurement: "min" } } }]
+                  : []),
+                { name: "notify_snapshot", selector: { boolean: {} } },
+                notifyTitleSchema(),
+                notifyMessageSchema(),
+              ],
+              (e) => this._valueChanged(e),
+            )}
+            <p class="hint">${this._t("editor_camera_notify_hint")}</p>
+            <p class="hint">${notifyTokenHint(this._language, ["kamera", "ereignis"])}</p>
+          `,
+        )}
         ${renderAppearanceSection({
           hass: this.hass,
           language: this._language,
@@ -359,6 +488,7 @@ export class M3CameraCardEditor extends LitElement implements LovelaceCardEditor
 
   static styles = [
     editorStyles,
+    notifyStyles,
     css`
       .add,
       .remove {

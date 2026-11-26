@@ -25,6 +25,10 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   the doorbell alone, no picture, Open door as the wide button. Asked for on
   Reddit; the live demo has a doorbell and two cameras, with a "Someone rings"
   scenario.
+- **Camera card: notification.** From the editor, a push when the doorbell
+  rings, with the camera's picture on the companion app, and optionally when a
+  person or a parcel is seen, with a pause between those. A restart or an
+  integration coming back is not taken for a ring.
 - **Room card: `folded_sensors`.** A folded card still shows the room at a
   glance: one reading (`[temperature]`, say) as a chip beside the name, or
   with `true` or several kinds the chip row stays under the header and only

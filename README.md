@@ -9270,6 +9270,19 @@ needs no Browser Mod.
 > closed app sees nothing. For a ring you must not miss, use a notification
 > automation as well.
 
+### Notification
+
+The editor's **Notification** section creates a Home Assistant automation that
+pushes a message when the doorbell rings: the camera's name as the title,
+"Someone rang the bell" as the text, and on the companion app the camera's
+picture from that moment. **Also for a person or a parcel** adds the
+`person` and `package` entities; those wait out a pause since the last message
+(`notify_cooldown`, 5 minutes), while a ring always gets through. A restart or
+an integration coming back is never mistaken for a ring. Your own title and
+text can use `{kamera}` (the camera's name) and `{ereignis}` (Doorbell,
+Person, Parcel). Set it up again after adding a camera, so the automation
+knows about it.
+
 ### Events
 
 The timeline reads the history of the camera's event entities over the last
@@ -9424,6 +9437,10 @@ Up to three round buttons sit beside Watch live; more go into a menu.
 | `live_idle_timeout` | number | `60` | Seconds without a touch before live stops |
 | `snapshot_refresh` | number | `10` | Seconds between stills at rest; `0` only on an event |
 | `detail_mode` | `more-info` \| `sheet` | `more-info` | Where the camera and event details open |
+| `notify_enabled`, `notify_service`, `notify_title`, `notify_message` | — | — | The notification above. Off until switched on in the editor. |
+| `notify_detections` | boolean | `false` | Also notify for a person or a parcel |
+| `notify_cooldown` | number | `5` | Minutes between two detection messages |
+| `notify_snapshot` | boolean | `true` | The camera's picture in the push (companion app) |
 | `accent_color`, `text_color`, `secondary_text_color`, `card_background`, `glass_background`, `radius`, `corners`, `animation`, `card_version` | — | — | The usual shared appearance options. |
 
 </details>
