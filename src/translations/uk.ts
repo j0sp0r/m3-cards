@@ -1239,6 +1239,7 @@ const uk: CustomTranslations = {
   todo_delete_item: "Видалити завдання",
   todo_pick_list: "Вибрати список",
   todo_lists_menu: "Списки",
+  todo_no_lists: "Списків завдань не знайдено",
   camera_default_name: "Камера",
   camera_last: "Останнє: {event} о {time}",
   camera_no_events: "Подій ще немає",

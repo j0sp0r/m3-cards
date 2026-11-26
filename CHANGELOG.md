@@ -37,6 +37,16 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
   `entities` is set. Thanks to @Richard9e98 (#66). The editor no longer marks
   `entity` as required once `entities` names the lists, and the picker speaks
   Ukrainian too.
+- **Todo card: discover every list.** With neither `entity` nor `entities`, the
+  card offers every `todo.*` list it can find in the same drop-down, sorted by
+  name, and a list added later appears without reloading. The shared
+  `include_area` / `exclude_area`, `include_labels` / `exclude_labels` and
+  `exclude_entities` options narrow it, as in the battery card, resolved from the
+  states and registries the frontend already holds, so it works for users
+  without admin rights. Hidden lists are left out, as in the other discovering
+  cards; naming one in `entities` shows it. A pick is kept per filter, so a new
+  list does not make it vanish. A card with neither option used to be an
+  error, so no existing card changes meaning. Thanks to @Richard9e98 (#67).
 - **Climate card: swing.** `show_swing_modes` (up/down) and
   `show_swing_horizontal_modes` (left/right) set where an air conditioner's
   vanes point: each axis is a button with its arrow and the current value that
@@ -70,17 +80,6 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 - **Room card: the banner picture is tappable** and does what the header does,
   folding the card or running its `tap_action` (#43).
-
-- **Todo card: discover every list.** With neither `entity` nor `entities`, the
-  card offers every `todo.*` list it can find in the same drop-down, sorted by
-  name, and a list added later appears without reloading. The shared
-  `include_area` / `exclude_area`, `include_labels` / `exclude_labels` and
-  `exclude_entities` options narrow it, as in the battery card, resolved from the
-  states and registries the frontend already holds, so it works for users
-  without admin rights. Hidden lists are left out, as in the other discovering
-  cards; naming one in `entities` shows it. A pick is kept per filter, so a new
-  list does not make it vanish. A card with neither option used to be an
-  error, so no existing card changes meaning.
 
 ## [2.11.0] – 2026-11-24
 
