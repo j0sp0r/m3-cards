@@ -2,6 +2,7 @@ import type { HomeAssistant, PriceUnit, PricingConfig } from "../types";
 import { getNumberFormat } from "./formatting";
 import { fetchPeriodChangeByEntity } from "./ha-statistics";
 import { getGridEntities } from "./ha-energy";
+import { loadEnergySources } from "./energy-sources";
 
 const DEFAULT_PRICE_STEP = 0.1;
 
@@ -127,31 +128,15 @@ export async function resolveEffectivePrice(
   return totalKwh > 0 ? totalCost / totalKwh : undefined;
 }
 
-interface GridPriceSource {
-  type: string;
-  stat_cost?: string | null;
-}
-interface EnergyPrefsWithCost {
-  energy_sources: GridPriceSource[];
-}
-
-// Reads the recorder cost-statistic IDs HA has already computed for the
-// Energy dashboard's grid source(s) (one per tariff/flow). Returns undefined
-// when no grid source has a price configured yet — HA only starts populating
-// `stat_cost` once a price (fixed or entity-based) is set on the dashboard
-// *and* the recorder has processed at least one statistics interval since,
-// so this can legitimately be undefined for a while after first configuring
-// a price entity.
+// The recorder cost-statistic ids of the Energy dashboard's grid source(s),
+// one per tariff/flow. A grid with a fixed price or a price entity has
+// `stat_cost: null` in the prefs: HA keeps the cost statistic it computes
+// itself under `energy/info` → `cost_sensors` instead, and
+// loadEnergySources() reads both. Undefined when no grid source has a price
+// yet — HA only creates the statistic once a price is set *and* the recorder
+// has processed an interval since, so this can stay undefined for a while
+// after a price is first configured.
 export async function getGridCostEntities(hass: HomeAssistant): Promise<string[] | undefined> {
-  try {
-    const prefs = await hass.callWS<EnergyPrefsWithCost>({ type: "energy/get_prefs" });
-    const costIds = prefs.energy_sources
-      .filter((s) => s.type === "grid")
-      .map((s) => s.stat_cost)
-      .filter((v): v is string => !!v);
-    return costIds.length > 0 ? costIds : undefined;
-  } catch (e) {
-    console.warn("m3-cost-card: failed to load energy preferences", e);
-    return undefined;
-  }
+  const { sources } = await loadEnergySources(hass);
+  return sources?.gridCost.length ? sources.gridCost : undefined;
 }
