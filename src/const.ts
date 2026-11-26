@@ -3478,8 +3478,6 @@ export const CAMERA_SLIDE_SPRING_MS = 460;
 export const CAMERA_DOOR_SPRING_EASING = "cubic-bezier(0.34, 1.4, 0.64, 1)";
 /** Stopping live, the player waits this long at most for the new still under it. */
 export const CAMERA_LIVE_LINGER_MAX_MS = 4000;
-/** Starting live, the still stays on top this long at most before the player shows whatever it has. */
-export const CAMERA_LIVE_START_MAX_MS = 12_000;
 /** Tries again after a still image failed to load, then gives up until the next event. */
 export const CAMERA_IMAGE_RETRY_MS = [10_000, 30_000, 60_000] as const;
 /** Battery pill turns to the error colour below this. */

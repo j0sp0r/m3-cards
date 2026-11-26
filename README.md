@@ -9143,8 +9143,8 @@ placeholder; a still that fails to load is tried again after 10, 30 and 60
 seconds, then not until the next event.
 
 Switching never shows an empty picture: starting live, the still stays until
-the stream shows a frame and then fades into it; stopping, the stream stays
-until the fresh still has loaded under it.
+the stream shows a frame and then fades into it; stopping, the stream's last
+frame becomes the still, until a fresh one has loaded.
 
 The full-screen button uses the browser's full-screen mode, or opens the
 camera's more-info where there is none (Safari on an iPhone).

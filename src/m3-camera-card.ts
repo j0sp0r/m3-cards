@@ -19,7 +19,6 @@ import {
   CAMERA_DOOR_SPRING_EASING,
   CAMERA_DOOR_CLOSING_MS,
   CAMERA_LIVE_LINGER_MAX_MS,
-  CAMERA_LIVE_START_MAX_MS,
   CAMERA_SLIDE_HANDLE,
   CAMERA_SLIDE_HEIGHT,
   CAMERA_SLIDE_PAD,
@@ -136,22 +135,37 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
   private _controller = new LiveController((live) => {
     // Stopping live: the player stays up until the fresh still has loaded
     // under it, so the picture never drops to an empty stage in between.
+    // Best of all, the stream's last frame becomes the still at once, and a
+    // fresh one replaces it only once it has loaded — a camera busy streaming
+    // may well fail its snapshot just then.
+    let froze = false;
     if (!live && this._live && this._streamPlaying) {
-      this._lingering = true;
-      if (this._lingerTimer !== undefined) window.clearTimeout(this._lingerTimer);
-      this._lingerTimer = window.setTimeout(() => this._endLinger(), CAMERA_LIVE_LINGER_MAX_MS);
+      const frame = this._grabFrame();
+      if (frame) {
+        this._frozen = frame;
+        this._stillAt = Date.now();
+        this._imgError = false;
+        this._streamPlaying = false;
+        froze = true;
+      } else {
+        this._lingering = true;
+        if (this._lingerTimer !== undefined) window.clearTimeout(this._lingerTimer);
+        this._lingerTimer = window.setTimeout(() => this._endLinger(), CAMERA_LIVE_LINGER_MAX_MS);
+      }
     }
     this._live = live;
     if (live) this._endLinger();
     else this._tick++;
+    if (froze) this._preloadStill();
   }, DEFAULT_CAMERA_LIVE_IDLE_S * 1000);
+  /** The stream's last frame, shown as the still until a fresh one has loaded. */
+  @state() private _frozen?: string;
   /** The live player shows a picture; until then the still stays on top. */
   @state() private _streamPlaying = false;
   /** Live has stopped, and the player waits for the new still to load under it. */
   @state() private _lingering = false;
   private _lingerTimer?: number;
   private _playWatch?: number;
-  private _playWatchSince = 0;
   private _historyLoaded = new Set<string>();
   private _historyLoading = new Set<string>();
   /** The ring each camera last acted on, so a ring is handled once. */
@@ -278,7 +292,11 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     const seconds = this._config?.snapshot_refresh ?? DEFAULT_CAMERA_SNAPSHOT_REFRESH_S;
     if (seconds <= 0) return;
     this._refreshTimer = window.setInterval(() => {
-      if (this._onScreen && this._tabVisible && !this._live && !this._imgError) this._tick++;
+      if (!this._onScreen || !this._tabVisible || this._live) return;
+      if (this._frozen) {
+        this._tick++;
+        this._preloadStill();
+      } else if (!this._imgError) this._tick++;
     }, seconds * 1000);
   }
 
@@ -483,6 +501,7 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     if (camera === this._selected) return;
     this._controller.stop();
     this._endLinger();
+    this._frozen = undefined;
     this._selected = camera;
     this._imgFailures = 0;
     this._imgError = false;
@@ -813,6 +832,46 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     if (this._lingering) this._endLinger();
   };
 
+  /** The live video's current frame as an image, if there is one to take. */
+  private _grabFrame(): string | undefined {
+    const player = this.renderRoot.querySelector(".stage .live");
+    let video: HTMLVideoElement | undefined;
+    const walk = (n: Element | ShadowRoot | null | undefined, depth: number): void => {
+      if (!n || video || depth > 12) return;
+      if (n instanceof HTMLVideoElement) {
+        video = n;
+        return;
+      }
+      if (n instanceof Element && n.shadowRoot) walk(n.shadowRoot, depth + 1);
+      for (const child of Array.from(n.children)) walk(child, depth + 1);
+    };
+    walk(player, 0);
+    const v = video as HTMLVideoElement | undefined;
+    if (!v || !v.videoWidth) return undefined;
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = v.videoWidth;
+      canvas.height = v.videoHeight;
+      canvas.getContext("2d")?.drawImage(v, 0, 0);
+      return canvas.toDataURL("image/jpeg", 0.85);
+    } catch {
+      // A video from another origin cannot be read; the player lingers instead.
+      return undefined;
+    }
+  }
+
+  /** Loads the current still out of sight; once it is in, it replaces the frozen frame. */
+  private _preloadStill(): void {
+    const frozen = this._frozen;
+    const url = snapshotUrl(this.hass?.states[this._camera?.camera ?? ""]?.attributes.entity_picture as string | undefined, this._tick);
+    if (!frozen || !url) return;
+    const img = new Image();
+    img.onload = () => {
+      if (this._frozen === frozen) this._frozen = undefined;
+    };
+    img.src = url;
+  }
+
   private _endLinger(): void {
     if (this._lingerTimer !== undefined) window.clearTimeout(this._lingerTimer);
     this._lingerTimer = undefined;
@@ -829,11 +888,11 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
       return;
     }
     if (this._playWatch !== undefined) return;
-    this._playWatchSince = Date.now();
     this._playWatch = window.setInterval(() => {
+      // No time limit: a player without a frame would only show an empty
+      // stage, so the still stays, with "Starting live view …", until it has one.
       const el = this.renderRoot.querySelector(".stage .live");
-      const timedOut = Date.now() - this._playWatchSince > CAMERA_LIVE_START_MAX_MS;
-      if (!el || playerShowsPicture(el as never, true) || timedOut) {
+      if (!el || playerShowsPicture(el as never, true)) {
         window.clearInterval(this._playWatch);
         this._playWatch = undefined;
         if (el) this._streamPlaying = true;
@@ -998,11 +1057,11 @@ export class M3CameraCard extends TemplatedCard(LitElement) implements LovelaceC
     // whenever there is one, and the player over it, see-through until it
     // shows a picture. Stopping, the player stays until the new still is in.
     const showPlayer = mayStream && !unavailable && mode !== "image" && this._streamReady && (streaming || this._lingering);
-    const showStill = !unavailable && !!url && !this._imgError;
+    const showStill = !unavailable && (!!this._frozen || (!!url && !this._imgError));
     const playerClass = `live ${this._streamPlaying ? "playing" : ""}`;
     const picture = html`
       ${showStill
-        ? html`<img class="still" src=${url!} alt=${this._cameraName(cam)} @load=${this._imgLoaded} @error=${this._imgFailed} />`
+        ? html`<img class="still" src=${this._frozen ?? url!} alt=${this._cameraName(cam)} @load=${this._imgLoaded} @error=${this._imgFailed} />`
         : showPlayer
           ? nothing
           : html`<div class="placeholder">
