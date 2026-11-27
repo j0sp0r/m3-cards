@@ -666,6 +666,9 @@ export class M3GaugeCard extends TemplatedCard(LitElement) implements LovelaceCa
         width: 100%;
         max-width: 340px;
         margin: 0 auto;
+        /* The readout scales with the dial, so a half-width card's value
+           stays inside the arc instead of running over its ends. */
+        container-type: inline-size;
       }
       .dial-svg {
         display: block;
@@ -707,20 +710,20 @@ export class M3GaugeCard extends TemplatedCard(LitElement) implements LovelaceCa
         text-align: center;
       }
       .dial-value {
-        font-size: 34px;
+        font-size: clamp(18px, 11cqi, 34px);
         font-weight: 700;
         line-height: 1.05;
         color: var(--m3p-text);
         font-variant-numeric: tabular-nums;
       }
       .dial-unit {
-        font-size: 16px;
+        font-size: clamp(11px, 5cqi, 16px);
         font-weight: 500;
         margin-left: 3px;
         opacity: 0.75;
       }
       .dial-secondary {
-        font-size: 13px;
+        font-size: clamp(11px, 4.4cqi, 13px);
         color: var(--m3p-secondary-text);
         margin-top: 2px;
       }

@@ -487,6 +487,7 @@ const nlBe: CustomTranslations = {
   editor_energy_show_projection: "Voorspelling tonen",
   editor_energy_show_average: "Gemiddelde lijn tonen",
   editor_y_axis: "Y-as",
+  editor_usage_show_self: "Zelfvoorziening (alleen met zonnepanelen of batterij)",
   editor_energy_show_comparison: "Vergelijking tonen",
   editor_energy_higher_is_better: "Hoger is beter (bv. opwekking in plaats van verbruik)",
   editor_energy_comparison_better_color: "Kleur voor \"Beter\" (vergelijkingschip)",

@@ -104,6 +104,12 @@ Versionierung folgt [SemVer](https://semver.org/lang/de/).
 
 ### Fixed
 
+- **Gauge card (`style: needle`) in a half-width slot.** The value kept its
+  full size and ran over the ends of the arc; it now scales with the dial.
+  A full-width gauge looks as before.
+- **Energy usage card: no "0 % self-sufficient" without solar.** The chip only
+  shows when the energy dashboard has solar or a battery, and
+  `show_self_sufficiency: false` hides it altogether.
 - **Waste card: a state it cannot read is no longer a day count.** A date
   state such as `2026-11-26` came out as "in 2026 days", the year read as a
   number of days.

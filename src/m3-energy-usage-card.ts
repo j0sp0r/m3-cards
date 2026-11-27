@@ -558,7 +558,10 @@ export class M3EnergyUsageCard extends TemplatedCard(LitElement) implements Love
     const shownPeriod = data?.period ?? p;
     const usages = data ? data.buckets.map(splitUsage) : [];
     const total = data ? sumUsage(usages) : undefined;
-    const self = total ? selfSufficiency(total) : undefined;
+    // Self-sufficiency means something only with a source of your own: without
+    // solar or a battery it would read "0 %" for good.
+    const ownSource = !!(this._sources?.solar.length || this._sources?.batteryFrom.length);
+    const self = total && ownSource && cfg.show_self_sufficiency !== false ? selfSufficiency(total) : undefined;
     const hero = total ? scaleEnergy(total.total) : undefined;
     const animate = shouldAnimate(cfg.animation) && !isReducedMotion();
     const { textColorCss, secondaryTextColorCss, cardBackgroundCss } = resolveCommonColors(cfg);

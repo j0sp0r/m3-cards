@@ -2473,6 +2473,8 @@ export interface M3EnergyUsageCardConfig extends DetailModeConfig, NotifyConfigB
   /** Round values and dashed lines beside the bars. Default false. */
   y_axis?: boolean;
   show_table?: boolean;
+  /** The self-sufficiency chip. Shown only with solar or a battery. Default true. */
+  show_self_sufficiency?: boolean;
   /** Rows per device from the energy dashboard's individual devices. */
   show_devices?: boolean;
   max_devices?: number;

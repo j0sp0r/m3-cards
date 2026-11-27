@@ -504,6 +504,7 @@ const uk: CustomTranslations = {
   editor_energy_show_projection: "Показати прогноз",
   editor_energy_show_average: "Показати середню лінію",
   editor_y_axis: "Вісь Y",
+  editor_usage_show_self: "Самозабезпечення (лише із сонячними панелями або акумулятором)",
   editor_energy_show_comparison: "Показати порівняння",
   editor_energy_higher_is_better: "Чим вище, тим краще (наприклад, виробництво замість споживання)",
   editor_energy_comparison_better_color: "«Кращий» колір (схема порівняння)",

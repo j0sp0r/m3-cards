@@ -80,6 +80,7 @@ text: `{zeitraum}`, `{verbrauch}`, `{netz}`, `{solar}`, `{akku}`,
 | `period` | `day` \| `week` \| `month` \| `year` | `day` | The period on first load |
 | `periods` | list | `[day, week, month]` | What the segmented button offers |
 | `show_date` / `show_graph` / `show_table` | boolean | `true` | The three parts |
+| `show_self_sufficiency` | boolean | `true` | The "self-sufficient" chip. It only appears with solar or a battery on the energy dashboard |
 | `y_axis` | boolean | `false` | Values and dashed lines beside the bars, on round steps, the unit at the top |
 | `show_devices` / `max_devices` | boolean / number | `false` / `10` | Rows for the dashboard's individual devices, largest first |
 | `collection_key` | string | `default` | Cards with the same key share their period |
