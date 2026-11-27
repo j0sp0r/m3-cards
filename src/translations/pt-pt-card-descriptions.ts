@@ -19,7 +19,7 @@ export const portuguesePtCardDescriptions = new Map([
   ["m3-detail-card", "Valor em destaque, evolução ao longo do período escolhido e outras entidades do mesmo dispositivo."],
   ["m3-energy-card", "Gráfico de barras de energia por dia, hora ou mês, com previsão para a produção solar."],
   ["m3-energy-flow-card", "Diagrama dos fluxos de energia de hoje entre os painéis solares, a rede elétrica e a casa."],
-  ["m3-energy-usage-card", "Consumo do painel de energia por dia, semana ou mês, com seleção de data, barras empilhadas e custos por fonte."],
+  ["m3-energy-usage-card", "Consumo registado no painel de energia por dia, semana ou mês, com seleção de data, barras empilhadas e custos por fonte."],
   ["m3-gauge-card", "Indicador semicircular para comparar dois valores, por exemplo importação e injeção na rede."],
   ["m3-group-card", "Agrupa vários cartões numa superfície comum, por exemplo várias filas de botões compactos."],
   ["m3-heading-card", "Título de secção entre cartões, com opções de estado, ação, separador e recolha."],
