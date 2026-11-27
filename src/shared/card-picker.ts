@@ -1,5 +1,6 @@
 import { resolveLang } from "../localize";
 import { dutchBeCardDescriptions } from "../translations/nl-be-card-descriptions";
+import { portuguesePtCardDescriptions } from "../translations/pt-pt-card-descriptions";
 import { ukrainianCardDescriptions } from "../translations/uk-card-descriptions";
 import type { HomeAssistant } from "../types";
 
@@ -15,7 +16,8 @@ export function localizeCardPickerDescriptions(): void {
   for (const card of customCards ?? []) {
     const ukrainian = ukrainianCardDescriptions.get(card.type);
     const dutchBe = dutchBeCardDescriptions.get(card.type);
-    if (!ukrainian && !dutchBe) continue;
+    const portuguesePt = portuguesePtCardDescriptions.get(card.type);
+    if (!ukrainian && !dutchBe && !portuguesePt) continue;
     const original = Object.getOwnPropertyDescriptor(card, "description");
     if (!original?.configurable || typeof original.value !== "string") continue;
 
@@ -29,6 +31,7 @@ export function localizeCardPickerDescriptions(): void {
         const lang = resolveLang(hass?.locale?.language ?? hass?.language);
         if (lang === "uk" && ukrainian) return ukrainian;
         if (lang === "nl-BE" && dutchBe) return dutchBe;
+        if (lang === "pt-PT" && portuguesePt) return portuguesePt;
         return fallback;
       },
       set(value: string | undefined) {

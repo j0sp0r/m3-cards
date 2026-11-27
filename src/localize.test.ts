@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { localize, type CustomTranslationRegistry, type TranslationKey } from "./localize";
 import nlBe from "./translations/nl-be";
+import ptPt from "./translations/pt-pt";
 import uk from "./translations/uk";
 
 /**
@@ -245,13 +246,16 @@ describe("Ukrainian translation placeholders", () => {
   });
 });
 
-describe("Belgian Dutch translation placeholders", () => {
+describe.each([
+  { name: "Belgian Dutch", language: "nl-BE", strings: nlBe },
+  { name: "European Portuguese", language: "pt-PT", strings: ptPt },
+])("$name translation placeholders", ({ language, strings }) => {
   it("preserves the placeholders used by the English strings", () => {
     const placeholders = /\{[a-z_]+\}|\[\[[a-z_]+\]\]/g;
-    const mismatches = (Object.keys(nlBe) as TranslationKey[]).filter((key) => {
+    const mismatches = (Object.keys(strings) as TranslationKey[]).filter((key) => {
       const english = localize(key, "en").match(placeholders) ?? [];
-      const dutchBe = localize(key, "nl-BE").match(placeholders) ?? [];
-      return english.sort().join() !== dutchBe.sort().join();
+      const localized = localize(key, language).match(placeholders) ?? [];
+      return english.sort().join() !== localized.sort().join();
     });
     expect(mismatches).toEqual([]);
   });
