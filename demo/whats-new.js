@@ -6,7 +6,7 @@
 
 export const WHATS_NEW = {
   version: "2.12.0",
-  date: "2026-11-26",
+  date: "2026-11-27",
   /** The release in a sentence or two, for the head of the page. */
   summary: {
     en: "Cameras and doorbells: card 60 shows any camera, rings with the doorbell and opens the door with a slide or a lock that springs open and shuts again. Bins fit in a row, a tile or a pill, a folded room still shows its sensors, and the cards now speak Dutch as well.",
